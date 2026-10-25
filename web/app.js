@@ -44,13 +44,25 @@ function onMessage(m) {
   switch (m.type) {
     case "ready":
       state.ready = true;
-      setStatus("ok", `${m.device} · ${m.model}${m.translator !== "none" ? " · " + m.translator : ""}`);
+      state.models = `${m.device} · ${m.model}${m.translator !== "none" ? " · " + m.translator : ""}`;
+      renderPower();
       state.voice = m.voice;
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
       send({ type: "library" });
       break;
     case "library":
       libraryUpdate(m);
+      break;
+    case "queue":
+      queueUpdate(m);
+      break;
+    case "power":
+      state.power = m.state;
+      renderPower();
+      break;
+    case "yt_queued":
+      setStatus(...baseStatus);
+      $("#yt-url").value = "";
       break;
     case "transcript":
       if (m.id !== state.videoId) return;
@@ -158,8 +170,20 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   vEs.src = src;
   stopDub();
   dubBuf.clear();
-  prepareAhead(audioSrc || src);
+  // videos guardados en el servidor (YouTube o copia en la biblioteca): los procesa
+  // la cola del servidor desde el punto de reproducción. Archivos recién abiertos
+  // (aún sin copia): el navegador envía su audio por delante.
+  const rel = src.replace(location.origin, "");
+  state.serverSide = !!audioSrc || /^\/media\/(yt|lib)\//.test(rel);
+  if (state.serverSide) {
+    feeder.run++;
+    feeder.pcm = null;
+    state.ahead = true;
+  } else {
+    prepareAhead(src);
+  }
   readiness.hist = [];
+  readiness.need = null;
   libOnOpen({ id, name, ...opts });
   setView("player");
   $("#file-name").textContent = name;
@@ -168,6 +192,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   renderTimeline();
   renderCaptions();
   send({ type: "open", id, name });
+  if (state.serverSide) send({ type: "watch", video: id, t: opts.position || 0 });
 }
 
 $("#file").addEventListener("change", async (e) => {
@@ -365,6 +390,7 @@ const dubFrontier = () => frontier((s) => s.dub || !s.translation);
 setInterval(() => { if (state.videoId) send({ type: "pos", t: vEn.currentTime }); }, 1000);
 
 function feederSeek(t) {
+  if (state.serverSide) { send({ type: "pos", t }); return; }  // la cola salta con el video
   if (!state.ahead || isCovered(t)) return;
   // dentro del tramo que se está enviando no hace falta reiniciar
   if (t >= feeder.spanStart - 0.5 && t <= feeder.pos + 0.5) return;
@@ -394,7 +420,7 @@ setInterval(() => {
   const f = readyFrontier();
   const now = performance.now() / 1000;
   readiness.hist.push([now, f]);
-  while (readiness.hist.length > 2 && now - readiness.hist[0][0] > 20) readiness.hist.shift();
+  while (readiness.hist.length > 2 && now - readiness.hist[0][0] > 30) readiness.hist.shift();
   // velocidad de procesamiento (segundos de video listos por segundo): pendiente de
   // una regresión sobre los últimos 20 s, para no confundir un salto con velocidad
   const h = readiness.hist;
@@ -410,12 +436,20 @@ setInterval(() => {
   const left = end - t;
   // margen: corto si el procesamiento le gana al video; si no, lo que se perdería hasta el final
   const MIN_LEAD = 12;
+  // si el procesamiento va más lento que el video, el margen cubre lo que se perdería
+  // en los próximos minutos (no en todo el video: con una pausa breve del doblaje
+  // la velocidad medida cae y el porcentaje se desplomaba)
   let need = 20;
-  if (rate !== null) need = rate >= 1.1 ? MIN_LEAD : Math.min(left, left * (1 - rate / 1.1) + MIN_LEAD);
+  if (rate !== null) need = rate >= 1 ? MIN_LEAD : MIN_LEAD + Math.min(left, 300) * (1 - rate);
+  readiness.need = readiness.need == null ? need : readiness.need * 0.8 + need * 0.2;
+  need = Math.max(MIN_LEAD, Math.min(readiness.need, left));
   const lead = f - t;
   const ok = f >= end - 1 || lead >= need;
   box.dataset.state = ok ? "ok" : "wait";
-  box.querySelector("span").textContent = ok ? "Listo para reproducir" : `Preparando ${Math.min(99, Math.round(lead / need * 100))} %`;
+  // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
+  box.querySelector("span").textContent = ok ? "Listo para reproducir"
+    : state.power === "cargando" ? "Cargando modelos"
+    : `Preparando ${Math.min(99, Math.round(lead / need * 100))} %`;
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
   // mientras se reproduce y va bien, el indicador no estorba
   box.hidden = ok && !vEn.paused;
@@ -640,6 +674,9 @@ function renderCaptions() {
   capEn.classList.toggle("hidden", !c && !tt);
   capEs.querySelector(".c").textContent = es;
   capEs.classList.toggle("hidden", !es);
+  const wide = $("#cap-es-wide");
+  wide.querySelector(".c").textContent = es;
+  wide.classList.toggle("hidden", !es);
 }
 
 function fmt(t) {
@@ -733,3 +770,26 @@ function renderHead() {
 vEn.addEventListener("loadedmetadata", renderTimeline);
 
 connect();
+
+/* ------------------------------------------------------------ reposo */
+function renderPower() {
+  if (!state.ready) return;
+  const p = state.power || "reposo";
+  if (p === "reposo") setStatus("sleep", "reposo");
+  else if (p === "cargando") setStatus("busy", "cargando modelos");
+  else setStatus("ok", state.models || "GPU");
+}
+
+/* ------------------------------------------------------------ vista ampliada / dividida */
+function setLayout(wide) {
+  document.body.classList.toggle("layout-wide", wide);
+  $("#layout").textContent = wide ? "Ver dividido" : "Ver ampliado";
+  try { localStorage.setItem("layout", wide ? "wide" : "split"); } catch (e) { /* sin almacenamiento */ }
+  renderActive(true);
+}
+$("#layout").addEventListener("click", () => setLayout(!document.body.classList.contains("layout-wide")));
+(() => {
+  let saved = null;
+  try { saved = localStorage.getItem("layout"); } catch (e) { /* sin almacenamiento */ }
+  setLayout(saved !== "split");  // por defecto, la vista ampliada
+})();

@@ -10,6 +10,7 @@ navegador). Se guarda un JSON por video con:
 
 import json
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -30,6 +31,7 @@ class Transcript:
     def __init__(self, path: Path, data: dict):
         self.path = path
         self.data = data
+        self._lock = threading.Lock()  # la vista y la cola en segundo plano pueden escribir a la vez
 
     @property
     def segments(self) -> list[dict]:
@@ -75,10 +77,11 @@ class Transcript:
             self.data["covered"] = merge_ranges(self.covered + [[a, b]])
 
     def save(self):
-        self.data["updated"] = time.time()
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self.data, ensure_ascii=False, indent=1), encoding="utf-8")
-        tmp.replace(self.path)
+        with self._lock:
+            self.data["updated"] = time.time()
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.data, ensure_ascii=False, indent=1), encoding="utf-8")
+            tmp.replace(self.path)
 
     def public(self) -> dict:
         return {"id": self.data["id"], "segments": self.segments, "covered": self.covered}

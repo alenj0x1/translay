@@ -2,7 +2,8 @@
 // Biblioteca: videos traducidos y colecciones. Usa lo global de app.js
 // ($, state, send, loadVideo, vEn).
 
-const lib = { videos: {}, collections: [], sel: "recent", promptSave: false };
+const lib = { videos: {}, collections: [], sel: "recent", promptSave: false,
+  queue: { paused: false, current: null, jobs: [] } };
 
 /* ------------------------------------------------------------ vista */
 function setView(view) {
@@ -11,6 +12,7 @@ function setView(view) {
   $("#view").hidden = view === "library" && !state.videoId;
   if (view === "library") {
     if (!vEn.paused) vEn.pause();
+    send({ type: "unwatch" });
     send({ type: "library" });
     renderLibrary();
   }
@@ -107,6 +109,9 @@ function card(v, coll) {
       el("button", { class: "btn", type: "button", text: "Ver", disabled: !v.media,
         title: v.media ? null : "La copia del archivo aún no está en la biblioteca",
         on: { click: () => playFromLibrary(v) } }),
+      canProcess(v) ? el("button", { class: "btn ghost", type: "button", text: "Procesar",
+        title: "Traducir y doblar en segundo plano",
+        on: { click: () => send({ type: "queue_add", video: v.id }) } }) : null,
       coll.kind === "propia" ? el("button", { class: "btn ghost", type: "button", text: "Quitar",
         on: { click: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) } }) : null));
 }
@@ -116,6 +121,67 @@ function playFromLibrary(v) {
   loadVideo(v.media, v.id, v.title, v.audio, { fromLibrary: true, position: resume });
   setView("player");
 }
+
+function canProcess(v) {
+  const job = lib.queue.jobs.find((j) => j.id === v.id);
+  const inQueue = job && (job.state === "en cola" || job.state === "procesando");
+  return !!v.media && !inQueue && (!v.progress || v.progress.dub < 0.97);
+}
+
+/* ------------------------------------------------------------ cola en segundo plano */
+function queueUpdate(m) {
+  const before = lib.queue.jobs.map((j) => j.id + j.state).join();
+  lib.queue = m;
+  // al terminar o cambiar un trabajo, refrescar el avance de las tarjetas
+  if (before !== m.jobs.map((j) => j.id + j.state).join()) send({ type: "library" });
+  renderQueuePanel();
+}
+
+// Panel de la cola (como las descargas del navegador): lo que se procesa ahora,
+// lo que espera y lo terminado.
+function renderQueuePanel() {
+  const q = lib.queue;
+  const active = q.jobs.filter((j) => j.state === "en cola" || j.state === "procesando");
+  const badge = $("#queue-badge");
+  badge.textContent = String(active.length);
+  badge.hidden = !active.length;
+  $("#queue-btn").classList.toggle("busy", q.jobs.some((j) => j.state === "procesando"));
+  const running = q.jobs.find((j) => j.state === "procesando");
+  $("#queue-state").textContent = q.paused
+    ? (running && running.watching ? "en pausa · sigue el video que ves" : "en pausa · reposo")
+    : running ? "procesando" : active.length ? "en espera" : "sin trabajos · reposo";
+  $("#queue-toggle").textContent = q.paused ? "Reanudar" : "Pausar";
+  $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error");
+  const ul = $("#queue-list");
+  ul.replaceChildren();
+  if (!q.jobs.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola" }));
+  for (const j of q.jobs) {
+    const v = lib.videos[j.id] || { id: j.id, title: j.id };
+    const pct = Math.round(j.dub * 100);
+    const label = j.state === "listo" ? "listo"
+      : j.state === "error" ? "error"
+      : j.state === "procesando" ? (j.watching ? `viendo · ${pct} %` : `${pct} %`)
+      : q.paused && !j.watching ? "en pausa" : "en espera";
+    ul.append(el("li", { class: "qitem" + (j.state === "procesando" ? " run" : "") },
+      el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "" }) : null),
+      el("div", { class: "qbody" },
+        el("strong", { text: v.title || j.id }),
+        el("div", { class: "qbar" }, Object.assign(el("i"), { style: `width:${pct}%` })),
+        el("small", { text: j.error || label })),
+      el("div", { class: "qactions" },
+        el("button", { class: "btn", type: "button", text: "Ver", disabled: !v.media,
+          on: { click: () => { closeQueue(); playFromLibrary(v); } } }),
+        el("button", { class: "btn ghost", type: "button", text: "Quitar",
+          on: { click: () => send({ type: "queue_remove", video: j.id }) } }))));
+  }
+}
+function openQueue() { renderQueuePanel(); $("#queue-pop").hidden = false; }
+function closeQueue() { $("#queue-pop").hidden = true; }
+$("#queue-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#queue-pop").hidden ? openQueue() : closeQueue(); });
+$("#queue-pop").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", closeQueue);
+$("#queue-toggle").addEventListener("click", () => send({ type: lib.queue.paused ? "queue_resume" : "queue_pause" }));
+$("#queue-clear").addEventListener("click", () => send({ type: "queue_clear" }));
 
 /* ------------------------------------------------------------ guardar en colección */
 function renderSaveList() {

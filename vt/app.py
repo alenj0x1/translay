@@ -14,6 +14,8 @@ from .session import Session
 from .store import Store
 from .translate import MODELS as MT_MODELS, load_translator
 from .library import Library
+from .processor import Processor
+from .resources import Resources
 from .youtube import YouTube
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,10 +35,10 @@ def main():
     p.add_argument("--no-browser", action="store_true")
     a = p.parse_args()
 
-    print(f"Cargando {a.model} en {a.device} ({a.compute_type})…", flush=True)
+    print(f"Preparando {a.model} en {a.device} ({a.compute_type})…", flush=True)
     asr = WhisperASR(a.model, a.device, a.compute_type, a.beam)
     asr.warmup()
-    print(f"Cargando traductor {a.translator}…", flush=True)
+    print(f"Preparando traductor {a.translator}…", flush=True)
     translator = load_translator(a.translator, a.device)
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
@@ -84,19 +86,49 @@ def main():
         out.write_bytes(data[: 2 << 20])
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
         return 200, "OK"
-    dubber, tts_exec = None, None
+    dubber, tts = None, None
     if a.voice != "none":
         from .dub import Dubber
         from .tts import TTSClient
 
-        print(f"Cargando voz {a.voice}…", flush=True)
-        dubber = Dubber(TTSClient(a.voice, a.device), ROOT / "data")
-        tts_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
+        tts = TTSClient(a.voice, a.device, lazy=True)  # el proceso de voz arranca al primer uso
+        dubber = Dubber(tts, ROOT / "data")
+    tts_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
     info = {"model": a.model, "device": "GPU" if a.device == "cuda" else a.device.upper(),
             "translator": translator.name, "voice": a.voice}
 
+    # avisos para todas las pestañas abiertas (cola, reposo, avance en segundo plano)
+    sessions: set = set()
+    loop_ref: dict = {}
+
+    def notify(msg: dict):
+        loop = loop_ref.get("loop")
+        if not loop:
+            return
+
+        def send_all():
+            for sess in list(sessions):
+                out = sess.forward_bg(msg)
+                if out is not None:
+                    asyncio.ensure_future(sess.ws.send_json(out))
+
+        loop.call_soon_threadsafe(send_all)
+
+    res = Resources(asr, translator, tts, on_change=lambda st: notify({"type": "power", "state": st}))
+    # arranca en reposo: la preparación cargó los modelos para verificarlos; vuelven a la RAM
+    asr.unload()
+    translator.unload()
+    processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify)
+
     async def ws_handler(ws):
-        await Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library).run()
+        loop_ref["loop"] = asyncio.get_running_loop()
+        session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
+                          processor)
+        sessions.add(session)
+        try:
+            await session.run()
+        finally:
+            sessions.discard(session)
 
     (ROOT / "data" / "audio").mkdir(parents=True, exist_ok=True)
     server = AppServer({"/samples/": ROOT / "samples", "/audio/": ROOT / "data" / "audio",

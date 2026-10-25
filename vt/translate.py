@@ -34,6 +34,12 @@ class Translator(Protocol):
 class NullTranslator:
     name = "none"
 
+    def load(self):
+        pass
+
+    def unload(self):
+        pass
+
     def translate(self, text: str, context: str = "") -> str | None:
         return None
 
@@ -71,6 +77,15 @@ class CT2Translator:
             self._tok = Tokenizer.from_file(str(path / "tokenizer.json"))
         else:
             raise ValueError(f"familia desconocida: {family}")
+
+    # reposo: los pesos pasan a la RAM y vuelven en ~1 s (ver vt/resources.py)
+    def load(self):
+        if not self.model.model_is_loaded:
+            self.model.load_model()
+
+    def unload(self):
+        if self.model.model_is_loaded:
+            self.model.unload_model(to_cpu=True)
 
     # ----------------------------------------------------------- tokenización
     def _encode(self, text: str) -> list[str]:

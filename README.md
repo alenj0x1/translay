@@ -30,6 +30,18 @@ Al abrir la herramienta se ve la **Biblioteca**: tarjetas con miniatura, nombre,
 - **Colecciones propias**: se crean en la biblioteca o desde "Guardar en…" en el reproductor; al traducir un video nuevo ese panel se abre solo para elegir dónde guardarlo.
 - Los archivos locales se copian a `data/library/` en segundo plano (con su miniatura) para poder volver a verlos desde la biblioteca. Todo se guarda en `data/library.json`.
 
+### Vista ampliada y vista dividida
+
+Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en español abajo, inglés pequeño arriba) y la transcripción al costado. "Ver dividido" vuelve a los dos paneles EN | ES; la elección se recuerda.
+
+### Cola y modo reposo
+
+- **Todo se procesa en una sola cola, en el servidor** (`vt/processor.py`): el video que estás viendo va primero, empieza desde tu punto de reproducción y, si saltas a una parte sin terminar, el procesamiento salta contigo. Al volver a la biblioteca sigue procesándose como una descarga. Los archivos recién abiertos que aún no tienen copia en el servidor los procesa el navegador como antes.
+- **Botón "Cola"** (como las descargas del navegador): lo que se procesa ahora ("viendo" si es el video abierto), lo que espera y lo terminado, con avance, "Ver", "Quitar", "Pausar" / "Reanudar" y "Limpiar terminados". "Procesar" en una tarjeta de la biblioteca agrega un video a la cola. Pausar detiene los trabajos de fondo; el video que estás viendo se sigue procesando.
+- Si un tramo ya reconocido quedó sin traducción o sin voz (un procesamiento que se cortó), la cola lo completa al pasar por ahí, empezando por lo que vas a escuchar.
+- **Modo reposo:** los modelos ocupan la GPU solo mientras se procesa algo. A los 45 s sin uso pasan a la RAM (vuelven en ~1 s); a los 2 min, o al pausar la cola sin nada a la vista, se cierra el proceso de voz y la GPU queda como sin el servidor. Al abrir un video los modelos empiezan a cargar de inmediato (la voz tarda ~15 s desde el reposo profundo).
+- **Memoria de GPU:** Whisper, el traductor y la voz comparten 8 GB. Los cachés de memoria de CTranslate2 (400 MB) y de torch (2.5 GB) están limitados: sin eso la GPU se llenaba, Windows desbordaba a memoria compartida y una frase podía tardar 65 s en vez de 1–2 s. Procesando ocupa ~5.6 GB.
+
 ### Cuándo reproducir
 
 Sobre el video aparece "Preparando NN %" hasta que conviene reproducir y luego "Listo para reproducir". El indicador compara lo ya doblado por delante del punto de reproducción con la velocidad real del procesamiento (regresión sobre los últimos 20 s): si el procesamiento le gana al video basta un margen de 12 s; si no, el margen cubre lo que se perdería hasta el final. Si durante la reproducción el doblaje queda al ras, el indicador vuelve a aparecer.
@@ -50,10 +62,12 @@ voces ◄─ /audio/<video>/<frase>.wav ◄─────── speakers.py   d
                                              store.py      data/transcripts/<huella>.json
                                              youtube.py    descarga con yt-dlp (+ Node), miniatura y categorías
                                              library.py    biblioteca y colecciones (data/library.json)
+                                             processor.py  cola en segundo plano (data/queue.json)
+                                             resources.py  modo reposo: modelos a la RAM / proceso de voz cerrado
 ```
 
 - **Procesamiento adelantado:** el navegador decodifica la pista de audio del archivo y la envía por delante de la reproducción (un bloque por cada confirmación del servidor, ~3× tiempo real). Cuando el video llega a una frase, su subtítulo, traducción y voz ya están listos: la voz suena **sincronizada** (desfase mediano medido 0.08 s). Si un archivo no se puede decodificar, se usa la captura mientras se reproduce (modo intérprete: la voz llega 2–5 s después).
-- **Videos largos:** la cola de voz atiende primero las frases desde el punto de reproducción en adelante, y el reconocimiento no se adelanta más de 25 s a lo ya doblado (comparten la GPU; bloques de 3 s). Cada frase se ajusta al espacio real hasta la siguiente (ritmo hasta ~20 caracteres/s y, si no cabe, WSOLA hasta ×1.25). Probado con un video de YouTube de 28 min: desfase mediano 0.25 s.
+- **Videos largos:** la voz va detrás del reconocimiento por pocas frases (comparten la GPU; bloques de 3 s); al saltar, las voces encargadas que aún no empezaron se cancelan. Cada frase se ajusta al espacio real hasta la siguiente (ritmo hasta ~20 caracteres/s y, si no cabe, WSOLA hasta ×1.25). Probado con un video de YouTube de 28 min: desfase mediano 0.25 s.
 - **Diarización propia** (`vt/speakers.py`): huella de voz por frase (fbank tipo Kaldi propio + WeSpeaker ResNet34 en ONNX, ~10 ms), agrupamiento incremental por similitud coseno. Las frases cortas (< 1.6 s) dan huellas poco fiables: no crean personas ni mueven centroides, y se re-asignan cuando las huellas maduran (la frase se vuelve a doblar con la voz correcta).
 - **Voz de cada persona:** sus mejores fragmentos originales (largos y limpios, hasta 9 s) forman su referencia; OmniVoice clona esa voz en español. Si la referencia es ruidosa (SNR < 20 dB) se limpia con DeepFilterNet antes de clonar.
 - **Duración:** se le pide al motor la duración de la frase original (+10 %, sin bajar de ~17 caracteres/s), así el español calza en su espacio sin deformarse; WSOLA propio queda de respaldo (hasta ×1.3). Sonoridad igualada a la voz original.

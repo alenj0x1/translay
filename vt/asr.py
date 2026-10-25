@@ -45,6 +45,15 @@ class WhisperASR:
         self.model = WhisperModel(MODELS.get(model, model), device=device,
                                   compute_type=compute_type)
 
+    # reposo: los pesos pasan a la RAM y vuelven en ~1 s (ver vt/resources.py)
+    def load(self):
+        if not self.model.model.model_is_loaded:
+            self.model.model.load_model()
+
+    def unload(self):
+        if self.model.model.model_is_loaded:
+            self.model.model.unload_model(to_cpu=True)
+
     def warmup(self):
         self.transcribe(np.zeros(16000, np.float32))
 

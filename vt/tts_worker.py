@@ -121,8 +121,22 @@ class OmniVoice:
             key = (ref, os.path.getmtime(ref))
             if key not in self._prompts:
                 self._prompts[key] = self.model.create_voice_clone_prompt(ref_audio=ref, ref_text=ref_text)
+                while len(self._prompts) > 8:  # las referencias cambian de versión: solo las recientes
+                    self._prompts.pop(next(iter(self._prompts)))
             kw["voice_clone_prompt"] = self._prompts[key]
-        return np.asarray(self.model.generate(**kw)[0], np.float32).reshape(-1)
+        y = np.asarray(self.model.generate(**kw)[0], np.float32).reshape(-1)
+        _trim_gpu_cache()
+        return y
+
+
+def _trim_gpu_cache(limit_gb: float = 2.5):
+    """La GPU (8 GB) se comparte con Whisper y el traductor: si el caché de torch
+    retiene de más tras una frase larga, se devuelve (si no, Windows desborda a
+    memoria compartida y todo se vuelve decenas de veces más lento)."""
+    import torch
+
+    if torch.cuda.is_available() and torch.cuda.memory_reserved() > limit_gb * 2 ** 30:
+        torch.cuda.empty_cache()
 
 
 ENGINES = {"chatterbox": Chatterbox, "voxcpm": VoxCPM, "omnivoice": OmniVoice}
@@ -147,6 +161,20 @@ def main():
             return
         if h.get("op") == "quit":
             return
+        if h.get("op") in ("offload", "onload"):  # reposo: modelo a la RAM y de vuelta
+            try:
+                import torch
+
+                dev = "cpu" if h["op"] == "offload" else args.device
+                for m in (getattr(eng, "model", None), getattr(getattr(eng, "enhancer", None), "model", None)):
+                    if m is not None and hasattr(m, "to"):
+                        m.to(dev)
+                if dev == "cpu":
+                    torch.cuda.empty_cache()
+                write_msg(_OUT, {"ok": True})
+            except Exception as e:
+                write_msg(_OUT, {"ok": False, "error": str(e)})
+            continue
         try:
             y = eng.synth(h["text"], h.get("lang", "es"), h.get("ref"), h.get("ref_text"), h.get("params") or {})
             write_msg(_OUT, {"ok": True, "sr": int(eng.sr)}, np.asarray(y, np.float32).tobytes())

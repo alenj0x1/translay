@@ -7,6 +7,8 @@ Cliente → servidor
   binario: float64 LE (tiempo de medio) + PCM int16 LE mono 16 kHz
   {"type":"seek"|"stop"|"end", "t":<s>}             cierra o descarta lo pendiente
   {"type":"pos", "t":<s>}                            punto de reproducción (orden del doblaje)
+  {"type":"watch", "video":<id>, "t":<s>} / unwatch  video guardado que se está viendo: lo procesa
+                                                     la cola (vt/processor.py) desde ese punto
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
@@ -37,7 +39,7 @@ from .translate import Translator
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
-                 youtube=None, library=None):
+                 youtube=None, library=None, res=None, processor=None):
         self.ws = ws
         self.gpu = gpu
         self.store = store
@@ -56,6 +58,9 @@ class Session:
         self.playhead = 0.0
         self.youtube = youtube
         self.library = library
+        self.res = res
+        self.processor = processor
+        self.watching: str | None = None
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
@@ -64,10 +69,14 @@ class Session:
         if self.dubber:
             self._dub_task = asyncio.create_task(self._dub_worker())
         await self.ws.send_json({"type": "ready", **self.info})
+        await self.ws.send_json({"type": "power", "state": self.res.state})
+        if self.processor:
+            await self.ws.send_json(self.processor.public())
         try:
             while (msg := await self.ws.recv()) is not None:
                 if isinstance(msg, bytes):
                     if len(msg) > 8:
+                        self.res.touch()
                         t = struct.unpack("<d", msg[:8])[0]
                         pcm = np.frombuffer(msg[8:], "<i2").astype(np.float32) / 32768.0
                         self.q.put_nowait(("audio", t, pcm))
@@ -77,10 +86,31 @@ class Session:
                         self.playhead = float(m.get("t", 0))
                         if self.library and self.tr is not None:
                             self.library.position(self.tr.data["id"], self.playhead)
+                        if self.watching and self.processor:
+                            self.processor.position(self.watching, self.playhead)
+                    elif m.get("type") == "watch" and self.processor:
+                        if self.watching and self.watching != m.get("video"):
+                            self.processor.unwatch(self.watching)
+                        self.watching = str(m.get("video"))
+                        self.processor.watch(self.watching, float(m.get("t", 0)))
+                    elif m.get("type") == "unwatch" and self.processor:
+                        if self.watching:
+                            self.processor.unwatch(self.watching)
+                        self.watching = None
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
                         await self._library(m)
+                    elif m.get("type") == "power_info":
+                        import sys as _sys
+                        import threading as _th
+                        import traceback as _tb
+                        names = {t.ident: t.name for t in _th.enumerate()}
+                        stacks = {names.get(i, str(i)): "".join(_tb.format_stack(f)[-4:])
+                                  for i, f in _sys._current_frames().items()}
+                        await self.ws.send_json({"type": "power_info", **self.res.info(), "threads": stacks})
                     elif m.get("type") == "youtube":
-                        asyncio.create_task(self._youtube(m.get("url", "")))
+                        asyncio.create_task(self._youtube(m.get("url", ""), bool(m.get("queue"))))
+                    elif m.get("type", "").startswith("queue_") and self.processor:
+                        await self._queue(m)
                     else:
                         self.q.put_nowait((m.get("type"), m))
         finally:
@@ -90,6 +120,8 @@ class Session:
                 self._backfill.cancel()
             if self._dub_task:
                 self._dub_task.cancel()
+            if self.watching and self.processor:
+                self.processor.unwatch(self.watching)
 
     async def _worker(self):
         while True:
@@ -119,8 +151,8 @@ class Session:
                     if self._backfill:
                         self._backfill.cancel()
                     self._backfill = asyncio.create_task(self._translate_stale(self.tr))
-                    if self.dubber:
-                        self._queue_stale_dubs(self.tr)
+                    # la voz que falte la completa la cola (vt/processor.py) al ver o
+                    # procesar el video: hacerlo también aquí duplicaba el trabajo
             if self.tr is not None and self.st.ready():
                 try:
                     await self._run(self.st.step)
@@ -142,7 +174,7 @@ class Session:
     async def _run(self, fn):
         loop = asyncio.get_running_loop()
         t = time.perf_counter()
-        events = await loop.run_in_executor(self.gpu, fn)
+        events = await loop.run_in_executor(self.gpu, self.res.run, ("asr",), fn)
         ms = (time.perf_counter() - t) * 1000
         tr = self.tr
         if tr is None:
@@ -150,7 +182,8 @@ class Session:
         dirty = False
         for ev in events:
             if isinstance(ev, Segment):
-                translation = await loop.run_in_executor(self.gpu, self.translator.translate, ev.text)
+                translation = await loop.run_in_executor(self.gpu, self.res.run, ("mt",),
+                                                         self.translator.translate, ev.text)
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, translation,
                                               self.translator.name)
                 if self.dubber:
@@ -182,7 +215,8 @@ class Session:
             self._live_src = self._live_es = ""
         elif src != self._live_src:
             loop = asyncio.get_running_loop()
-            self._live_es = await loop.run_in_executor(self.gpu, self.translator.translate, src) or ""
+            self._live_es = await loop.run_in_executor(self.gpu, self.res.run, ("mt",),
+                                                       self.translator.translate, src) or ""
             self._live_src = src
         return self._live_es
 
@@ -193,11 +227,10 @@ class Session:
             return
         loop = asyncio.get_running_loop()
         while self.tr is tr and (todo := tr.stale(name)[:16]):
-            outs = await loop.run_in_executor(self.gpu, self.translator.translate_many,
+            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), self.translator.translate_many,
                                               [s["text"] for s in todo])
             for seg, es in zip(todo, outs):
                 tr.set_translation(seg["id"], es, name)
-                self._queue_dub(1, tr, seg, None)
             tr.save()
             await self.ws.send_json({"type": "translations",
                                      "items": [{"id": s["id"], "translation": es}
@@ -211,6 +244,23 @@ class Session:
         old = self.dub_pending.get(seg["id"])
         self.dub_pending[seg["id"]] = (min(prio, old[0]) if old else prio, tr, orig_db)
         self.dub_event.set()
+
+    def _next_dub(self):
+        """La frase pendiente que antes se va a escuchar."""
+        best, best_key = None, None
+        for sid, (prio, tr, _) in self.dub_pending.items():
+            seg = next((x for x in tr.segments if x["id"] == sid), None)
+            if seg is None:
+                continue
+            ahead = seg["end"] >= self.playhead - 0.5
+            key = (prio, not ahead, seg["start"] if ahead else -seg["start"])
+            if best_key is None or key < best_key:
+                best, best_key = sid, key
+        if best is None:
+            self.dub_pending.clear()
+            return None
+        prio, tr, orig_db = self.dub_pending.pop(best)
+        return prio, tr, best, orig_db
 
     def _next_dub(self):
         """La frase pendiente que antes se va a escuchar."""
@@ -257,7 +307,7 @@ class Session:
             if orig_db is not None:
                 seg["orig_db"] = round(orig_db, 1)
             try:
-                info = await loop.run_in_executor(self.tts_exec, self.dubber.synthesize, tr, seg,
+                info = await loop.run_in_executor(self.tts_exec, self.res.run, ("tts",), self.dubber.synthesize, tr, seg,
                                                   seg.get("orig_db"))
             except Exception:  # una frase fallida no detiene el doblaje
                 traceback.print_exc()
@@ -272,7 +322,7 @@ class Session:
                                      "dur": info["dur"], "live": prio == 0})
 
     # ---------------------------------------------------------------- YouTube
-    async def _youtube(self, url: str):
+    async def _youtube(self, url: str, queue: bool = False):
         loop = asyncio.get_running_loop()
         if not self.youtube:
             await self.ws.send_json({"type": "yt_error", "error": "YouTube no está habilitado"})
@@ -291,6 +341,11 @@ class Session:
                 self.library.register("yt_" + info["id"], source="youtube", media=info["video"],
                                       **{k: info.get(k) for k in ("title", "duration", "audio", "thumb",
                                                                     "channel", "categories")})
+            if queue and self.processor:  # solo a la cola: no se abre para ver
+                self.processor.add("yt_" + info["id"])
+                await self.ws.send_json({"type": "yt_queued", **info})
+                await self._library({"type": "library"})
+                return
             await self.ws.send_json({"type": "yt_ready", **info})
         except Exception as e:
             traceback.print_exc()
@@ -315,4 +370,43 @@ class Session:
             lib.rename(m["coll"], m.get("name", ""))
         elif kind == "coll_delete":
             lib.delete(m["coll"])
-        await self.ws.send_json({"type": "library", **lib.public()})
+        data = lib.public()
+        if self.processor:  # avance de cada video (para "Procesar" y las barras)
+            for vid, v in data["videos"].items():
+                try:
+                    v["progress"] = self.processor.progress(vid)
+                except Exception:
+                    v["progress"] = {"asr": 0, "dub": 0}
+        await self.ws.send_json({"type": "library", **data})
+
+    # --------------------------------------------------------- cola de fondo
+    async def _queue(self, m: dict):
+        kind, vid = m["type"], str(m.get("video", ""))
+        if kind == "queue_add":
+            self.processor.add(vid)
+        elif kind == "queue_remove":
+            self.processor.remove(vid)
+        elif kind == "queue_pause":
+            self.processor.set_paused(True)
+            # pausada y sin ningún video viéndose: reposo profundo inmediato
+            # (también se cierra el proceso de voz: la GPU queda libre)
+            if not self.st._started and not self.processor.focus["vid"]:
+                await asyncio.get_running_loop().run_in_executor(None, self._sleep_when_idle)
+        elif kind == "queue_resume":
+            self.processor.set_paused(False)
+        elif kind == "queue_clear":
+            self.processor.clear_done()
+
+    def _sleep_when_idle(self):
+        # lo que estaba en curso (una traducción o una voz) termina primero
+        for _ in range(60):
+            if self.res.info()["busy"] == 0:
+                break
+            time.sleep(0.5)
+        self.res.sleep(deep=True)
+
+    def forward_bg(self, msg: dict) -> dict | None:
+        """Avance en segundo plano del video que esta pestaña tiene abierto."""
+        if msg.get("type") == "bg":
+            return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
+        return msg

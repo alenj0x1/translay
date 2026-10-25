@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 </head>
-<body class="view-library">
+<body class="view-library layout-wide">
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
   <div class="file" id="file-name"></div>
@@ -24,6 +24,15 @@
     </div>
   </div>
   <button class="btn player-only" id="mode" type="button">Escuchar original</button>
+  <button class="btn player-only" id="layout" type="button">Ver dividido</button>
+  <div class="queue-wrap">
+    <button class="btn" id="queue-btn" type="button">Cola<span class="badge" id="queue-badge" hidden></span></button>
+    <div class="popover queue-pop" id="queue-pop" hidden>
+      <div class="queue-head"><span id="queue-state"></span><button class="btn" id="queue-toggle" type="button"></button></div>
+      <ul id="queue-list"></ul>
+      <button class="btn ghost" id="queue-clear" type="button" hidden>Limpiar terminados</button>
+    </div>
+  </div>
   <button class="btn" id="view" type="button">Biblioteca</button>
   <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" hidden></label>
 </header>
@@ -34,6 +43,7 @@
     <div class="screen">
       <video id="v-en" controls playsinline preload="auto"></video>
       <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
+      <div class="caption es-wide" id="cap-es-wide"><span class="c"></span></div>
       <div class="ready" id="ready" hidden><i></i><span></span><b><em></em></b></div>
     </div>
     <div class="timeline" id="tl-en"></div>
