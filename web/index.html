@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traductor de video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">Traductor <span>en → es</span></div>
+  <div class="file" id="file-name"></div>
+  <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
+  <div class="metrics" id="metrics"></div>
+  <button class="btn" id="mode" type="button">Escuchar original</button>
+  <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" hidden></label>
+</header>
+
+<main class="stage">
+  <section class="pane">
+    <div class="tag">EN · original</div>
+    <div class="screen">
+      <video id="v-en" controls playsinline preload="auto"></video>
+      <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
+    </div>
+    <div class="timeline" id="tl-en"></div>
+  </section>
+  <section class="pane">
+    <div class="tag">ES · traducido</div>
+    <div class="screen">
+      <video id="v-es" muted playsinline preload="auto"></video>
+      <div class="caption" id="cap-es"><span class="c"></span></div>
+    </div>
+    <div class="timeline" id="tl-es"></div>
+  </section>
+</main>
+
+<ol class="transcript" id="transcript"></ol>
+
+<script src="app.js"></script>
+</body>
+</html>

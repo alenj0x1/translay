@@ -1,0 +1,9 @@
+faster-whisper>=1.2
+numpy
+av
+sentencepiece
+tokenizers
+huggingface_hub
+# CUDA 12 en Windows/Linux (GPU NVIDIA)
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
