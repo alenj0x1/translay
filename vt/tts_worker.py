@@ -82,6 +82,7 @@ class OmniVoice:
         self.sr = self.model.sampling_rate
         self._prompts = {}
         self._clean = {}
+        self._warm_ref = None
         try:
             from vt.enhance_df import Enhancer
 
@@ -89,6 +90,24 @@ class OmniVoice:
         except Exception as e:  # sin realzador se clona la referencia tal cual
             print(f"DeepFilterNet no disponible: {e}", flush=True)
             self.enhancer = None
+
+    def warm(self):
+        """La primera clonación de voz tarda ~25–50 s cuando Whisper ya ocupa la GPU
+        (medido; las siguientes ~2 s). Se paga aquí, al cargar, con una voz propia
+        corta, y no en la primera frase del video."""
+        import tempfile
+
+        from vt.audiofx import write_wav
+
+        y = np.asarray(self.model.generate(text="Hola, esto es una prueba de voz.", language="Spanish",
+                                           num_step=16)[0], np.float32).reshape(-1)
+        if self._warm_ref is None:
+            self._warm_ref = os.path.join(tempfile.gettempdir(), "vt_warm_ref.wav")
+        write_wav(self._warm_ref, y, self.sr)
+        prompt = self.model.create_voice_clone_prompt(ref_audio=self._warm_ref,
+                                                      ref_text="Hola, esto es una prueba de voz.")
+        self.model.generate(text="Listo.", language="Spanish", num_step=16, voice_clone_prompt=prompt)
+        _trim_gpu_cache(0)
 
     def _clean_ref(self, ref: str, mode) -> str:
         """Limpia la referencia con DeepFilterNet si es ruidosa (SNR < 20 dB).
@@ -149,6 +168,8 @@ def main():
     args = a.parse_args()
     try:
         eng = ENGINES[args.engine](args.device)
+        if hasattr(eng, "warm"):
+            eng.warm()
         write_msg(_OUT, {"ok": True, "sr": int(eng.sr)})
     except Exception as e:
         traceback.print_exc()
@@ -171,6 +192,8 @@ def main():
                         m.to(dev)
                 if dev == "cpu":
                     torch.cuda.empty_cache()
+                elif hasattr(eng, "warm"):
+                    eng.warm()  # de vuelta en la GPU: el primer uso vuelve a ser lento
                 write_msg(_OUT, {"ok": True})
             except Exception as e:
                 write_msg(_OUT, {"ok": False, "error": str(e)})

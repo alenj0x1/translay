@@ -17,6 +17,29 @@ import time
 from contextlib import contextmanager
 
 
+class FairLock:
+    """Candado por orden de llegada (el de Python no garantiza turnos): el
+    reconocimiento pide la GPU en cuanto la suelta y dejaba a la voz esperando
+    (una frase llegó a tardar 75 s)."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._next = 0
+        self._serving = 0
+
+    def __enter__(self):
+        with self._cond:
+            ticket = self._next
+            self._next += 1
+            while ticket != self._serving:
+                self._cond.wait()
+
+    def __exit__(self, *exc):
+        with self._cond:
+            self._serving += 1
+            self._cond.notify_all()
+
+
 class Resources:
     def __init__(self, asr, translator, tts=None, idle_s: float = 45, deep_s: float = 120, on_change=None):
         self.asr = asr
@@ -31,6 +54,7 @@ class Resources:
         self.state = "reposo"  # reposo | cargando | activo
         self._loaded = {"asr": False, "mt": False, "tts": False}
         self._part_locks = {p: threading.Lock() for p in self._loaded}
+        self._compute = FairLock()  # un cálculo en la GPU a la vez, por orden de llegada
         threading.Thread(target=self._watch, daemon=True).start()
 
     # ------------------------------------------------------------------ uso
@@ -49,9 +73,15 @@ class Resources:
                 self._last = time.monotonic()
 
     def run(self, parts: tuple, fn, *args):
-        """Ejecuta `fn(*args)` con esos modelos cargados (para run_in_executor)."""
+        """Ejecuta `fn(*args)` con esos modelos cargados (para run_in_executor).
+
+        Los cálculos van por turnos: en 8 GB, el pico de memoria del reconocimiento
+        sumado al de la voz desbordaba la GPU a memoria compartida (cada paso pasaba
+        de 0.3 s a decenas de segundos). La GPU ya trabaja al ~97 %: turnar no le
+        resta velocidad."""
         with self.use(*parts):
-            return fn(*args)
+            with self._compute:
+                return fn(*args)
 
     def info(self) -> dict:
         return {"state": self.state, "busy": self._busy, "idle_s": round(time.monotonic() - self._last, 1),

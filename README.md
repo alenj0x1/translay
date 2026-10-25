@@ -40,11 +40,21 @@ Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en esp
 - **Botón "Cola"** (como las descargas del navegador): lo que se procesa ahora ("viendo" si es el video abierto), lo que espera y lo terminado, con avance, "Ver", "Quitar", "Pausar" / "Reanudar" y "Limpiar terminados". "Procesar" en una tarjeta de la biblioteca agrega un video a la cola. Pausar detiene los trabajos de fondo; el video que estás viendo se sigue procesando.
 - Si un tramo ya reconocido quedó sin traducción o sin voz (un procesamiento que se cortó), la cola lo completa al pasar por ahí, empezando por lo que vas a escuchar.
 - **Modo reposo:** los modelos ocupan la GPU solo mientras se procesa algo. A los 45 s sin uso pasan a la RAM (vuelven en ~1 s); a los 2 min, o al pausar la cola sin nada a la vista, se cierra el proceso de voz y la GPU queda como sin el servidor. Al abrir un video los modelos empiezan a cargar de inmediato (la voz tarda ~15 s desde el reposo profundo).
+- **Turnos en la GPU:** reconocimiento, traducción y voz calculan por turnos, en orden de llegada (sus picos de memoria sumados desbordaban la GPU; con un candado común la voz quedaba relegada).
+- **Referencias de voz de hasta 8 s:** con una referencia de 15 s la clonación tardaba 61 s por frase cuando Whisper ocupa la GPU (9 s → 4 s).
 - **Memoria de GPU:** Whisper, el traductor y la voz comparten 8 GB. Los cachés de memoria de CTranslate2 (400 MB) y de torch (2.5 GB) están limitados: sin eso la GPU se llenaba, Windows desbordaba a memoria compartida y una frase podía tardar 65 s en vez de 1–2 s. Procesando ocupa ~5.6 GB.
+
+### Preferencias
+
+"Preferencias" en la barra: vista (ampliada / dividida), con qué audio abrir los videos, volumen del original bajo la voz en español, subtítulos en español e inglés, y cuándo mostrar el indicador de reproducción. Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Para agregar una preferencia nueva basta sumar una entrada a `SCHEMA` en `vt/prefs.py` (el panel se arma solo) y leerla en la vista.
+
+### Descargas de YouTube
+
+En la barra y en el panel de la cola se ve cada etapa: Buscando → Video (con %) → Audio (con %) → Uniendo → Preparando.
 
 ### Cuándo reproducir
 
-Sobre el video aparece "Preparando NN %" hasta que conviene reproducir y luego "Listo para reproducir". El indicador compara lo ya doblado por delante del punto de reproducción con la velocidad real del procesamiento (regresión sobre los últimos 20 s): si el procesamiento le gana al video basta un margen de 12 s; si no, el margen cubre lo que se perdería hasta el final. Si durante la reproducción el doblaje queda al ras, el indicador vuelve a aparecer.
+Sobre el video aparece "Preparando NN %" hasta que conviene reproducir y luego "Listo para reproducir". El indicador compara lo ya doblado por delante del punto de reproducción con la velocidad real del procesamiento, medida en **segundos de voz doblados por segundo** (una intro sin voz se procesa al instante y, medida en segundos de video, daba un "listo" falso). Para lo que viene asume al menos 70 % de voz, no promete nada hasta medir 8 s, y tiene histéresis para no parpadear.
 
 ## Cómo funciona
 

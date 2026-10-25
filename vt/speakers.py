@@ -51,6 +51,28 @@ def fbank(x: np.ndarray) -> np.ndarray:
     return feats.astype(np.float32)
 
 
+# Una referencia de voz larga vuelve lentísima la clonación cuando Whisper también
+# ocupa la GPU (medido: 15 s → 61 s por frase; 9 s → 4 s). OmniVoice recomienda 3–10 s.
+MAX_CLIP_S = 8.0
+
+
+def _cut_clip(x: np.ndarray, text: str) -> tuple[np.ndarray, str]:
+    """Recorta un fragmento largo a ~MAX_CLIP_S, en el punto más silencioso entre 6 s y
+    8 s; el texto se recorta en la misma proporción (para que coincida con el audio)."""
+    n = int(SR * 0.02)
+    lo, hi = int(6 * SR), int(MAX_CLIP_S * SR)
+    win = x[lo:hi]
+    k = len(win) // n
+    cut = hi
+    if k > 0:
+        energy = np.mean(win[: k * n].reshape(k, n) ** 2, axis=1)
+        cut = lo + int(np.argmin(energy)) * n + n // 2
+    words = text.split()
+    if words:
+        text = " ".join(words[: max(1, round(len(words) * cut / len(x)))])
+    return x[:cut], text
+
+
 class SpeakerEmbedder:
     REPO = "onnx-community/wespeaker-voxceleb-resnet34-LM"
 
@@ -169,6 +191,8 @@ class SpeakerTracker:
     def add_reference(self, spk: int, x: np.ndarray, text: str = "") -> bool:
         """Guarda el fragmento si mejora la referencia. True si la referencia cambió."""
         x = trim_silence(x, SR)
+        if len(x) / SR > MAX_CLIP_S:
+            x, text = _cut_clip(x, text)
         dur = len(x) / SR
         if dur < 1.0:
             return False

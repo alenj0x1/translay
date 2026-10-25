@@ -20,7 +20,12 @@ const state = {
   userScrollAt: 0,
   dubMode: true,       // escuchar en español (voz doblada) u original
   ahead: false,        // audio del archivo procesado por delante de la reproducción
+  downloads: {},       // descargas de YouTube en curso: id → {title, stage, pct}
 };
+
+// preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
+let prefs = { layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto" };
+let prefsSchema = [];
 
 /* ------------------------------------------------------------ conexión */
 function connect() {
@@ -109,15 +114,24 @@ function onMessage(m) {
       if (seg) { seg.speaker = m.speaker; renderTranscript(); }
       break;
     }
+    case "prefs":
+      applyPrefs(m);
+      break;
     case "yt_progress":
-      setStatus("busy", `descargando ${m.stage} ${m.pct} %`, false);
+      state.downloads[m.id] = m;
+      setStatus("busy", downloadText(m), false);
+      if (typeof renderQueuePanel === "function") renderQueuePanel();
       break;
     case "yt_ready":
+      delete state.downloads[m.id];
+      if (typeof renderQueuePanel === "function") renderQueuePanel();
       setStatus(...baseStatus);
       $("#yt-url").value = "";
       loadVideo(m.video, "yt_" + m.id, m.title, m.audio);
       break;
     case "yt_error":
+      state.downloads = {};
+      if (typeof renderQueuePanel === "function") renderQueuePanel();
       setStatus(...baseStatus);
       $("#file-name").textContent = m.error;
       break;
@@ -184,6 +198,8 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   }
   readiness.hist = [];
   readiness.need = null;
+  readiness.ok = false;
+  setMode(prefs.audio !== "original");
   libOnOpen({ id, name, ...opts });
   setView("player");
   $("#file-name").textContent = name;
@@ -257,7 +273,7 @@ async function ensureAudio() {
   // original → (ganancia) → parlantes; la captura para el ASR va antes de la ganancia
   const orig = ctx.createGain();
   const dub = ctx.createGain();
-  orig.gain.value = state.dubMode ? DUCK : 1;
+  orig.gain.value = state.dubMode ? duck() : 1;
   src.connect(orig).connect(ctx.destination);
   dub.connect(ctx.destination);
   state.audio.orig = orig;
@@ -401,15 +417,25 @@ function feederSeek(t) {
 
 
 /* ------------------------------------------------------------ buen momento para reproducir */
-// Compara lo ya doblado por delante del punto de reproducción con la velocidad a
-// la que avanza el procesamiento. Si el procesamiento es más rápido que el video,
-// basta un margen corto; si es más lento, el margen debe cubrir lo que se
-// perdería hasta el final. "Listo" = reproducir ahora no alcanza al doblaje.
-const readiness = { hist: [] };
+// Compara lo ya doblado por delante del punto de reproducción con la velocidad
+// real del procesamiento. La velocidad se mide en SEGUNDOS DE VOZ doblados por
+// segundo: una intro sin voz se procesa casi al instante y, medida en segundos de
+// video, daba un "listo" falso que se desincronizaba al empezar a hablar. Para lo
+// que viene se asume una densidad de voz pesimista (al menos 70 %).
+const readiness = { hist: [], ok: false, need: null };
 
 function readyFrontier() {
   // sin voz basta la traducción
   return state.voice && state.voice !== "none" ? dubFrontier() : frontier((s) => !!s.translation);
+}
+
+const segDone = (s) => (state.voice && state.voice !== "none" ? !!s.dub : !!s.translation);
+
+function speechDensity() {
+  // fracción de voz en lo ya procesado de este video (mínimo 0.7: por delante puede haber más)
+  const cov = state.covered.reduce((a, [x, y]) => a + (y - x), 0);
+  const speech = state.segments.reduce((a, s) => a + (s.end - s.start), 0);
+  return cov > 30 ? Math.min(1, Math.max(0.7, speech / cov)) : 1;
 }
 
 setInterval(() => {
@@ -419,40 +445,40 @@ setInterval(() => {
   const end = vEn.duration;
   const f = readyFrontier();
   const now = performance.now() / 1000;
-  readiness.hist.push([now, f]);
+  // voz lista acumulada del video (crece solo cuando se dobla voz, no con silencios)
+  const voiced = state.segments.reduce((a, s) => a + (segDone(s) ? s.end - s.start : 0), 0);
+  readiness.hist.push([now, voiced]);
   while (readiness.hist.length > 2 && now - readiness.hist[0][0] > 30) readiness.hist.shift();
-  // velocidad de procesamiento (segundos de video listos por segundo): pendiente de
-  // una regresión sobre los últimos 20 s, para no confundir un salto con velocidad
   const h = readiness.hist;
-  const span = now - h[0][0];
   let rate = null;
-  if (span >= 8) {
+  if (now - h[0][0] >= 8) {
     const mx = h.reduce((a, [x]) => a + x, 0) / h.length;
     const my = h.reduce((a, [, y]) => a + y, 0) / h.length;
     const sxy = h.reduce((a, [x, y]) => a + (x - mx) * (y - my), 0);
     const sxx = h.reduce((a, [x]) => a + (x - mx) ** 2, 0);
-    rate = Math.max(0, sxy / (sxx || 1));
+    rate = Math.max(0, sxy / (sxx || 1)) / speechDensity();  // segundos de video por segundo
   }
   const left = end - t;
-  // margen: corto si el procesamiento le gana al video; si no, lo que se perdería hasta el final
   const MIN_LEAD = 12;
-  // si el procesamiento va más lento que el video, el margen cubre lo que se perdería
-  // en los próximos minutos (no en todo el video: con una pausa breve del doblaje
-  // la velocidad medida cae y el porcentaje se desplomaba)
+  // más lento que el video: el margen cubre lo que se perdería en los próximos minutos
   let need = 20;
   if (rate !== null) need = rate >= 1 ? MIN_LEAD : MIN_LEAD + Math.min(left, 300) * (1 - rate);
   readiness.need = readiness.need == null ? need : readiness.need * 0.8 + need * 0.2;
   need = Math.max(MIN_LEAD, Math.min(readiness.need, left));
   const lead = f - t;
-  const ok = f >= end - 1 || lead >= need;
+  // histéresis: una vez listo, solo vuelve a "preparando" si el margen cae bastante
+  // sin velocidad medida todavía (primeros 8 s) no se promete nada: se espera a medirla
+  const ok = f >= end - 1 || (rate !== null && lead >= (readiness.ok ? need * 0.6 : need));
+  readiness.ok = ok;
   box.dataset.state = ok ? "ok" : "wait";
   // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
   box.querySelector("span").textContent = ok ? "Listo para reproducir"
     : state.power === "cargando" ? "Cargando modelos"
     : `Preparando ${Math.min(99, Math.round(lead / need * 100))} %`;
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
-  // mientras se reproduce y va bien, el indicador no estorba
-  box.hidden = ok && !vEn.paused;
+  // visible en pausa (para saber cuándo dar play) y mientras se reproduce solo si
+  // el doblaje se queda corto; la preferencia puede ocultarlo del todo
+  box.hidden = prefs.ready_chip === "nunca" || (ok && !vEn.paused && prefs.ready_chip !== "siempre");
 }, 500);
 
 /* ------------------------------------------------------------ sincronía de videos */
@@ -502,7 +528,8 @@ function endLive(kind) {
 /* ------------------------------------------------------------ voz en español */
 // En vivo: cada frase doblada suena apenas está lista, una tras otra (como un
 // intérprete). Al repetir: cada frase suena exactamente en su momento.
-const DUCK = 0.14;           // volumen del original mientras se escucha en español
+const DUCK_LEVELS = { silencio: 0, bajo: 0.14, medio: 0.3 };
+const duck = () => DUCK_LEVELS[prefs.duck] ?? 0.14;  // volumen del original bajo la voz en español
 const dubBuf = new Map();    // id de frase → AudioBuffer
 const player = { cur: null, queue: [] };
 
@@ -582,7 +609,7 @@ setInterval(() => {
 function setMode(dub) {
   state.dubMode = dub;
   $("#mode").textContent = dub ? "Escuchar original" : "Escuchar en español";
-  if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? DUCK : 1, state.audio.ctx.currentTime, 0.05);
+  if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
   if (!dub) stopDub();
 }
 $("#mode").addEventListener("click", () => setMode(!state.dubMode));
@@ -781,15 +808,70 @@ function renderPower() {
 }
 
 /* ------------------------------------------------------------ vista ampliada / dividida */
-function setLayout(wide) {
+function setLayout(wide, save = true) {
   document.body.classList.toggle("layout-wide", wide);
   $("#layout").textContent = wide ? "Ver dividido" : "Ver ampliado";
-  try { localStorage.setItem("layout", wide ? "wide" : "split"); } catch (e) { /* sin almacenamiento */ }
+  if (save) setPref("layout", wide ? "ampliada" : "dividida");
   renderActive(true);
 }
 $("#layout").addEventListener("click", () => setLayout(!document.body.classList.contains("layout-wide")));
-(() => {
-  let saved = null;
-  try { saved = localStorage.getItem("layout"); } catch (e) { /* sin almacenamiento */ }
-  setLayout(saved !== "split");  // por defecto, la vista ampliada
-})();
+
+/* ------------------------------------------------------------ preferencias */
+function setPref(key, value) {
+  prefs[key] = value;
+  send({ type: "prefs_set", key, value });
+}
+
+function applyPrefs(m) {
+  prefsSchema = m.schema;
+  prefs = { ...prefs, ...m.values };
+  setLayout(prefs.layout !== "dividida", false);
+  document.body.classList.toggle("no-sub-es", !prefs.sub_es);
+  document.body.classList.toggle("no-sub-en", !prefs.sub_en);
+  if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
+  renderPrefs();
+}
+
+function renderPrefs() {
+  const box = $("#prefs-list");
+  box.replaceChildren();
+  for (const p of prefsSchema) {
+    const row = document.createElement("div");
+    row.className = "pref";
+    const label = document.createElement("span");
+    label.textContent = p.label;
+    row.append(label);
+    if (p.type === "bool") {
+      const sw = document.createElement("button");
+      sw.type = "button";
+      sw.className = "seg" + (prefs[p.key] ? " on" : "");
+      sw.textContent = prefs[p.key] ? "Sí" : "No";
+      sw.addEventListener("click", () => { setPref(p.key, !prefs[p.key]); });
+      row.append(sw);
+    } else {
+      const group = document.createElement("div");
+      group.className = "segs";
+      for (const [value, text] of p.options) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "seg" + (prefs[p.key] === value ? " on" : "");
+        b.textContent = text;
+        b.addEventListener("click", () => setPref(p.key, value));
+        group.append(b);
+      }
+      row.append(group);
+    }
+    box.append(row);
+  }
+}
+$("#prefs-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#prefs-pop").hidden = !$("#prefs-pop").hidden; });
+$("#prefs-pop").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => { $("#prefs-pop").hidden = true; });
+
+/* ------------------------------------------------------------ descargas */
+const DOWNLOAD_STEPS = [["buscando", "Buscando"], ["video", "Video"], ["audio", "Audio"],
+  ["uniendo", "Uniendo"], ["preparando", "Preparando"]];
+function downloadText(m) {
+  const name = (DOWNLOAD_STEPS.find(([k]) => k === m.stage) || [, m.stage])[1].toLowerCase();
+  return m.stage === "video" || m.stage === "audio" ? `descargando ${name} ${m.pct} %` : `${name}…`;
+}

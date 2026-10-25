@@ -1,0 +1,58 @@
+"""Preferencias guardadas en el servidor (data/prefs.json).
+
+Un solo lugar: el esquema define cada preferencia (tipo, opciones, valor por
+defecto, texto) y la vista arma el panel a partir de él. Para agregar una
+preferencia nueva basta sumar una entrada a SCHEMA y leerla en la vista.
+"""
+
+import json
+import threading
+from pathlib import Path
+
+SCHEMA = [
+    {"key": "layout", "label": "Vista del video", "type": "choice", "default": "ampliada",
+     "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
+    {"key": "audio", "label": "Al abrir un video, escuchar", "type": "choice", "default": "es",
+     "options": [["es", "En español"], ["original", "Original"]]},
+    {"key": "duck", "label": "Original bajo la voz en español", "type": "choice", "default": "bajo",
+     "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
+    {"key": "sub_es", "label": "Subtítulos en español", "type": "bool", "default": True},
+    {"key": "sub_en", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "ready_chip", "label": "Indicador de reproducción", "type": "choice", "default": "auto",
+     "options": [["auto", "En pausa o si falta margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
+]
+_BY_KEY = {p["key"]: p for p in SCHEMA}
+
+
+class Prefs:
+    def __init__(self, path: Path):
+        self.path = path
+        self._lock = threading.Lock()
+        self.values = {p["key"]: p["default"] for p in SCHEMA}
+        if path.exists():
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            for k, v in saved.items():
+                if self._valid(k, v):
+                    self.values[k] = v
+
+    @staticmethod
+    def _valid(key, value) -> bool:
+        p = _BY_KEY.get(key)
+        if p is None:
+            return False
+        if p["type"] == "bool":
+            return isinstance(value, bool)
+        return value in [o[0] for o in p["options"]]
+
+    def set(self, key: str, value) -> bool:
+        if not self._valid(key, value):
+            return False
+        with self._lock:
+            self.values[key] = value
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.values, ensure_ascii=False, indent=1), encoding="utf-8")
+            tmp.replace(self.path)
+        return True
+
+    def public(self) -> dict:
+        return {"type": "prefs", "schema": SCHEMA, "values": dict(self.values)}

@@ -111,6 +111,12 @@ def test_speaker_tracker():
     tr.assign(unit(b), np.float64(2.5))  # duraciones numpy (vienen de los tiempos de Whisper)
     import json
     json.dumps(tr.state())  # el estado se guarda en el JSON de la transcripción
+    # una referencia larga se recorta a ~8 s (y su texto en la misma proporción)
+    t = np.arange(16000 * 15) / 16000
+    long = (0.3 * np.sin(2 * np.pi * 180 * t)).astype(np.float32)
+    assert tr.add_reference(0, long, " ".join(["palabra"] * 30))
+    _, clip, text = tr.refs[0][-1] if len(tr.refs[0][-1]) == 3 else (None, None, None)
+    assert 6 * 16000 <= len(clip) <= 8 * 16000 and 12 <= len(text.split()) <= 16
     restored = SpeakerTracker(state=tr.state())
     assert restored.assign(unit(b + 0.3 * rng.standard_normal(256)), 3.0)[0] == 1
 

@@ -142,10 +142,11 @@ function queueUpdate(m) {
 function renderQueuePanel() {
   const q = lib.queue;
   const active = q.jobs.filter((j) => j.state === "en cola" || j.state === "procesando");
+  const nDown = Object.keys(state.downloads).length;
   const badge = $("#queue-badge");
-  badge.textContent = String(active.length);
-  badge.hidden = !active.length;
-  $("#queue-btn").classList.toggle("busy", q.jobs.some((j) => j.state === "procesando"));
+  badge.textContent = String(active.length + nDown);
+  badge.hidden = !(active.length + nDown);
+  $("#queue-btn").classList.toggle("busy", nDown > 0 || q.jobs.some((j) => j.state === "procesando"));
   const running = q.jobs.find((j) => j.state === "procesando");
   $("#queue-state").textContent = q.paused
     ? (running && running.watching ? "en pausa · sigue el video que ves" : "en pausa · reposo")
@@ -154,7 +155,23 @@ function renderQueuePanel() {
   $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error");
   const ul = $("#queue-list");
   ul.replaceChildren();
-  if (!q.jobs.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola" }));
+  // descargas de YouTube en curso: cada etapa visible
+  const downloads = Object.values(state.downloads);
+  for (const d of downloads) {
+    const idx = DOWNLOAD_STEPS.findIndex(([k]) => k === d.stage);
+    const steps = el("div", { class: "steps" }, ...DOWNLOAD_STEPS.map(([k, text], i) =>
+      el("span", { class: i < idx ? "done" : i === idx ? "now" : "", text })));
+    const pct = d.stage === "video" || d.stage === "audio" ? d.pct : idx >= 3 ? 100 : 0;
+    ul.append(el("li", { class: "qitem run" },
+      el("div", { class: "qthumb" }),
+      el("div", { class: "qbody" },
+        el("strong", { text: d.title || "Video de YouTube" }),
+        steps,
+        el("div", { class: "qbar" }, Object.assign(el("i"), { style: `width:${pct}%` })),
+        el("small", { text: downloadText(d) })),
+      el("div", { class: "qactions" })));
+  }
+  if (!q.jobs.length && !downloads.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola" }));
   for (const j of q.jobs) {
     const v = lib.videos[j.id] || { id: j.id, title: j.id };
     const pct = Math.round(j.dub * 100);

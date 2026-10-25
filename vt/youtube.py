@@ -47,23 +47,36 @@ class YouTube:
                 meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
             return data
 
+        # etapas visibles: buscando → video → audio → uniendo → preparando → listo
         def hook(d):
-            if progress and d.get("status") == "downloading":
+            if not progress:
+                return
+            title = (d.get("info_dict") or {}).get("title")
+            # yt-dlp baja video y audio por separado: se distinguen por el archivo
+            kind = "audio" if str(d.get("filename", "")).endswith((".m4a", ".webm.part", ".m4a.part")) else "video"
+            if d.get("status") == "downloading":
                 total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
-                kind = "audio" if (d.get("info_dict") or {}).get("vcodec") == "none" else "video"
-                progress(kind, d.get("downloaded_bytes", 0) / total if total else 0.0)
+                progress(kind, d.get("downloaded_bytes", 0) / total if total else 0.0, title)
+            elif d.get("status") == "finished":
+                progress(kind, 1.0, title)
 
-        info = self._extras(vid, download=True, hook=hook)
+        def pp_hook(d):
+            if progress and d.get("postprocessor") == "Merger":
+                progress("uniendo", 0.0 if d.get("status") == "started" else 1.0, None)
+
+        info = self._extras(vid, download=True, hook=hook, pp_hook=pp_hook)
         if progress:
-            progress("audio", 1.0)
+            progress("preparando", 0.0, info["title"])
         # pista de audio aparte, sin recodificar
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vn", "-c:a", "copy", str(m4a)],
                        check=True)
         data = {"id": vid, "video": f"/media/yt/{vid}.mp4", "audio": f"/media/yt/{vid}.m4a", **info}
         meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        if progress:
+            progress("listo", 1.0, info["title"])
         return data
 
-    def _extras(self, vid: str, download: bool, hook=None) -> dict:
+    def _extras(self, vid: str, download: bool, hook=None, pp_hook=None) -> dict:
         """Título, canal, categorías, duración y miniatura (JPG) del video."""
         import yt_dlp
 
@@ -74,6 +87,7 @@ class YouTube:
             "outtmpl": str(self.root / "%(id)s.%(ext)s"),
             "js_runtimes": {"node": {}},
             "progress_hooks": [hook] if hook else [],
+            "postprocessor_hooks": [pp_hook] if pp_hook else [],
             "writethumbnail": True,
             "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg"}],
             "skip_download": not download,

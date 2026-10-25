@@ -27,6 +27,7 @@ from .streaming import Segment, StreamingTranscriber
 SR = 16000
 CHUNK_S = 3.0
 MAX_PENDING_DUBS = 3
+MAX_AHEAD_OF_VOICE_S = 30  # el reconocimiento no se aleja más de esto de la última frase con voz
 
 
 def decode_audio(path: Path) -> np.ndarray:
@@ -232,6 +233,7 @@ class Processor:
         st = StreamingTranscriber(self.asr)
         dubs = []
         inflight: set[int] = set()  # frases con voz en camino
+        voice_end = [start]  # fin de la última frase con voz de este trabajo
         step = int(CHUNK_S * SR)
 
         def needs_dub(seg) -> bool:
@@ -261,7 +263,7 @@ class Processor:
                         time.sleep(0.1)
                         if self._interrupt(vid, lo, seg["start"]):
                             return False
-                    dubs.append(self._dub(tr, vid, seg, seg.get("orig_db"), inflight))
+                    dubs.append(self._dub(tr, vid, seg, seg.get("orig_db"), inflight, voice_end))
             return True
 
         def handle(events):
@@ -274,9 +276,9 @@ class Processor:
                 if self.dubber:
                     seg["speaker"] = self.dubber.identify(tr, seg, ev.audio)
                     fixed = self.dubber.relabel(tr)
-                    dubs.append(self._dub(tr, vid, seg, self.dubber.loudness(ev.audio), inflight))
+                    dubs.append(self._dub(tr, vid, seg, self.dubber.loudness(ev.audio), inflight, voice_end))
                     for s in fixed:
-                        dubs.append(self._dub(tr, vid, s, s.get("orig_db"), inflight))
+                        dubs.append(self._dub(tr, vid, s, s.get("orig_db"), inflight, voice_end))
                         self._bg(vid, {"type": "speaker", "id": s["id"], "speaker": s["speaker"]})
                 self._bg(vid, {"type": "segment", "segment": seg, "removed": removed})
             if st.final_t > st.start_t:
@@ -313,8 +315,10 @@ class Processor:
                         return False
                     pos = span_start = span[1]
                     continue
-                # la voz va detrás del reconocimiento: no dejar que se aleje
-                while sum(not f.done() for f in dubs) > MAX_PENDING_DUBS:
+                # la voz va detrás del reconocimiento: no dejar que se aleje (ni en
+                # cantidad de frases pendientes ni en tiempo de video)
+                while (sum(not f.done() for f in dubs) > MAX_PENDING_DUBS
+                       or (inflight and pos - voice_end[0] > MAX_AHEAD_OF_VOICE_S)):
                     time.sleep(0.1)
                     if self._interrupt(vid, span_start, pos):
                         end_span(abort=True)
@@ -336,7 +340,7 @@ class Processor:
         covered = sum(b - a for a, b in tr.covered)
         return covered >= dur - 2
 
-    def _dub(self, tr, vid, seg, orig_db, inflight: set):
+    def _dub(self, tr, vid, seg, orig_db, inflight: set, voice_end: list | None = None):
         if orig_db is not None:
             seg["orig_db"] = round(orig_db, 1)
         inflight.add(seg["id"])
@@ -353,6 +357,8 @@ class Processor:
                 info["text"] = seg["translation"]
                 seg["dub"] = info
                 tr.save()
+                if voice_end is not None:
+                    voice_end[0] = max(voice_end[0], seg["end"])
                 self._bg(vid, {"type": "dub", "id": seg["id"], "speaker": seg.get("speaker"),
                                "url": "/audio/" + info["file"] + f"?v={int(time.time() * 1000)}",
                                "dur": info["dur"], "live": False})

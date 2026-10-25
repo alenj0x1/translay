@@ -39,7 +39,7 @@ from .translate import Translator
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
-                 youtube=None, library=None, res=None, processor=None):
+                 youtube=None, library=None, res=None, processor=None, prefs=None, notify=None):
         self.ws = ws
         self.gpu = gpu
         self.store = store
@@ -61,6 +61,8 @@ class Session:
         self.res = res
         self.processor = processor
         self.watching: str | None = None
+        self.prefs = prefs
+        self.notify = notify or (lambda msg: None)
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
@@ -70,6 +72,8 @@ class Session:
             self._dub_task = asyncio.create_task(self._dub_worker())
         await self.ws.send_json({"type": "ready", **self.info})
         await self.ws.send_json({"type": "power", "state": self.res.state})
+        if self.prefs:
+            await self.ws.send_json(self.prefs.public())
         if self.processor:
             await self.ws.send_json(self.processor.public())
         try:
@@ -99,6 +103,9 @@ class Session:
                         self.watching = None
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
                         await self._library(m)
+                    elif m.get("type") == "prefs_set" and self.prefs:
+                        if self.prefs.set(str(m.get("key")), m.get("value")):
+                            self.notify(self.prefs.public())  # todas las pestañas
                     elif m.get("type") == "power_info":
                         import sys as _sys
                         import threading as _th
@@ -327,13 +334,20 @@ class Session:
         if not self.youtube:
             await self.ws.send_json({"type": "yt_error", "error": "YouTube no está habilitado"})
             return
-        last = [0.0]
+        from .youtube import video_id
 
-        def progress(stage, frac):
-            if frac - last[0] >= 0.02 or frac >= 1.0:  # sin inundar el WebSocket
-                last[0] = frac
-                loop.call_soon_threadsafe(asyncio.ensure_future, self.ws.send_json(
-                    {"type": "yt_progress", "stage": stage, "pct": round(frac * 100)}))
+        vid = video_id(url) or ""
+        last = {"stage": None, "frac": 0.0, "title": ""}
+
+        def progress(stage, frac, title=None):
+            last["title"] = title or last["title"]
+            # sin inundar el WebSocket: cada cambio de etapa y cada 2 %
+            if stage == last["stage"] and frac - last["frac"] < 0.02 and frac < 1.0:
+                return
+            last.update(stage=stage, frac=frac)
+            loop.call_soon_threadsafe(asyncio.ensure_future, self.ws.send_json(
+                {"type": "yt_progress", "id": vid, "title": last["title"], "stage": stage,
+                 "pct": round(frac * 100)}))
 
         try:
             info = await loop.run_in_executor(None, self.youtube.fetch, url, progress)

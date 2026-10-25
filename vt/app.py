@@ -14,6 +14,7 @@ from .session import Session
 from .store import Store
 from .translate import MODELS as MT_MODELS, load_translator
 from .library import Library
+from .prefs import Prefs
 from .processor import Processor
 from .resources import Resources
 from .youtube import YouTube
@@ -119,11 +120,12 @@ def main():
     asr.unload()
     translator.unload()
     processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify)
+    prefs = Prefs(ROOT / "data" / "prefs.json")
 
     async def ws_handler(ws):
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                          processor)
+                          processor, prefs, notify)
         sessions.add(session)
         try:
             await session.run()
