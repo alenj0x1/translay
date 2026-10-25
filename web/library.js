@@ -55,6 +55,11 @@ function libraryUpdate(m) {
   for (const id of [...lib.picked]) if (!lib.videos[id]) lib.picked.delete(id);
   softRenderLibrary();
   renderSaveList();
+  const wait = lib.openWhenReady && lib.videos[lib.openWhenReady];
+  if (wait?.media) {  // lo que se pidió abrir ya se descargó
+    lib.openWhenReady = null;
+    playFromLibrary(wait);
+  }
   renderUpNext();
   if (lib.promptSave && state.videoId && lib.videos[state.videoId]) {
     lib.promptSave = false;
@@ -84,8 +89,11 @@ const playlistOf = (id) => lib.collections.find((c) => c.kind === "playlist" && 
 
 // estado de un video aún sin descargar (playlist)
 function pendingText(v) {
-  if (v.media) return "";
   const j = jobOf(v.id);
+  if (v.media) {  // descargado: en cola o procesándose hasta tener la voz
+    if (!j || j.state === "listo" || j.state === "error" || (v.progress && v.progress.dub >= 0.97)) return "";
+    return j.state === "procesando" ? "procesando" : "en cola";  // el % va en la barra de la tarjeta
+  }
   if (j?.dl) return j.dl.stage === "video" || j.dl.stage === "audio" ? `descargando ${j.dl.pct} %` : `${j.dl.stage}…`;
   if (j?.state === "error") return "error al descargar";
   return j ? "en cola · sin descargar" : "sin descargar";
@@ -121,6 +129,8 @@ function refreshCards() {
     const text = pendingText(v);
     if (pend && text) { if (pend.textContent !== text) pend.textContent = text; }
     else if (pend) pend.remove();
+    else if (text) art.querySelector(".thumb").append(el("span", { class: "pending-dl", text }));
+    art.classList.toggle("pending", !!text);
     const btn = art.querySelector(".actions .btn");
     const dl = downloadPct(v);
     btn.classList.toggle("dl", dl !== null);
@@ -262,8 +272,8 @@ function welcome() {
   return el("div", { class: "welcome" },
     el("h2", { text: "Traduce tu primer video" }),
     el("form", { on: { submit: (e) => { e.preventDefault(); openYouTube(input.value.trim()); } } },
-      input, el("button", { class: "btn dark", type: "submit", text: "Traducir" })),
-    el("label", { class: "btn" }, document.createTextNode("Abrir archivos"), file),
+      input, el("button", { class: "btn dark", type: "submit", text: "Importar" })),
+    el("label", { class: "btn" }, document.createTextNode("Importar archivos"), file),
     el("small", { text: "o arrastra un video aquí" }));
 }
 
@@ -298,7 +308,8 @@ function card(v, coll, i) {
   const sub = [v.channel, v.source === "youtube" ? "YouTube" : "archivo"].filter(Boolean).join(" · ");
   const canOpen = !!v.media || v.source === "youtube";
   const dl = downloadPct(v);  // descargando: el botón lo dice y se llena con el avance
-  return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : ""), "data-id": v.id }, thumb,
+  return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") + (pending ? " pending" : ""),
+    "data-id": v.id }, thumb,
     el("div", { class: "meta" }, el("h3", { text: v.title || v.id }), el("p", { text: sub })),
     progressBar(v),
     el("div", { class: "actions" },
@@ -339,8 +350,9 @@ function playItem(id) {
   if (!v) return;
   if (v.media) return playFromLibrary(v);
   if (v.source === "youtube") {
-    lib.keepCtxFor = id;
-    openVideoLink("https://www.youtube.com/watch?v=" + id.slice(3));
+    lib.openWhenReady = id;
+    send({ type: "queue_add", video: id, front: true });
+    toast("Se abrirá en cuanto termine de descargarse.", "ok");
   }
 }
 
@@ -368,6 +380,7 @@ function renderUpNext(scroll) {
     if (!$("#upnext").hidden) setSideTab("transcript");
     return;
   }
+  if (lib.showUpNext) { lib.showUpNext = false; setSideTab("upnext"); return; }
   const ol = $("#upnext");
   const pl = lib.ctx.coll && lib.collections.find((x) => x.id === lib.ctx.coll)?.kind === "playlist";
   const frag = document.createDocumentFragment();
@@ -400,7 +413,7 @@ function playlistAdded(m) {
   toast(`Playlist «${m.name}» agregada: ${m.count} videos a la cola.`, "ok");
   lib.sel = m.coll;
   lib.picked.clear();
-  setView("library");
+  if (currentView() !== "player") setView("library");  // viendo un video: no se sale de él
 }
 
 /* ------------------------------------------------------------ archivos locales extra */

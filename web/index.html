@@ -13,7 +13,15 @@
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
-  <form class="yt" id="yt"><input id="yt-url" type="text" placeholder="Enlace de YouTube" spellcheck="false"><button class="btn ghost" id="yt-multi" type="button">Varios</button><button class="btn" type="submit">Abrir</button></form>
+  <form class="yt" id="yt">
+    <svg class="yt-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
+    <input id="yt-url" type="text" placeholder="Pega uno o varios enlaces de YouTube" spellcheck="false" aria-label="Enlaces de YouTube">
+    <button class="btn" id="import-go" type="submit" disabled>Importar</button>
+  </form>
+  <label class="btn files-btn" id="file-btn" title="Importar videos o audios del equipo">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M4.8 5.6L8 2.5l3.2 3.1M2.5 10v3.5h11V10"/></svg>Archivos<input id="file" type="file" accept="video/*,audio/*" multiple hidden>
+  </label>
+  <i class="nav-sep" aria-hidden="true"></i>
   <div class="queue-wrap">
     <button class="btn" id="queue-btn" type="button">Cola<span class="badge" id="queue-badge" hidden></span></button>
     <div class="popover queue-pop" id="queue-pop" hidden>
@@ -24,7 +32,6 @@
   </div>
   <button class="btn" id="prefs-btn" type="button">Preferencias</button>
   <button class="btn" id="view" type="button">Biblioteca</button>
-  <label class="btn" id="file-btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" multiple hidden></label>
 </header>
 
 <!-- acciones del video abierto -->
@@ -68,6 +75,7 @@
       <div class="track" id="track">
         <div class="t-layer t-cov" id="t-cov"></div>
         <div class="t-layer t-dub" id="t-dub"></div>
+        <div class="t-notes" id="t-notes"></div>
         <div class="t-play" id="t-play"></div>
         <i class="t-head" id="t-head"></i>
         <span class="t-tip" id="t-tip" hidden></span>
@@ -158,13 +166,13 @@
 
 <dialog class="dlg dlg-wide" id="multi-dlg">
   <form method="dialog" id="multi-form">
-    <h3>Agregar varios enlaces</h3>
+    <h3>Importar varios enlaces</h3>
     <textarea id="multi-text" rows="8" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…&#10;https://www.youtube.com/playlist?list=…"></textarea>
     <p class="dlg-sub" id="multi-sum"></p>
     <label class="dlg-field"><span>Guardar en</span><select id="multi-coll"></select></label>
     <div class="dlg-actions">
       <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
-      <button class="btn dark" value="ok" type="submit" id="multi-go">Agregar a la biblioteca</button>
+      <button class="btn dark" value="ok" type="submit" id="multi-go">Importar</button>
     </div>
   </form>
 </dialog>

@@ -133,7 +133,8 @@ class Session:
                     elif m.get("type") == "playlist":
                         asyncio.create_task(self._playlist(m.get("url", "")))
                     elif m.get("type") == "yt_batch":
-                        asyncio.create_task(self._batch(list(m.get("urls", []))[:200], str(m.get("coll") or "")))
+                        asyncio.create_task(self._batch(list(m.get("urls", []))[:200], str(m.get("coll") or ""),
+                                                        bool(m.get("quiet")), bool(m.get("front"))))
                     elif m.get("type") in ("export", "export_remove") and self.exporter:
                         await self._export(m)
                     elif m.get("type", "").startswith("queue_") and self.processor:
@@ -389,7 +390,7 @@ class Session:
             sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
             await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
-    async def _batch(self, urls: list[str], coll: str):
+    async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
         orden) y cada playlist se importa como colección."""
         from .youtube import playlist_id, video_id
@@ -410,8 +411,9 @@ class Session:
             for vid in ids:
                 self.library.toggle(coll, vid, True)
         if self.processor and ids:
-            self.processor.add_many(ids)
-        await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists)})
+            self.processor.add_many(ids, front=front)  # "abrirlo": se descarga primero
+        await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists),
+                                 "quiet": bool(quiet)})
         self.notify({"type": "library_changed"})
         for u in lists:
             await self._playlist(u)
@@ -520,7 +522,7 @@ class Session:
     async def _queue(self, m: dict):
         kind, vid = m["type"], str(m.get("video", ""))
         if kind == "queue_add":
-            self.processor.add(vid)
+            self.processor.add(vid, front=bool(m.get("front")))
         elif kind == "queue_remove":
             self.processor.remove(vid)
         elif kind == "queue_pause":

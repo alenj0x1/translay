@@ -167,8 +167,10 @@ class Library:
     # ----------------------------------------------------------------- vista
     def public(self) -> dict:
         videos = self.data["videos"]
-        # automáticas: solo lo que ya está en el equipo (lo pendiente de una playlist queda en ella)
-        recent = sorted((i for i in videos if videos[i].get("media")),
+        # recientes: lo que está en el equipo y lo recién importado (aún descargándose);
+        # lo pendiente de una playlist queda solo en ella
+        in_lists = {i for c in self.data["collections"] if c.get("kind") == "playlist" for i in c["items"]}
+        recent = sorted((i for i in videos if videos[i].get("media") or i not in in_lists),
                         key=lambda i: -(videos[i].get("opened") or videos[i].get("added", 0)))
         # todos: cada video de la biblioteca (también lo pendiente de descargar), del último agregado al primero
         every = sorted(videos, key=lambda i: -videos[i].get("added", 0))

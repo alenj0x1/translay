@@ -189,7 +189,10 @@ class Processor:
     def _next_download(self):
         if self.data["paused"]:
             return None
-        waiting = 0
+        # el límite de descargas por delante es para las playlists (no llenar el disco);
+        # lo que se importa suelto se descarga enseguida
+        in_lists = {i for c in self.library.data["collections"] if c.get("kind") == "playlist" for i in c["items"]}
+        waiting, capped = 0, None
         for j in self.data["jobs"]:
             if j["state"] != "en cola":
                 continue
@@ -197,8 +200,11 @@ class Processor:
             if v.get("media"):
                 waiting += 1
             elif v.get("source") == "youtube":
-                return j if waiting < MAX_DOWNLOADED_AHEAD else None
-        return None
+                if j["id"] not in in_lists:
+                    return j
+                if capped is None and waiting < MAX_DOWNLOADED_AHEAD:
+                    capped = j
+        return capped
 
     def _download_loop(self):
         while True:
@@ -242,6 +248,7 @@ class Processor:
                 start = self.focus["t"] if self.focus["vid"] == job["id"] else 0.0
                 self._save()
             self._broadcast()
+            began = time.time()
             try:
                 done = self._process(job["id"], start)
                 if self._job(job["id"]) is job:
@@ -254,6 +261,9 @@ class Processor:
             with self._cond:
                 self.current = None
                 self._save()
+                # resguardo: un trabajo que se corta al instante no se reintenta en ráfaga
+                if self._job(job["id"]) is job and job["state"] == "en cola" and time.time() - began < 0.5:
+                    self._cond.wait(timeout=1.0)
             self._broadcast()
 
     def _interrupt(self, vid: str, span_start: float, pos: float) -> bool:
@@ -261,8 +271,11 @@ class Processor:
         if self._job(vid) is None:
             return True
         fv = self.focus["vid"]
-        if fv and fv != vid:
-            return True  # el video que se está viendo pasa primero
+        fj = self._job(fv) if fv else None
+        # el video que se está viendo pasa primero, solo si le falta algo: si ya está
+        # terminado, cederle el turno dejaba este trabajo empezando y cortándose sin fin
+        if fv and fv != vid and fj and fj["state"] not in ("listo", "error"):
+            return True
         if self.data["paused"] and fv != vid:
             return True
         if fv == vid:

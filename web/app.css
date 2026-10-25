@@ -685,8 +685,6 @@ body.layout-wide:not(.view-library) .transcript .notes { padding-left: 76px; }
 }
 .dlg-field { display: flex; align-items: center; gap: 10px; font: 500 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .dlg-field select { flex: 1; padding: 7px 10px; border: var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font: 600 13px/1 var(--text); text-transform: none; letter-spacing: 0; }
-.yt #yt-multi { border-color: transparent; color: var(--muted); padding: 7px 10px; font-size: 12.5px; }
-.yt #yt-multi:hover { background: var(--soft); color: var(--ink); }
 @media (min-width: 1001px) { .bar { gap: 12px; } .bar .yt { min-width: 260px; } }
 /* botón de comentar: pequeño, bajo la hora (no tapa el texto) */
 .transcript .cbtn {
@@ -716,3 +714,80 @@ body.layout-wide:not(.view-library) .transcript .notes { padding-left: 76px; }
 .ceditor textarea:focus { border-color: var(--ink); }
 /* sin el campo del enlace (video, preferencias) los botones siguen a la derecha */
 body:not(.view-library) .bar .yt + .queue-wrap, body.view-prefs .bar .yt + .queue-wrap { margin-left: auto; }
+
+/* ---------- comentarios con el estilo de la página ---------- */
+.transcript .note {
+  border: var(--line); border-left: var(--line); background: var(--paper); color: var(--ink);
+  padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center;
+}
+.transcript .note p { grid-column: 1 / -1; margin: 0; font: 14px/1.45 var(--text); }
+.transcript .note small { font: 10px/1 var(--mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.transcript .nacts { gap: 4px; }
+.transcript .nacts button {
+  padding: 3px 8px; border: 1px solid var(--ink); border-radius: 999px; background: var(--paper); color: var(--ink);
+  font: 500 9.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+}
+.transcript .nacts button:hover { background: var(--soft); text-decoration: none; }
+.transcript li.has-notes .cell:first-child time::after { content: none; }
+.transcript .ncount {
+  display: inline-block; margin-left: 5px; min-width: 15px; padding: 0 3px; border: 1px solid currentColor;
+  border-radius: 999px; font: 500 9px/13px var(--mono); text-align: center; vertical-align: 1px;
+}
+.transcript li.has-notes { box-shadow: inset 3px 0 0 var(--ink); }
+.transcript li.active.has-notes { box-shadow: inset 3px 0 0 var(--paper); }
+
+/* marcas de comentarios en la línea de avance: pequeñas, sobre la barra, sin tapar nada */
+.t-notes { position: absolute; left: 1px; right: 1px; top: 0; height: 7px; pointer-events: none; }
+.t-notes i {
+  position: absolute; top: 0; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%;
+  background: var(--paper); border: 1.5px solid var(--ink);
+}
+.t-tip.note { max-width: 260px; white-space: normal; text-align: left; line-height: 1.3; }
+
+/* viendo un video también se puede agregar otro (enlace o archivo) sin salir de él */
+body:not(.view-library):not(.view-prefs) .bar .yt { display: flex; }
+body:not(.view-library):not(.view-prefs) .bar > label.btn { display: inline-block; }
+body:not(.view-library):not(.view-prefs) .bar .yt + .queue-wrap { margin-left: 0; }
+@media (max-width: 1200px) { body:not(.view-library):not(.view-prefs) .bar .yt + .queue-wrap { margin-left: auto; } }
+
+/* lo importado que aún no está listo: miniatura atenuada con su estado */
+.card.pending .thumb img { opacity: .45; filter: grayscale(.35); transition: opacity .4s; }
+.card .thumb img { transition: opacity .4s; }
+
+/* «Importar»: un solo botón; vacío el campo, un menú pequeño (varios enlaces / archivos) */
+.yt { position: relative; }
+.import-pop { right: 0; top: calc(100% + 8px); width: 220px; padding: 6px; display: grid; gap: 2px; }
+.import-pop button, .import-pop label {
+  display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: none; cursor: pointer;
+  color: var(--ink); font: 600 14px/1.2 var(--text);
+}
+.import-pop button:hover, .import-pop label:hover { background: var(--soft); }
+.yt .btn[disabled] { opacity: .35; cursor: default; }
+.yt .btn[disabled]:hover { background: var(--paper); color: var(--ink); }
+
+/* ================= encabezado: importar (enlace + archivos) | navegación ================= */
+.bar .yt { gap: 6px; padding: 3px 3px 3px 12px; }
+.yt-ic { flex: none; width: 15px; height: 15px; fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; }
+.yt:focus-within .yt-ic { stroke: var(--ink); }
+.bar .yt input { font: 12.5px/1 var(--mono); }
+/* «Importar»: contorno gris sin enlace; principal (oscuro) con un enlace válido */
+.yt #import-go { padding: 7px 16px; background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.yt #import-go:hover { background: #3a3a3a; border-color: #3a3a3a; color: var(--paper); }
+.yt #import-go[disabled], .yt #import-go[disabled]:hover {
+  opacity: 1; background: var(--paper); color: #a3a29d; border-color: #d6d5cf; cursor: default;
+}
+.files-btn { display: inline-flex; align-items: center; gap: 7px; }
+.files-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.nav-sep { flex: none; width: 1.5px; height: 26px; background: var(--ink); opacity: .2; }
+.bar .yt + .files-btn + .nav-sep + .queue-wrap { margin-left: 0; }
+body:not(.view-library):not(.view-prefs) .bar > label.files-btn { display: inline-flex; }
+body.view-prefs .bar > label.files-btn, body.view-prefs .bar .nav-sep { display: none; }
+body.view-prefs .bar .queue-wrap { margin-left: auto; }
+@media (max-width: 1200px) {
+  .nav-sep { display: none; }
+  .bar .files-btn { margin-left: auto; }
+}
+@media (max-width: 760px) {
+  .bar .files-btn { margin-left: 0; }
+  .bar .yt input::placeholder { font-size: 11px; }
+}

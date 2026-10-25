@@ -73,6 +73,7 @@ function onMessage(m) {
       if (m.video !== state.videoId) break;
       state.comments = m.comments;
       renderTranscript();
+      renderTimeline();
       break;
     case "deleted":
       if (m.videos.includes(state.videoId)) closeVideo();
@@ -81,11 +82,11 @@ function onMessage(m) {
       send({ type: "library" });
       break;
     case "batch_added":
-      if (m.videos) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
+      if (m.videos && !m.quiet) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
       break;
     case "playlist_added":
       setStatus(...baseStatus);
-      $("#yt-url").value = "";
+      $("#yt-url").value = ""; updateImportBtn();
       playlistAdded(m);
       break;
     case "exports":
@@ -96,7 +97,7 @@ function onMessage(m) {
       break;
     case "yt_queued":
       setStatus(...baseStatus);
-      $("#yt-url").value = "";
+      $("#yt-url").value = ""; updateImportBtn();
       break;
     case "transcript":
       if (m.id !== state.videoId) return;
@@ -162,7 +163,7 @@ function onMessage(m) {
       delete state.downloads[m.id];
       if (typeof renderQueuePanel === "function") renderQueuePanel();
       setStatus(...baseStatus);
-      $("#yt-url").value = "";
+      $("#yt-url").value = ""; updateImportBtn();
       loadVideo(m.video, "yt_" + m.id, m.title, m.audio);
       break;
     case "yt_error":
@@ -258,6 +259,13 @@ async function openFiles(files) {
   if (!files.length) return;
   const ids = [];
   for (const f of files) ids.push(await fingerprint(f));
+  const mode = importMode();
+  if (mode !== "abrir") {  // a la cola (y viendo un video, sin interrumpirlo)
+    files.forEach((f, i) => importLocal(f, ids[i]));
+    if (mode === "siguiente") addedWhileWatching(ids);
+    else toast(ids.length === 1 ? "Importado: ya está en la cola." : `${ids.length} archivos importados a la cola.`, "ok");
+    return;
+  }
   if (files.length > 1) {
     setContext({ name: "Archivos abiertos", items: ids, auto: true });
     files.slice(1).forEach((f, i) => importLocal(f, ids[i + 1]));
@@ -278,6 +286,7 @@ function openYouTube(url) {
   const list = (url.match(/[?&]list=([\w-]{10,})/) || [])[1];
   const isList = list && !/^(RD|UL)/.test(list);  // los mix automáticos no son playlists
   const hasVideo = /(?:v=|youtu\.be\/|shorts\/)[\w-]{11}/.test(url);
+  if (isList && hasVideo && currentView() === "player") { openVideoLink(url); return true; }
   if (isList && hasVideo) {
     // enlace de un video dentro de una playlist: elegir
     const dlg = $("#pl-dlg");
@@ -293,7 +302,51 @@ function openYouTube(url) {
   else openVideoLink(url);
   return true;
 }
+// viendo un video y la preferencia no es "Abrirlo": lo nuevo no saca del video
+function watchingKeep() {
+  return currentView() === "player" && !!state.videoId && prefs.add_while_watching !== "abrir";
+}
+
+// Todo lo importado va directo a la cola del servidor (sobrevive a recargar la página).
+// Fuera del reproductor solo se procesa; viendo un video, según Preferencias → Video.
+function importMode() {
+  return currentView() === "player" && state.videoId ? prefs.add_while_watching || "siguiente" : "fondo";
+}
+function importVideos(urls) {
+  const mode = importMode();
+  const ids = [...new Set(urls.map((u) => classify(u)).filter((c) => c?.kind === "video").map((c) => "yt_" + c.key))]
+    .filter((id) => id !== state.videoId);
+  send({ type: "yt_batch", urls, coll: $("#multi-coll").value || "", quiet: true, front: mode === "abrir" });
+  $("#yt-url").value = ""; updateImportBtn();
+  if (!ids.length) return;
+  if (mode === "abrir") {
+    lib.openWhenReady = ids[0];  // se abre apenas termine de descargarse
+    toast("Se abrirá en cuanto termine de descargarse.", "ok");
+  } else if (mode === "siguiente") {
+    addedWhileWatching(ids);
+  } else {
+    toast(ids.length === 1 ? "Importado: ya está en la cola." : `${ids.length} videos importados a la cola.`, "ok");
+    if (currentView() === "library") { lib.sel = "recent"; renderLibrary(); }
+  }
+}
+
+// lo agregado entra a la cola; "a continuación" además va justo después del actual en Siguientes
+function addedWhileWatching(ids) {
+  if (prefs.add_while_watching === "siguiente") {
+    const items = contextItems().filter((id) => !ids.includes(id));
+    const base = items.includes(state.videoId) ? items : [state.videoId];
+    const at = base.indexOf(state.videoId) + 1;
+    setContext({ name: lib.ctx?.name || "A continuación", items: [...base.slice(0, at), ...ids, ...base.slice(at)], auto: true });
+    lib.showUpNext = true;  // se abre la pestaña en cuanto el video nuevo llegue a la biblioteca
+    renderUpNext();
+    toast(ids.length === 1 ? "Se reproducirá a continuación." : `${ids.length} videos a continuación.`, "ok");
+  } else {
+    toast(ids.length === 1 ? "Agregado a la cola: se procesa en segundo plano." : `${ids.length} videos a la cola.`, "ok");
+  }
+}
+
 function openVideoLink(url) {
+  if (classify(url)?.kind === "video") return importVideos([url]);
   $("#file-name").textContent = "";
   setStatus("busy", "buscando video", false);
   send({ type: "youtube", url });
@@ -302,12 +355,24 @@ function addPlaylist(url) {
   setStatus("busy", "leyendo la playlist", false);
   send({ type: "playlist", url });
 }
+// un solo botón «Importar»: con un enlace lo importa; vacío, ofrece varios enlaces o archivos
 $("#yt").addEventListener("submit", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   const text = $("#yt-url").value.trim();
+  if (!ytLinks(text).length && !/^[\w-]{11}$/.test(text)) return;
   if (ytLinks(text).length > 1) return openMulti(text);
   openYouTube(text);
+  updateImportBtn();
 });
+// «Importar» solo se habilita con un enlace de YouTube en el campo
+function updateImportBtn() {
+  const text = $("#yt-url").value.trim();
+  $("#import-go").disabled = !(ytLinks(text).some((u) => classify(u)) || /^[\w-]{11}$/.test(text));
+}
+$("#yt-url").addEventListener("input", updateImportBtn);
+$("#yt").addEventListener("click", (e) => e.stopPropagation());
+
 document.addEventListener("paste", (e) => {
   if (e.target.closest("textarea, dialog")) return;
   const text = e.clipboardData.getData("text").trim();
@@ -355,19 +420,17 @@ function openMulti(text = "") {
   sel.replaceChildren(new Option("Sin colección", ""));
   for (const c of lib.collections.filter((x) => x.kind === "propia")) sel.append(new Option(c.name, c.id));
   updateMulti();
-  $("#yt-url").value = "";
+  $("#yt-url").value = ""; updateImportBtn();
   $("#multi-dlg").showModal();
   $("#multi-text").focus();
 }
 $("#multi-text").addEventListener("input", updateMulti);
-$("#yt-multi").addEventListener("click", () => openMulti($("#yt-url").value.trim()));
 $("#multi-dlg").addEventListener("close", () => {
   if ($("#multi-dlg").returnValue !== "ok") return;
   const items = multiParsed();
   if (!items.length) return;
-  send({ type: "yt_batch", urls: items.map((x) => x.url), coll: $("#multi-coll").value });
-  lib.sel = "all";
-  setView("library");
+  importVideos(items.map((x) => x.url));
+  $("#multi-coll").value = "";
 });
 
 (async () => {
@@ -897,7 +960,9 @@ function renderTranscript() {
     li.dataset.id = s.id;
     const who = s.speaker != null && speakers.size > 1 ? `<span class="spk">P${speakers.get(s.speaker)}</span>` : "";
     const time = `<time>${fmt(s.start)}${who}</time>`;
-    li.innerHTML = `<div class="cell">${time}<p></p></div><div class="cell">${time}<p></p></div>`;
+    const n = (state.comments[String(s.id)] || []).length;
+    const time1 = n ? `<time>${fmt(s.start)}${who}<span class="ncount" title="${n === 1 ? "1 comentario" : `${n} comentarios`}">${n}</span></time>` : time;
+    li.innerHTML = `<div class="cell">${time1}<p></p></div><div class="cell">${time}<p></p></div>`;
     const [en, es] = li.querySelectorAll("p");
     en.textContent = s.text;
     es.textContent = s.translation || "—";
@@ -1075,6 +1140,20 @@ function renderTimeline() {
   // controles: tramos reconocidos y frases ya dobladas (o traducidas, sin voz)
   paintRanges($("#t-cov"), state.covered, d);
   paintRanges($("#t-dub"), state.segments.filter(segDone).map((s) => [s.start, s.end]), d);
+  // comentarios: una marca pequeña sobre la línea de avance (al pasar el mouse se lee)
+  const marks = $("#t-notes");
+  marks.replaceChildren();
+  if (d && isFinite(d)) {
+    for (const [sid, notes] of Object.entries(state.comments)) {
+      const seg = state.segments.find((x) => String(x.id) === sid);
+      if (!seg || !notes.length) continue;
+      const i = document.createElement("i");
+      i.style.left = `${(seg.start / d) * 100}%`;
+      i.dataset.t = seg.start;
+      i.dataset.text = notes.map((c) => c.text).join(" · ");
+      marks.append(i);
+    }
+  }
   // vista dividida: bajo el video en español, las frases traducidas
   const tl = $("#tl-es");
   paintRanges(tl, state.segments.filter((s) => s.translation).map((s) => [s.start, s.end]), d);
@@ -1321,7 +1400,8 @@ $("#track").addEventListener("pointerdown", (e) => {
   if (!vEn.duration) return;
   const track = $("#track");
   track.setPointerCapture(e.pointerId);
-  vEn.currentTime = trackTime(e);
+  const near = [...$("#t-notes").children].find((i) => Math.abs(i.getBoundingClientRect().left + 3 - e.clientX) < 7);
+  vEn.currentTime = near ? +near.dataset.t : trackTime(e);
   const move = (ev) => { vEn.currentTime = trackTime(ev); };
   const up = () => { track.removeEventListener("pointermove", move); track.removeEventListener("pointerup", up); };
   track.addEventListener("pointermove", move);
@@ -1331,7 +1411,11 @@ $("#track").addEventListener("pointermove", (e) => {
   if (!vEn.duration) return;
   const tip = $("#t-tip");
   const r = $("#track").getBoundingClientRect();
-  tip.textContent = fmt(trackTime(e));
+  // cerca de una marca de comentario: se muestra su texto (y un clic salta ahí)
+  const near = [...$("#t-notes").children].find((i) => Math.abs(i.getBoundingClientRect().left + 3 - e.clientX) < 7);
+  tip.textContent = near ? `${fmt(+near.dataset.t)} · ${near.dataset.text.slice(0, 80)}${near.dataset.text.length > 80 ? "…" : ""}`
+    : fmt(trackTime(e));
+  tip.classList.toggle("note", !!near);
   tip.style.left = `${Math.max(18, Math.min(r.width - 18, e.clientX - r.left))}px`;
   tip.hidden = false;
 });
@@ -1363,3 +1447,11 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "f") toggleFull();
   else if (e.key === "m") setVolume(player.volume || 1, !player.muted);
 });
+
+// texto del campo de enlaces según el ancho: nunca cortado
+const narrowMQ = window.matchMedia("(max-width: 760px)");
+function fitLinkHint() {
+  $("#yt-url").placeholder = narrowMQ.matches ? "Enlaces de YouTube" : "Pega uno o varios enlaces de YouTube";
+}
+narrowMQ.addEventListener("change", fitLinkHint);
+fitLinkHint();
