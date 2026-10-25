@@ -13,6 +13,10 @@ que se está viendo se sigue procesando.
 
 Reconocimiento y voz comparten la GPU: el reconocimiento no se adelanta más de
 unas pocas frases a la voz. Estado en data/queue.json.
+
+Descargas: los videos de una playlist entran a la cola sin descargar. Un hilo
+aparte los baja en orden (sin GPU), a lo sumo MAX_DOWNLOADED_AHEAD por delante
+de lo procesado para no llenar el disco; la cola procesa solo lo descargado.
 """
 
 import json
@@ -28,6 +32,7 @@ SR = 16000
 CHUNK_S = 3.0
 MAX_PENDING_DUBS = 3
 MAX_AHEAD_OF_VOICE_S = 30  # el reconocimiento no se aleja más de esto de la última frase con voz
+MAX_DOWNLOADED_AHEAD = 2   # videos descargados que esperan su turno
 
 
 def decode_audio(path: Path) -> np.ndarray:
@@ -45,8 +50,10 @@ def decode_audio(path: Path) -> np.ndarray:
 
 
 class Processor:
-    def __init__(self, root: Path, store, library, asr, translator, dubber, res, gpu, tts_exec, notify):
+    def __init__(self, root: Path, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
+                 youtube=None, session=lambda: "ninguna"):
         self.root = root
+        self.youtube, self.session = youtube, session
         self.path = root / "queue.json"
         self.store, self.library, self.asr = store, library, asr
         self.translator, self.dubber, self.res = translator, dubber, res
@@ -63,22 +70,36 @@ class Processor:
         self._cond = threading.Condition()
         self._last_note = 0.0
         threading.Thread(target=self._loop, daemon=True).start()
+        if youtube:
+            threading.Thread(target=self._download_loop, daemon=True).start()
 
     # ------------------------------------------------------------------ API
     def _job(self, vid):
         return next((j for j in self.data["jobs"] if j["id"] == vid), None)
 
     def add(self, vid: str, front: bool = False):
+        self.add_many([vid], front)
+
+    def add_many(self, vids: list[str], front: bool = False):
         with self._cond:
-            job = self._job(vid)
-            if job is None:
-                job = {"id": vid, "state": "en cola", "added": time.time(), "error": ""}
-                self.data["jobs"].append(job)
-            elif job["state"] in ("listo", "error"):
-                job.update(state="en cola", error="")
-            if front:
-                self.data["jobs"].remove(job)
-                self.data["jobs"].insert(0, job)
+            for vid in vids:
+                job = self._job(vid)
+                if job is None:
+                    job = {"id": vid, "state": "en cola", "added": time.time(), "error": ""}
+                    self.data["jobs"].append(job)
+                elif job["state"] in ("listo", "error"):
+                    job.update(state="en cola", error="")
+                if front:
+                    self.data["jobs"].remove(job)
+                    self.data["jobs"].insert(0, job)
+            self._save()
+            self._cond.notify_all()
+        self._broadcast()
+
+    def remove_many(self, vids):
+        vids = set(vids)
+        with self._cond:
+            self.data["jobs"] = [j for j in self.data["jobs"] if j["id"] not in vids]
             self._save()
             self._cond.notify_all()
         self._broadcast()
@@ -148,7 +169,7 @@ class Processor:
                 p = self.progress(j["id"])
             except Exception:
                 p = {"asr": 0, "dub": 0}
-            jobs.append({**j, **p, "watching": j["id"] == self.focus["vid"]})
+            jobs.append({**j, **p, "watching": j["id"] == self.focus["vid"], "downloaded": self._has_media(j["id"])})
         return {"type": "queue", "paused": self.data["paused"], "current": self.current, "jobs": jobs}
 
     # ---------------------------------------------------------------- bucle
@@ -159,7 +180,57 @@ class Processor:
             return job
         if self.data["paused"]:
             return None
-        return next((j for j in self.data["jobs"] if j["state"] == "en cola"), None)
+        return next((j for j in self.data["jobs"] if j["state"] == "en cola" and self._has_media(j["id"])), None)
+
+    def _has_media(self, vid: str) -> bool:
+        return bool((self.library.data["videos"].get(vid) or {}).get("media"))
+
+    # ------------------------------------------------------------- descargas
+    def _next_download(self):
+        if self.data["paused"]:
+            return None
+        waiting = 0
+        for j in self.data["jobs"]:
+            if j["state"] != "en cola":
+                continue
+            v = self.library.data["videos"].get(j["id"]) or {}
+            if v.get("media"):
+                waiting += 1
+            elif v.get("source") == "youtube":
+                return j if waiting < MAX_DOWNLOADED_AHEAD else None
+        return None
+
+    def _download_loop(self):
+        while True:
+            with self._cond:
+                while (job := self._next_download()) is None:
+                    self._cond.wait(timeout=30)
+            vid = job["id"]
+            last = [0.0]
+
+            def progress(stage, frac, title=None, job=job):
+                job["dl"] = {"stage": stage, "pct": round(frac * 100)}
+                if time.time() - last[0] > 1 or stage == "listo":
+                    last[0] = time.time()
+                    self._broadcast()
+
+            try:
+                info = self.youtube.fetch(vid[3:], progress, self.session())
+                self.library.set_field(vid, media=info["video"], audio=info["audio"],
+                                       **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
+                                          if info.get(k)})
+                job.pop("dl", None)
+            except Exception as e:
+                from .youtube import friendly_error
+
+                print(f"[descarga] {vid}: {e}", flush=True)
+                job.pop("dl", None)
+                job.update(state="error", error=friendly_error(e, self.session()))
+            with self._cond:
+                self._save()
+                self._cond.notify_all()
+            self._broadcast()
+            self.notify({"type": "library_changed"})
 
     def _loop(self):
         while True:

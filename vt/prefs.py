@@ -9,21 +9,23 @@ import json
 import threading
 from pathlib import Path
 
+SECTIONS = [["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["youtube", "YouTube"]]
 SCHEMA = [
-    {"key": "layout", "label": "Vista del video", "type": "choice", "default": "ampliada",
+    {"key": "layout", "section": "video", "label": "Vista del video", "type": "choice", "default": "ampliada",
      "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
-    {"key": "audio", "label": "Al abrir un video, escuchar", "type": "choice", "default": "es",
+    {"key": "ready_chip", "section": "video", "label": "Indicador de reproducción", "type": "choice",
+     "default": "auto",
+     "options": [["auto", "En pausa o si falta margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
+    {"key": "audio", "section": "audio", "label": "Al abrir un video, escuchar", "type": "choice", "default": "es",
      "options": [["es", "En español"], ["original", "Original"]]},
-    {"key": "duck", "label": "Original bajo la voz en español", "type": "choice", "default": "bajo",
-     "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
-    {"key": "sub_es", "label": "Subtítulos en español", "type": "bool", "default": True},
-    {"key": "sub_en", "label": "Subtítulos en inglés", "type": "bool", "default": True},
-    {"key": "yt_session", "label": "Sesión de YouTube (si pide verificar que no eres un bot)", "type": "choice",
+    {"key": "duck", "section": "audio", "label": "Original bajo la voz en español", "type": "choice",
+     "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
+    {"key": "sub_es", "section": "subtitulos", "label": "Subtítulos en español", "type": "bool", "default": True},
+    {"key": "sub_en", "section": "subtitulos", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "yt_session", "section": "youtube", "label": "Sesión para descargar", "type": "choice",
      "default": "ninguna",
      "options": [["ninguna", "No usar"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
                  ["edge", "Edge"], ["archivo", "Archivo cookies.txt"]]},
-    {"key": "ready_chip", "label": "Indicador de reproducción", "type": "choice", "default": "auto",
-     "options": [["auto", "En pausa o si falta margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
 ]
 _BY_KEY = {p["key"]: p for p in SCHEMA}
 
@@ -59,4 +61,4 @@ class Prefs:
         return True
 
     def public(self) -> dict:
-        return {"type": "prefs", "schema": SCHEMA, "values": dict(self.values)}
+        return {"type": "prefs", "sections": SECTIONS, "schema": SCHEMA, "values": dict(self.values)}

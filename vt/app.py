@@ -16,6 +16,7 @@ from .translate import MODELS as MT_MODELS, load_translator
 from .library import Library
 from .prefs import Prefs
 from .processor import Processor
+from .exporter import Exporter
 from .resources import Resources
 from .youtube import YouTube
 
@@ -134,13 +135,15 @@ def main():
     # arranca en reposo: la preparación cargó los modelos para verificarlos; vuelven a la RAM
     asr.unload()
     translator.unload()
-    processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify)
     prefs = Prefs(ROOT / "data" / "prefs.json")
+    processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
+                          youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"))
+    exporter = Exporter(ROOT / "data", store, library, processor, youtube, prefs, notify)
 
     async def ws_handler(ws):
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                          processor, prefs, notify)
+                          processor, prefs, notify, exporter)
         sessions.add(session)
         try:
             await session.run()
@@ -149,7 +152,8 @@ def main():
 
     (ROOT / "data" / "audio").mkdir(parents=True, exist_ok=True)
     server = AppServer({"/samples/": ROOT / "samples", "/audio/": ROOT / "data" / "audio",
-                        "/media/yt/": ROOT / "data" / "youtube", "/media/lib/": lib_dir, "/": ROOT / "web"},
+                        "/media/yt/": ROOT / "data" / "youtube", "/media/lib/": lib_dir,
+                        "/exports/": ROOT / "data" / "exports", "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
                                              "/api/cookies": put_cookies})
     url = f"http://{a.host}:{a.port}"

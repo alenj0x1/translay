@@ -146,7 +146,34 @@ def test_cookies_import():
             pass
 
 
+def test_playlist_library_and_srt():
+    from vt.exporter import safe_name, srt
+    from vt.library import Library
+    from vt.youtube import playlist_id
+
+    assert playlist_id("https://www.youtube.com/watch?v=ejjBbaq9RmY&list=PLKfy8g4yBtRY") == "PLKfy8g4yBtRY"
+    assert playlist_id("https://www.youtube.com/watch?v=ejjBbaq9RmY&list=RDejjBbaq9RmY") is None  # mix
+    with tempfile.TemporaryDirectory() as d:
+        lib = Library(Path(d) / "library.json")
+        info = {"id": "PLprueba123", "title": "Mi lista", "url": "u", "channel": "c",
+                "entries": [{"id": f"vid{i:08d}", "title": f"T{i}", "duration": 60, "channel": "c", "thumb": ""}
+                            for i in range(3)]}
+        c = lib.import_playlist(info)
+        assert c["items"] == ["yt_vid00000000", "yt_vid00000001", "yt_vid00000002"]
+        pub = lib.public()
+        by = {x["id"]: x for x in pub["collections"]}
+        assert by["recent"]["items"] == [] and len(by["all"]["items"]) == 3  # sin descargar: solo en Todos
+        assert lib.import_playlist(info)["id"] == c["id"]  # reimportar no duplica
+        lib.set_field("yt_vid00000000", media="/media/yt/x.mp4")
+        assert sorted(lib.delete(c["id"])) == ["yt_vid00000001", "yt_vid00000002"]  # lo descargado se queda
+    segs = [{"start": 1.0, "end": 2.5, "text": "Hi.", "translation": "Hola."}, {"start": 3, "end": 3.1, "text": "x"}]
+    out = srt(segs, "translation")
+    assert out.startswith("1\n00:00:01,000 --> 00:00:02,500\nHola.") and "x" not in out
+    assert safe_name('a/b:c?"d') == "a b c d"
+
+
 if __name__ == "__main__":
+    test_playlist_library_and_srt()
     test_cookies_import()
     test_audiofx()
     test_speaker_tracker()

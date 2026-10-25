@@ -8,9 +8,18 @@ vuelve a descargar.
 
 import re
 import subprocess
+import threading
+from collections import defaultdict
 from pathlib import Path
 
 _ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([A-Za-z0-9_-]{11})")
+_LIST = re.compile(r"[?&]list=([A-Za-z0-9_-]{10,})")
+
+
+def playlist_id(url: str) -> str | None:
+    """Id de la playlist del enlace. Los mix automáticos (RD…) son infinitos: no cuentan."""
+    m = _LIST.search(url.strip())
+    return m.group(1) if m and not m.group(1).startswith(("RD", "UL")) else None
 
 
 def video_id(url: str) -> str | None:
@@ -25,6 +34,8 @@ class YouTube:
     def __init__(self, root: Path):
         self.root = root
         self.root.mkdir(parents=True, exist_ok=True)
+        # un mismo video no se descarga dos veces a la vez (la cola y quien lo abre)
+        self._locks: dict[str, threading.Lock] = defaultdict(threading.Lock)
 
     def paths(self, vid: str) -> tuple[Path, Path]:
         return self.root / f"{vid}.mp4", self.root / f"{vid}.m4a"
@@ -38,6 +49,12 @@ class YouTube:
         vid = video_id(url)
         if not vid:
             raise ValueError("no es un enlace de YouTube")
+        with self._locks[vid]:
+            return self._fetch(vid, progress, session)
+
+    def _fetch(self, vid: str, progress, session: str) -> dict:
+        import json
+
         mp4, m4a = self.paths(vid)
         meta = self.root / f"{vid}.json"
         if mp4.exists() and m4a.exists() and meta.exists():
@@ -75,6 +92,32 @@ class YouTube:
         if progress:
             progress("listo", 1.0, info["title"])
         return data
+
+    def playlist(self, url: str, session: str = "ninguna") -> dict:
+        """Título, canal y videos de una playlist (sin descargar nada)."""
+        import yt_dlp
+
+        pid = playlist_id(url)
+        if not pid:
+            raise ValueError("no es un enlace de playlist")
+        opts = {"extract_flat": "in_playlist", "quiet": True, "no_warnings": True,
+                "js_runtimes": {"node": {}}, **self._session_opts(session)}
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/playlist?list={pid}", download=False)
+        entries, seen = [], set()
+        for e in info.get("entries") or []:
+            vid = (e or {}).get("id") or ""
+            if len(vid) != 11 or vid in seen or (e.get("title") or "").startswith(("[Private", "[Deleted")):
+                continue
+            seen.add(vid)
+            entries.append({"id": vid, "title": e.get("title") or vid, "duration": e.get("duration") or 0,
+                            "channel": e.get("channel") or e.get("uploader") or "",
+                            "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg"})
+        if not entries:
+            raise ValueError("la playlist está vacía o es privada")
+        return {"id": pid, "title": info.get("title") or "Playlist",
+                "channel": info.get("channel") or info.get("uploader") or "",
+                "url": f"https://www.youtube.com/playlist?list={pid}", "entries": entries}
 
     def _session_opts(self, session: str) -> dict:
         """Sesión de YouTube de la persona, solo si la eligió en Preferencias: su
@@ -142,6 +185,8 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
                 "cookies.txt (Preferencias → «Archivo cookies.txt»).")
     if isinstance(e, FileNotFoundError) and "cookies.txt" in msg:
         return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
+    if "playlist" in msg.lower() and ("does not exist" in msg or "private" in msg.lower()):
+        return "La playlist no existe o es privada."
     if "Video unavailable" in msg or "Private video" in msg:
         return "El video no está disponible (privado, eliminado o restringido)."
     return msg[:300]

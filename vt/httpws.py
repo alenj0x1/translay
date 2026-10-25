@@ -157,7 +157,7 @@ class AppServer:
                 return await self._simple(writer, 404, "Not Found")
             if method not in ("GET", "HEAD"):
                 return await self._simple(writer, 405, "Method Not Allowed")
-            await self._static(writer, method, path, headers.get("range"))
+            await self._static(writer, method, path, headers.get("range"), parts.query)
         except (ConnectionError, ValueError, asyncio.IncompleteReadError):
             pass
         finally:
@@ -176,7 +176,7 @@ class AppServer:
                 return None
         return None
 
-    async def _static(self, writer, method, path, rng):
+    async def _static(self, writer, method, path, rng, query=""):
         f = self._resolve(path)
         if f is None:
             return await self._simple(writer, 404, "Not Found")
@@ -198,6 +198,14 @@ class AppServer:
                 "Connection: close"]
         if status.startswith("206"):
             head.append(f"Content-Range: bytes {start}-{end}/{size}")
+        # ?dl=<nombre>: se descarga con ese nombre en vez de abrirse
+        from urllib.parse import parse_qs, quote
+
+        dl = parse_qs(query).get("dl", [""])[0]
+        if dl:
+            ascii_name = dl.encode("ascii", "replace").decode().replace("?", "_").replace('"', "")
+            head.append(f'Content-Disposition: attachment; filename="{ascii_name}"; '
+                        f"filename*=UTF-8''{quote(dl)}")
         writer.write(("\r\n".join(head) + "\r\n\r\n").encode())
         if method == "GET":
             with f.open("rb") as fh:

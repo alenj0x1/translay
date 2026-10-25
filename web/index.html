@@ -25,6 +25,7 @@
   </div>
   <button class="btn player-only" id="mode" type="button">Escuchar original</button>
   <button class="btn player-only" id="layout" type="button">Ver dividido</button>
+  <button class="btn player-only" id="export-btn" type="button">Exportar</button>
   <div class="queue-wrap">
     <button class="btn" id="queue-btn" type="button">Cola<span class="badge" id="queue-badge" hidden></span></button>
     <div class="popover queue-pop" id="queue-pop" hidden>
@@ -33,20 +34,9 @@
       <button class="btn ghost" id="queue-clear" type="button" hidden>Limpiar terminados</button>
     </div>
   </div>
-  <div class="prefs-wrap">
-    <button class="btn" id="prefs-btn" type="button">Preferencias</button>
-    <div class="popover prefs-pop" id="prefs-pop" hidden>
-      <div id="prefs-list"></div>
-      <div class="pref yt-import">
-        <span>Importar sesión de YouTube</span>
-        <div class="segs" id="yt-browsers"></div>
-        <div class="segs"><label class="seg">Subir cookies.txt<input type="file" id="cookies-file" accept=".txt,text/plain" hidden></label></div>
-        <small id="cookies-status"></small>
-      </div>
-    </div>
-  </div>
+  <button class="btn" id="prefs-btn" type="button">Preferencias</button>
   <button class="btn" id="view" type="button">Biblioteca</button>
-  <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" hidden></label>
+  <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" multiple hidden></label>
 </header>
 
 <main class="stage">
@@ -70,7 +60,14 @@
   </section>
 </main>
 
-<ol class="transcript" id="transcript"></ol>
+<section class="side" id="side">
+  <nav class="side-tabs" id="side-tabs">
+    <button type="button" class="on" data-tab="transcript">Transcripción</button>
+    <button type="button" data-tab="upnext">Siguientes</button>
+  </nav>
+  <ol class="transcript" id="transcript"></ol>
+  <ol class="upnext" id="upnext" hidden></ol>
+</section>
 
 <section class="library" id="library">
   <nav class="collections" id="collections"></nav>
@@ -79,6 +76,49 @@
     <div class="grid" id="grid"></div>
   </div>
 </section>
+
+<section class="prefs-screen" id="prefs-screen">
+  <aside class="prefs-nav" id="prefs-nav"></aside>
+  <div class="prefs-body" id="prefs-body"></div>
+</section>
+
+<!-- importar sesión de YouTube: se muestra dentro de la sección YouTube de Preferencias -->
+<div id="stash" hidden><div class="pref yt-import" id="yt-import">
+  <span class="pref-label">Importar sesión</span>
+  <div class="pref-ctl">
+    <div class="segs" id="yt-browsers"></div>
+    <div class="segs"><label class="seg">Subir cookies.txt<input type="file" id="cookies-file" accept=".txt,text/plain" hidden></label></div>
+    <small id="cookies-status"></small>
+  </div>
+</div></div>
+
+<dialog class="dlg" id="export-dlg">
+  <form method="dialog" id="export-form">
+    <h3 id="export-title"></h3>
+    <p class="dlg-sub" id="export-sub"></p>
+    <div class="opts">
+      <label><input type="checkbox" name="kind" value="es_video" checked><span>Video traducido</span><small>MP4</small></label>
+      <label><input type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small>M4A</small></label>
+      <label><input type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
+      <label><input type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small>M4A</small></label>
+    </div>
+    <p class="dlg-note" id="export-note"></p>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
+      <button class="btn dark" value="ok" type="submit" id="export-go">Exportar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="pl-dlg">
+  <form method="dialog">
+    <h3>Este enlace es de una playlist</h3>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="video" type="submit">Solo este video</button>
+      <button class="btn dark" value="playlist" type="submit">Agregar playlist</button>
+    </div>
+  </form>
+</dialog>
 
 <div class="toast" id="toast" role="alert" hidden></div>
 

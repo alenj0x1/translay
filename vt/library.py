@@ -4,9 +4,14 @@ data/library.json guarda:
   videos       id → {title, duration, source (file|youtube), media, audio, thumb,
                      channel, categories, added, opened, position}
   collections  [{id, name, items: [ids], created}]   (las que crea la persona)
+               + {kind: "playlist", playlist, url, channel}  (playlists importadas de YouTube)
+
+Los videos de una playlist se registran antes de descargarlos (sin `media`): la
+cola los descarga en orden. Hasta tenerlos, solo aparecen en su playlist.
 
 Las colecciones automáticas no se guardan: se calculan al pedir la biblioteca.
-  recientes    todos los videos, del último abierto al primero
+  recientes    los videos ya en el equipo, del último abierto al primero
+  todos        todos los videos de la biblioteca, del último agregado al primero
   canal        una por canal de YouTube
   categoría    una por categoría de YouTube (nombres en español)
 """
@@ -93,9 +98,36 @@ class Library:
                 c["name"] = name.strip()[:80]
         self.save()
 
-    def delete(self, cid: str):
+    def delete(self, cid: str) -> list[str]:
+        """Borra la colección. Devuelve los videos que quedan huérfanos sin descargar
+        (de una playlist): se quitan también de la biblioteca."""
         self.data["collections"] = [c for c in self.data["collections"] if c["id"] != cid]
+        used = {i for c in self.data["collections"] for i in c["items"]}
+        orphans = [vid for vid, v in self.data["videos"].items()
+                   if v.get("source") == "youtube" and not v.get("media") and vid not in used]
+        for vid in orphans:
+            self.data["videos"].pop(vid, None)
         self.save()
+        return orphans
+
+    def import_playlist(self, info: dict) -> dict:
+        """Playlist de YouTube como colección (si ya existe, se actualiza con su orden actual)."""
+        c = next((x for x in self.data["collections"] if x.get("playlist") == info["id"]), None)
+        if c is None:
+            c = {"id": uuid.uuid4().hex[:10], "kind": "playlist", "playlist": info["id"], "items": [],
+                 "created": time.time()}
+            self.data["collections"].append(c)
+        c.update(name=info["title"][:120], url=info["url"], channel=info.get("channel", ""))
+        now = time.time()
+        for n, e in enumerate(info["entries"]):
+            vid = "yt_" + e["id"]
+            if vid not in self.data["videos"]:
+                self.data["videos"][vid] = {"id": vid, "source": "youtube", "title": e["title"],
+                                            "duration": e["duration"], "channel": e["channel"],
+                                            "thumb": e["thumb"], "added": now - n * 1e-3, "position": 0}
+        c["items"] = ["yt_" + e["id"] for e in info["entries"]]
+        self.save()
+        return c
 
     def toggle(self, cid: str, vid: str, on: bool):
         for c in self.data["collections"]:
@@ -109,8 +141,13 @@ class Library:
     # ----------------------------------------------------------------- vista
     def public(self) -> dict:
         videos = self.data["videos"]
-        recent = sorted(videos, key=lambda i: -videos[i].get("opened", 0))
-        auto = [{"id": "recent", "name": "Recientes", "kind": "auto", "items": recent}]
+        # automáticas: solo lo que ya está en el equipo (lo pendiente de una playlist queda en ella)
+        recent = sorted((i for i in videos if videos[i].get("media")),
+                        key=lambda i: -(videos[i].get("opened") or videos[i].get("added", 0)))
+        # todos: cada video de la biblioteca (también lo pendiente de descargar), del último agregado al primero
+        every = sorted(videos, key=lambda i: -videos[i].get("added", 0))
+        auto = [{"id": "recent", "name": "Recientes", "kind": "auto", "items": recent},
+                {"id": "all", "name": "Todos", "kind": "auto", "items": every}]
         channels, cats = {}, {}
         for vid in recent:
             v = videos[vid]
@@ -120,9 +157,9 @@ class Library:
                 cats.setdefault(CATEGORIES_ES.get(cat, cat), []).append(vid)
         auto += [{"id": "ch-" + _slug(n), "name": n, "kind": "canal", "items": i} for n, i in sorted(channels.items())]
         auto += [{"id": "cat-" + _slug(n), "name": n, "kind": "categoría", "items": i} for n, i in sorted(cats.items())]
-        own = [{**c, "kind": "propia", "items": [i for i in c["items"] if i in videos]}
+        own = [{**c, "kind": c.get("kind", "propia"), "items": [i for i in c["items"] if i in videos]}
                for c in self.data["collections"]]
-        return {"videos": videos, "collections": auto[:1] + own + auto[1:]}
+        return {"videos": videos, "collections": auto[:2] + own + auto[2:]}
 
     def import_youtube(self, root: Path):
         """Registra los videos de YouTube ya descargados (de antes de la biblioteca)."""

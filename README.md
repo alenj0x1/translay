@@ -25,9 +25,13 @@ uv pip install -p .venvs/omnivoice/Scripts/python.exe --torch-backend=cu128 omni
 
 Al abrir la herramienta se ve la **Biblioteca**: tarjetas con miniatura, nombre, duración, avance y botón "Ver" (retoma donde quedaste).
 
-- **Recientes** (automática): todos los videos traducidos, del último abierto al primero.
+- **Recientes** (automática): los videos ya en el equipo, del último abierto al primero.
+- **Todos** (automática): cada video de la biblioteca, incluidos los de playlists aún sin descargar.
 - **Canales** y **categorías** (automáticas): se arman solas con los videos de YouTube (categorías en español).
 - **Colecciones propias**: se crean en la biblioteca o desde "Guardar en…" en el reproductor; al traducir un video nuevo ese panel se abre solo para elegir dónde guardarlo.
+- **Playlists**: al pegar un enlace de playlist se importa como colección (marcada «Playlist», con número de orden) y todos sus videos entran a la cola: se descargan en orden (a lo sumo 2 por delante de lo procesado, para no llenar el disco) y se procesan solos. Si el enlace es de un video dentro de una playlist, se pregunta «Solo este video» o «Agregar playlist». Los mix automáticos (RD…) se tratan como video suelto. Volver a pegar la playlist la actualiza; eliminarla quita de la cola lo pendiente y deja lo descargado.
+- **Siguientes**: al ver un video, la pestaña «Siguientes» (junto a «Transcripción») muestra la colección desde donde lo abriste, o su playlist. En playlists y selecciones, al terminar un video sigue el próximo.
+- **Varios a la vez**: casilla en cada tarjeta para seleccionar; con selección aparecen «Abrir» (se reproducen en orden), «Procesar» y «Exportar». «Abrir video» también acepta varios archivos: se abre el primero y los demás se copian, entran a la cola y quedan en «Siguientes».
 - Los archivos locales se copian a `data/library/` en segundo plano (con su miniatura) para poder volver a verlos desde la biblioteca. Todo se guarda en `data/library.json`.
 
 ### Vista ampliada y vista dividida
@@ -44,9 +48,18 @@ Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en esp
 - **Referencias de voz de hasta 8 s:** con una referencia de 15 s la clonación tardaba 61 s por frase cuando Whisper ocupa la GPU (9 s → 4 s).
 - **Memoria de GPU:** Whisper, el traductor y la voz comparten 8 GB. Los cachés de memoria de CTranslate2 (400 MB) y de torch (2.5 GB) están limitados: sin eso la GPU se llenaba, Windows desbordaba a memoria compartida y una frase podía tardar 65 s en vez de 1–2 s. Procesando ocupa ~5.6 GB.
 
+### Exportar
+
+«Exportar» en el reproductor (el video abierto), en la biblioteca (una colección o playlist completa) o sobre una selección. Se elige cualquier combinación de:
+
+- **Video traducido** (MP4): voz en español como pista principal, el inglés como segunda pista y subtítulos ES/EN que se activan en el reproductor.
+- **Audio traducido** (M4A), **video original** (MP4) y **audio original** (M4A).
+
+La mezcla en español es la que se escucha en la vista (cada frase en su momento, el original bajo la voz al nivel de Preferencias; sin voz, el original a volumen normal). Se arma con ffmpeg en la CPU (`vt/exporter.py`). Si un video aún no termina el doblaje, entra a la cola y se exporta al terminar; si no está descargado, se descarga primero. Un archivo se descarga tal cual; varios, en un .zip. El avance se ve en «Cola» y la descarga empieza sola al terminar.
+
 ### Preferencias
 
-"Preferencias" en la barra: vista (ampliada / dividida), con qué audio abrir los videos, volumen del original bajo la voz en español, subtítulos en español e inglés, y cuándo mostrar el indicador de reproducción. Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Para agregar una preferencia nueva basta sumar una entrada a `SCHEMA` en `vt/prefs.py` (el panel se arma solo) y leerla en la vista.
+«Preferencias» abre una pantalla propia: índice a la izquierda por sección (Video, Audio, Subtítulos, YouTube) y cada opción; a la derecha todas las opciones. Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Para agregar una preferencia nueva basta sumar una entrada a `SCHEMA` en `vt/prefs.py` (con su `section`; la pantalla se arma sola) y leerla en la vista.
 
 ### Si YouTube pide verificar que no eres un bot
 

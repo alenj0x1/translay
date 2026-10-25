@@ -26,6 +26,7 @@ const state = {
 // preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
 let prefs = { layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto" };
 let prefsSchema = [];
+let prefsSections = [];
 
 /* ------------------------------------------------------------ conexión */
 function connect() {
@@ -64,6 +65,20 @@ function onMessage(m) {
     case "power":
       state.power = m.state;
       renderPower();
+      break;
+    case "library_changed":
+      send({ type: "library" });
+      break;
+    case "playlist_added":
+      setStatus(...baseStatus);
+      $("#yt-url").value = "";
+      playlistAdded(m);
+      break;
+    case "exports":
+      exportsUpdate(m);
+      break;
+    case "export_started":
+      exportStarted(m.job);
       break;
     case "yt_queued":
       setStatus(...baseStatus);
@@ -214,25 +229,56 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   if (state.serverSide) send({ type: "watch", video: id, t: opts.position || 0 });
 }
 
-$("#file").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name, null, { file: f });
-});
+// uno o varios archivos: se abre el primero; los demás quedan en "Siguientes"
+// (se copian a la biblioteca y la cola los procesa mientras tanto)
+async function openFiles(files) {
+  files = files.filter((x) => /^(video|audio)\//.test(x.type));
+  if (!files.length) return;
+  const ids = [];
+  for (const f of files) ids.push(await fingerprint(f));
+  if (files.length > 1) {
+    setContext({ name: "Archivos abiertos", items: ids, auto: true });
+    files.slice(1).forEach((f, i) => importLocal(f, ids[i + 1]));
+  }
+  loadVideo(URL.createObjectURL(files[0]), ids[0], files[0].name, null, { file: files[0], keepContext: files.length > 1 });
+}
+$("#file").addEventListener("change", (e) => { openFiles([...e.target.files]); e.target.value = ""; });
 
 window.addEventListener("dragover", (e) => e.preventDefault());
-window.addEventListener("drop", async (e) => {
+window.addEventListener("drop", (e) => {
   e.preventDefault();
-  const f = [...e.dataTransfer.files].find((x) => /^(video|audio)\//.test(x.type));
-  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name, null, { file: f });
+  openFiles([...e.dataTransfer.files]);
 });
 
 // YouTube: el servidor descarga el video y responde yt_ready
 function openYouTube(url) {
   if (!/(youtube\.com|youtu\.be)\//.test(url) && !/^[\w-]{11}$/.test(url)) return false;
+  const list = (url.match(/[?&]list=([\w-]{10,})/) || [])[1];
+  const isList = list && !/^(RD|UL)/.test(list);  // los mix automáticos no son playlists
+  const hasVideo = /(?:v=|youtu\.be\/|shorts\/)[\w-]{11}/.test(url);
+  if (isList && hasVideo) {
+    // enlace de un video dentro de una playlist: elegir
+    const dlg = $("#pl-dlg");
+    dlg.returnValue = "";
+    dlg.onclose = () => {
+      if (dlg.returnValue === "playlist") addPlaylist(url);
+      else if (dlg.returnValue === "video") openVideoLink(url);
+    };
+    dlg.showModal();
+    return true;
+  }
+  if (isList) addPlaylist(url);
+  else openVideoLink(url);
+  return true;
+}
+function openVideoLink(url) {
   $("#file-name").textContent = "";
   setStatus("busy", "buscando video", false);
   send({ type: "youtube", url });
-  return true;
+}
+function addPlaylist(url) {
+  setStatus("busy", "leyendo la playlist", false);
+  send({ type: "playlist", url });
 }
 $("#yt").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -505,7 +551,10 @@ vEn.addEventListener("pause", () => {
   // congela también la voz doblada en su punto (al terminar el video, que acabe la frase)
   if (!vEn.ended) state.audio?.ctx.suspend();
 });
-vEn.addEventListener("ended", () => endLive("end"));
+vEn.addEventListener("ended", () => {
+  endLive("end");
+  playNextInContext();  // playlist o varios abiertos: sigue el próximo
+});
 vEn.addEventListener("seeking", () => {
   vEs.currentTime = vEn.currentTime;
   stopDub();
@@ -827,6 +876,7 @@ function setPref(key, value) {
 
 function applyPrefs(m) {
   prefsSchema = m.schema;
+  prefsSections = m.sections || [];
   prefs = { ...prefs, ...m.values };
   setLayout(prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
@@ -835,41 +885,96 @@ function applyPrefs(m) {
   renderPrefs();
 }
 
+const YT_IMPORT = $("#yt-import");
+// Pantalla de preferencias: índice a la izquierda (sección → cada opción) y todas
+// las opciones a la derecha, agrupadas por sección.
 function renderPrefs() {
-  const box = $("#prefs-list");
-  box.replaceChildren();
-  for (const p of prefsSchema) {
-    const row = document.createElement("div");
-    row.className = "pref";
-    const label = document.createElement("span");
-    label.textContent = p.label;
-    row.append(label);
-    if (p.type === "bool") {
-      const sw = document.createElement("button");
-      sw.type = "button";
-      sw.className = "seg" + (prefs[p.key] ? " on" : "");
-      sw.textContent = prefs[p.key] ? "Sí" : "No";
-      sw.addEventListener("click", () => { setPref(p.key, !prefs[p.key]); });
-      row.append(sw);
-    } else {
+  const nav = $("#prefs-nav");
+  const body = $("#prefs-body");
+  const scroll = body.scrollTop;
+  $("#stash").append(YT_IMPORT);  // se vuelve a poner en su sección (no se pierde al redibujar)
+  nav.replaceChildren();
+  body.replaceChildren();
+  for (const [sec, title] of prefsSections) {
+    const items = prefsSchema.filter((p) => p.section === sec);
+    const box = document.createElement("section");
+    box.className = "prefs-sec";
+    box.id = `sec-${sec}`;
+    const h = document.createElement("h3");
+    h.textContent = title;
+    box.append(h);
+    const h4 = document.createElement("h4");
+    h4.textContent = title;
+    nav.append(h4);
+    for (const p of items) {
+      const row = document.createElement("div");
+      row.className = "pref";
+      row.id = `pref-${p.key}`;
+      const label = document.createElement("span");
+      label.className = "pref-label";
+      label.textContent = p.label;
+      const ctl = document.createElement("div");
+      ctl.className = "pref-ctl";
       const group = document.createElement("div");
       group.className = "segs";
-      for (const [value, text] of p.options) {
+      const opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
+      for (const [value, text] of opts) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "seg" + (prefs[p.key] === value ? " on" : "");
         b.textContent = text;
-        b.addEventListener("click", () => setPref(p.key, value));
+        b.addEventListener("click", () => { setPref(p.key, value); renderPrefs(); });
         group.append(b);
       }
-      row.append(group);
+      ctl.append(group);
+      row.append(label, ctl);
+      box.append(row);
+      nav.append(navButton(p.label, row));
     }
-    box.append(row);
+    if (sec === "youtube") {
+      box.append(YT_IMPORT);
+      nav.append(navButton("Importar sesión", YT_IMPORT));
+    }
+    body.append(box);
   }
+  body.scrollTop = scroll;
+  markPrefsNav();
 }
-$("#prefs-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#prefs-pop").hidden = !$("#prefs-pop").hidden; });
-$("#prefs-pop").addEventListener("click", (e) => e.stopPropagation());
-document.addEventListener("click", () => { $("#prefs-pop").hidden = true; });
+function navButton(text, target) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = text;
+  b.dataset.target = target.id;
+  b.addEventListener("click", () => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+  return b;
+}
+// la opción visible arriba queda marcada en el índice
+function markPrefsNav() {
+  const body = $("#prefs-body");
+  const top = body.getBoundingClientRect().top;
+  let cur = null;
+  for (const row of body.querySelectorAll(".pref")) {
+    if (row.getBoundingClientRect().top - top <= 40) cur = row.id;
+  }
+  cur ||= body.querySelector(".pref")?.id;
+  if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4) cur = [...body.querySelectorAll(".pref")].pop()?.id;
+  for (const b of $("#prefs-nav").querySelectorAll("button")) b.classList.toggle("on", b.dataset.target === cur);
+}
+$("#prefs-body").addEventListener("scroll", markPrefsNav, { passive: true });
+$("#prefs-btn").addEventListener("click", () => togglePrefs());
+
+/* ------------------------------------------------------------ pestañas: transcripción / siguientes */
+function setSideTab(tab) {
+  for (const b of $("#side-tabs").querySelectorAll("button")) b.classList.toggle("on", b.dataset.tab === tab);
+  $("#transcript").hidden = tab !== "transcript";
+  $("#upnext").hidden = tab !== "upnext";
+  if (tab === "transcript") renderActive(true);
+  else renderUpNext(true);
+}
+$("#side-tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b) setSideTab(b.dataset.tab);
+});
 
 /* ------------------------------------------------------------ descargas */
 const DOWNLOAD_STEPS = [["buscando", "Buscando"], ["video", "Video"], ["audio", "Audio"],
@@ -881,9 +986,10 @@ function downloadText(m) {
 
 /* ------------------------------------------------------------ avisos */
 let toastTimer = null;
-function toast(text) {
+function toast(text, kind = "error") {
   const t = $("#toast");
   t.textContent = text;
+  t.dataset.kind = kind;  // error (rojo) · ok (verde) · warn (ámbar)
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, 15000);
@@ -913,9 +1019,8 @@ function renderCookies(m) {
   if (m.error) toast(m.error);
   if (m.imported) {
     const src = m.imported.source === "archivo" ? "del archivo" : `de ${m.imported.source}`;
-    toast(m.imported.logged_in
-      ? `Sesión de YouTube importada ${src}. Las descargas ya la usan.`
-      : `Se importaron cookies ${src}, pero sin sesión iniciada en YouTube: inicia sesión ahí y vuelve a importar.`);
+    if (m.imported.logged_in) toast(`Sesión de YouTube importada ${src}. Las descargas ya la usan.`, "ok");
+    else toast(`Se importaron cookies ${src}, pero sin sesión iniciada en YouTube: inicia sesión ahí y vuelve a importar.`, "warn");
   }
 }
 

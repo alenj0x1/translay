@@ -10,6 +10,8 @@ Cliente → servidor
   {"type":"watch", "video":<id>, "t":<s>} / unwatch  video guardado que se está viendo: lo procesa
                                                      la cola (vt/processor.py) desde ese punto
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
+  {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
+  {"type":"export", "videos":[ids], "kinds":[…], "name"}  exportar (vt/exporter.py) · export_remove
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
 
@@ -39,7 +41,7 @@ from .translate import Translator
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
-                 youtube=None, library=None, res=None, processor=None, prefs=None, notify=None):
+                 youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None):
         self.ws = ws
         self.gpu = gpu
         self.store = store
@@ -63,6 +65,7 @@ class Session:
         self.watching: str | None = None
         self.prefs = prefs
         self.notify = notify or (lambda msg: None)
+        self.exporter = exporter
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
@@ -77,6 +80,8 @@ class Session:
             await self._cookies_status()
         if self.processor:
             await self.ws.send_json(self.processor.public())
+        if self.exporter:
+            await self.ws.send_json(self.exporter.public())
         try:
             while (msg := await self.ws.recv()) is not None:
                 if isinstance(msg, bytes):
@@ -119,6 +124,10 @@ class Session:
                         await self.ws.send_json({"type": "power_info", **self.res.info(), "threads": stacks})
                     elif m.get("type") == "youtube":
                         asyncio.create_task(self._youtube(m.get("url", ""), bool(m.get("queue"))))
+                    elif m.get("type") == "playlist":
+                        asyncio.create_task(self._playlist(m.get("url", "")))
+                    elif m.get("type") in ("export", "export_remove") and self.exporter:
+                        await self._export(m)
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
                     else:
@@ -372,6 +381,35 @@ class Session:
             sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
             await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
+    async def _playlist(self, url: str):
+        loop = asyncio.get_running_loop()
+        sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
+        try:
+            info = await loop.run_in_executor(None, self.youtube.playlist, url, sess)
+        except Exception as e:
+            from .youtube import friendly_error
+
+            print(f"[playlist] {e}", flush=True)
+            await self.ws.send_json({"type": "yt_error", "error": friendly_error(e, sess)})
+            return
+        c = self.library.import_playlist(info)
+        if self.processor:  # en orden: la cola descarga y procesa uno tras otro
+            self.processor.add_many(c["items"])
+        await self.ws.send_json({"type": "playlist_added", "coll": c["id"], "name": c["name"],
+                                 "count": len(c["items"])})
+        self.notify({"type": "library_changed"})
+
+    async def _export(self, m: dict):
+        if m["type"] == "export_remove":
+            self.exporter.remove(str(m.get("job", "")))
+            return
+        try:
+            job = self.exporter.add([str(v) for v in m.get("videos", [])], list(m.get("kinds", [])),
+                                    str(m.get("name", ""))[:120])
+            await self.ws.send_json({"type": "export_started", "job": job["id"]})
+        except ValueError as e:
+            await self.ws.send_json({"type": "yt_error", "error": str(e)})
+
     # ------------------------------------------------------------- biblioteca
     async def _library(self, m: dict):
         lib, kind = self.library, m.get("type")
@@ -390,7 +428,9 @@ class Session:
         elif kind == "coll_rename":
             lib.rename(m["coll"], m.get("name", ""))
         elif kind == "coll_delete":
-            lib.delete(m["coll"])
+            orphans = lib.delete(m["coll"])  # lo pendiente de una playlist borrada sale de la cola
+            if orphans and self.processor:
+                self.processor.remove_many(orphans)
         data = lib.public()
         if self.processor:  # avance de cada video (para "Procesar" y las barras)
             for vid, v in data["videos"].items():
