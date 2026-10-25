@@ -56,6 +56,10 @@ IDIOMS: list[tuple[str, str]] = [
     (r"want to go(?=[.!?,])", "want to go there"),
     (r"works out to", "is equivalent to"),
     (r"worked out to", "was equivalent to"),
+    (r"(has|have|had) been out for", r"\1 been available for"),
+    (r"(the code|what) it puts out", r"\1 it produces"),
+    (r",? if I'?m being real", ", honestly"),
+    (r"super legit", "very trustworthy"),
 ]
 _IDIOMS = [(re.compile(r"\b" + p + r"\b", re.I), r) for p, r in IDIOMS]
 
@@ -72,6 +76,9 @@ _LATAM = [
     (re.compile(r"\bahí fuera\b"), "allá afuera"),
     (re.compile(r"\bes equivalente a\b"), "equivale a"),
     (re.compile(r"\bdar(le)? [\"“]?[Mm]e gusta[\"”]?"), r"dar\1 like"),
+    # "vosotros" (España) → "ustedes"
+    (re.compile(r"\b(habl|cont|mostr|enseñ|dej|pregunt|explic)aros\b"), r"\1arles"),
+    (re.compile(r"\bos (voy|vamos|quiero|recomiendo|dejo|cuento|muestro|enseño)\b"), r"les \1"),
 ]
 
 

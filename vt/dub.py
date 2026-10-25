@@ -64,7 +64,7 @@ class VideoVoices:
 
 
 class Dubber:
-    def __init__(self, tts, data_root: Path, max_rate: float = 1.3):
+    def __init__(self, tts, data_root: Path, max_rate: float = 1.25):
         self.tts = tts
         self.embedder = SpeakerEmbedder()
         self.audio_root = data_root / "audio"
@@ -125,15 +125,20 @@ class Dubber:
                     changed.append(seg)
             return changed
 
-    def target_duration(self, seg: dict, slot: float | None) -> float:
-        """Duración pedida al motor: la de la frase original (+10 %), sin bajar de
-        un ritmo cómodo para el texto en español (~17 caracteres/s) y sin pasar
-        del espacio disponible hasta la frase siguiente."""
+    def slot(self, tr, seg: dict) -> float:
+        """Espacio disponible: hasta el inicio de la frase siguiente (si ya existe)."""
+        nxt = min((x["start"] for x in tr.segments if x["start"] > seg["start"] + 0.05), default=None)
+        if nxt is not None:
+            return max(0.4, nxt - seg["start"] - 0.08)
+        return (seg["end"] - seg["start"]) + 0.3
+
+    def target_duration(self, seg: dict, slot: float) -> float:
+        """Duración pedida al motor: la de la frase original (+5 %), sin pasar de un
+        ritmo de ~20 caracteres/s en español y sin salirse del espacio disponible."""
         text = seg.get("translation") or ""
-        base = (seg["end"] - seg["start"]) * 1.1
-        need = len(text) / 17.0
-        limit = slot or (seg["end"] - seg["start"]) + 0.8
-        return round(float(np.clip(max(base, need), 0.5, max(limit, base))), 2)
+        base = (seg["end"] - seg["start"]) * 1.05
+        need = len(text) / 20.0
+        return round(float(np.clip(max(base, need), 0.5, max(slot, 0.5))), 2)
 
     def synthesize(self, tr, seg: dict, orig_db: float | None = None, slot: float | None = None) -> dict | None:
         """Genera el audio en español de la frase. Devuelve la info para guardar."""
@@ -142,14 +147,15 @@ class Dubber:
             return None
         vv = self.voices(tr)
         ref, ref_text = vv.ref_for(seg.get("speaker"))
+        slot = slot or self.slot(tr, seg)
         target = self.target_duration(seg, slot)
         y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target,
                                     num_step=16, clean_ref="auto")
         y = trim_silence(y, sr, pad_s=0.03)
-        room = max(target, slot or 0)
+        room = slot
         dur = len(y) / sr
         rate = 1.0
-        if dur > room * 1.02:  # respaldo: el motor no respetó la duración
+        if dur > room * 1.02:  # el español no cupo: se comprime sin cambiar el tono
             rate = min(dur / room, self.max_rate)
             y = time_stretch(y, sr, rate)
         level = float(np.clip(orig_db if orig_db is not None else -20.0, -26.0, -14.0))

@@ -59,6 +59,10 @@ body {
 }
 .btn:hover { background: var(--ink); color: var(--paper); }
 button.btn { color: var(--ink); }
+.yt { display: flex; align-items: center; border: var(--line); border-radius: 999px; padding: 2px 2px 2px 14px; }
+.yt input { border: 0; outline: 0; background: transparent; width: 210px; font: 12px/1 var(--mono); color: var(--ink); }
+.yt input::placeholder { color: var(--muted); }
+.yt .btn { padding: 7px 14px; }
 
 /* ---------- videos ---------- */
 .stage { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); min-width: 0; }
@@ -118,6 +122,9 @@ button.btn { color: var(--ink); }
   .file { order: 5; flex-basis: 100%; }
   .metrics { display: none; }
   .btn { margin-left: auto; }
+  .yt { order: 4; flex-basis: 100%; }
+  .yt input { flex: 1; width: auto; }
+  .yt .btn { margin-left: 0; }
   .stage { grid-template-columns: 1fr; }
   .screen { max-height: none; }
   .caption { font-size: 14px; bottom: 44px; }

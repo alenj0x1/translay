@@ -92,6 +92,18 @@ function onMessage(m) {
       if (seg) { seg.speaker = m.speaker; renderTranscript(); }
       break;
     }
+    case "yt_progress":
+      setStatus("busy", `descargando ${m.stage} ${m.pct} %`, false);
+      break;
+    case "yt_ready":
+      setStatus(...baseStatus);
+      $("#yt-url").value = "";
+      loadVideo(m.video, "yt_" + m.id, m.title, m.audio);
+      break;
+    case "yt_error":
+      setStatus(...baseStatus);
+      $("#file-name").textContent = m.error;
+      break;
     case "covered":
       state.covered = m.ranges;
       renderTimeline();
@@ -104,7 +116,9 @@ function onMessage(m) {
   renderCaptions();
 }
 
-function setStatus(kind, text) {
+let baseStatus = ["off", "sin conexión"];
+function setStatus(kind, text, base = true) {
+  if (base) baseStatus = [kind, text];
   const el = $("#status");
   el.dataset.state = kind;
   el.querySelector("span").textContent = text;
@@ -126,7 +140,7 @@ async function sha256(data) {
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
-function loadVideo(src, id, name) {
+function loadVideo(src, id, name, audioSrc) {
   if (state.videoId) send({ type: "stop" });
   state.videoId = id;
   state.videoName = name;
@@ -139,7 +153,7 @@ function loadVideo(src, id, name) {
   vEs.src = src;
   stopDub();
   dubBuf.clear();
-  prepareAhead(src);
+  prepareAhead(audioSrc || src);
   $("#file-name").textContent = name;
   document.title = `${name} · Traductor`;
   renderTranscript();
@@ -160,8 +174,31 @@ window.addEventListener("drop", async (e) => {
   if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name);
 });
 
+// YouTube: el servidor descarga el video y responde yt_ready
+function openYouTube(url) {
+  if (!/(youtube\.com|youtu\.be)\//.test(url) && !/^[\w-]{11}$/.test(url)) return false;
+  $("#file-name").textContent = "";
+  setStatus("busy", "buscando video", false);
+  send({ type: "youtube", url });
+  return true;
+}
+$("#yt").addEventListener("submit", (e) => {
+  e.preventDefault();
+  openYouTube($("#yt-url").value.trim());
+});
+document.addEventListener("paste", (e) => {
+  if (e.target.closest("input")) return;
+  const text = e.clipboardData.getData("text").trim();
+  if (openYouTube(text)) e.preventDefault();
+});
+
 (async () => {
-  const src = new URLSearchParams(location.search).get("src");
+  const params = new URLSearchParams(location.search);
+  if (params.get("yt")) {
+    const go = () => (state.ready ? openYouTube(params.get("yt")) : setTimeout(go, 300));
+    go();
+  }
+  const src = params.get("src");
   if (src) {
     const abs = new URL(src, location.href).href;
     loadVideo(abs, await sha256(abs), decodeURIComponent(abs.split("/").pop()));
@@ -270,6 +307,8 @@ async function feedLoop(run) {
       feeder.pos = feeder.spanStart = span[1];
       continue;
     }
+    // no alejarse más de un minuto de lo ya doblado: lo que se va a escuchar primero
+    if (feeder.pos > Math.max(vEn.currentTime, dubFrontier()) + 60) { await sleep(500); continue; }
     if (feeder.pos >= total - 0.05) {
       if (feeder.inSpan) send({ type: "end" });
       feeder.inSpan = false;
@@ -290,6 +329,20 @@ async function feedLoop(run) {
     await acked;
   }
 }
+
+function dubFrontier() {
+  // hasta dónde, desde el punto de reproducción, ya está todo doblado
+  let f = vEn.currentTime;
+  for (const s of state.segments) {
+    if (s.end < f) continue;
+    if (!s.dub && s.translation) break;
+    f = s.end;
+  }
+  return f;
+}
+
+// el servidor dobla primero lo que se va a escuchar
+setInterval(() => { if (state.videoId) send({ type: "pos", t: vEn.currentTime }); }, 1000);
 
 function feederSeek(t) {
   if (!state.ahead || isCovered(t)) return;

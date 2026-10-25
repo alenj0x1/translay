@@ -80,6 +80,8 @@ def test_textproc():
     assert match_shape("Finally, in a version,", "Finalmente, en una versión.") == "Finalmente, en una versión,"
     assert match_shape("which is fine", "que está bien") == "lo que está bien"
     assert polish("Cuesta $ 799 , mira el vídeo") == "Cuesta $799, mira el video"
+    assert polish("Hoy quiero hablaros de esto y os voy a mostrar") == "Hoy quiero hablarles de esto y les voy a mostrar"
+    assert preedit("Opus has been out for a bit") == "Opus has been available for a bit"
 
 
 def test_audiofx():

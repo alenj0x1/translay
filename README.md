@@ -10,7 +10,7 @@ Herramienta local que transcribe, traduce y **dobla al español con la voz de ca
 python run.py
 ```
 
-Se abre `http://127.0.0.1:8765`. "Abrir video" (o arrastrar un archivo) y reproducir. El botón de la barra alterna entre "Escuchar original" y "Escuchar en español" (el original queda de fondo bajo la voz doblada).
+Se abre `http://127.0.0.1:8765`. "Abrir video" (o arrastrar un archivo) y reproducir. Para YouTube, pegar el enlace en el campo de la barra (o en cualquier parte de la página, o abrir `http://127.0.0.1:8765/?yt=<enlace o id>`): el servidor lo descarga con yt-dlp a `data/youtube/` (MP4 hasta 720p + pista de audio aparte) y se procesa igual que un archivo local; la segunda vez abre al instante. El botón de la barra alterna entre "Escuchar original" y "Escuchar en español" (el original queda de fondo bajo la voz doblada).
 
 Opciones: `--voice omnivoice|chatterbox|none`, `--translator opus-big|nllb-1.3b|madlad-3b|none`, `--model small.en`, `--device cpu --compute-type int8`, `--port`, `--no-browser`.
 
@@ -35,9 +35,11 @@ voces ◄─ /audio/<video>/<frase>.wav ◄─────── speakers.py   d
   suenan en el momento de cada frase         dub.py        voz por frase + ajuste de duración
                                              audiofx.py    WSOLA, re-muestreo, realce, YIN, ruido
                                              store.py      data/transcripts/<huella>.json
+                                             youtube.py    descarga con yt-dlp (+ Node)
 ```
 
 - **Procesamiento adelantado:** el navegador decodifica la pista de audio del archivo y la envía por delante de la reproducción (un bloque por cada confirmación del servidor, ~3× tiempo real). Cuando el video llega a una frase, su subtítulo, traducción y voz ya están listos: la voz suena **sincronizada** (desfase mediano medido 0.08 s). Si un archivo no se puede decodificar, se usa la captura mientras se reproduce (modo intérprete: la voz llega 2–5 s después).
+- **Videos largos:** la cola de voz atiende primero las frases desde el punto de reproducción en adelante, y el envío adelantado no se aleja más de 60 s de lo ya doblado. Cada frase se ajusta al espacio real hasta la siguiente (ritmo hasta ~20 caracteres/s y, si no cabe, WSOLA hasta ×1.25). Probado con un video de YouTube de 28 min: desfase mediano 0.25 s.
 - **Diarización propia** (`vt/speakers.py`): huella de voz por frase (fbank tipo Kaldi propio + WeSpeaker ResNet34 en ONNX, ~10 ms), agrupamiento incremental por similitud coseno. Las frases cortas (< 1.6 s) dan huellas poco fiables: no crean personas ni mueven centroides, y se re-asignan cuando las huellas maduran (la frase se vuelve a doblar con la voz correcta).
 - **Voz de cada persona:** sus mejores fragmentos originales (largos y limpios, hasta 9 s) forman su referencia; OmniVoice clona esa voz en español. Si la referencia es ruidosa (SNR < 20 dB) se limpia con DeepFilterNet antes de clonar.
 - **Duración:** se le pide al motor la duración de la frase original (+10 %, sin bajar de ~17 caracteres/s), así el español calza en su espacio sin deformarse; WSOLA propio queda de respaldo (hasta ×1.3). Sonoridad igualada a la voz original.

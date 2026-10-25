@@ -6,13 +6,16 @@ Cliente → servidor
   {"type":"open", "id":<huella>, "name":<archivo>}   abre/crea la transcripción
   binario: float64 LE (tiempo de medio) + PCM int16 LE mono 16 kHz
   {"type":"seek"|"stop"|"end", "t":<s>}             cierra o descarta lo pendiente
+  {"type":"pos", "t":<s>}                            punto de reproducción (orden del doblaje)
+  {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
 
 Servidor → cliente
   ready · transcript · partial (+ "es" en vivo) · segment · translations · dub · covered · stats
 
-Doblaje: cada frase final pasa por una cola de voz (prioridad: en vivo > frases
-guardadas sin doblar). La voz corre en su propio hilo y proceso, así el
-reconocimiento no espera a la síntesis.
+Doblaje: cada frase final pasa por una cola de voz que atiende primero lo que
+se va a escuchar (las frases desde el punto de reproducción en adelante, en
+orden). La voz corre en su propio hilo y proceso, así el reconocimiento no
+espera a la síntesis.
 """
 
 import asyncio
@@ -31,7 +34,8 @@ from .translate import Translator
 
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
-                 translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None):
+                 translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
+                 youtube=None):
         self.ws = ws
         self.gpu = gpu
         self.store = store
@@ -45,7 +49,10 @@ class Session:
         self._backfill: asyncio.Task | None = None
         self.dubber = dubber
         self.tts_exec = tts_exec
-        self.dub_q: asyncio.PriorityQueue = asyncio.PriorityQueue()
+        self.dub_pending: dict[int, tuple[int, Transcript, float | None]] = {}
+        self.dub_event = asyncio.Event()
+        self.playhead = 0.0
+        self.youtube = youtube
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
@@ -63,7 +70,12 @@ class Session:
                         self.q.put_nowait(("audio", t, pcm))
                 else:
                     m = json.loads(msg)
-                    self.q.put_nowait((m.get("type"), m))
+                    if m.get("type") == "pos":
+                        self.playhead = float(m.get("t", 0))
+                    elif m.get("type") == "youtube":
+                        asyncio.create_task(self._youtube(m.get("url", "")))
+                    else:
+                        self.q.put_nowait((m.get("type"), m))
         finally:
             self.q.put_nowait(("close", None))
             await worker
@@ -186,11 +198,29 @@ class Session:
 
     # ---------------------------------------------------------------- doblaje
     def _queue_dub(self, prio: int, tr: Transcript, seg: dict, orig_db: float | None):
+        """prio 0: frase en vivo (modo intérprete, va primero); 1: por delante / guardada."""
         if not self.dubber or not seg.get("translation"):
             return
-        self._dub_seq += 1
-        key = seg["start"] if prio else self._dub_seq  # guardadas: en orden del video
-        self.dub_q.put_nowait((prio, key, self._dub_seq, tr, seg["id"], orig_db))
+        old = self.dub_pending.get(seg["id"])
+        self.dub_pending[seg["id"]] = (min(prio, old[0]) if old else prio, tr, orig_db)
+        self.dub_event.set()
+
+    def _next_dub(self):
+        """La frase pendiente que antes se va a escuchar."""
+        best, best_key = None, None
+        for sid, (prio, tr, _) in self.dub_pending.items():
+            seg = next((x for x in tr.segments if x["id"] == sid), None)
+            if seg is None:
+                continue
+            ahead = seg["end"] >= self.playhead - 0.5
+            key = (prio, not ahead, seg["start"] if ahead else -seg["start"])
+            if best_key is None or key < best_key:
+                best, best_key = sid, key
+        if best is None:
+            self.dub_pending.clear()
+            return None
+        prio, tr, orig_db = self.dub_pending.pop(best)
+        return prio, tr, best, orig_db
 
     def _queue_stale_dubs(self, tr: Transcript):
         for seg in tr.segments:
@@ -202,7 +232,14 @@ class Session:
     async def _dub_worker(self):
         loop = asyncio.get_running_loop()
         while True:
-            prio, _, _, tr, seg_id, orig_db = await self.dub_q.get()
+            if not self.dub_pending:
+                self.dub_event.clear()
+                await self.dub_event.wait()
+                continue
+            item = self._next_dub()
+            if item is None:
+                continue
+            prio, tr, seg_id, orig_db = item
             seg = next((s for s in tr.segments if s["id"] == seg_id), None)
             if seg is None or tr is not self.tr:
                 continue
@@ -226,3 +263,24 @@ class Session:
             await self.ws.send_json({"type": "dub", "id": seg_id, "speaker": seg.get("speaker"),
                                      "url": "/audio/" + info["file"] + f"?v={self._dub_seq}",
                                      "dur": info["dur"], "live": prio == 0})
+
+    # ---------------------------------------------------------------- YouTube
+    async def _youtube(self, url: str):
+        loop = asyncio.get_running_loop()
+        if not self.youtube:
+            await self.ws.send_json({"type": "yt_error", "error": "YouTube no está habilitado"})
+            return
+        last = [0.0]
+
+        def progress(stage, frac):
+            if frac - last[0] >= 0.02 or frac >= 1.0:  # sin inundar el WebSocket
+                last[0] = frac
+                loop.call_soon_threadsafe(asyncio.ensure_future, self.ws.send_json(
+                    {"type": "yt_progress", "stage": stage, "pct": round(frac * 100)}))
+
+        try:
+            info = await loop.run_in_executor(None, self.youtube.fetch, url, progress)
+            await self.ws.send_json({"type": "yt_ready", **info})
+        except Exception as e:
+            traceback.print_exc()
+            await self.ws.send_json({"type": "yt_error", "error": str(e)[:300]})

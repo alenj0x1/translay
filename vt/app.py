@@ -12,6 +12,7 @@ from .httpws import AppServer
 from .session import Session
 from .store import Store
 from .translate import MODELS as MT_MODELS, load_translator
+from .youtube import YouTube
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -38,6 +39,7 @@ def main():
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
     store = Store(ROOT / "data" / "transcripts")
+    youtube = YouTube(ROOT / "data" / "youtube")
     dubber, tts_exec = None, None
     if a.voice != "none":
         from .dub import Dubber
@@ -50,11 +52,11 @@ def main():
             "translator": translator.name, "voice": a.voice}
 
     async def ws_handler(ws):
-        await Session(ws, asr, gpu, store, translator, info, dubber, tts_exec).run()
+        await Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube).run()
 
     (ROOT / "data" / "audio").mkdir(parents=True, exist_ok=True)
     server = AppServer({"/samples/": ROOT / "samples", "/audio/": ROOT / "data" / "audio",
-                        "/": ROOT / "web"}, {"/ws": ws_handler})
+                        "/media/yt/": ROOT / "data" / "youtube", "/": ROOT / "web"}, {"/ws": ws_handler})
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)
     if not a.no_browser:

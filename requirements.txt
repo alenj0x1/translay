@@ -4,6 +4,7 @@ av
 sentencepiece
 tokenizers
 huggingface_hub
+yt-dlp[default]   # videos de YouTube (usa Node para el desafío JS)
 # CUDA 12 en Windows/Linux (GPU NVIDIA)
 nvidia-cublas-cu12
 nvidia-cudnn-cu12
