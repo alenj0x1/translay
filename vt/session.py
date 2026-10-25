@@ -12,6 +12,8 @@ Cliente → servidor
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
   {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
   {"type":"export", "videos":[ids], "kinds":[…], "name"}  exportar (vt/exporter.py) · export_remove
+  comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
+  lib_delete {videos:[ids]} · lib_clear              borra videos (y sus archivos) o toda la biblioteca
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
 
@@ -107,6 +109,10 @@ class Session:
                         if self.watching:
                             self.processor.unwatch(self.watching)
                         self.watching = None
+                    elif m.get("type", "").startswith("comment_"):
+                        self._comment(m)
+                    elif self.library and m.get("type") in ("lib_delete", "lib_clear"):
+                        asyncio.create_task(self._delete(m))
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
                         await self._library(m)
                     elif m.get("type") in ("cookies_browsers", "cookies_import"):
@@ -126,6 +132,8 @@ class Session:
                         asyncio.create_task(self._youtube(m.get("url", ""), bool(m.get("queue"))))
                     elif m.get("type") == "playlist":
                         asyncio.create_task(self._playlist(m.get("url", "")))
+                    elif m.get("type") == "yt_batch":
+                        asyncio.create_task(self._batch(list(m.get("urls", []))[:200], str(m.get("coll") or "")))
                     elif m.get("type") in ("export", "export_remove") and self.exporter:
                         await self._export(m)
                     elif m.get("type", "").startswith("queue_") and self.processor:
@@ -381,6 +389,33 @@ class Session:
             sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
             await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
+    async def _batch(self, urls: list[str], coll: str):
+        """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
+        orden) y cada playlist se importa como colección."""
+        from .youtube import playlist_id, video_id
+
+        loop = asyncio.get_running_loop()
+        vids, lists = [], []
+        for u in urls:
+            u = str(u)
+            v = video_id(u)
+            if v:
+                vids.append(v)
+            elif playlist_id(u):
+                lists.append(u)
+        vids = list(dict.fromkeys(vids))
+        infos = await asyncio.gather(*[loop.run_in_executor(None, self.youtube.quick_info, v) for v in vids])
+        ids = self.library.add_pending(list(infos))
+        if coll:
+            for vid in ids:
+                self.library.toggle(coll, vid, True)
+        if self.processor and ids:
+            self.processor.add_many(ids)
+        await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists)})
+        self.notify({"type": "library_changed"})
+        for u in lists:
+            await self._playlist(u)
+
     async def _playlist(self, url: str):
         loop = asyncio.get_running_loop()
         sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
@@ -409,6 +444,47 @@ class Session:
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
             await self.ws.send_json({"type": "yt_error", "error": str(e)})
+
+    # ------------------------------------------------------------ comentarios
+    def _comment(self, m: dict):
+        vid, seg, text = str(m.get("video", "")), int(m.get("seg", -1)), str(m.get("text", ""))
+        tr = self.store.open(vid)
+        if m["type"] == "comment_add" and text.strip():
+            tr.add_comment(seg, text)
+        elif m["type"] == "comment_edit" and text.strip():
+            tr.edit_comment(seg, str(m.get("id")), text)
+        elif m["type"] == "comment_delete":
+            tr.delete_comment(seg, str(m.get("id")))
+        tr.save()
+        self.notify({"type": "comments", "video": vid, "comments": tr.comments})  # todas las pestañas
+
+    # ------------------------------------------------------- borrar videos
+    async def _delete(self, m: dict):
+        vids = self.library.clear() if m["type"] == "lib_clear" else [str(v) for v in m.get("videos", [])]
+        if self.processor:
+            self.processor.remove_many(vids)
+        if m["type"] == "lib_delete":
+            self.library.remove_many(vids)
+        await asyncio.get_running_loop().run_in_executor(None, self._delete_files, vids)
+        self.notify({"type": "deleted", "videos": vids})
+        self.notify({"type": "library_changed"})
+
+    def _delete_files(self, vids):
+        """Copias, transcripciones, voces y referencias de cada video."""
+        import re
+        import shutil
+
+        data = self.store.root.parent
+        for vid in vids:
+            if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
+                continue
+            self.store.delete(vid)
+            for d in (data / "audio" / vid, data / "voices" / vid):
+                shutil.rmtree(d, ignore_errors=True)
+            folder, stem = (data / "youtube", vid[3:]) if vid.startswith("yt_") else (data / "library", vid)
+            for f in folder.glob(f"{stem}.*"):
+                if f.stem == stem:
+                    f.unlink(missing_ok=True)
 
     # ------------------------------------------------------------- biblioteca
     async def _library(self, m: dict):

@@ -12,6 +12,7 @@ import json
 import re
 import threading
 import time
+import uuid
 from pathlib import Path
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
@@ -32,6 +33,7 @@ class Transcript:
         self.path = path
         self.data = data
         self._lock = threading.Lock()  # la vista y la cola en segundo plano pueden escribir a la vez
+        self.deleted = False  # video eliminado: lo que siga procesándose ya no se guarda
 
     @property
     def segments(self) -> list[dict]:
@@ -77,6 +79,8 @@ class Transcript:
             self.data["covered"] = merge_ranges(self.covered + [[a, b]])
 
     def save(self):
+        if self.deleted:
+            return
         with self._lock:
             self.data["updated"] = time.time()
             tmp = self.path.with_suffix(".tmp")
@@ -84,7 +88,32 @@ class Transcript:
             tmp.replace(self.path)
 
     def public(self) -> dict:
-        return {"id": self.data["id"], "segments": self.segments, "covered": self.covered}
+        return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
+                "comments": self.comments}
+
+    # ------------------------------------------------- comentarios por frase
+    @property
+    def comments(self) -> dict:
+        """id de frase (texto) → [{id, text, created, updated}]"""
+        return self.data.setdefault("comments", {})
+
+    def add_comment(self, seg_id: int, text: str) -> dict:
+        c = {"id": uuid.uuid4().hex[:8], "text": text.strip()[:4000], "created": time.time(), "updated": None}
+        self.comments.setdefault(str(seg_id), []).append(c)
+        return c
+
+    def edit_comment(self, seg_id: int, cid: str, text: str):
+        for c in self.comments.get(str(seg_id), []):
+            if c["id"] == cid:
+                c.update(text=text.strip()[:4000], updated=time.time())
+
+    def delete_comment(self, seg_id: int, cid: str):
+        key = str(seg_id)
+        items = [c for c in self.comments.get(key, []) if c["id"] != cid]
+        if items:
+            self.comments[key] = items
+        else:
+            self.comments.pop(key, None)
 
 
 class Store:
@@ -107,3 +136,11 @@ class Store:
         t = Transcript(path, data)
         self._cache[vid] = t
         return t
+
+    def delete(self, vid: str):
+        if not _SAFE_ID.match(vid):
+            return
+        t = self._cache.pop(vid, None)
+        if t:
+            t.deleted = True
+        (self.root / f"{vid}.json").unlink(missing_ok=True)

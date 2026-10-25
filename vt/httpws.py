@@ -194,7 +194,10 @@ class AppServer:
             status = "206 Partial Content"
         length = end - start + 1
         head = [f"HTTP/1.1 {status}", f"Content-Type: {_MIME.get(f.suffix.lower(), 'application/octet-stream')}",
-                f"Content-Length: {length}", "Accept-Ranges: bytes", "Cache-Control: no-store",
+                f"Content-Length: {length}", "Accept-Ranges: bytes",
+                # miniaturas: en caché (al redibujar listas no se vuelven a pedir); lo demás cambia
+                "Cache-Control: max-age=3600" if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
+                else "Cache-Control: no-store",
                 "Connection: close"]
         if status.startswith("206"):
             head.append(f"Content-Range: bytes {start}-{end}/{size}")

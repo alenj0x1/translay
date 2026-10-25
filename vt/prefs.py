@@ -9,10 +9,15 @@ import json
 import threading
 from pathlib import Path
 
-SECTIONS = [["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["youtube", "YouTube"]]
+SECTIONS = [["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["youtube", "YouTube"]]
 SCHEMA = [
     {"key": "layout", "section": "video", "label": "Vista del video", "type": "choice", "default": "ampliada",
      "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
+    {"key": "autoplay", "section": "video", "label": "Reproducir al abrir un video", "type": "bool", "default": True},
+    {"key": "autoplay_next", "section": "video", "label": "Reproducir el siguiente al terminar", "type": "bool",
+     "default": True},
+    {"key": "wait_ready", "section": "video", "label": "Pausar hasta que esté listo", "type": "bool",
+     "default": True},
     {"key": "ready_chip", "section": "video", "label": "Indicador de reproducción", "type": "choice",
      "default": "auto",
      "options": [["auto", "En pausa o si falta margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
@@ -22,6 +27,8 @@ SCHEMA = [
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
     {"key": "sub_es", "section": "subtitulos", "label": "Subtítulos en español", "type": "bool", "default": True},
     {"key": "sub_en", "section": "subtitulos", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "lib_channels", "section": "biblioteca", "label": "Canales en la barra lateral", "type": "bool",
+     "default": True},
     {"key": "yt_session", "section": "youtube", "label": "Sesión para descargar", "type": "choice",
      "default": "ninguna",
      "options": [["ninguna", "No usar"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],

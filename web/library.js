@@ -24,10 +24,14 @@ function setView(view) {
   $("#prefs-btn").classList.toggle("on", view === "prefs");
   $("#view").textContent = view === "library" ? "Volver al video" : "Biblioteca";
   $("#view").hidden = view === "library" && !state.videoId;
-  if (view !== "player" && before === "player") {
-    if (!vEn.paused) vEn.pause();
-    send({ type: "unwatch" });
+  // fuera del reproductor, el video sigue en miniatura (abajo a la derecha) mientras
+  // se esté reproduciendo; en pausa se guarda hasta volver
+  if (view !== "player" && before === "player" && state.videoId) {
+    lib.mini = !vEn.paused;
+    if (!lib.mini) send({ type: "unwatch" });
   }
+  if (view === "player") lib.mini = false;
+  document.body.classList.toggle("mini", !!lib.mini && view !== "player");
   // de vuelta al video: la cola vuelve a darle prioridad desde donde quedó
   if (view === "player" && before !== "player" && state.videoId && state.serverSide) {
     send({ type: "watch", video: state.videoId, t: vEn.currentTime || 0 });
@@ -49,7 +53,7 @@ function libraryUpdate(m) {
   lib.collections = m.collections;
   if (!lib.collections.some((c) => c.id === lib.sel)) lib.sel = "recent";
   for (const id of [...lib.picked]) if (!lib.videos[id]) lib.picked.delete(id);
-  renderLibrary();
+  softRenderLibrary();
   renderSaveList();
   renderUpNext();
   if (lib.promptSave && state.videoId && lib.videos[state.videoId]) {
@@ -88,14 +92,55 @@ function pendingText(v) {
 }
 
 /* ------------------------------------------------------------ biblioteca */
+// Lo que llega solo (avance de la cola, descargas) NO redibuja la biblioteca: si el
+// estante se reemplaza entre que se presiona y se suelta un botón, el clic se pierde
+// (por eso "Ver" pedía dos clics). Se redibuja solo si cambió qué se muestra; si no,
+// las tarjetas se actualizan en su lugar.
+function shelfSignature() {
+  const c = lib.collections.find((x) => x.id === lib.sel);
+  return JSON.stringify([lib.sel, c?.items, [...lib.picked], prefs.lib_channels,
+    lib.collections.map((x) => [x.id, x.name, x.items.length]),
+    c?.items.map((id) => [lib.videos[id]?.title, lib.videos[id]?.thumb, !!lib.videos[id]?.media])]);
+}
+function softRenderLibrary() {
+  if (currentView() !== "library") return;
+  if (shelfSignature() !== lib.shelfSig) renderLibrary();
+  else refreshCards();
+}
+function refreshCards() {
+  if (currentView() !== "library") return;
+  for (const art of document.querySelectorAll("#grid .card[data-id]")) {
+    const v = lib.videos[art.dataset.id];
+    if (!v) continue;
+    const old = art.querySelector(".stage-bar");
+    const bar = progressBar(v);
+    if (old && bar) { if (old.outerHTML !== bar.outerHTML) old.replaceWith(bar); }
+    else if (old) old.remove();
+    else if (bar) art.querySelector(".actions").before(bar);
+    const pend = art.querySelector(".pending-dl");
+    const text = pendingText(v);
+    if (pend && text) { if (pend.textContent !== text) pend.textContent = text; }
+    else if (pend) pend.remove();
+    const btn = art.querySelector(".actions .btn");
+    const dl = downloadPct(v);
+    btn.classList.toggle("dl", dl !== null);
+    const label = dl !== null ? `Descargando ${dl} %` : "Ver";
+    if (btn.textContent !== label) btn.textContent = label;  // sin tocar lo que no cambió
+    if (dl !== null) btn.style.setProperty("--p", `${dl}%`);
+    else btn.style.removeProperty("--p");
+  }
+}
+
 function renderLibrary() {
   if (currentView() !== "library") return;
+  lib.shelfSig = shelfSignature();
   // columna de colecciones, agrupadas por tipo
   const nav = $("#collections");
   nav.replaceChildren();
   const groups = [["auto", null], ["propia", "Colecciones"], ["playlist", "Playlists"], ["canal", "Canales"],
     ["categoría", "Categorías"]];
   for (const [kind, label] of groups) {
+    if (kind === "canal" && prefs.lib_channels === false) continue;  // Preferencias → Biblioteca
     const items = lib.collections.filter((c) => c.kind === kind);
     if (label && (items.length || kind === "propia")) nav.append(el("h4", { text: label }));
     for (const c of items) {
@@ -118,6 +163,10 @@ function renderLibrary() {
   renderShelfHead(c);
   const grid = $("#grid");
   grid.replaceChildren();
+  if (!Object.keys(lib.videos).length) {  // biblioteca vacía: empezar aquí mismo
+    grid.append(welcome());
+    return;
+  }
   grid.classList.toggle("picking", lib.picked.size > 0);
   if (!c.items.length) {
     grid.append(el("div", { class: "empty", text: c.kind === "propia" ? "colección vacía" : "sin videos" }));
@@ -145,6 +194,15 @@ function renderShelfHead(c) {
         } } }),
         el("button", { class: "btn", type: "button", text: "Exportar",
           on: { click: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`) } }),
+        el("button", { class: "btn danger", type: "button", text: "Eliminar", on: { click: async () => {
+          const ids = pickedIn(c);
+          const what = ids.length === 1 ? "este video" : `estos ${ids.length} videos`;
+          if (await confirmDlg(`¿Eliminar ${what}?`,
+            "Se borran de la biblioteca junto con su traducción, sus voces y los archivos descargados.", "Eliminar")) {
+            send({ type: "lib_delete", videos: ids });
+            lib.picked.clear();
+          }
+        } } }),
         el("button", { class: "btn ghost", type: "button", text: "Quitar selección",
           on: { click: () => { lib.picked.clear(); renderLibrary(); } } })));
     return;
@@ -163,10 +221,21 @@ function renderShelfHead(c) {
   if (c.kind === "propia" || c.kind === "playlist") {
     const what = c.kind === "playlist" ? "la playlist" : "la colección";
     acts.append(el("button", { class: "btn ghost", type: "button", text: c.kind === "playlist" ? "Eliminar playlist" : "Eliminar colección",
-      on: { click: () => {
-        const extra = c.kind === "playlist" ? " Los videos descargados se quedan; los pendientes salen de la cola." : " Los videos no se borran.";
-        if (confirm(`¿Eliminar ${what} "${c.name}"?${extra}`)) send({ type: "coll_delete", coll: c.id });
+      on: { click: async () => {
+        const extra = c.kind === "playlist" ? "Los videos descargados se quedan; los pendientes salen de la cola." : "Los videos no se borran.";
+        if (await confirmDlg(`¿Eliminar ${what} «${c.name}»?`, extra, "Eliminar")) send({ type: "coll_delete", coll: c.id });
       } } }));
+  }
+  if (c.id === "all" && c.items.length) {
+    acts.append(el("button", { class: "btn ghost", type: "button", text: "Vaciar biblioteca", on: { click: async () => {
+      if (await confirmDlg("¿Vaciar la biblioteca?",
+        "Se borran todos los videos, colecciones y playlists, con sus traducciones, voces y archivos descargados. No se puede deshacer.",
+        "Vaciar biblioteca")) {
+        send({ type: "lib_clear" });
+        lib.picked.clear();
+        lib.sel = "recent";
+      }
+    } } }));
   }
   head.replaceChildren(...[
     el("h2", { text: c.name, title: c.name }),
@@ -186,6 +255,32 @@ function openPicked(c) {
   playItem(ids[0]);
 }
 
+function welcome() {
+  const input = el("input", { type: "text", placeholder: "Enlace de YouTube: video o playlist", spellcheck: "false" });
+  const file = el("input", { type: "file", accept: "video/*,audio/*", multiple: true, hidden: true,
+    on: { change: (e) => { openFiles([...e.target.files]); e.target.value = ""; } } });
+  return el("div", { class: "welcome" },
+    el("h2", { text: "Traduce tu primer video" }),
+    el("form", { on: { submit: (e) => { e.preventDefault(); openYouTube(input.value.trim()); } } },
+      input, el("button", { class: "btn dark", type: "submit", text: "Traducir" })),
+    el("label", { class: "btn" }, document.createTextNode("Abrir archivos"), file),
+    el("small", { text: "o arrastra un video aquí" }));
+}
+
+// avance de traducción y doblaje de un video ya en el equipo
+function progressBar(v) {
+  if (!v.media) return null;
+  const j = jobOf(v.id);
+  const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
+  const pct = Math.round(p.dub * 100);
+  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", { text: "traducido" }));
+  const label = j?.state === "procesando" ? `procesando · ${pct} %`
+    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `doblado ${pct} %` : "";
+  if (!label) return null;
+  return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") },
+    el("b", {}, Object.assign(el("i"), { style: `width:${pct}%` })), el("span", { text: label }));
+}
+
 function card(v, coll, i) {
   const pct = v.duration ? Math.min(100, (v.position || 0) / v.duration * 100) : 0;
   const pending = pendingText(v);
@@ -202,10 +297,13 @@ function card(v, coll, i) {
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null);
   const sub = [v.channel, v.source === "youtube" ? "YouTube" : "archivo"].filter(Boolean).join(" · ");
   const canOpen = !!v.media || v.source === "youtube";
-  return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") }, thumb,
+  const dl = downloadPct(v);  // descargando: el botón lo dice y se llena con el avance
+  return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : ""), "data-id": v.id }, thumb,
     el("div", { class: "meta" }, el("h3", { text: v.title || v.id }), el("p", { text: sub })),
+    progressBar(v),
     el("div", { class: "actions" },
-      el("button", { class: "btn", type: "button", text: "Ver", disabled: !canOpen,
+      el("button", { class: "btn" + (dl !== null ? " dl" : ""), type: "button", disabled: !canOpen,
+        text: dl !== null ? `Descargando ${dl} %` : "Ver", style: dl !== null ? `--p:${dl}%` : null,
         title: canOpen ? null : "La copia del archivo aún no está en la biblioteca",
         on: { click: () => {
           setContext({ name: coll.name, coll: coll.id, auto: coll.kind === "playlist" });
@@ -216,6 +314,16 @@ function card(v, coll, i) {
         on: { click: () => send({ type: "queue_add", video: v.id }) } }) : null,
       coll.kind === "propia" ? el("button", { class: "btn ghost", type: "button", text: "Quitar",
         on: { click: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) } }) : null));
+}
+
+// avance de descarga de un video sin copia (la cola o al abrirlo); null si no se descarga
+function downloadPct(v) {
+  if (v.media) return null;
+  const d = state.downloads[v.id.slice(3)] || jobOf(v.id)?.dl;
+  if (!d) return null;
+  // video y audio se bajan por separado: se reparten la barra; unir y preparar es el final
+  return d.stage === "video" ? Math.round(d.pct * 0.85) : d.stage === "audio" ? 85 + Math.round(d.pct * 0.1)
+    : d.stage === "buscando" ? 0 : 97;
 }
 
 function playFromLibrary(v) {
@@ -281,7 +389,7 @@ function renderUpNext(scroll) {
 }
 
 function playNextInContext() {
-  if (!lib.ctx?.auto) return;
+  if (!lib.ctx || prefs.autoplay_next === false) return;  // Preferencias → Video
   const items = contextItems();
   const i = items.indexOf(state.videoId);
   if (i >= 0 && i + 1 < items.length) playItem(items[i + 1]);
@@ -320,7 +428,8 @@ function queueUpdate(m) {
   // al terminar o cambiar un trabajo, refrescar el avance de las tarjetas
   if (before !== m.jobs.map((j) => j.id + j.state + j.downloaded).join()) send({ type: "library" });
   renderQueuePanel();
-  if (m.jobs.some((j) => j.dl)) { renderLibrary(); renderUpNext(); }
+  renderPower();
+  if (m.jobs.some((j) => j.dl || j.state === "procesando")) { refreshCards(); renderUpNext(); }
 }
 
 // Panel de la cola (como las descargas del navegador): exportaciones, descargas,
@@ -547,3 +656,13 @@ function makeThumb(src, id) {
 
 setView("library");
 renderUpNext();
+
+/* ------------------------------------------------------------ miniatura */
+$("#mini-back").addEventListener("click", (e) => { e.stopPropagation(); setView("player"); });
+$("#mini-close").addEventListener("click", (e) => {
+  e.stopPropagation();
+  vEn.pause();
+  send({ type: "unwatch" });
+  lib.mini = false;
+  document.body.classList.remove("mini");
+});

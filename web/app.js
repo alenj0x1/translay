@@ -21,10 +21,13 @@ const state = {
   dubMode: true,       // escuchar en español (voz doblada) u original
   ahead: false,        // audio del archivo procesado por delante de la reproducción
   downloads: {},       // descargas de YouTube en curso: id → {title, stage, pct}
+  comments: {},        // id de frase → [{id, text, created, updated}]
+  editing: null,       // comentario en edición: {seg, id (null = nuevo), draft}
 };
 
 // preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
-let prefs = { layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto" };
+let prefs = { layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
+  autoplay: true, autoplay_next: true };
 let prefsSchema = [];
 let prefsSections = [];
 
@@ -66,8 +69,19 @@ function onMessage(m) {
       state.power = m.state;
       renderPower();
       break;
+    case "comments":
+      if (m.video !== state.videoId) break;
+      state.comments = m.comments;
+      renderTranscript();
+      break;
+    case "deleted":
+      if (m.videos.includes(state.videoId)) closeVideo();
+      break;
     case "library_changed":
       send({ type: "library" });
+      break;
+    case "batch_added":
+      if (m.videos) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
       break;
     case "playlist_added":
       setStatus(...baseStatus);
@@ -88,7 +102,10 @@ function onMessage(m) {
       if (m.id !== state.videoId) return;
       state.segments = m.segments;
       state.covered = m.covered;
-      for (const s of state.segments) if (s.dub) loadDub(s);
+      state.comments = m.comments || {};
+      state.editing = null;
+      // las voces se bajan a medida que se acercan (cada 80 ms se precargan los próximos 15 s):
+      // bajarlas todas al abrir llenaba las conexiones y el video tardaba en cargar
       renderTranscript();
       renderTimeline();
       break;
@@ -118,7 +135,8 @@ function onMessage(m) {
       if (!seg) break;
       seg.dub = { url: m.url, dur: m.dur };
       if (m.speaker !== undefined) seg.speaker = m.speaker;
-      loadDub(seg).then(() => {
+      const near = seg.end > vEn.currentTime - 1 && seg.start < vEn.currentTime + 20;
+      (m.live || near ? loadDub(seg) : Promise.resolve()).then(() => {
         if (m.live && state.sending) liveEnqueue(seg);
       });
       renderTranscript();
@@ -138,7 +156,7 @@ function onMessage(m) {
     case "yt_progress":
       state.downloads[m.id] = m;
       setStatus("busy", downloadText(m), false);
-      if (typeof renderQueuePanel === "function") renderQueuePanel();
+      if (typeof renderQueuePanel === "function") { renderQueuePanel(); refreshCards(); }
       break;
     case "yt_ready":
       delete state.downloads[m.id];
@@ -159,7 +177,7 @@ function onMessage(m) {
       break;
     case "stats":
       if (feeder.ack) feeder.ack();
-      $("#metrics").textContent = `inferencia ${m.infer_ms} ms · búfer ${m.buffer_s.toFixed(1)} s`;
+      state.metrics = `inferencia ${m.infer_ms} ms · búfer ${m.buffer_s.toFixed(1)} s`;
       break;
   }
   renderCaptions();
@@ -221,12 +239,16 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   libOnOpen({ id, name, ...opts });
   setView("player");
   $("#file-name").textContent = name;
+  $("#file-name").title = name;
   document.title = `${name} · Traductor`;
   renderTranscript();
   renderTimeline();
   renderCaptions();
   send({ type: "open", id, name });
   if (state.serverSide) send({ type: "watch", video: id, t: opts.position || 0 });
+  // Preferencias → Video: empieza solo, en cuanto esté listo para reproducirse sin cortes
+  state.forcePlay = false;
+  state.autoWait = prefs.autoplay !== false;
 }
 
 // uno o varios archivos: se abre el primero; los demás quedan en "Siguientes"
@@ -282,12 +304,70 @@ function addPlaylist(url) {
 }
 $("#yt").addEventListener("submit", (e) => {
   e.preventDefault();
-  openYouTube($("#yt-url").value.trim());
+  const text = $("#yt-url").value.trim();
+  if (ytLinks(text).length > 1) return openMulti(text);
+  openYouTube(text);
 });
 document.addEventListener("paste", (e) => {
-  if (e.target.closest("input")) return;
+  if (e.target.closest("textarea, dialog")) return;
   const text = e.clipboardData.getData("text").trim();
+  if (ytLinks(text).length > 1) { e.preventDefault(); openMulti(text); return; }  // varios: cuadro para revisarlos
+  if (e.target.closest("input")) return;
   if (openYouTube(text)) e.preventDefault();
+});
+
+/* ------------------------------------------------------------ varios enlaces */
+function ytLinks(text) {
+  const found = text.match(/(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be)\/[^\s,;"'<>]+/gi) || [];
+  return [...new Set(found)];
+}
+function classify(url) {
+  const v = (url.match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/) || [])[1];
+  const list = (url.match(/[?&]list=([\w-]{10,})/) || [])[1];
+  if (v) return { kind: "video", key: v };
+  if (list && !/^(RD|UL)/.test(list)) return { kind: "playlist", key: list };
+  return null;
+}
+function multiParsed() {
+  const seen = new Set();
+  const out = [];
+  for (const u of ytLinks($("#multi-text").value)) {
+    const c = classify(u);
+    if (c && !seen.has(c.kind + c.key)) { seen.add(c.kind + c.key); out.push({ url: u, ...c }); }
+  }
+  return out;
+}
+function updateMulti() {
+  const items = multiParsed();
+  const nv = items.filter((x) => x.kind === "video").length;
+  const np = items.length - nv;
+  const known = items.filter((x) => x.kind === "video" && lib.videos["yt_" + x.key]).length;
+  const parts = [];
+  if (nv) parts.push(nv === 1 ? "1 video" : `${nv} videos`);
+  if (np) parts.push(np === 1 ? "1 playlist" : `${np} playlists`);
+  if (known) parts.push(known === 1 ? "1 ya está en la biblioteca" : `${known} ya están en la biblioteca`);
+  $("#multi-sum").textContent = parts.join(" · ") || "sin enlaces de YouTube";
+  $("#multi-go").disabled = !items.length;
+}
+function openMulti(text = "") {
+  $("#multi-text").value = text;
+  const sel = $("#multi-coll");
+  sel.replaceChildren(new Option("Sin colección", ""));
+  for (const c of lib.collections.filter((x) => x.kind === "propia")) sel.append(new Option(c.name, c.id));
+  updateMulti();
+  $("#yt-url").value = "";
+  $("#multi-dlg").showModal();
+  $("#multi-text").focus();
+}
+$("#multi-text").addEventListener("input", updateMulti);
+$("#yt-multi").addEventListener("click", () => openMulti($("#yt-url").value.trim()));
+$("#multi-dlg").addEventListener("close", () => {
+  if ($("#multi-dlg").returnValue !== "ok") return;
+  const items = multiParsed();
+  if (!items.length) return;
+  send({ type: "yt_batch", urls: items.map((x) => x.url), coll: $("#multi-coll").value });
+  lib.sel = "all";
+  setView("library");
 });
 
 (async () => {
@@ -322,11 +402,15 @@ async function ensureAudio() {
   // original → (ganancia) → parlantes; la captura para el ASR va antes de la ganancia
   const orig = ctx.createGain();
   const dub = ctx.createGain();
+  const master = ctx.createGain();  // volumen y silencio de los controles
   orig.gain.value = state.dubMode ? duck() : 1;
-  src.connect(orig).connect(ctx.destination);
-  dub.connect(ctx.destination);
+  master.gain.value = player.muted ? 0 : player.volume;
+  master.connect(ctx.destination);
+  src.connect(orig).connect(master);
+  dub.connect(master);
   state.audio.orig = orig;
   state.audio.dub = dub;
+  state.audio.master = master;
   src.connect(node);
   node.connect(mute).connect(ctx.destination);
   node.port.onmessage = (e) => onPcm(e.data);
@@ -473,6 +557,12 @@ function feederSeek(t) {
 // que viene se asume una densidad de voz pesimista (al menos 70 %).
 const readiness = { hist: [], ok: false, need: null };
 
+function isReadyAt(t) {
+  const span = processedSpan(t);
+  if (!span) return false;
+  return !state.segments.some((s) => s.end > t && s.start < t + 10 && !segDone(s) && s.start < span[1]);
+}
+
 function readyFrontier() {
   // sin voz basta la traducción
   return state.voice && state.voice !== "none" ? dubFrontier() : frontier((s) => !!s.translation);
@@ -516,14 +606,28 @@ setInterval(() => {
   need = Math.max(MIN_LEAD, Math.min(readiness.need, left));
   const lead = f - t;
   // histéresis: una vez listo, solo vuelve a "preparando" si el margen cae bastante
-  // sin velocidad medida todavía (primeros 8 s) no se promete nada: se espera a medirla
-  const ok = f >= end - 1 || (rate !== null && lead >= (readiness.ok ? need * 0.6 : need));
+  // sin velocidad medida (primeros 8 s) basta con 30 s listos por delante: alcanza para
+  // medirla reproduciendo, y si luego falta margen se pausa sola
+  const SAFE_LEAD = 30;
+  const ok = f >= end - 1 || lead >= (rate === null ? Math.min(SAFE_LEAD, left)
+    : readiness.ok ? need * 0.6 : need);
   readiness.ok = ok;
+  // esperar lo listo: arrancar (reproducción automática) o reanudar (pausa por falta de voz)
+  const waitPref = prefs.wait_ready !== false;
+  if (state.autoWait && vEn.paused && (ok || (!waitPref && vEn.readyState >= 3))) {
+    state.autoWait = false;
+    vEn.play().catch(() => {});
+  } else if (!ok && waitPref && state.dubMode && !vEn.paused && !state.forcePlay && !state.sending) {
+    // se reproduce algo aún sin voz en español (un salto o el doblaje se quedó atrás):
+    // pausa y sigue sola al estar listo, así no hay cortes
+    state.autoWait = true;
+    vEn.pause();
+  }
   box.dataset.state = ok ? "ok" : "wait";
   // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
   box.querySelector("span").textContent = ok ? "Listo para reproducir"
     : state.power === "cargando" ? "Cargando modelos"
-    : `Preparando ${Math.min(99, Math.round(lead / need * 100))} %`;
+    : `${state.autoWait ? "Sigue al estar listo" : "Preparando"} ${Math.min(99, Math.round(lead / need * 100))} %`;
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
   // visible en pausa (para saber cuándo dar play) y mientras se reproduce solo si
   // el doblaje se queda corto; la preferencia puede ocultarlo del todo
@@ -556,6 +660,8 @@ vEn.addEventListener("ended", () => {
   playNextInContext();  // playlist o varios abiertos: sigue el próximo
 });
 vEn.addEventListener("seeking", () => {
+  state.forcePlay = false;  // tras un salto vuelve a esperar lo listo
+  if (!vEn.paused) readiness.ok = isReadyAt(vEn.currentTime);
   vEs.currentTime = vEn.currentTime;
   stopDub();
   endLive("seek");
@@ -583,16 +689,25 @@ function endLive(kind) {
 const DUCK_LEVELS = { silencio: 0, bajo: 0.14, medio: 0.3 };
 const duck = () => DUCK_LEVELS[prefs.duck] ?? 0.14;  // volumen del original bajo la voz en español
 const dubBuf = new Map();    // id de frase → AudioBuffer
-const player = { cur: null, queue: [] };
+const player = { cur: null, queue: [], volume: 1, muted: false };
 
 let decodeCtx = null;
+// a lo sumo 3 descargas de voz a la vez: el video y sus rangos siempre tienen conexión libre
+const dubSlots = { busy: 0, wait: [] };
+async function dubFetch(url) {
+  while (dubSlots.busy >= 3) await new Promise((r) => dubSlots.wait.push(r));
+  dubSlots.busy++;
+  try { return await (await fetch(url)).arrayBuffer(); }
+  finally { dubSlots.busy--; dubSlots.wait.shift()?.(); }
+}
+
 async function loadDub(seg) {
   if (!seg.dub) return;
   const url = seg.dub.url || "/audio/" + seg.dub.file;
   if (dubBuf.get(seg.id)?.url === url) return;
   dubBuf.set(seg.id, { url, buf: null });  // en curso
   try {
-    const data = await (await fetch(url)).arrayBuffer();
+    const data = await dubFetch(url);
     // los AudioBuffer sirven en cualquier contexto: se decodifica aunque aún no haya reproducción
     const ctx = state.audio?.ctx || (decodeCtx ||= new OfflineAudioContext(1, 1, 48000));
     dubBuf.set(seg.id, { url, buf: await ctx.decodeAudioData(data) });
@@ -660,11 +775,14 @@ setInterval(() => {
 
 function setMode(dub) {
   state.dubMode = dub;
-  $("#mode").textContent = dub ? "Escuchar original" : "Escuchar en español";
+  for (const b of $("#c-lang").querySelectorAll("button")) b.classList.toggle("on", (b.dataset.v === "es") === dub);
   if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
   if (!dub) stopDub();
 }
-$("#mode").addEventListener("click", () => setMode(!state.dubMode));
+$("#c-lang").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b) setMode(b.dataset.v === "es");
+});
 setMode(state.dubMode);
 
 /* ------------------------------------------------------------ render */
@@ -784,10 +902,127 @@ function renderTranscript() {
     en.textContent = s.text;
     es.textContent = s.translation || "—";
     es.classList.toggle("pending", !s.translation);
+    const notes = state.comments[String(s.id)] || [];
+    const editingHere = state.editing?.seg === s.id;
+    li.classList.toggle("has-notes", notes.length > 0);
+    li.append(Object.assign(document.createElement("button"), {
+      type: "button", className: "cbtn", textContent: "+", title: "Comentar esta frase", ariaLabel: "Comentar esta frase" }));
+    if (notes.length || editingHere) li.append(renderNotes(s.id, notes));
     frag.appendChild(li);
   }
+  const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
   ol.replaceChildren(frag);
+  if (focused) {  // al redibujar (llega una frase nueva) el cuadro sigue donde estaba
+    const ta = ol.querySelector(".ceditor textarea");
+    ta?.focus();
+    ta?.setSelectionRange(ta.value.length, ta.value.length);
+  }
   renderActive(true);
+}
+
+/* ------------------------------------------------------------ comentarios por frase */
+function renderNotes(segId, notes) {
+  const box = document.createElement("div");
+  box.className = "notes";
+  for (const c of notes) {
+    if (state.editing?.seg === segId && state.editing.id === c.id) { box.append(noteEditor()); continue; }
+    const item = document.createElement("div");
+    item.className = "note";
+    const text = document.createElement("p");
+    text.textContent = c.text;
+    const meta = document.createElement("small");
+    const when = new Date((c.updated || c.created) * 1000);
+    meta.textContent = `${when.toLocaleDateString("es", { day: "numeric", month: "short" })} ${when.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}${c.updated ? " · editado" : ""}`;
+    const acts = document.createElement("span");
+    acts.className = "nacts";
+    acts.append(noteBtn("Editar", () => { state.editing = { seg: segId, id: c.id, draft: c.text }; renderTranscript(); focusEditor(); }),
+      noteBtn("Eliminar", async () => {
+        if (await confirmDlg("¿Eliminar este comentario?", "", "Eliminar")) {
+          send({ type: "comment_delete", video: state.videoId, seg: segId, id: c.id });
+        }
+      }));
+    item.append(text, meta, acts);
+    box.append(item);
+  }
+  if (state.editing?.seg === segId && state.editing.id === null) box.append(noteEditor());
+  return box;
+}
+function noteBtn(text, fn) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = text;
+  b.addEventListener("click", fn);
+  return b;
+}
+function noteEditor() {
+  const ed = state.editing;
+  const form = document.createElement("form");
+  form.className = "ceditor";
+  const ta = document.createElement("textarea");
+  ta.rows = 3;
+  ta.maxLength = 4000;
+  ta.placeholder = "Comentario";
+  ta.value = ed.draft;
+  // crece con el texto (sin tirador para cambiar el alto)
+  const grow = () => { ta.style.height = "auto"; ta.style.height = `${ta.scrollHeight + 2}px`; };
+  ta.addEventListener("input", () => { ed.draft = ta.value; grow(); });
+  requestAnimationFrame(grow);
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { state.editing = null; renderTranscript(); }
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) form.requestSubmit();
+  });
+  const acts = document.createElement("div");
+  acts.className = "cacts";
+  const cancel = Object.assign(document.createElement("button"), { type: "button", className: "btn ghost", textContent: "Cancelar" });
+  cancel.addEventListener("click", () => { state.editing = null; renderTranscript(); });
+  const save = Object.assign(document.createElement("button"), { type: "submit", className: "btn dark", textContent: "Guardar" });
+  acts.append(cancel, save);
+  form.append(ta, acts);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = ta.value.trim();
+    if (!text) return;
+    send(ed.id ? { type: "comment_edit", video: state.videoId, seg: ed.seg, id: ed.id, text }
+      : { type: "comment_add", video: state.videoId, seg: ed.seg, text });
+    state.editing = null;
+    renderTranscript();
+  });
+  return form;
+}
+function focusEditor() {
+  const ta = $("#transcript .ceditor textarea");
+  if (!ta) return;
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  ta.closest("li").scrollIntoView({ block: "nearest" });
+}
+
+// diálogo de confirmación con el estilo de la página
+function confirmDlg(title, text, okLabel) {
+  const dlg = $("#confirm-dlg");
+  $("#confirm-title").textContent = title;
+  $("#confirm-text").textContent = text;
+  $("#confirm-ok").textContent = okLabel;
+  dlg.returnValue = "";
+  dlg.showModal();
+  return new Promise((resolve) => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true }));
+}
+
+// el video abierto se eliminó (desde esta u otra pestaña)
+function closeVideo() {
+  vEn.pause();
+  stopDub();
+  send({ type: "unwatch" });
+  state.videoId = null;
+  state.segments = [];
+  state.comments = {};
+  state.editing = null;
+  vEn.removeAttribute("src");
+  vEs.removeAttribute("src");
+  vEn.load();
+  document.title = "Traductor de video";
+  renderTranscript();
+  setView("library");
 }
 
 function renderActive(force) {
@@ -804,7 +1039,7 @@ function renderActive(force) {
   prev?.classList.remove("active");
   if (!next) return;
   next.classList.add("active");
-  if (performance.now() - state.userScrollAt > 3000) {
+  if (performance.now() - state.userScrollAt > 3000 && !state.editing) {
     const top = next.offsetTop - ol.offsetTop - ol.clientHeight / 3;
     ol.scrollTo({ top, behavior: force ? "auto" : "smooth" });
   }
@@ -812,38 +1047,50 @@ function renderActive(force) {
 
 $("#transcript").addEventListener("click", (e) => {
   const li = e.target.closest("li");
-  if (li) vEn.currentTime = parseFloat(li.dataset.start);
+  if (!li || e.target.closest(".notes")) return;
+  if (e.target.closest(".cbtn")) {  // comentar esta frase
+    state.editing = { seg: Number(li.dataset.id), id: null, draft: "" };
+    renderTranscript();
+    focusEditor();
+    return;
+  }
+  vEn.currentTime = parseFloat(li.dataset.start);
 });
 $("#transcript").addEventListener("wheel", () => { state.userScrollAt = performance.now(); }, { passive: true });
 $("#transcript").addEventListener("touchmove", () => { state.userScrollAt = performance.now(); }, { passive: true });
 
+function paintRanges(box, ranges, d) {
+  box.replaceChildren();
+  if (!d || !isFinite(d)) return;
+  for (const [a, b] of ranges) {
+    const el = document.createElement("b");
+    el.style.left = `${(a / d) * 100}%`;
+    el.style.width = `${Math.max(0.2, ((b - a) / d) * 100)}%`;
+    box.appendChild(el);
+  }
+}
+
 function renderTimeline() {
   const d = vEn.duration;
-  for (const id of ["#tl-en", "#tl-es"]) {
-    const tl = $(id);
-    tl.replaceChildren();
-    if (!d || !isFinite(d)) continue;
-    // EN: rangos transcritos. ES: frases con traducción.
-    const ranges = id === "#tl-en"
-      ? state.covered
-      : state.segments.filter((s) => s.translation).map((s) => [s.start, s.end]);
-    for (const [a, b] of ranges) {
-      const el = document.createElement("b");
-      el.style.left = `${(a / d) * 100}%`;
-      el.style.width = `${Math.max(0.2, ((b - a) / d) * 100)}%`;
-      tl.appendChild(el);
-    }
-    const head = document.createElement("i");
-    head.className = "head";
-    tl.appendChild(head);
-  }
+  // controles: tramos reconocidos y frases ya dobladas (o traducidas, sin voz)
+  paintRanges($("#t-cov"), state.covered, d);
+  paintRanges($("#t-dub"), state.segments.filter(segDone).map((s) => [s.start, s.end]), d);
+  // vista dividida: bajo el video en español, las frases traducidas
+  const tl = $("#tl-es");
+  paintRanges(tl, state.segments.filter((s) => s.translation).map((s) => [s.start, s.end]), d);
+  if (d && isFinite(d)) tl.append(Object.assign(document.createElement("i"), { className: "head" }));
   renderHead();
 }
 
 function renderHead() {
   const d = vEn.duration;
-  if (!d) return;
-  document.querySelectorAll(".timeline .head").forEach((h) => { h.style.left = `${(vEn.currentTime / d) * 100}%`; });
+  const t = vEn.currentTime;
+  $("#c-time").textContent = `${fmt(t)} / ${d && isFinite(d) ? fmt(d) : "0:00"}`;
+  if (!d || !isFinite(d)) return;
+  const pct = `${Math.min(100, (t / d) * 100)}%`;
+  $("#t-play").style.width = pct;
+  $("#t-head").style.left = pct;
+  document.querySelectorAll(".timeline .head").forEach((h) => { h.style.left = pct; });
 }
 
 vEn.addEventListener("loadedmetadata", renderTimeline);
@@ -851,12 +1098,19 @@ vEn.addEventListener("loadedmetadata", renderTimeline);
 connect();
 
 /* ------------------------------------------------------------ reposo */
+// estado en palabras simples; el detalle técnico queda al pasar el mouse
 function renderPower() {
   if (!state.ready) return;
   const p = state.power || "reposo";
-  if (p === "reposo") setStatus("sleep", "reposo");
+  const q = typeof lib !== "undefined" ? lib.queue : null;
+  const run = q?.jobs.find((j) => j.state === "procesando");
+  const dl = q?.jobs.find((j) => j.dl);
+  if (run) setStatus("ok", `procesando · ${Math.round(run.dub * 100)} %`);
+  else if (dl) setStatus("busy", "descargando");
   else if (p === "cargando") setStatus("busy", "cargando modelos");
-  else setStatus("ok", state.models || "GPU");
+  else if (p === "reposo") setStatus("sleep", "en reposo");
+  else setStatus("ok", "listo");
+  $("#status").title = [state.models, state.metrics].filter(Boolean).join(" · ");
 }
 
 /* ------------------------------------------------------------ vista ampliada / dividida */
@@ -883,6 +1137,7 @@ function applyPrefs(m) {
   document.body.classList.toggle("no-sub-en", !prefs.sub_en);
   if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
   renderPrefs();
+  if (typeof renderLibrary === "function") renderLibrary();
 }
 
 const YT_IMPORT = $("#yt-import");
@@ -1035,4 +1290,76 @@ $("#cookies-file").addEventListener("change", async (e) => {
   } catch (err) {
     toast("No se pudo subir el archivo.");
   }
+});
+
+/* ------------------------------------------------------------ controles del reproductor */
+// Propios (los del navegador no siguen el estilo): reproducir, tiempo, línea de
+// avance con lo procesado, idioma, volumen y pantalla completa.
+function togglePlay() {
+  if (vEn.paused || vEn.ended) {
+    state.forcePlay = !readiness.ok;  // reproducir a mano aunque no esté listo
+    state.autoWait = false;
+    vEn.play();
+  } else {
+    state.autoWait = false;
+    vEn.pause();
+  }
+}
+const syncPlay = () => $("#ctrl").classList.toggle("playing", !vEn.paused && !vEn.ended);
+$("#c-play").addEventListener("click", togglePlay);
+vEn.addEventListener("click", togglePlay);
+vEn.addEventListener("play", syncPlay);
+vEn.addEventListener("pause", syncPlay);
+vEn.addEventListener("ended", syncPlay);
+vEn.addEventListener("durationchange", renderHead);
+
+function trackTime(e) {
+  const r = $("#track").getBoundingClientRect();
+  return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (vEn.duration || 0);
+}
+$("#track").addEventListener("pointerdown", (e) => {
+  if (!vEn.duration) return;
+  const track = $("#track");
+  track.setPointerCapture(e.pointerId);
+  vEn.currentTime = trackTime(e);
+  const move = (ev) => { vEn.currentTime = trackTime(ev); };
+  const up = () => { track.removeEventListener("pointermove", move); track.removeEventListener("pointerup", up); };
+  track.addEventListener("pointermove", move);
+  track.addEventListener("pointerup", up);
+});
+$("#track").addEventListener("pointermove", (e) => {
+  if (!vEn.duration) return;
+  const tip = $("#t-tip");
+  const r = $("#track").getBoundingClientRect();
+  tip.textContent = fmt(trackTime(e));
+  tip.style.left = `${Math.max(18, Math.min(r.width - 18, e.clientX - r.left))}px`;
+  tip.hidden = false;
+});
+$("#track").addEventListener("pointerleave", () => { $("#t-tip").hidden = true; });
+
+function setVolume(v, muted = player.muted) {
+  player.volume = v;
+  player.muted = muted || v === 0;
+  $("#c-vol").value = player.muted ? 0 : v;
+  $("#ctrl").classList.toggle("muted", player.muted);
+  if (state.audio) state.audio.master.gain.setTargetAtTime(player.muted ? 0 : v, state.audio.ctx.currentTime, 0.02);
+}
+$("#c-vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value), false));
+$("#c-mute").addEventListener("click", () => setVolume(player.volume || 1, !player.muted));
+
+function toggleFull() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $("#pane-en").requestFullscreen?.().catch(() => {});
+}
+$("#c-full").addEventListener("click", toggleFull);
+vEn.addEventListener("dblclick", toggleFull);
+
+// teclado: espacio reproduce, flechas ±5 s, f pantalla completa, m silencio
+document.addEventListener("keydown", (e) => {
+  if (currentView() !== "player" || e.target.closest("input, textarea, select, dialog") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === " " || e.key === "k") { e.preventDefault(); togglePlay(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); vEn.currentTime = Math.max(0, vEn.currentTime - 5); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); vEn.currentTime = Math.min(vEn.duration || 0, vEn.currentTime + 5); }
+  else if (e.key === "f") toggleFull();
+  else if (e.key === "m") setVolume(player.volume || 1, !player.muted);
 });

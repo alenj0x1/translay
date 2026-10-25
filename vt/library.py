@@ -79,10 +79,22 @@ class Library:
             self.save()
 
     def remove(self, vid: str):
-        self.data["videos"].pop(vid, None)
+        self.remove_many([vid])
+
+    def remove_many(self, vids):
+        vids = set(vids)
+        for vid in vids:
+            self.data["videos"].pop(vid, None)
         for c in self.data["collections"]:
-            c["items"] = [i for i in c["items"] if i != vid]
+            c["items"] = [i for i in c["items"] if i not in vids]
         self.save()
+
+    def clear(self) -> list[str]:
+        """Vacía la biblioteca: todos los videos y colecciones. Devuelve los ids borrados."""
+        vids = list(self.data["videos"])
+        self.data = {"videos": {}, "collections": []}
+        self.save()
+        return vids
 
     # ----------------------------------------------------------- colecciones
     def create(self, name: str) -> dict:
@@ -109,6 +121,20 @@ class Library:
             self.data["videos"].pop(vid, None)
         self.save()
         return orphans
+
+    def add_pending(self, entries: list[dict]) -> list[str]:
+        """Videos de YouTube aún sin descargar (enlaces sueltos): la cola los baja en orden."""
+        now, out = time.time(), []
+        for n, e in enumerate(entries):
+            vid = "yt_" + e["id"]
+            if vid not in self.data["videos"]:
+                self.data["videos"][vid] = {"id": vid, "source": "youtube", "title": e.get("title") or e["id"],
+                                            "duration": e.get("duration") or 0, "channel": e.get("channel", ""),
+                                            "thumb": f"https://i.ytimg.com/vi/{e['id']}/mqdefault.jpg",
+                                            "added": now - n * 1e-3, "position": 0}
+            out.append(vid)
+        self.save()
+        return out
 
     def import_playlist(self, info: dict) -> dict:
         """Playlist de YouTube como colección (si ya existe, se actualiza con su orden actual)."""

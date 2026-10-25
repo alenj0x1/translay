@@ -12,20 +12,8 @@
 <body class="view-library layout-wide">
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
-  <div class="file" id="file-name"></div>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
-  <div class="metrics" id="metrics"></div>
-  <form class="yt" id="yt"><input id="yt-url" type="text" placeholder="youtube.com/watch?v=…" spellcheck="false"><button class="btn" type="submit">Abrir</button></form>
-  <div class="save-wrap player-only">
-    <button class="btn" id="save" type="button">Guardar en…</button>
-    <div class="popover" id="save-pop" hidden>
-      <ul id="save-list"></ul>
-      <form id="save-new"><input id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn" type="submit">Crear</button></form>
-    </div>
-  </div>
-  <button class="btn player-only" id="mode" type="button">Escuchar original</button>
-  <button class="btn player-only" id="layout" type="button">Ver dividido</button>
-  <button class="btn player-only" id="export-btn" type="button">Exportar</button>
+  <form class="yt" id="yt"><input id="yt-url" type="text" placeholder="Enlace de YouTube" spellcheck="false"><button class="btn ghost" id="yt-multi" type="button">Varios</button><button class="btn" type="submit">Abrir</button></form>
   <div class="queue-wrap">
     <button class="btn" id="queue-btn" type="button">Cola<span class="badge" id="queue-badge" hidden></span></button>
     <div class="popover queue-pop" id="queue-pop" hidden>
@@ -36,19 +24,67 @@
   </div>
   <button class="btn" id="prefs-btn" type="button">Preferencias</button>
   <button class="btn" id="view" type="button">Biblioteca</button>
-  <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" multiple hidden></label>
+  <label class="btn" id="file-btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" multiple hidden></label>
 </header>
 
+<!-- acciones del video abierto -->
+<div class="vbar player-only" id="vbar">
+  <div class="vtitle" id="file-name"></div>
+  <div class="vacts">
+    <div class="save-wrap">
+      <button class="btn" id="save" type="button">Guardar en…</button>
+      <div class="popover" id="save-pop" hidden>
+        <ul id="save-list"></ul>
+        <form id="save-new"><input id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn" type="submit">Crear</button></form>
+      </div>
+    </div>
+    <button class="btn" id="layout" type="button">Ver dividido</button>
+    <button class="btn" id="export-btn" type="button">Exportar</button>
+  </div>
+</div>
+
 <main class="stage">
-  <section class="pane">
+  <section class="pane" id="pane-en">
     <div class="tag">EN · original</div>
     <div class="screen">
-      <video id="v-en" controls playsinline preload="auto"></video>
+      <video id="v-en" playsinline preload="auto"></video>
       <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
       <div class="caption es-wide" id="cap-es-wide"><span class="c"></span></div>
       <div class="ready" id="ready" hidden><i></i><span></span><b><em></em></b></div>
+      <div class="mini-acts">
+        <button class="ic" id="mini-back" type="button" aria-label="Volver al video" title="Volver al video">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8.5 7.5M6.5 13.5h-4v-4M2.5 13.5l5-5"/></svg>
+        </button>
+        <button class="ic" id="mini-close" type="button" aria-label="Cerrar" title="Cerrar">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="timeline" id="tl-en"></div>
+    <div class="ctrl" id="ctrl">
+      <button class="ic" id="c-play" type="button" aria-label="Reproducir">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-play" d="M4.5 2.8v10.4l8.6-5.2z"/><g class="i-pause"><rect x="3.8" y="2.8" width="2.8" height="10.4"/><rect x="9.4" y="2.8" width="2.8" height="10.4"/></g></svg>
+      </button>
+      <span class="c-time" id="c-time">0:00 / 0:00</span>
+      <div class="track" id="track">
+        <div class="t-layer t-cov" id="t-cov"></div>
+        <div class="t-layer t-dub" id="t-dub"></div>
+        <div class="t-play" id="t-play"></div>
+        <i class="t-head" id="t-head"></i>
+        <span class="t-tip" id="t-tip" hidden></span>
+      </div>
+      <div class="lang" id="c-lang">
+        <button type="button" data-v="es" title="Escuchar en español">ES</button><button type="button" data-v="en" title="Escuchar el original">EN</button>
+      </div>
+      <div class="vol">
+        <button class="ic" id="c-mute" type="button" aria-label="Silenciar">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-spk" d="M2.5 6h2.6l3.6-3v10l-3.6-3H2.5z"/><path class="i-wave" d="M10.8 5.4a3.6 3.6 0 0 1 0 5.2M12.6 3.6a6.2 6.2 0 0 1 0 8.8"/><path class="i-x" d="M10.6 6l3.6 4M14.2 6l-3.6 4"/></svg>
+        </button>
+        <input type="range" id="c-vol" min="0" max="1" step="0.05" value="1" aria-label="Volumen">
+      </div>
+      <button class="ic" id="c-full" type="button" aria-label="Pantalla completa">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+      </button>
+    </div>
   </section>
   <section class="pane">
     <div class="tag">ES · traducido</div>
@@ -116,6 +152,30 @@
     <div class="dlg-actions">
       <button class="btn ghost" value="video" type="submit">Solo este video</button>
       <button class="btn dark" value="playlist" type="submit">Agregar playlist</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg dlg-wide" id="multi-dlg">
+  <form method="dialog" id="multi-form">
+    <h3>Agregar varios enlaces</h3>
+    <textarea id="multi-text" rows="8" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…&#10;https://www.youtube.com/playlist?list=…"></textarea>
+    <p class="dlg-sub" id="multi-sum"></p>
+    <label class="dlg-field"><span>Guardar en</span><select id="multi-coll"></select></label>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
+      <button class="btn dark" value="ok" type="submit" id="multi-go">Agregar a la biblioteca</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="confirm-dlg">
+  <form method="dialog">
+    <h3 id="confirm-title"></h3>
+    <p class="dlg-note" id="confirm-text"></p>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
+      <button class="btn danger" value="ok" type="submit" id="confirm-ok"></button>
     </div>
   </form>
 </dialog>

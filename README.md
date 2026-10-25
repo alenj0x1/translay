@@ -34,6 +34,19 @@ Al abrir la herramienta se ve la **Biblioteca**: tarjetas con miniatura, nombre,
 - **Varios a la vez**: casilla en cada tarjeta para seleccionar; con selección aparecen «Abrir» (se reproducen en orden), «Procesar» y «Exportar». «Abrir video» también acepta varios archivos: se abre el primero y los demás se copian, entran a la cola y quedan en «Siguientes».
 - Los archivos locales se copian a `data/library/` en segundo plano (con su miniatura) para poder volver a verlos desde la biblioteca. Todo se guarda en `data/library.json`.
 
+### Interfaz
+
+- **Barra en dos niveles:** arriba lo general (estado, enlace de YouTube, Cola, Preferencias, Biblioteca, Abrir video); sobre el video, su título y sus acciones (Guardar en…, Ver dividido, Exportar). El estado se dice en palabras («en reposo», «procesando · 42 %»); el detalle técnico aparece al pasar el mouse.
+- **Controles propios del reproductor:** reproducir, tiempo, línea de avance (claro: reconocido; gris: con voz en español), ES/EN, volumen y pantalla completa. Teclado: espacio, ← →, F, M.
+- **Miniatura:** al ir a la biblioteca o a Preferencias con un video reproduciéndose, sigue abajo a la derecha con «Volver» y «Cerrar».
+- **Comentarios por frase:** el botón «+» bajo la hora de cada frase agrega un comentario; se pueden editar y eliminar. Se guardan en la transcripción del video.
+- **Varios enlaces:** «Varios» junto al campo del enlace (o pegar varios enlaces) abre un cuadro con un enlace por línea; muestra cuántos videos y playlists detectó y permite guardarlos en una colección. Entran a la cola y se descargan en orden.
+- **Eliminar:** con videos seleccionados, «Eliminar» los borra con su traducción, voces y archivos; en «Todos», «Vaciar biblioteca» borra todo. Las colecciones y playlists tienen su propio «Eliminar».
+- Las tarjetas muestran el avance del doblaje; mientras se descarga, «Ver» dice «Descargando N %» y se llena con el avance. Con la biblioteca vacía aparece una pantalla de inicio para pegar un enlace o abrir archivos.
+- Preferencias → Biblioteca: ocultar los canales de la barra lateral.
+- **Reproducción automática** (Preferencias → Video): al abrir un video empieza solo en cuanto está listo para sonar sin cortes; al terminar sigue el próximo de «Siguientes». Con «Pausar hasta que esté listo», si saltas a una parte aún sin voz en español el video se pausa («Sigue al estar listo N %») y se reanuda solo; si le das reproducir a mano, sigue igual.
+- Las voces se descargan a medida que se acercan (3 a la vez): bajarlas todas al abrir un video llenaba las conexiones del navegador y el video tardaba en cargar (parecía que «Ver» necesitaba dos clics). Las tarjetas se actualizan en su lugar en vez de redibujarse con cada avance de la cola (se perdían clics y la casilla parpadeaba).
+
 ### Vista ampliada y vista dividida
 
 Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en español abajo, inglés pequeño arriba) y la transcripción al costado. "Ver dividido" vuelve a los dos paneles EN | ES; la elección se recuerda.

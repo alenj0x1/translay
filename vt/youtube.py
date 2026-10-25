@@ -93,6 +93,22 @@ class YouTube:
             progress("listo", 1.0, info["title"])
         return data
 
+    @staticmethod
+    def quick_info(vid: str) -> dict:
+        """Título y canal al instante (oEmbed público de YouTube), sin descargar."""
+        import json
+        import urllib.parse
+        import urllib.request
+
+        url = "https://www.youtube.com/oembed?format=json&url=" + urllib.parse.quote(
+            f"https://www.youtube.com/watch?v={vid}")
+        try:
+            with urllib.request.urlopen(url, timeout=8) as r:
+                d = json.loads(r.read().decode("utf-8"))
+            return {"id": vid, "title": d.get("title") or vid, "channel": d.get("author_name") or ""}
+        except Exception:
+            return {"id": vid, "title": vid, "channel": ""}
+
     def playlist(self, url: str, session: str = "ninguna") -> dict:
         """Título, canal y videos de una playlist (sin descargar nada)."""
         import yt_dlp
