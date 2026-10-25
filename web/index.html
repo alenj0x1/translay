@@ -35,7 +35,15 @@
   </div>
   <div class="prefs-wrap">
     <button class="btn" id="prefs-btn" type="button">Preferencias</button>
-    <div class="popover prefs-pop" id="prefs-pop" hidden><div id="prefs-list"></div></div>
+    <div class="popover prefs-pop" id="prefs-pop" hidden>
+      <div id="prefs-list"></div>
+      <div class="pref yt-import">
+        <span>Importar sesión de YouTube</span>
+        <div class="segs" id="yt-browsers"></div>
+        <div class="segs"><label class="seg">Subir cookies.txt<input type="file" id="cookies-file" accept=".txt,text/plain" hidden></label></div>
+        <small id="cookies-status"></small>
+      </div>
+    </div>
   </div>
   <button class="btn" id="view" type="button">Biblioteca</button>
   <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" hidden></label>
@@ -71,6 +79,8 @@
     <div class="grid" id="grid"></div>
   </div>
 </section>
+
+<div class="toast" id="toast" role="alert" hidden></div>
 
 <script src="app.js"></script>
 <script src="library.js"></script>

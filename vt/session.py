@@ -74,6 +74,7 @@ class Session:
         await self.ws.send_json({"type": "power", "state": self.res.state})
         if self.prefs:
             await self.ws.send_json(self.prefs.public())
+            await self._cookies_status()
         if self.processor:
             await self.ws.send_json(self.processor.public())
         try:
@@ -103,6 +104,8 @@ class Session:
                         self.watching = None
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
                         await self._library(m)
+                    elif m.get("type") in ("cookies_browsers", "cookies_import"):
+                        asyncio.create_task(self._cookies(m))
                     elif m.get("type") == "prefs_set" and self.prefs:
                         if self.prefs.set(str(m.get("key")), m.get("value")):
                             self.notify(self.prefs.public())  # todas las pestañas
@@ -350,7 +353,8 @@ class Session:
                  "pct": round(frac * 100)}))
 
         try:
-            info = await loop.run_in_executor(None, self.youtube.fetch, url, progress)
+            session = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
+            info = await loop.run_in_executor(None, self.youtube.fetch, url, progress, session)
             if self.library:
                 self.library.register("yt_" + info["id"], source="youtube", media=info["video"],
                                       **{k: info.get(k) for k in ("title", "duration", "audio", "thumb",
@@ -362,8 +366,11 @@ class Session:
                 return
             await self.ws.send_json({"type": "yt_ready", **info})
         except Exception as e:
-            traceback.print_exc()
-            await self.ws.send_json({"type": "yt_error", "error": str(e)[:300]})
+            from .youtube import friendly_error
+
+            print(f"[youtube] {e}", flush=True)
+            sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
+            await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
     # ------------------------------------------------------------- biblioteca
     async def _library(self, m: dict):
@@ -424,3 +431,32 @@ class Session:
         if msg.get("type") == "bg":
             return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
         return msg
+
+    # ------------------------------------------------------- sesión de YouTube
+    def _cookies_path(self):
+        return self.youtube.root.parent / "cookies.txt"
+
+    async def _cookies_status(self, extra: dict | None = None):
+        from . import cookies
+
+        await self.ws.send_json({"type": "cookies", "browsers": cookies.detect(),
+                                 "status": cookies.status(self._cookies_path()), **(extra or {})})
+
+    async def _cookies(self, m: dict):
+        from . import cookies
+
+        if m["type"] == "cookies_browsers":
+            return await self._cookies_status()
+        key = str(m.get("browser", ""))
+        try:
+            info = await asyncio.get_running_loop().run_in_executor(
+                None, cookies.import_browser, key, self._cookies_path())
+        except Exception as e:
+            return await self._cookies_status({"error": cookies.friendly(e, key)})
+        self.cookies_imported(info)
+        await self._cookies_status({"imported": info})
+
+    def cookies_imported(self, info: dict):
+        """Tras importar una sesión, las descargas pasan a usarla."""
+        if self.prefs and self.prefs.set("yt_session", "archivo"):
+            self.notify(self.prefs.public())

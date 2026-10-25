@@ -29,7 +29,7 @@ class YouTube:
     def paths(self, vid: str) -> tuple[Path, Path]:
         return self.root / f"{vid}.mp4", self.root / f"{vid}.m4a"
 
-    def fetch(self, url: str, progress=None) -> dict:
+    def fetch(self, url: str, progress=None, session: str = "ninguna") -> dict:
         """Descarga (si hace falta) y devuelve {id, title, duration, video, audio}.
 
         `progress(etapa, fracción)` se llama desde este hilo durante la descarga."""
@@ -64,7 +64,7 @@ class YouTube:
             if progress and d.get("postprocessor") == "Merger":
                 progress("uniendo", 0.0 if d.get("status") == "started" else 1.0, None)
 
-        info = self._extras(vid, download=True, hook=hook, pp_hook=pp_hook)
+        info = self._extras(vid, download=True, hook=hook, pp_hook=pp_hook, session=session)
         if progress:
             progress("preparando", 0.0, info["title"])
         # pista de audio aparte, sin recodificar
@@ -76,7 +76,20 @@ class YouTube:
             progress("listo", 1.0, info["title"])
         return data
 
-    def _extras(self, vid: str, download: bool, hook=None, pp_hook=None) -> dict:
+    def _session_opts(self, session: str) -> dict:
+        """Sesión de YouTube de la persona, solo si la eligió en Preferencias: su
+        navegador (Firefox se puede leer abierto; los de tipo Chrome bloquean sus
+        cookies mientras están abiertos) o un cookies.txt exportado en data/."""
+        if session == "archivo":
+            path = self.root.parent / "cookies.txt"
+            if not path.exists():
+                raise FileNotFoundError("cookies.txt")
+            return {"cookiefile": str(path)}
+        if session in ("firefox", "brave", "chrome", "edge"):
+            return {"cookiesfrombrowser": (session,)}
+        return {}
+
+    def _extras(self, vid: str, download: bool, hook=None, pp_hook=None, session: str = "ninguna") -> dict:
         """Título, canal, categorías, duración y miniatura (JPG) del video."""
         import yt_dlp
 
@@ -94,6 +107,7 @@ class YouTube:
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
+            **self._session_opts(session),
         }
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=True)
@@ -108,3 +122,26 @@ class YouTube:
         return {"title": info.get("title") or vid, "channel": info.get("channel") or "",
                 "categories": info.get("categories") or [], "duration": info.get("duration") or 0,
                 "thumb": f"/media/yt/{vid}.jpg" if thumb.exists() else ""}
+
+
+def friendly_error(e: Exception, session: str = "ninguna") -> str:
+    """Mensaje claro (y qué hacer) en vez del error crudo de yt-dlp."""
+    msg = str(e)
+    browser = {"brave": "Brave", "chrome": "Chrome", "edge": "Edge", "firefox": "Firefox"}.get(session, session)
+    if "confirm you" in msg and "bot" in msg:
+        if session == "ninguna":
+            return ("YouTube pidió verificar que no eres un bot. En Preferencias → «Sesión de YouTube» usa "
+                    "«Archivo cookies.txt» (con Brave, Chrome o Edge abiertos es lo que funciona), o espera unas horas.")
+        return (f"YouTube sigue pidiendo verificación con la sesión de {browser}: revisa que hayas iniciado "
+                "sesión en YouTube en ese navegador.")
+    if "Could not copy" in msg and "cookie" in msg:
+        return (f"No se pudo leer la sesión de {browser}: los navegadores tipo Chrome bloquean sus cookies "
+                "mientras están abiertos. Ciérralo durante la descarga, usa Firefox, o exporta un cookies.txt.")
+    if "decrypt" in msg.lower() or "app-bound" in msg.lower():
+        return (f"{browser} cifra sus cookies y no se pueden leer desde aquí. Usa Firefox o exporta un "
+                "cookies.txt (Preferencias → «Archivo cookies.txt»).")
+    if isinstance(e, FileNotFoundError) and "cookies.txt" in msg:
+        return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
+    if "Video unavailable" in msg or "Private video" in msg:
+        return "El video no está disponible (privado, eliminado o restringido)."
+    return msg[:300]

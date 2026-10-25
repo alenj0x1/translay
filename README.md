@@ -48,6 +48,17 @@ Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en esp
 
 "Preferencias" en la barra: vista (ampliada / dividida), con qué audio abrir los videos, volumen del original bajo la voz en español, subtítulos en español e inglés, y cuándo mostrar el indicador de reproducción. Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Para agregar una preferencia nueva basta sumar una entrada a `SCHEMA` en `vt/prefs.py` (el panel se arma solo) y leerla en la vista.
 
+### Si YouTube pide verificar que no eres un bot
+
+Tras muchas descargas seguidas YouTube puede bloquear la IP por unas horas. Para descargar con tu sesión, en Preferencias → «Importar sesión de YouTube»:
+
+- **Subir cookies.txt** (recomendado en Windows): con la sesión de YouTube iniciada en tu navegador, exporta las cookies de youtube.com con una extensión como «Get cookies.txt LOCALLY» y súbelas con este botón. Funciona con el navegador abierto. Si las cookies vencen, se vuelven a exportar y subir.
+- **Importar de {navegador}**: aparece un botón por cada navegador instalado. Firefox se puede leer abierto; Brave, Chrome y Edge bloquean sus cookies mientras están abiertos (ciérralos antes) y las versiones recientes las cifran.
+
+Al importar, «Sesión de YouTube» pasa sola a «Archivo cookies.txt». Solo se guardan las cookies de YouTube y Google.
+
+El archivo queda solo en tu equipo (`data/` no entra en git).
+
 ### Descargas de YouTube
 
 En la barra y en el panel de la cola se ve cada etapa: Buscando → Video (con %) → Audio (con %) → Uniendo → Preparando.

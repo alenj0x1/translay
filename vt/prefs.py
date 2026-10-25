@@ -18,6 +18,10 @@ SCHEMA = [
      "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
     {"key": "sub_es", "label": "Subtítulos en español", "type": "bool", "default": True},
     {"key": "sub_en", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "yt_session", "label": "Sesión de YouTube (si pide verificar que no eres un bot)", "type": "choice",
+     "default": "ninguna",
+     "options": [["ninguna", "No usar"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
+                 ["edge", "Edge"], ["archivo", "Archivo cookies.txt"]]},
     {"key": "ready_chip", "label": "Indicador de reproducción", "type": "choice", "default": "auto",
      "options": [["auto", "En pausa o si falta margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
 ]

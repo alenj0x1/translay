@@ -121,7 +121,33 @@ def test_speaker_tracker():
     assert restored.assign(unit(b + 0.3 * rng.standard_normal(256)), 3.0)[0] == 1
 
 
+def test_cookies_import():
+    from vt import cookies
+
+    rows = [  # cookies inventadas: solo para la prueba
+        (".youtube.com", "LOGIN_INFO", "falso123"),
+        (".youtube.com", "PREF", "f6=40000000"),
+        (".google.com", "SID", "falso456"),
+        (".banco-ejemplo.com", "SESSION", "no-se-guarda"),
+    ]
+    lines = ["# Netscape HTTP Cookie File"]
+    lines += ["\t".join([dom, "TRUE", "/", "TRUE", "2000000000", name, val]) for dom, name, val in rows]
+    fake = "\n".join(lines).encode()
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "cookies.txt"
+        info = cookies.import_file(fake, out)
+        assert info["count"] == 3 and info["logged_in"]
+        assert "banco-ejemplo" not in out.read_text(encoding="utf-8")  # solo YouTube/Google
+        assert cookies.status(out)["present"]
+        try:
+            cookies.import_file(b"esto no es un cookies.txt", out)
+            raise AssertionError("debió rechazarse")
+        except ValueError:
+            pass
+
+
 if __name__ == "__main__":
+    test_cookies_import()
     test_audiofx()
     test_speaker_tracker()
     test_streaming_commits_sentences()

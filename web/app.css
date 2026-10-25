@@ -356,3 +356,18 @@ body.no-sub-en #cap-en { display: none !important; }
 .steps span.done { border-color: var(--ink); color: var(--ink); }
 .steps span.now { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 @media (max-width: 760px) { .prefs-pop { width: auto; } }
+
+/* ---------- avisos ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50;
+  max-width: min(620px, calc(100vw - 32px)); padding: 12px 16px;
+  background: var(--paper); border: var(--line); border-left: 6px solid var(--off);
+  font: 600 14px/1.4 var(--text); cursor: pointer;
+}
+.toast[hidden] { display: none; }
+
+/* ---------- importar sesión de YouTube ---------- */
+.yt-import { border-top: var(--line); margin-top: 4px; }
+.yt-import .seg { font-size: 12.5px; }
+.yt-import label.seg { display: inline-block; }
+#cookies-status { font: 10.5px/1.4 var(--mono); color: var(--muted); }

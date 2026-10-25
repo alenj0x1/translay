@@ -87,6 +87,21 @@ def main():
         out.write_bytes(data[: 2 << 20])
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
         return 200, "OK"
+    async def put_cookies(rest, query, headers, body):
+        """cookies.txt exportado desde el navegador: se valida y se guarda solo lo de YouTube."""
+        from . import cookies
+
+        data = b"".join([c async for c in body])[: 5 << 20]
+        try:
+            info = cookies.import_file(data, ROOT / "data" / "cookies.txt")
+        except ValueError as e:
+            return 400, str(e)
+        if prefs.set("yt_session", "archivo"):
+            notify(prefs.public())
+        notify({"type": "cookies", "browsers": cookies.detect(),
+                "status": cookies.status(ROOT / "data" / "cookies.txt"), "imported": info})
+        return 200, "OK"
+
     dubber, tts = None, None
     if a.voice != "none":
         from .dub import Dubber
@@ -135,7 +150,8 @@ def main():
     (ROOT / "data" / "audio").mkdir(parents=True, exist_ok=True)
     server = AppServer({"/samples/": ROOT / "samples", "/audio/": ROOT / "data" / "audio",
                         "/media/yt/": ROOT / "data" / "youtube", "/media/lib/": lib_dir, "/": ROOT / "web"},
-                       {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb})
+                       {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
+                                             "/api/cookies": put_cookies})
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)
     if not a.no_browser:

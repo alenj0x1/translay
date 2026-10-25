@@ -117,6 +117,9 @@ function onMessage(m) {
     case "prefs":
       applyPrefs(m);
       break;
+    case "cookies":
+      renderCookies(m);
+      break;
     case "yt_progress":
       state.downloads[m.id] = m;
       setStatus("busy", downloadText(m), false);
@@ -133,7 +136,7 @@ function onMessage(m) {
       state.downloads = {};
       if (typeof renderQueuePanel === "function") renderQueuePanel();
       setStatus(...baseStatus);
-      $("#file-name").textContent = m.error;
+      toast(m.error);
       break;
     case "covered":
       state.covered = m.ranges;
@@ -875,3 +878,56 @@ function downloadText(m) {
   const name = (DOWNLOAD_STEPS.find(([k]) => k === m.stage) || [, m.stage])[1].toLowerCase();
   return m.stage === "video" || m.stage === "audio" ? `descargando ${name} ${m.pct} %` : `${name}…`;
 }
+
+/* ------------------------------------------------------------ avisos */
+let toastTimer = null;
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 15000);
+}
+$("#toast").addEventListener("click", () => { $("#toast").hidden = true; });
+
+/* ------------------------------------------------------------ sesión de YouTube */
+// Importarla desde un navegador detectado o subir el cookies.txt exportado.
+function renderCookies(m) {
+  const box = $("#yt-browsers");
+  box.replaceChildren();
+  for (const b of m.browsers) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "seg";
+    btn.textContent = `Importar de ${b.name}`;
+    btn.addEventListener("click", () => {
+      $("#cookies-status").textContent = `leyendo la sesión de ${b.name}…`;
+      send({ type: "cookies_import", browser: b.key });
+    });
+    box.append(btn);
+  }
+  const st = m.status || {};
+  $("#cookies-status").textContent = st.present
+    ? `Sesión importada · ${st.count} cookies · ${st.logged_in ? "con sesión iniciada" : "sin sesión iniciada"} · ${st.updated}`
+    : "Sin sesión importada";
+  if (m.error) toast(m.error);
+  if (m.imported) {
+    const src = m.imported.source === "archivo" ? "del archivo" : `de ${m.imported.source}`;
+    toast(m.imported.logged_in
+      ? `Sesión de YouTube importada ${src}. Las descargas ya la usan.`
+      : `Se importaron cookies ${src}, pero sin sesión iniciada en YouTube: inicia sesión ahí y vuelve a importar.`);
+  }
+}
+
+$("#cookies-file").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  $("#cookies-status").textContent = "importando el archivo…";
+  try {
+    const r = await fetch("/api/cookies", { method: "PUT", body: f });
+    if (!r.ok) toast(`No se pudo importar: ${await r.text()}`);
+  } catch (err) {
+    toast("No se pudo subir el archivo.");
+  }
+});
