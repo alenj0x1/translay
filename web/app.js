@@ -45,7 +45,12 @@ function onMessage(m) {
     case "ready":
       state.ready = true;
       setStatus("ok", `${m.device} · ${m.model}${m.translator !== "none" ? " · " + m.translator : ""}`);
+      state.voice = m.voice;
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
+      send({ type: "library" });
+      break;
+    case "library":
+      libraryUpdate(m);
       break;
     case "transcript":
       if (m.id !== state.videoId) return;
@@ -140,7 +145,7 @@ async function sha256(data) {
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
-function loadVideo(src, id, name, audioSrc) {
+function loadVideo(src, id, name, audioSrc, opts = {}) {
   if (state.videoId) send({ type: "stop" });
   state.videoId = id;
   state.videoName = name;
@@ -154,6 +159,9 @@ function loadVideo(src, id, name, audioSrc) {
   stopDub();
   dubBuf.clear();
   prepareAhead(audioSrc || src);
+  readiness.hist = [];
+  libOnOpen({ id, name, ...opts });
+  setView("player");
   $("#file-name").textContent = name;
   document.title = `${name} · Traductor`;
   renderTranscript();
@@ -164,14 +172,14 @@ function loadVideo(src, id, name, audioSrc) {
 
 $("#file").addEventListener("change", async (e) => {
   const f = e.target.files[0];
-  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name);
+  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name, null, { file: f });
 });
 
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", async (e) => {
   e.preventDefault();
   const f = [...e.dataTransfer.files].find((x) => /^(video|audio)\//.test(x.type));
-  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name);
+  if (f) loadVideo(URL.createObjectURL(f), await fingerprint(f), f.name, null, { file: f });
 });
 
 // YouTube: el servidor descarga el video y responde yt_ready
@@ -261,7 +269,8 @@ function onPcm(pcm) {
 // (un bloque por cada confirmación). Así subtítulos, traducción y voz en español
 // están listos cuando el video llega a cada frase: todo suena sincronizado.
 // Si el archivo no se puede decodificar, queda la captura en vivo como respaldo.
-const AHEAD_CHUNK = 1.5;  // segundos por bloque
+const AHEAD_OF_DUB = 25;  // segundos máximos de reconocimiento por delante de lo doblado
+const AHEAD_CHUNK = 3.0;  // segundos por bloque (más grande = menos inferencias por segundo de video)
 const feeder = { pcm: null, pos: 0, run: 0, spanStart: 0, inSpan: false, ack: null };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -307,8 +316,10 @@ async function feedLoop(run) {
       feeder.pos = feeder.spanStart = span[1];
       continue;
     }
-    // no alejarse más de un minuto de lo ya doblado: lo que se va a escuchar primero
-    if (feeder.pos > Math.max(vEn.currentTime, dubFrontier()) + 60) { await sleep(500); continue; }
+    // no alejarse demasiado de lo ya doblado: reconocimiento y voz comparten la GPU,
+    // y lo urgente es doblar lo que se va a escuchar primero
+    const lead = state.voice && state.voice !== "none" ? AHEAD_OF_DUB : 120;
+    if (feeder.pos > Math.max(vEn.currentTime, dubFrontier()) + lead) { await sleep(400); continue; }
     if (feeder.pos >= total - 0.05) {
       if (feeder.inSpan) send({ type: "end" });
       feeder.inSpan = false;
@@ -330,16 +341,25 @@ async function feedLoop(run) {
   }
 }
 
-function dubFrontier() {
-  // hasta dónde, desde el punto de reproducción, ya está todo doblado
-  let f = vEn.currentTime;
-  for (const s of state.segments) {
-    if (s.end < f) continue;
-    if (!s.dub && s.translation) break;
-    f = s.end;
-  }
-  return f;
+function processedSpan(t) {
+  // tramo procesado continuo que contiene t (null si t aún no se procesó)
+  return state.covered.find(([a, b]) => t >= a - 0.5 && t < b) || null;
 }
+
+function frontier(done) {
+  // hasta dónde, desde el punto de reproducción, todo está listo según `done`;
+  // nunca más allá del tramo procesado continuo (los huecos no están listos)
+  const t = vEn.currentTime;
+  const span = processedSpan(t);
+  if (!span) return t;
+  for (const s of state.segments) {
+    if (s.end < t) continue;
+    if (s.start >= span[1]) break;
+    if (!done(s)) return Math.max(t, s.start);
+  }
+  return span[1];
+}
+const dubFrontier = () => frontier((s) => s.dub || !s.translation);
 
 // el servidor dobla primero lo que se va a escuchar
 setInterval(() => { if (state.videoId) send({ type: "pos", t: vEn.currentTime }); }, 1000);
@@ -352,6 +372,54 @@ function feederSeek(t) {
   feeder.inSpan = false;
   feeder.pos = feeder.spanStart = t;
 }
+
+
+/* ------------------------------------------------------------ buen momento para reproducir */
+// Compara lo ya doblado por delante del punto de reproducción con la velocidad a
+// la que avanza el procesamiento. Si el procesamiento es más rápido que el video,
+// basta un margen corto; si es más lento, el margen debe cubrir lo que se
+// perdería hasta el final. "Listo" = reproducir ahora no alcanza al doblaje.
+const readiness = { hist: [] };
+
+function readyFrontier() {
+  // sin voz basta la traducción
+  return state.voice && state.voice !== "none" ? dubFrontier() : frontier((s) => !!s.translation);
+}
+
+setInterval(() => {
+  const box = $("#ready");
+  if (!state.videoId || !vEn.duration || !state.ahead) { box.hidden = true; return; }
+  const t = vEn.currentTime;
+  const end = vEn.duration;
+  const f = readyFrontier();
+  const now = performance.now() / 1000;
+  readiness.hist.push([now, f]);
+  while (readiness.hist.length > 2 && now - readiness.hist[0][0] > 20) readiness.hist.shift();
+  // velocidad de procesamiento (segundos de video listos por segundo): pendiente de
+  // una regresión sobre los últimos 20 s, para no confundir un salto con velocidad
+  const h = readiness.hist;
+  const span = now - h[0][0];
+  let rate = null;
+  if (span >= 8) {
+    const mx = h.reduce((a, [x]) => a + x, 0) / h.length;
+    const my = h.reduce((a, [, y]) => a + y, 0) / h.length;
+    const sxy = h.reduce((a, [x, y]) => a + (x - mx) * (y - my), 0);
+    const sxx = h.reduce((a, [x]) => a + (x - mx) ** 2, 0);
+    rate = Math.max(0, sxy / (sxx || 1));
+  }
+  const left = end - t;
+  // margen: corto si el procesamiento le gana al video; si no, lo que se perdería hasta el final
+  const MIN_LEAD = 12;
+  let need = 20;
+  if (rate !== null) need = rate >= 1.1 ? MIN_LEAD : Math.min(left, left * (1 - rate / 1.1) + MIN_LEAD);
+  const lead = f - t;
+  const ok = f >= end - 1 || lead >= need;
+  box.dataset.state = ok ? "ok" : "wait";
+  box.querySelector("span").textContent = ok ? "Listo para reproducir" : `Preparando ${Math.min(99, Math.round(lead / need * 100))} %`;
+  box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
+  // mientras se reproduce y va bien, el indicador no estorba
+  box.hidden = ok && !vEn.paused;
+}, 500);
 
 /* ------------------------------------------------------------ sincronía de videos */
 vEn.addEventListener("play", async () => {

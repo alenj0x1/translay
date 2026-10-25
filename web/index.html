@@ -9,14 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="view-library">
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
   <div class="file" id="file-name"></div>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
   <div class="metrics" id="metrics"></div>
   <form class="yt" id="yt"><input id="yt-url" type="text" placeholder="youtube.com/watch?v=…" spellcheck="false"><button class="btn" type="submit">Abrir</button></form>
-  <button class="btn" id="mode" type="button">Escuchar original</button>
+  <div class="save-wrap player-only">
+    <button class="btn" id="save" type="button">Guardar en…</button>
+    <div class="popover" id="save-pop" hidden>
+      <ul id="save-list"></ul>
+      <form id="save-new"><input id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn" type="submit">Crear</button></form>
+    </div>
+  </div>
+  <button class="btn player-only" id="mode" type="button">Escuchar original</button>
+  <button class="btn" id="view" type="button">Biblioteca</button>
   <label class="btn">Abrir video<input id="file" type="file" accept="video/*,audio/*" hidden></label>
 </header>
 
@@ -26,6 +34,7 @@
     <div class="screen">
       <video id="v-en" controls playsinline preload="auto"></video>
       <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
+      <div class="ready" id="ready" hidden><i></i><span></span><b><em></em></b></div>
     </div>
     <div class="timeline" id="tl-en"></div>
   </section>
@@ -41,6 +50,15 @@
 
 <ol class="transcript" id="transcript"></ol>
 
+<section class="library" id="library">
+  <nav class="collections" id="collections"></nav>
+  <div class="shelf">
+    <div class="shelf-head" id="shelf-head"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
 <script src="app.js"></script>
+<script src="library.js"></script>
 </body>
 </html>

@@ -8,6 +8,8 @@ Cliente → servidor
   {"type":"seek"|"stop"|"end", "t":<s>}             cierra o descarta lo pendiente
   {"type":"pos", "t":<s>}                            punto de reproducción (orden del doblaje)
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
+  {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
+                                                     biblioteca y colecciones (responde "library")
 
 Servidor → cliente
   ready · transcript · partial (+ "es" en vivo) · segment · translations · dub · covered · stats
@@ -35,7 +37,7 @@ from .translate import Translator
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
-                 youtube=None):
+                 youtube=None, library=None):
         self.ws = ws
         self.gpu = gpu
         self.store = store
@@ -53,6 +55,7 @@ class Session:
         self.dub_event = asyncio.Event()
         self.playhead = 0.0
         self.youtube = youtube
+        self.library = library
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
@@ -72,6 +75,10 @@ class Session:
                     m = json.loads(msg)
                     if m.get("type") == "pos":
                         self.playhead = float(m.get("t", 0))
+                        if self.library and self.tr is not None:
+                            self.library.position(self.tr.data["id"], self.playhead)
+                    elif self.library and m.get("type", "").startswith(("lib", "coll")):
+                        await self._library(m)
                     elif m.get("type") == "youtube":
                         asyncio.create_task(self._youtube(m.get("url", "")))
                     else:
@@ -280,7 +287,32 @@ class Session:
 
         try:
             info = await loop.run_in_executor(None, self.youtube.fetch, url, progress)
+            if self.library:
+                self.library.register("yt_" + info["id"], source="youtube", media=info["video"],
+                                      **{k: info.get(k) for k in ("title", "duration", "audio", "thumb",
+                                                                    "channel", "categories")})
             await self.ws.send_json({"type": "yt_ready", **info})
         except Exception as e:
             traceback.print_exc()
             await self.ws.send_json({"type": "yt_error", "error": str(e)[:300]})
+
+    # ------------------------------------------------------------- biblioteca
+    async def _library(self, m: dict):
+        lib, kind = self.library, m.get("type")
+        vid = str(m.get("video", ""))
+        if kind == "lib_register":
+            lib.register(str(m["id"]), **{k: m.get(k) for k in ("title", "duration", "source", "media",
+                                                                  "audio", "thumb", "channel", "categories")})
+        elif kind == "lib_remove":
+            lib.remove(vid)
+        elif kind == "coll_create":
+            c = lib.create(m.get("name", ""))
+            if vid:
+                lib.toggle(c["id"], vid, True)
+        elif kind == "coll_toggle":
+            lib.toggle(m["coll"], vid, bool(m.get("on")))
+        elif kind == "coll_rename":
+            lib.rename(m["coll"], m.get("name", ""))
+        elif kind == "coll_delete":
+            lib.delete(m["coll"])
+        await self.ws.send_json({"type": "library", **lib.public()})

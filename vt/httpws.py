@@ -100,10 +100,13 @@ class WebSocket:
 
 
 class AppServer:
-    def __init__(self, routes: dict[str, Path], ws_routes: dict):
-        """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws)."""
+    def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None):
+        """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
+        put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
+        `cuerpo` es un iterador asíncrono de bloques (el archivo no pasa entero por memoria)."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self.ws_routes = ws_routes
+        self.put_routes = put_routes or {}
 
     async def serve(self, host: str, port: int):
         server = await asyncio.start_server(self._handle, host, port)
@@ -123,7 +126,8 @@ class AppServer:
                     break
                 k, _, v = h.decode("latin-1").partition(":")
                 headers[k.strip().lower()] = v.strip()
-            path = unquote(urlsplit(target).path)
+            parts = urlsplit(target)
+            path = unquote(parts.path)
 
             if path in self.ws_routes and headers.get("upgrade", "").lower() == "websocket":
                 key = headers.get("sec-websocket-key", "").encode()
@@ -133,6 +137,24 @@ class AppServer:
                 await writer.drain()
                 await self.ws_routes[path](WebSocket(reader, writer))
                 return
+            if method == "PUT":
+                for prefix, fn in self.put_routes.items():
+                    if path.startswith(prefix):
+                        length = int(headers.get("content-length", "0"))
+
+                        async def body(left=length):
+                            while left > 0:
+                                chunk = await reader.read(min(1 << 20, left))
+                                if not chunk:
+                                    raise ConnectionError("subida interrumpida")
+                                left -= len(chunk)
+                                yield chunk
+
+                        from urllib.parse import parse_qs
+                        query = {k: v[0] for k, v in parse_qs(parts.query).items()}
+                        code, text = await fn(path[len(prefix):], query, headers, body())
+                        return await self._simple(writer, code, text)
+                return await self._simple(writer, 404, "Not Found")
             if method not in ("GET", "HEAD"):
                 return await self._simple(writer, 405, "Method Not Allowed")
             await self._static(writer, method, path, headers.get("range"))

@@ -35,15 +35,17 @@ class YouTube:
         `progress(etapa, fracción)` se llama desde este hilo durante la descarga."""
         import json
 
-        import yt_dlp
-
         vid = video_id(url)
         if not vid:
             raise ValueError("no es un enlace de YouTube")
         mp4, m4a = self.paths(vid)
         meta = self.root / f"{vid}.json"
         if mp4.exists() and m4a.exists() and meta.exists():
-            return json.loads(meta.read_text(encoding="utf-8"))
+            data = json.loads(meta.read_text(encoding="utf-8"))
+            if "categories" not in data or not (self.root / f"{vid}.jpg").exists():
+                data.update(self._extras(vid, download=False))  # descargado antes de tener miniaturas
+                meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            return data
 
         def hook(d):
             if progress and d.get("status") == "downloading":
@@ -51,26 +53,44 @@ class YouTube:
                 kind = "audio" if (d.get("info_dict") or {}).get("vcodec") == "none" else "video"
                 progress(kind, d.get("downloaded_bytes", 0) / total if total else 0.0)
 
+        info = self._extras(vid, download=True, hook=hook)
+        if progress:
+            progress("audio", 1.0)
+        # pista de audio aparte, sin recodificar
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vn", "-c:a", "copy", str(m4a)],
+                       check=True)
+        data = {"id": vid, "video": f"/media/yt/{vid}.mp4", "audio": f"/media/yt/{vid}.m4a", **info}
+        meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        return data
+
+    def _extras(self, vid: str, download: bool, hook=None) -> dict:
+        """Título, canal, categorías, duración y miniatura (JPG) del video."""
+        import yt_dlp
+
         opts = {
             # H.264 + AAC: se reproduce en el navegador sin recodificar
             "format": "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/b",
             "merge_output_format": "mp4",
             "outtmpl": str(self.root / "%(id)s.%(ext)s"),
             "js_runtimes": {"node": {}},
-            "progress_hooks": [hook],
+            "progress_hooks": [hook] if hook else [],
+            "writethumbnail": True,
+            "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg"}],
+            "skip_download": not download,
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
         }
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=True)
-        if progress:
-            progress("audio", 1.0)
-        # pista de audio aparte, sin recodificar
-        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vn", "-c:a", "copy", str(m4a)],
-                       check=True)
-        data = {"id": vid, "title": info.get("title") or vid, "channel": info.get("channel") or "",
-                "duration": info.get("duration") or 0,
-                "video": f"/media/yt/{vid}.mp4", "audio": f"/media/yt/{vid}.m4a"}
-        meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        return data
+        thumb = self.root / f"{vid}.jpg"
+        if not thumb.exists():  # sin descarga, yt-dlp no convierte la miniatura (queda webp/png)
+            for src in self.root.glob(f"{vid}.*"):
+                if src.suffix.lower() in (".webp", ".png", ".jpeg"):
+                    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), str(thumb)], check=False)
+                    if thumb.exists():
+                        src.unlink(missing_ok=True)
+                    break
+        return {"title": info.get("title") or vid, "channel": info.get("channel") or "",
+                "categories": info.get("categories") or [], "duration": info.get("duration") or 0,
+                "thumb": f"/media/yt/{vid}.jpg" if thumb.exists() else ""}

@@ -1,0 +1,140 @@
+"""Biblioteca: videos traducidos y colecciones.
+
+data/library.json guarda:
+  videos       id → {title, duration, source (file|youtube), media, audio, thumb,
+                     channel, categories, added, opened, position}
+  collections  [{id, name, items: [ids], created}]   (las que crea la persona)
+
+Las colecciones automáticas no se guardan: se calculan al pedir la biblioteca.
+  recientes    todos los videos, del último abierto al primero
+  canal        una por canal de YouTube
+  categoría    una por categoría de YouTube (nombres en español)
+"""
+
+import json
+import re
+import time
+import uuid
+from pathlib import Path
+
+CATEGORIES_ES = {
+    "Film & Animation": "Cine y animación", "Autos & Vehicles": "Autos y vehículos",
+    "Music": "Música", "Pets & Animals": "Mascotas y animales", "Sports": "Deportes",
+    "Travel & Events": "Viajes y eventos", "Gaming": "Videojuegos", "People & Blogs": "Personas y blogs",
+    "Comedy": "Comedia", "Entertainment": "Entretenimiento", "News & Politics": "Noticias y política",
+    "Howto & Style": "Tutoriales y estilo", "Education": "Educación",
+    "Science & Technology": "Ciencia y tecnología", "Nonprofits & Activism": "ONG y activismo",
+}
+
+_FIELDS = ("title", "duration", "source", "media", "audio", "thumb", "channel", "categories")
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "x"
+
+
+class Library:
+    def __init__(self, path: Path):
+        self.path = path
+        self.data = {"videos": {}, "collections": []}
+        if path.exists():
+            self.data = json.loads(path.read_text(encoding="utf-8"))
+        self._dirty_at = 0.0
+
+    def save(self):
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.data, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.replace(self.path)
+
+    # ---------------------------------------------------------------- videos
+    def register(self, vid: str, **info) -> dict:
+        """Alta o actualización de un video (al abrirlo)."""
+        v = self.data["videos"].setdefault(vid, {"id": vid, "added": time.time(), "position": 0})
+        for k in _FIELDS:
+            if info.get(k) not in (None, "", []):
+                v[k] = info[k]
+        v["opened"] = time.time()
+        self.save()
+        return v
+
+    def set_field(self, vid: str, **kw):
+        v = self.data["videos"].get(vid)
+        if v:
+            v.update(kw)
+            self.save()
+
+    def position(self, vid: str, t: float):
+        """Punto de reproducción (para continuar); se guarda como máximo cada 5 s."""
+        v = self.data["videos"].get(vid)
+        if not v:
+            return
+        v["position"] = round(t, 1)
+        if time.time() - self._dirty_at > 5:
+            self._dirty_at = time.time()
+            self.save()
+
+    def remove(self, vid: str):
+        self.data["videos"].pop(vid, None)
+        for c in self.data["collections"]:
+            c["items"] = [i for i in c["items"] if i != vid]
+        self.save()
+
+    # ----------------------------------------------------------- colecciones
+    def create(self, name: str) -> dict:
+        c = {"id": uuid.uuid4().hex[:10], "name": name.strip()[:80] or "Sin nombre", "items": [],
+             "created": time.time()}
+        self.data["collections"].append(c)
+        self.save()
+        return c
+
+    def rename(self, cid: str, name: str):
+        for c in self.data["collections"]:
+            if c["id"] == cid and name.strip():
+                c["name"] = name.strip()[:80]
+        self.save()
+
+    def delete(self, cid: str):
+        self.data["collections"] = [c for c in self.data["collections"] if c["id"] != cid]
+        self.save()
+
+    def toggle(self, cid: str, vid: str, on: bool):
+        for c in self.data["collections"]:
+            if c["id"] == cid:
+                if on and vid not in c["items"]:
+                    c["items"].insert(0, vid)
+                elif not on:
+                    c["items"] = [i for i in c["items"] if i != vid]
+        self.save()
+
+    # ----------------------------------------------------------------- vista
+    def public(self) -> dict:
+        videos = self.data["videos"]
+        recent = sorted(videos, key=lambda i: -videos[i].get("opened", 0))
+        auto = [{"id": "recent", "name": "Recientes", "kind": "auto", "items": recent}]
+        channels, cats = {}, {}
+        for vid in recent:
+            v = videos[vid]
+            if v.get("channel"):
+                channels.setdefault(v["channel"], []).append(vid)
+            for cat in v.get("categories") or []:
+                cats.setdefault(CATEGORIES_ES.get(cat, cat), []).append(vid)
+        auto += [{"id": "ch-" + _slug(n), "name": n, "kind": "canal", "items": i} for n, i in sorted(channels.items())]
+        auto += [{"id": "cat-" + _slug(n), "name": n, "kind": "categoría", "items": i} for n, i in sorted(cats.items())]
+        own = [{**c, "kind": "propia", "items": [i for i in c["items"] if i in videos]}
+               for c in self.data["collections"]]
+        return {"videos": videos, "collections": auto[:1] + own + auto[1:]}
+
+    def import_youtube(self, root: Path):
+        """Registra los videos de YouTube ya descargados (de antes de la biblioteca)."""
+        changed = False
+        for meta in root.glob("*.json"):
+            info = json.loads(meta.read_text(encoding="utf-8"))
+            vid = "yt_" + info["id"]
+            if vid not in self.data["videos"]:
+                self.data["videos"][vid] = {"id": vid, "source": "youtube", "added": meta.stat().st_mtime,
+                                            "opened": meta.stat().st_mtime, "position": 0,
+                                            **{k: info.get(k) for k in _FIELDS if info.get(k) is not None},
+                                            "media": info.get("video")}
+                changed = True
+        if changed:
+            self.save()
