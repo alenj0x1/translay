@@ -71,10 +71,19 @@ function editVault(id) {
 
 // otro patrón para el banner de una biblioteca: se ve al instante y se guarda en el servidor
 function reshuffleVault(id) {
-  const v = vaultById(id);
+  if (vaultById(id)) send({ type: "vault_update", id, pattern: newPattern() });
+}
+// nombre, color, ícono o patrón: se ven en todos lados al instante (encabezado, menú, tarjetas, acento)
+OPTIMISTIC.vault_update = (m) => {
+  const v = vaultById(m.id);
   if (!v) return;
-  v.pattern = newPattern();
-  send({ type: "vault_update", id, pattern: v.pattern });
+  for (const k of ["name", "color", "icon", "pattern"]) if (m[k] != null && (k === "pattern" || m[k])) v[k] = m[k];
+  refreshVaultViews();
+};
+function refreshVaultViews() {
+  renderVaultBtn();
+  renderVaultPop();
+  if (typeof applyAccent === "function") applyAccent(prefs.accent_lib ? currentVault().color : null);
   renderVaultViews();
 }
 
@@ -280,7 +289,6 @@ function closeVaultScreen() { if ($("#vault-screen").open) $("#vault-screen").cl
 function renderVaultViews() {
   if ($("#vault-screen").open) renderVaultScreen();
   if (currentView() === "prefs" && typeof renderPrefs === "function") renderPrefs();
-  renderVaultBtn();
 }
 $("#vault-screen-manage").addEventListener("click", () => { closeVaultScreen(); openPrefs("bibliotecas"); });
 $("#vault-screen-folder").addEventListener("click", () => send({ type: "vault_pick_folder", for: "open" }));

@@ -92,15 +92,25 @@ function row(r) {
     if (v) strip.append(card(v, coll, i));
   });
   const scrollBy = (dir) => strip.scrollBy({ left: dir * strip.clientWidth * 0.9, behavior: "smooth" });
+  const prev = el("button", { type: "button", class: "strip-nav prev", "aria-label": "Anteriores", hidden: true, on: { click: () => scrollBy(-1) } }, icon("chevron"));
+  const next = el("button", { type: "button", class: "strip-nav next", "aria-label": "Siguientes", hidden: true, on: { click: () => scrollBy(1) } }, icon("chevron"));
+  // cada flecha solo si hay más videos hacia ese lado; centradas en la miniatura
+  const sync = () => {
+    const max = strip.scrollWidth - strip.clientWidth;
+    prev.hidden = strip.scrollLeft <= 2;
+    next.hidden = strip.scrollLeft >= max - 2;
+    const th = strip.querySelector(".thumb")?.offsetHeight;
+    if (th) wrap.style.setProperty("--nav-y", `${th / 2}px`);
+  };
+  strip.addEventListener("scroll", sync, { passive: true });
+  new ResizeObserver(sync).observe(strip);
+  const wrap = el("div", { class: "strip-wrap" }, prev, strip, next);
   return el("section", { class: "row", "data-coll": r.id },
     el("header", {},
       coll.kind !== "auto" ? collBadge(coll, "md") : null,
       el("h3", {}, el("button", { type: "button", on: { click: () => openColl(r.id) } }, r.title)),
       r.more !== false && r.items.length > 4 ? btn("Ver todo", { size: "xs", variant: "ghost", onClick: () => openColl(r.id) }) : null),
-    el("div", { class: "strip-wrap" },
-      el("button", { type: "button", class: "strip-nav prev", "aria-label": "Anteriores", on: { click: () => scrollBy(-1) } }, icon("chevron")),
-      strip,
-      el("button", { type: "button", class: "strip-nav next", "aria-label": "Siguientes", on: { click: () => scrollBy(1) } }, icon("chevron"))));
+    wrap);
 }
 function openColl(id) {
   lib.sel = id;
@@ -176,13 +186,17 @@ queueFades();
 
 
 /* ------------------------------------------------------------ barra lateral colapsable (se recuerda) */
-function setSideMini(on) {
-  document.body.classList.toggle("side-mini", on);
+// El botón junto al logo solo pliega la barra lateral (biblioteca, reproductor, Cola y Preferencias).
+function syncSideBtn() {
   const b = $("#side-btn");
-  const t = on ? "Expandir la barra lateral" : "Contraer la barra lateral";
+  const t = document.body.classList.contains("side-mini") ? "Expandir la barra lateral" : "Contraer la barra lateral";
   b.title = t;
   b.setAttribute("aria-label", t);
+}
+function setSideMini(on) {
+  document.body.classList.toggle("side-mini", on);
   try { localStorage.setItem("vt-side-mini", on ? "1" : ""); } catch (e) { /* sin almacenamiento */ }
+  syncSideBtn();
 }
 try { setSideMini(localStorage.getItem("vt-side-mini") === "1"); } catch (e) { /* sin almacenamiento */ }
 $("#side-btn").addEventListener("click", () => setSideMini(!document.body.classList.contains("side-mini")));

@@ -41,14 +41,46 @@ function setView(view) {
     send({ type: "library" });
     renderLibrary();
   }
+  if (view === "player") renderSidebar();
   if (view === "prefs") markPrefsNav();
   if (view === "queue") { $("#qnav").dataset.sig = ""; $("#qhead").dataset.sig = ""; $("#qlist").dataset.sig = ""; renderQueueScreen(); }
   closeSave();  if (typeof syncRoute === "function") syncRoute();  // la dirección (web/js/route.js)
+  syncFetchBtn();
+  syncExportBtn();
 }
 function togglePrefs() {
   setView(currentView() === "prefs" ? (lib.lastView === "player" && state.videoId ? "player" : "library") : "prefs");
 }
 $("#view").addEventListener("click", () => setView(currentView() === "library" ? "player" : "library"));
+
+/* ------------------------------------------------------------ cambios al instante (web/js/app.js · send) */
+function refreshLibraryViews() {
+  lib.shelfSig = null;
+  if (currentView() === "library") renderLibrary();
+  renderSaveList();
+  renderUpNext();
+}
+OPTIMISTIC.coll_rename = (m) => {
+  const c = lib.collections.find((x) => x.id === m.coll);
+  if (c && m.name) { c.name = m.name; refreshLibraryViews(); }
+};
+OPTIMISTIC.coll_toggle = (m) => {
+  const c = lib.collections.find((x) => x.id === m.coll);
+  if (!c) return;
+  c.items = c.items.filter((i) => i !== m.video);
+  if (m.on) c.items.unshift(m.video);
+  refreshLibraryViews();
+};
+OPTIMISTIC.coll_delete = (m) => {
+  lib.collections = lib.collections.filter((x) => x.id !== m.coll);
+  if (lib.sel === m.coll) lib.sel = "home";
+  refreshLibraryViews();
+};
+OPTIMISTIC.lib_delete = (m) => {
+  for (const id of m.videos || []) delete lib.videos[id];
+  for (const c of lib.collections) c.items = c.items.filter((i) => !(m.videos || []).includes(i));
+  refreshLibraryViews();
+};
 
 function libraryUpdate(m) {
   lib.loaded = true;
@@ -69,6 +101,9 @@ function libraryUpdate(m) {
     lib.openWhenReady = null;
     playFromLibrary(wait);
   }
+  syncFetchBtn();
+  syncExportBtn();
+  if (currentView() === "player") renderSidebar();
   if (typeof routeRestore === "function") routeRestore();  // al recargar: volver a donde se estaba
   renderUpNext();
   if (lib.promptSave && state.videoId && lib.videos[state.videoId]) {
@@ -141,6 +176,12 @@ function refreshCards() {
     if (old && bar) { if (old.outerHTML !== bar.outerHTML) old.replaceWith(bar); }
     else if (old) old.remove();
     else if (bar) (art.querySelector(".actions") || art.lastChild).before(bar);
+    const fb = art.querySelector(".act-fetch");
+    if (fb) {
+      const label = fetchLabel(jobOf(v.id));
+      if (fb.textContent !== (label || "Bajar video")) setBtn(fb, label || "Bajar video", "film");
+      fb.disabled = !!label;
+    }
     const pend = art.querySelector(".pending-dl");
     const text = pendingText(v);
     if (pend && text) { if (pend.textContent !== cap(text)) pend.textContent = cap(text); }
@@ -169,13 +210,29 @@ function renderLibrary() {
   if (currentView() !== "library") return;
   if (typeof syncRoute === "function") syncRoute();
   lib.shelfSig = shelfSignature();
+  renderSidebar();
+  if (!lib.loaded) return renderSkeleton();  // aún sin datos: la forma de la página, no «Traduce tu primer video»
+  renderShelf();
+}
+
+// abrir una colección desde la barra lateral (también desde el reproductor: el video sigue en miniatura)
+function goColl(id) {
+  lib.sel = id;
+  lib.picked.clear();
+  closeSearch();
+  if (currentView() !== "library") setView("library");
+  else renderLibrary();
+}
+
+// barra lateral (biblioteca y reproductor)
+function renderSidebar() {
   // columna de colecciones, agrupadas por tipo
   // arriba, fijo: Inicio, Recientes y Todos; abajo, con su propio scroll: colecciones, playlists, canales…
   const top = $("#side-main");
   const nav = $("#collections");
   nav.replaceChildren();
   top.replaceChildren(el("button", { class: "item" + (lib.sel === "home" && !lib.search ? " active" : ""), type: "button",
-    on: { click: () => { lib.sel = "home"; lib.picked.clear(); closeSearch(); renderLibrary(); } } },
+    on: { click: () => goColl("home") } },
     el("span", {}, icon("home"), "Inicio")));
   top.firstChild.title = "Inicio";
   const KIND_ICON = { recent: "clock", all: "grid", propia: "bookmark", playlist: "queue", canal: "user", "categoría": "tag" };
@@ -193,7 +250,7 @@ function renderLibrary() {
     for (const c of items) {
       (kind === "auto" ? top : nav).append(el("button", {
         class: "item" + (c.id === lib.sel ? " active" : ""), type: "button", title: c.name, "data-coll": c.id,
-        on: { click: () => { lib.sel = c.id; lib.picked.clear(); closeSearch(); renderLibrary(); } },
+        on: { click: () => goColl(c.id) },
       }, el("span", {}, kind === "auto" ? icon(KIND_ICON[c.id] || "grid") : collBadge(c, "sm"), c.name),
         el("span", { text: String(c.items.length) })));
     }
@@ -209,8 +266,9 @@ function renderLibrary() {
       nav.append(form);
     }
   }
+}
 
-  if (!lib.loaded) return renderSkeleton();  // aún sin datos: la forma de la página, no «Traduce tu primer video»
+function renderShelf() {
   $("#shelf-head").hidden = false;
   $("#grid").classList.remove("home", "skeleton");
   if (lib.search) return renderSearch();
@@ -419,7 +477,8 @@ function card(v, coll, i) {
       onClick: () => send({ type: "queue_add", video: v.id, front: true }) }) : null,
     canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", cls: "import-only", title: "Traducir y doblar en segundo plano",
       onClick: () => send({ type: "queue_add", video: v.id }) }) : null,
-    v.audio_only && v.source === "youtube" && !job?.fetch_video ? btn("Bajar video", { icon: "film", variant: "ghost", cls: "import-only",
+    v.audio_only && v.source === "youtube" ? btn(fetchLabel(job) || "Bajar video", { icon: "film", variant: "ghost", cls: "import-only act-fetch",
+      disabled: !!fetchLabel(job),
       title: "Se descargó solo el audio: bajar el video completo (sin volver a traducir)",
       onClick: () => send({ type: "queue_video", videos: [v.id] }) }) : null,
     el("span", { class: "grow" }),
@@ -505,6 +564,48 @@ function contextItems() {
   return c.items || [];
 }
 
+// video abierto del que solo se bajó el audio: «Bajar video» en su barra (y en el clic derecho)
+const needsVideo = (v) => !!v && v.audio_only && v.source === "youtube";
+// texto de un botón que trabaja: «Bajando video 42 %» (o en espera, si aún no empezó)
+function fetchLabel(j) {
+  if (!j?.fetch_video) return null;
+  if (!j.dl) return "En espera para bajar";
+  const pct = j.dl.stage === "video" ? Math.round(j.dl.pct * 0.9) : j.dl.stage === "audio" ? 90 + Math.round(j.dl.pct * 0.08) : 99;
+  return `Bajando video ${pct} %`;
+}
+// botón trabajando: con la barra angosta (solo íconos) igual muestra lo corto (el porcentaje)
+function setWorking(b, label) {
+  b.classList.toggle("working", !!label);
+  b.dataset.short = label ? ((label.match(/\d+ %/) || ["…"])[0]) : "";
+}
+function syncFetchBtn() {
+  const b = $("#fetch-video");
+  const v = lib.videos[state.videoId];
+  b.hidden = !needsVideo(v);
+  if (b.hidden) return;
+  const label = fetchLabel(jobOf(v.id));
+  setBtn(b, label || "Bajar video", "film");
+  b.disabled = !!label;
+  setWorking(b, label);
+}
+// «Exportar» del video abierto: «Exportando 40 %» mientras se arma
+function syncExportBtn() {
+  const b = $("#export-btn");
+  const x = state.videoId && lib.exports.find((e) => (e.videos || []).includes(state.videoId) && !["listo", "error"].includes(e.state));
+  const label = x ? (x.state === "exportando" ? `Exportando ${x.pct || 0} %` : "En espera para exportar") : "";
+  setBtn(b, label || "Exportar", "download");
+  b.disabled = !!x;
+  setWorking(b, label);
+}
+function fetchVideo(id) {
+  send({ type: "queue_video", videos: [id] });
+  toast("Se baja el video completo en la cola; la traducción no se rehace.", "ok");
+  const b = $("#fetch-video");
+  setBtn(b, "En espera para bajar", "film");
+  b.disabled = true;
+}
+$("#fetch-video").addEventListener("click", () => state.videoId && fetchVideo(state.videoId));
+
 function renderUpNext(scroll) {
   const items = contextItems().filter((id) => lib.videos[id]);
   const has = items.length > 1;
@@ -586,6 +687,7 @@ function queueUpdate(m) {
   renderQueuePanel();
   renderPower();
   if (m.jobs.some((j) => j.dl || j.state === "procesando")) { refreshCards(); renderUpNext(); }
+  syncFetchBtn();
 }
 
 // Panel de la cola (como las descargas del navegador): exportaciones, descargas,
@@ -668,6 +770,7 @@ function renderQueuePanel() {
   if (others > 0) ul.append(el("li", { class: "empty-row" }, btn(`${others} en otras bibliotecas`, { size: "xs", variant: "ghost",
     icon: "queue", onClick: () => { closeQueue(); lib.qlib = "all"; setView("queue"); } })));
   if (currentView() === "queue") renderQueueScreen();
+  syncFetchBtn();
 }
 
 /* ------------------------------------------------------------ cola: orden y elementos */
@@ -872,6 +975,7 @@ function exportStarted(id) {
 }
 function exportsUpdate(m) {
   lib.exports = m.jobs;
+  syncExportBtn();
   for (const x of m.jobs) {
     // lo que pidió esta pestaña se descarga solo al terminar
     if (x.state === "listo" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {

@@ -43,7 +43,7 @@ function videoMenu(v, coll) {
     "sep",
     canImport() && job?.state === "en cola" && !job.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: v.id, front: true }) },
     canImport() && canProcess(v) && { label: "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
-    canImport() && v.audio_only && v.source === "youtube" && !job?.fetch_video && { label: "Bajar el video completo", icon: "film", onClick: () => send({ type: "queue_video", videos: [v.id] }) },
+    canImport() && v.audio_only && v.source === "youtube" && !job?.fetch_video && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(v.id) },
     isOwner() && job && !["listo", "error"].includes(job.state) && { label: "Quitar de la cola", icon: "x", onClick: () => send({ type: "queue_remove", video: v.id }) },
     "sep",
     isOwner() && { label: "Guardar en", icon: "bookmark", sub: [
@@ -152,6 +152,8 @@ function playerMenu() {
     "sep",
     { label: document.body.classList.contains("side-off") ? "Mostrar la transcripción" : "Ocultar la transcripción", icon: "comment", onClick: () => $("#side-toggle").click() },
     isOwner() && { label: "Guardar en…", icon: "bookmark", onClick: () => $("#save").click() },
+    canImport() && needsVideo(lib.videos[state.videoId]) && !jobOf(state.videoId)?.fetch_video
+      && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(state.videoId) },
     { label: "Exportar…", icon: "download", onClick: () => $("#export-btn").click() },
     ytUrl(lib.videos[state.videoId]) && { label: "Copiar enlace a este momento", icon: "link",
       onClick: () => copyText(`${ytUrl(lib.videos[state.videoId])}&t=${Math.floor(vEn.currentTime)}s`, "Enlace") },

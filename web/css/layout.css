@@ -36,7 +36,6 @@ body.side-mini.view-library .library, body.side-mini.view-prefs .prefs-screen, b
 /* la marca ocupa el ancho de la barra lateral: la búsqueda queda alineada con el contenido */
 .bar .brand { width: calc(var(--side-w) - var(--s3) - var(--h-md) - var(--s2)); transition: width .2s var(--ease); }
 body.side-mini .bar .brand { width: auto; }
-body:not(.view-library):not(.view-prefs):not(.view-queue) .bar .brand { width: auto; }
 .bar .vault-wrap { flex: none; }
 .bar .search { flex: 1 1 360px; max-width: 560px; min-width: 160px; margin: 0 auto 0 var(--s2); }
 .bar .status { flex: none; margin: 0 var(--s2); }
@@ -69,22 +68,33 @@ body.side-mini .libside #collections .item + h4 + .item, body.side-mini .navlist
 .shelf, .qmain { min-width: 0; min-height: 0; padding: var(--s6) var(--pad) 0; }
 .prefs-body { min-height: 0; overflow-y: auto; padding: var(--s7) var(--pad) var(--s8); }
 
-/* ------------------------------------------------------------ reproductor */
+/* ------------------------------------------------------------ reproductor: barra lateral · video · transcripción */
 body:not(.view-library):not(.view-prefs):not(.view-queue) {
-  grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: var(--head-h) auto minmax(0, 1fr);
-  gap: var(--s4); padding: 0 var(--s5) var(--s5);
+  --aside: var(--side-w);
+  grid-template-columns: var(--aside) minmax(0, 1fr) 380px; grid-template-rows: var(--head-h) auto minmax(0, 1fr);
+  gap: var(--s4); padding: 0 var(--s5) var(--s5) 0;
 }
-body:not(.view-library):not(.view-prefs):not(.view-queue) .bar { margin: 0 calc(-1 * var(--s5)); }
-body:not(.view-library):not(.view-prefs):not(.view-queue).side-off { grid-template-columns: minmax(0, 1fr); }
+body.side-mini:not(.view-library):not(.view-prefs):not(.view-queue) { --aside: var(--side-w-min); }
+body:not(.view-library):not(.view-prefs):not(.view-queue).side-off { grid-template-columns: var(--aside) minmax(0, 1fr); }
+body:not(.view-library):not(.view-prefs):not(.view-queue) .bar { margin: 0 calc(-1 * var(--s5)) 0 0; }
+/* la misma barra lateral de la biblioteca, pegada al encabezado y al borde de abajo */
+body:not(.view-library):not(.view-prefs):not(.view-queue) .library {
+  display: block; grid-column: 1; grid-row: 2 / 4; min-height: 0; margin: calc(-1 * var(--s4)) 0 calc(-1 * var(--s5));
+}
+body:not(.view-library):not(.view-prefs):not(.view-queue) .library .shelf { display: none; }
+body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { height: 100%; }
 
 /* barra del video: título y acciones */
-.vbar { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: var(--s4); min-width: 0; padding: 0 0 0 var(--s1); container-type: inline-size; }
+.vbar { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: var(--s4); min-width: 0; padding: 0 0 0 var(--s1); container-type: inline-size; }
 .vtitle { flex: 1; min-width: 0; font: 800 var(--fs-xl)/1.25 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vacts { flex: none; display: flex; align-items: center; gap: var(--s2); }
 .save-wrap { position: relative; }
 @container (max-width: 700px) {
   .vacts .btn-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .vacts .btn { width: var(--h-sm); padding: 0; }
+  /* trabajando: el ícono y su porcentaje */
+  .vacts .btn.working { width: auto; padding: 0 10px; font-variant-numeric: tabular-nums; }
+  .vacts .btn.working::after { content: attr(data-short); }
 }
 
 /* ------------------------------------------------------------ pantallas medianas */
@@ -123,6 +133,8 @@ body:not(.view-library):not(.view-prefs):not(.view-queue).side-off { grid-templa
   .prefs-body { padding: var(--s5) var(--pad) var(--s8); }
   body:not(.view-library):not(.view-prefs):not(.view-queue) { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: auto auto auto auto !important; padding: 0 10px 12px; }
   body:not(.view-library):not(.view-prefs):not(.view-queue) .bar { margin: 0 -10px 10px; }
+  body:not(.view-library):not(.view-prefs):not(.view-queue) .library { display: none; }
+  .vbar, .stage { grid-column: 1; }
   .vbar { flex-wrap: wrap; gap: var(--s2); }
   .vtitle { flex-basis: 100%; font-size: var(--fs-lg); white-space: normal; }
 }

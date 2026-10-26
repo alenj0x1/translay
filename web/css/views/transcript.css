@@ -3,7 +3,7 @@
    «Siguientes» y personas
    ===================================================================== */
 
-.side { grid-column: 2; grid-row: 2 / 4; display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0;
+.side { grid-column: 3; grid-row: 2 / 4; display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0;
   border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
 body.side-off .side { display: none; }
 .side-tabs { display: flex; gap: 2px; margin: var(--s3); padding: 3px; border-radius: var(--r-pill); background: var(--surface-2); }

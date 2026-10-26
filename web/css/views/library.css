@@ -85,14 +85,17 @@
   overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; padding-bottom: var(--s1);
 }
 .strip > .card { scroll-snap-align: start; }
+/* flechas: dentro de la fila (nunca cortadas), al centro de la miniatura, solo si hay más hacia ese lado */
 .strip-nav {
-  position: absolute; top: 0; bottom: 0; z-index: 3; width: 40px; display: grid; place-items: center; padding: 0;
-  border: 0; background: none; color: var(--fg); cursor: pointer; opacity: 0; transition: opacity .2s;
+  position: absolute; top: var(--nav-y, 50%); z-index: 3; display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--raised); color: var(--fg); box-shadow: var(--menu-shadow); cursor: pointer;
+  transform: translateY(-50%); opacity: 0; transition: opacity .2s, background-color .15s;
 }
-.strip-nav svg { width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: var(--raised); box-shadow: var(--menu-shadow); }
-.strip-nav.prev { left: -14px; }
+.strip-nav:hover { background: var(--surface-3); }
+.strip-nav svg { width: 18px; height: 18px; }
+.strip-nav.prev { left: var(--s2); }
 .strip-nav.prev svg { transform: rotate(90deg); }
-.strip-nav.next { right: -14px; }
+.strip-nav.next { right: var(--s2); }
 .strip-nav.next svg { transform: rotate(-90deg); }
 .strip-wrap:hover .strip-nav { opacity: 1; }
 @media (hover: none) { .strip-nav { display: none; } }

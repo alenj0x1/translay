@@ -100,7 +100,7 @@ class Exporter:
 
     def public(self) -> dict:
         return {"type": "exports", "jobs": [{k: j[k] for k in ("id", "name", "state", "pct", "detail", "url", "error")}
-                                            | {"count": len(j["videos"])} for j in self.jobs]}
+                                            | {"count": len(j["videos"]), "videos": j["videos"][:50]} for j in self.jobs]}
 
     def _broadcast(self, force=False):
         if force or time.time() - self._last > 0.7:

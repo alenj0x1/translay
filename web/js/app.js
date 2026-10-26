@@ -49,7 +49,11 @@ function connect() {
   state.ws = ws;
 }
 
+// Lo que se edita se ve al instante: cada tipo de mensaje puede tener su cambio local
+// (OPTIMISTIC[tipo], en library.js y vaults.js); la respuesta del servidor luego lo confirma.
+const OPTIMISTIC = {};
 function send(obj) {
+  try { OPTIMISTIC[obj.type]?.(obj); } catch (e) { console.error(e); }
   if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify(obj));
 }
 
@@ -1417,6 +1421,32 @@ function setLayout(wide, save = true) {
   renderActive(true);
 }
 $("#layout").addEventListener("click", () => setLayout(!document.body.classList.contains("layout-wide")));
+
+/* ------------------------------------------------------------ comentarios y personas: al instante */
+OPTIMISTIC.comment_add = (m) => {
+  if (m.video !== state.videoId) return;
+  const k = String(m.seg);
+  (state.comments[k] ||= []).push({ id: "tmp-" + Date.now(), text: m.text, created: Date.now() / 1000 });
+  renderTranscript();
+  renderTimeline();
+};
+OPTIMISTIC.comment_edit = (m) => {
+  const c = (state.comments[String(m.seg)] || []).find((x) => x.id === m.id);
+  if (c && m.video === state.videoId) { c.text = m.text; c.updated = Date.now() / 1000; renderTranscript(); }
+};
+OPTIMISTIC.comment_delete = (m) => {
+  const k = String(m.seg);
+  if (m.video !== state.videoId || !state.comments[k]) return;
+  state.comments[k] = state.comments[k].filter((x) => x.id !== m.id);
+  renderTranscript();
+  renderTimeline();
+};
+OPTIMISTIC.people_set = (m) => {
+  if (m.video !== state.videoId) return;
+  if (m.name != null) state.people.names[String(m.spk)] = m.name;
+  if (m.voice != null) state.people.voices[String(m.spk)] = m.voice;
+  renderTranscript();
+};
 
 /* ------------------------------------------------------------ preferencias */
 function setPref(key, value) {
