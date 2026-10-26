@@ -1,0 +1,89 @@
+/* =====================================================================
+   Panel lateral: transcripción (con comentarios) y «Siguientes»
+   ===================================================================== */
+
+.side { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; border: var(--line); background: var(--surface); }
+.side-tabs { display: flex; gap: 2px; padding: 6px 8px; border-bottom: var(--line); }
+.side-tabs button {
+  border: 0; background: none; cursor: pointer; padding: 5px 8px; color: var(--fg-muted);
+  font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase;
+}
+.side-tabs button.on { color: var(--fg); text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
+.transcript, .upnext { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; }
+
+/* ---------------------------------------------------------- transcripción */
+.transcript li { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
+.transcript li:hover { background: var(--surface-2); }
+.transcript li.active { background: var(--fill); color: var(--on-fill); }
+.transcript li.active time { color: var(--on-fill); opacity: .7; }
+.transcript .cell { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 9px 14px; }
+.transcript time { font: 11px/1.9 var(--font-mono); color: var(--fg-muted); }
+.transcript .spk { display: block; font: 10px/1.4 var(--font-mono); letter-spacing: .06em; }
+.transcript p { margin: 0; }
+.transcript .pending { color: var(--fg-muted); }
+.transcript li.active .pending { color: var(--on-fill); opacity: .5; }
+
+/* ampliado (o celular): inglés pequeño arriba, español debajo */
+body.layout-wide .transcript li { grid-template-columns: 1fr; gap: 0; }
+body.layout-wide .transcript .cell:first-child p { color: var(--fg-muted); font-size: 13px; }
+body.layout-wide .transcript li.active .cell:first-child p { color: var(--on-fill); opacity: .7; }
+body.layout-wide .transcript .cell + .cell { padding-top: 0; }
+body.layout-wide .transcript .cell + .cell time { visibility: hidden; }
+
+/* ------------------------------------------------------------ comentarios */
+.transcript .cbtn {
+  position: absolute; left: 14px; top: 34px; z-index: 1; display: none;
+  width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--fg); cursor: pointer;
+}
+.transcript .cbtn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.transcript li:hover .cbtn, .transcript li.active .cbtn { display: grid; place-items: center; }
+.transcript li.active .cbtn { border-color: var(--on-fill); }
+.transcript li.has-notes { box-shadow: inset 3px 0 0 var(--fill); }
+.transcript li.active.has-notes { box-shadow: inset 3px 0 0 var(--on-fill); }
+/* con comentarios: ícono + número, siempre visible (sin círculo alrededor del número) */
+.transcript .cbtn.has {
+  display: inline-flex; align-items: center; gap: 3px; width: auto; padding: 0 7px; border-radius: var(--radius-pill);
+  font: 500 10px/1 var(--font-mono);
+}
+.transcript .cbtn.has svg { width: 11px; height: 11px; stroke-width: 1.5; }
+
+.transcript .notes { grid-column: 1 / -1; display: grid; gap: 8px; padding: 0 14px 12px 76px; cursor: default; }
+.transcript .note {
+  display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center;
+  padding: 8px 10px; border: var(--line); background: var(--surface); color: var(--fg);
+}
+.transcript .note p { grid-column: 1 / -1; margin: 0; font: 14px/1.45 var(--font-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.transcript .note small { font: 10px/1 var(--font-mono); color: var(--fg-muted); letter-spacing: .04em; text-transform: uppercase; }
+.transcript .nacts { display: flex; gap: 4px; }
+.ceditor { display: grid; gap: 6px; padding: 8px; border: var(--line); background: var(--surface); color: var(--fg); }
+.ceditor .area { overflow: hidden; border: 1px solid var(--border-faint); }
+.ceditor .area:focus { border-color: var(--border); }
+.ceditor .cacts { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* ------------------------------------------------------------- siguientes */
+.upnext li {
+  display: grid; grid-template-columns: 22px 104px minmax(0, 1fr); gap: 10px; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--border-soft); cursor: pointer;
+}
+.upnext li:hover { background: var(--surface-2); }
+.upnext li.now { background: var(--fill); color: var(--on-fill); }
+.upnext li.now small, .upnext li.now .n { color: var(--on-fill); opacity: .75; }
+.upnext .n { font: 11px/1 var(--font-mono); color: var(--fg-muted); text-align: right; }
+.upnext strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 700 13px/1.3 var(--font-text); }
+.upnext small { display: block; margin-top: 3px; font: 10.5px/1.2 var(--font-mono); color: var(--fg-muted); letter-spacing: .03em; }
+.upnext li.head { display: block; padding: 10px 12px; cursor: default; font: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+.upnext li.head:hover { background: none; }
+
+/* miniatura de video en listas (Siguientes, Cola) */
+.qthumb { aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2) radial-gradient(var(--dot) 1px, transparent 1.3px) 0 0 / 8px 8px; }
+.qthumb img { width: 100%; height: 100%; object-fit: cover; }
+
+@media (max-width: 760px) {
+  .side { max-height: 70vh; }
+  .transcript li { grid-template-columns: 1fr; gap: 0; }
+  .transcript .cell + .cell { padding-top: 0; }
+  .transcript .cell + .cell time { visibility: hidden; }
+  .transcript .notes { padding-left: 14px; }
+  .transcript .cbtn { display: grid; place-items: center; }
+}

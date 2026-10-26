@@ -89,9 +89,10 @@ class Processor:
                     self.data["jobs"].append(job)
                 elif job["state"] in ("listo", "error"):
                     job.update(state="en cola", error="")
-                if front:
+                if front:  # prioridad: primero en la cola y deja atrás al trabajo de fondo en curso
                     self.data["jobs"].remove(job)
                     self.data["jobs"].insert(0, job)
+                    job["prio"] = True
             self._save()
             self._cond.notify_all()
         self._broadcast()
@@ -253,6 +254,8 @@ class Processor:
                 done = self._process(job["id"], start)
                 if self._job(job["id"]) is job:
                     job["state"] = "listo" if done else "en cola"
+                    if done:
+                        job.pop("prio", None)
             except Exception as e:
                 import traceback
 
@@ -268,9 +271,16 @@ class Processor:
 
     def _interrupt(self, vid: str, span_start: float, pos: float) -> bool:
         """¿Hay que dejar este trabajo? (se quitó, se pausó, se mira otro video o se saltó)."""
-        if self._job(vid) is None:
+        cur = self._job(vid)
+        if cur is None:
             return True
         fv = self.focus["vid"]
+        # un trabajo con prioridad (ya descargado) pasa delante del de fondo en curso;
+        # lo avanzado queda guardado y se retoma después
+        if fv != vid and not cur.get("prio"):
+            first = next((j for j in self.data["jobs"] if j["state"] == "en cola" and self._has_media(j["id"])), None)
+            if first and first.get("prio"):
+                return True
         fj = self._job(fv) if fv else None
         # el video que se está viendo pasa primero, solo si le falta algo: si ya está
         # terminado, cederle el turno dejaba este trabajo empezando y cortándose sin fin

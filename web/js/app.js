@@ -26,7 +26,7 @@ const state = {
 };
 
 // preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
-let prefs = { layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
+let prefs = { theme_mode: "sistema", theme_style: "clasico", theme_tone: "", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
   autoplay: true, autoplay_next: true };
 let prefsSchema = [];
 let prefsSections = [];
@@ -454,7 +454,7 @@ async function ensureAudio() {
   }
   const ctx = new AudioContext({ latencyHint: "interactive" });
   state.audio = { ctx };
-  await ctx.audioWorklet.addModule("capture-worklet.js");
+  await ctx.audioWorklet.addModule("js/capture-worklet.js");
   const src = ctx.createMediaElementSource(vEn);
   const node = new AudioWorkletNode(ctx, "capture", {
     numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
@@ -961,7 +961,7 @@ function renderTranscript() {
     const who = s.speaker != null && speakers.size > 1 ? `<span class="spk">P${speakers.get(s.speaker)}</span>` : "";
     const time = `<time>${fmt(s.start)}${who}</time>`;
     const n = (state.comments[String(s.id)] || []).length;
-    const time1 = n ? `<time>${fmt(s.start)}${who}<span class="ncount" title="${n === 1 ? "1 comentario" : `${n} comentarios`}">${n}</span></time>` : time;
+    const time1 = time;
     li.innerHTML = `<div class="cell">${time1}<p></p></div><div class="cell">${time}<p></p></div>`;
     const [en, es] = li.querySelectorAll("p");
     en.textContent = s.text;
@@ -970,15 +970,18 @@ function renderTranscript() {
     const notes = state.comments[String(s.id)] || [];
     const editingHere = state.editing?.seg === s.id;
     li.classList.toggle("has-notes", notes.length > 0);
-    li.append(Object.assign(document.createElement("button"), {
-      type: "button", className: "cbtn", textContent: "+", title: "Comentar esta frase", ariaLabel: "Comentar esta frase" }));
+    // con comentarios: el botón muestra cuántos (siempre visible) y sirve para agregar otro
+    li.append(n
+      ? el("button", { type: "button", class: "cbtn has", title: `${n === 1 ? "1 comentario" : `${n} comentarios`} · agregar otro` },
+        icon("comment"), String(n))
+      : el("button", { type: "button", class: "cbtn", title: "Comentar esta frase", "aria-label": "Comentar esta frase" }, icon("plus")));
     if (notes.length || editingHere) li.append(renderNotes(s.id, notes));
     frag.appendChild(li);
   }
   const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
   ol.replaceChildren(frag);
   if (focused) {  // al redibujar (llega una frase nueva) el cuadro sigue donde estaba
-    const ta = ol.querySelector(".ceditor textarea");
+    const ta = ol.querySelector(".ceditor .area");
     ta?.focus();
     ta?.setSelectionRange(ta.value.length, ta.value.length);
   }
@@ -1000,8 +1003,8 @@ function renderNotes(segId, notes) {
     meta.textContent = `${when.toLocaleDateString("es", { day: "numeric", month: "short" })} ${when.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}${c.updated ? " · editado" : ""}`;
     const acts = document.createElement("span");
     acts.className = "nacts";
-    acts.append(noteBtn("Editar", () => { state.editing = { seg: segId, id: c.id, draft: c.text }; renderTranscript(); focusEditor(); }),
-      noteBtn("Eliminar", async () => {
+    acts.append(noteBtn("Editar", "pencil", () => { state.editing = { seg: segId, id: c.id, draft: c.text }; renderTranscript(); focusEditor(); }),
+      noteBtn("Eliminar", "trash", async () => {
         if (await confirmDlg("¿Eliminar este comentario?", "", "Eliminar")) {
           send({ type: "comment_delete", video: state.videoId, seg: segId, id: c.id });
         }
@@ -1012,18 +1015,14 @@ function renderNotes(segId, notes) {
   if (state.editing?.seg === segId && state.editing.id === null) box.append(noteEditor());
   return box;
 }
-function noteBtn(text, fn) {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = text;
-  b.addEventListener("click", fn);
-  return b;
+function noteBtn(text, ic, fn) {
+  return btn(text, { icon: ic, size: "xs", onClick: fn });
 }
 function noteEditor() {
   const ed = state.editing;
   const form = document.createElement("form");
   form.className = "ceditor";
-  const ta = document.createElement("textarea");
+  const ta = el("textarea", { class: "area text" });
   ta.rows = 3;
   ta.maxLength = 4000;
   ta.placeholder = "Comentario";
@@ -1038,9 +1037,8 @@ function noteEditor() {
   });
   const acts = document.createElement("div");
   acts.className = "cacts";
-  const cancel = Object.assign(document.createElement("button"), { type: "button", className: "btn ghost", textContent: "Cancelar" });
-  cancel.addEventListener("click", () => { state.editing = null; renderTranscript(); });
-  const save = Object.assign(document.createElement("button"), { type: "submit", className: "btn dark", textContent: "Guardar" });
+  const cancel = btn("Cancelar", { variant: "ghost", size: "xs", onClick: () => { state.editing = null; renderTranscript(); } });
+  const save = btn("Guardar", { variant: "dark", size: "xs", type: "submit", icon: "check" });
   acts.append(cancel, save);
   form.append(ta, acts);
   form.addEventListener("submit", (e) => {
@@ -1055,7 +1053,7 @@ function noteEditor() {
   return form;
 }
 function focusEditor() {
-  const ta = $("#transcript .ceditor textarea");
+  const ta = $("#transcript .ceditor .area");
   if (!ta) return;
   ta.focus();
   ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -1195,7 +1193,7 @@ function renderPower() {
 /* ------------------------------------------------------------ vista ampliada / dividida */
 function setLayout(wide, save = true) {
   document.body.classList.toggle("layout-wide", wide);
-  $("#layout").textContent = wide ? "Ver dividido" : "Ver ampliado";
+  setBtn($("#layout"), wide ? "Ver dividido" : "Ver ampliado", wide ? "columns" : "expand");
   if (save) setPref("layout", wide ? "ampliada" : "dividida");
   renderActive(true);
 }
@@ -1211,6 +1209,7 @@ function applyPrefs(m) {
   prefsSchema = m.schema;
   prefsSections = m.sections || [];
   prefs = { ...prefs, ...m.values };
+  applyTheme();
   setLayout(prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
   document.body.classList.toggle("no-sub-en", !prefs.sub_en);
@@ -1251,13 +1250,29 @@ function renderPrefs() {
       ctl.className = "pref-ctl";
       const group = document.createElement("div");
       group.className = "segs";
+      if (p.key.startsWith("theme_")) {  // apariencia: con íconos y muestras de color
+        const picker = appearanceRow(p);
+        if (!picker) continue;          // el tono solo existe en algunos temas
+        ctl.append(picker);
+        row.append(label, ctl);
+        box.append(row);
+        nav.append(navButton(p.label, row));
+        continue;
+      }
       const opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
       for (const [value, text] of opts) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "seg" + (prefs[p.key] === value ? " on" : "");
-        b.textContent = text;
-        b.addEventListener("click", () => { setPref(p.key, value); renderPrefs(); });
+        const b = el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : "") });
+        // tema: muestra de sus propios colores (el bloque de tokens se aplica a la muestra)
+        if (p.key === "theme") {
+          b.append(value === "sistema" ? icon("monitor")
+            : el("span", { class: "swatch", "data-theme": THEMES[value], "aria-hidden": "true" }));
+        }
+        b.append(text);
+        b.addEventListener("click", () => {
+          setPref(p.key, value);
+          if (p.key === "theme") applyTheme(value);
+          renderPrefs();
+        });
         group.append(b);
       }
       ctl.append(group);
@@ -1274,10 +1289,33 @@ function renderPrefs() {
   body.scrollTop = scroll;
   markPrefsNav();
 }
+// Apariencia: modo (íconos), tema y tono (muestras con los colores reales de cada
+// opción en el modo actual). Cada cambio conserva lo demás.
+function appearanceRow(p) {
+  const choose = (value) => {
+    setPref(p.key, value);
+    applyTheme();
+    renderPrefs();
+  };
+  const seg = (value, on, ...kids) => el("button", { type: "button", class: "seg" + (on ? " on" : ""), on: { click: () => choose(value) } }, ...kids);
+  if (p.key === "theme_mode") {
+    const icons = { sistema: "monitor", claro: "sun", oscuro: "moon" };
+    return el("div", { class: "segs" }, ...p.options.map(([v, t]) => seg(v, prefs.theme_mode === v, icon(icons[v]), t)));
+  }
+  if (p.key === "theme_style") {
+    return el("div", { class: "segs" }, ...p.options.map(([v, t]) => seg(v, (prefs.theme_style || "clasico") === v,
+      el("span", { class: "swatch", "data-theme": themeBlock(prefs.theme_mode, v, prefs.theme_tone), "aria-hidden": "true" }), t)));
+  }
+  const tones = TONES[prefs.theme_style];  // theme_tone
+  if (!tones) return null;
+  const current = themeTone(prefs.theme_style, prefs.theme_tone);
+  const names = Object.fromEntries(p.options);
+  return el("div", { class: "segs" }, ...tones.map((v) => seg(v, current === v,
+    el("span", { class: "swatch", "data-theme": themeBlock(prefs.theme_mode, prefs.theme_style, v), "aria-hidden": "true" }), names[v])));
+}
+
 function navButton(text, target) {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = text;
+  const b = el("button", { type: "button", class: "item" }, el("span", { text }));
   b.dataset.target = target.id;
   b.addEventListener("click", () => target.scrollIntoView({ behavior: "smooth", block: "start" }));
   return b;
@@ -1336,15 +1374,10 @@ function renderCookies(m) {
   const box = $("#yt-browsers");
   box.replaceChildren();
   for (const b of m.browsers) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "seg";
-    btn.textContent = `Importar de ${b.name}`;
-    btn.addEventListener("click", () => {
+    box.append(el("button", { type: "button", class: "seg", text: `Importar de ${b.name}`, on: { click: () => {
       $("#cookies-status").textContent = `leyendo la sesión de ${b.name}…`;
       send({ type: "cookies_import", browser: b.key });
-    });
-    box.append(btn);
+    } } }));
   }
   const st = m.status || {};
   $("#cookies-status").textContent = st.present

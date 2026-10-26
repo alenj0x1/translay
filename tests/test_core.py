@@ -111,12 +111,14 @@ def test_speaker_tracker():
     tr.assign(unit(b), np.float64(2.5))  # duraciones numpy (vienen de los tiempos de Whisper)
     import json
     json.dumps(tr.state())  # el estado se guarda en el JSON de la transcripción
-    # una referencia larga se recorta a ~8 s (y su texto en la misma proporción)
-    t = np.arange(16000 * 15) / 16000
-    long = (0.3 * np.sin(2 * np.pi * 180 * t)).astype(np.float32)
-    assert tr.add_reference(0, long, " ".join(["palabra"] * 30))
-    _, clip, text = tr.refs[0][-1] if len(tr.refs[0][-1]) == 3 else (None, None, None)
-    assert 6 * 16000 <= len(clip) <= 8 * 16000 and 12 <= len(text.split()) <= 16
+    # una referencia nunca se recorta (el texto dejaría de coincidir con el audio)
+    tone = lambda sec: (0.3 * np.sin(2 * np.pi * 180 * np.arange(int(16000 * sec)) / 16000)).astype(np.float32)  # noqa: E731
+    assert not tr.add_reference(0, tone(15), "demasiado larga")          # más de 12 s: nunca
+    assert tr.add_reference(0, tone(10), "larga, a falta de otra")       # último recurso, entera
+    assert len(tr.refs[0][0][1]) == 10 * 16000 and tr.refs[0][0][2] == "larga, a falta de otra"
+    assert not tr.add_reference(0, tone(11), "otra larga")               # ya tiene una
+    assert tr.add_reference(0, tone(5), "frase completa.")               # una normal la reemplaza
+    assert [r[2] for r in tr.refs[0]] == ["frase completa."]
     restored = SpeakerTracker(state=tr.state())
     assert restored.assign(unit(b + 0.3 * rng.standard_normal(256)), 3.0)[0] == 1
 

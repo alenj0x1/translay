@@ -1,0 +1,57 @@
+/* =====================================================================
+   Botón
+   .btn                 contorno, píldora (por defecto)
+     .sm / .xs          tamaños menores
+     .dark              principal (relleno)
+     .ghost             secundario sin borde
+     .danger            acción destructiva
+     .dl                se llena con --p (avance de descarga)
+     [disabled]         deshabilitado
+   .ic                  botón redondo con ícono (svg)
+     .sm                más chico
+   ===================================================================== */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 16px; border: var(--line); border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--fg); font: var(--t-button);
+  white-space: nowrap; cursor: pointer; text-decoration: none;
+  transition: background-color .12s, color .12s, border-color .12s;
+}
+.btn:hover { background: var(--fill); color: var(--on-fill); }
+.btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.btn.sm { padding: 7px 14px; font-size: 13px; }
+.btn.xs { padding: 5px 10px; font-size: 12px; }
+
+.btn.dark { background: var(--fill); border-color: var(--fill); color: var(--on-fill); }
+.btn.dark:hover { background: var(--fill-hover); border-color: var(--fill-hover); color: var(--on-fill); }
+
+.btn.ghost { border-color: transparent; background: transparent; color: var(--fg-muted); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--fg); border-color: transparent; }
+
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: var(--on-fill); }
+
+.btn.dl {
+  background: linear-gradient(90deg, var(--dl-fill) var(--p), var(--surface) var(--p));
+  color: var(--fg); font-variant-numeric: tabular-nums;
+}
+.btn.dl:hover { background: linear-gradient(90deg, var(--dl-fill-hover) var(--p), var(--surface-2) var(--p)); color: var(--fg); }
+
+.btn[disabled], .btn[disabled]:hover {
+  background: var(--surface); color: var(--fg-faint); border-color: var(--border-faint);
+  cursor: default; pointer-events: none;
+}
+.btn.dark[disabled] { background: var(--surface); }
+.btn.on { background: var(--fill); color: var(--on-fill); }
+
+/* --------------------------------------------------------- con ícono */
+.ic {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: var(--line); border-radius: 50%; background: var(--surface); color: var(--fg); cursor: pointer;
+}
+.ic:hover { background: var(--surface-2); }
+.ic.sm { width: 28px; height: 28px; }
+.ic svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ic svg .solid { fill: currentColor; stroke: none; }

@@ -1,0 +1,27 @@
+/* =====================================================================
+   Preferencias: índice a la izquierda, opciones agrupadas a la derecha
+   ===================================================================== */
+
+.prefs-nav { border: var(--line); background: var(--surface); }
+.prefs-body { padding: 0 24px; overflow-y: auto; min-height: 0; border: var(--line); background: var(--surface); }
+.prefs-sec { padding: 18px 0 8px; border-bottom: var(--line); }
+.prefs-sec:last-child { border-bottom: 0; min-height: 100%; }
+.prefs-sec > h3 { margin: 0 0 6px; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+.pref {
+  display: grid; grid-template-columns: minmax(180px, 280px) minmax(0, 1fr); gap: 8px 24px; align-items: start;
+  padding: 14px 0; border-bottom: 1px solid var(--border-soft); scroll-margin-top: 12px;
+}
+.pref:last-child { border-bottom: 0; }
+.pref-label { padding-top: 5px; font: 700 15px/1.3 var(--font-text); }
+.pref-ctl { display: grid; gap: 8px; justify-items: start; }
+#cookies-status { font: 10.5px/1.4 var(--font-mono); color: var(--fg-muted); }
+
+@media (max-width: 760px) {
+  .prefs-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
+  .prefs-nav h4 { display: none; }
+  .prefs-nav .item { width: auto; padding: 6px 12px; border: var(--line); border-radius: var(--radius-pill); font-size: 13px; }
+  .prefs-body { padding: 0 14px; }
+  .pref { grid-template-columns: 1fr; }
+}
+/* en el índice los nombres largos bajan de línea (nunca cortados) */
+.prefs-nav .item > span:first-child { white-space: normal; overflow: visible; text-overflow: clip; }

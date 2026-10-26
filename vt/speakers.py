@@ -56,21 +56,11 @@ def fbank(x: np.ndarray) -> np.ndarray:
 MAX_CLIP_S = 8.0
 
 
-def _cut_clip(x: np.ndarray, text: str) -> tuple[np.ndarray, str]:
-    """Recorta un fragmento largo a ~MAX_CLIP_S, en el punto más silencioso entre 6 s y
-    8 s; el texto se recorta en la misma proporción (para que coincida con el audio)."""
-    n = int(SR * 0.02)
-    lo, hi = int(6 * SR), int(MAX_CLIP_S * SR)
-    win = x[lo:hi]
-    k = len(win) // n
-    cut = hi
-    if k > 0:
-        energy = np.mean(win[: k * n].reshape(k, n) ** 2, axis=1)
-        cut = lo + int(np.argmin(energy)) * n + n // 2
-    words = text.split()
-    if words:
-        text = " ".join(words[: max(1, round(len(words) * cut / len(x)))])
-    return x[:cut], text
+# Una referencia nunca se recorta: si el texto no coincide exactamente con el audio, el
+# motor "continúa" la referencia y la voz generada arrastra las palabras sobrantes (se
+# oía "and so" o "stands" en cada frase doblada). Solo se usan frases completas de hasta
+# MAX_CLIP_S; una más larga (hasta MAX_FALLBACK_S) únicamente si la persona aún no tiene otra.
+MAX_FALLBACK_S = 12.0
 
 
 class SpeakerEmbedder:
@@ -191,13 +181,16 @@ class SpeakerTracker:
     def add_reference(self, spk: int, x: np.ndarray, text: str = "") -> bool:
         """Guarda el fragmento si mejora la referencia. True si la referencia cambió."""
         x = trim_silence(x, SR)
-        if len(x) / SR > MAX_CLIP_S:
-            x, text = _cut_clip(x, text)
         dur = len(x) / SR
         if dur < 1.0:
             return False
-        score = min(dur, 6.0) * float(np.clip(snr_estimate(x, SR) / 30.0, 0.2, 1.0))
         refs = self.refs.setdefault(spk, [])
+        if dur > MAX_CLIP_S:  # frase larga: solo como último recurso, entera
+            if refs or dur > MAX_FALLBACK_S:
+                return False
+        else:  # una frase de largo normal reemplaza a la de último recurso
+            refs[:] = [r for r in refs if len(r[1]) / SR <= MAX_CLIP_S]
+        score = min(dur, 6.0) * float(np.clip(snr_estimate(x, SR) / 30.0, 0.2, 1.0))
         total = sum(len(r[1]) for r in refs) / SR
         # con la referencia ya completa solo se cambia por un fragmento claramente
         # mejor: cada cambio obliga al motor a recalcular la voz (1–2 s de GPU)

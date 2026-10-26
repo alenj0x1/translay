@@ -1,0 +1,33 @@
+/* =====================================================================
+   Indicadores
+   .status(data-state)  punto + texto (ok · busy · sleep · off)
+   .count               número junto a un botón (Cola 9), sin círculo
+   .chip                etiqueta con borde (Playlist, duración, estado)
+   .chip.solid          etiqueta rellena (número de orden)
+   .meter > i           barra de avance con borde
+   .steps > span        etapas (descarga): .done / .now
+   ===================================================================== */
+
+.status { display: flex; align-items: center; gap: 7px; font: 11px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.status i { width: 8px; height: 8px; border-radius: 50%; border: var(--line); background: var(--danger); }
+.status[data-state="ok"] i { background: var(--ok); }
+.status[data-state="busy"] i { background: var(--warn); }
+.status[data-state="sleep"] i { background: var(--surface-2); }
+
+.count { font: 500 11.5px/1 var(--font-mono); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.btn:hover .count, .btn.on .count { color: inherit; opacity: .7; }
+
+.chip {
+  display: inline-block; padding: 3px 6px; border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+  font: 500 10.5px/1 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+}
+.chip.solid { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
+
+.meter { position: relative; height: 6px; border: 1px solid var(--border); }
+.meter > i { position: absolute; inset: 0 auto 0 0; background: var(--fill); transition: width .4s; }
+.meter.ok > i { background: var(--ok); }
+
+.steps { display: flex; flex-wrap: wrap; gap: 4px; }
+.steps span { padding: 2px 6px; border: 1px solid var(--border-faint); font: 500 9.5px/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted); }
+.steps span.done { border-color: var(--border); color: var(--fg); }
+.steps span.now { background: var(--fill); border-color: var(--fill); color: var(--on-fill); }

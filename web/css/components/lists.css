@@ -1,0 +1,27 @@
+/* =====================================================================
+   Listas de navegación (colecciones, índice de Preferencias)
+   .navlist > h4                encabezado de grupo
+   .navlist > .item(.active)    fila: nombre + número opcional
+   .empty / .empty-row          estado vacío
+   ===================================================================== */
+
+.navlist { padding: 12px; overflow-y: auto; min-height: 0; }
+.navlist h4 { margin: 14px 4px 6px; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+.navlist h4:first-child { margin-top: 2px; }
+.navlist .item {
+  display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left;
+  padding: 7px 8px; border: 0; background: none; cursor: pointer; color: var(--fg);
+  font: 600 14px/1.25 var(--font-text);
+}
+.navlist .item > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navlist .item > span + span { font: 11px/1.6 var(--font-mono); color: var(--fg-muted); }
+.navlist .item:hover { background: var(--surface-2); }
+.navlist .item.active, .navlist .item.on { background: var(--fill); color: var(--on-fill); }
+.navlist .item.active > span + span { color: var(--on-fill); opacity: .7; }
+.navlist .inline-form { margin: 8px 0 2px; }
+
+.empty {
+  grid-column: 1 / -1; padding: 40px; text-align: center; border: var(--line); background: var(--surface);
+  font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted);
+}
+.empty-row { padding: 22px; text-align: center; list-style: none; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }

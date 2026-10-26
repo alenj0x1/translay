@@ -1,0 +1,41 @@
+/* =====================================================================
+   Capas sobre la página
+   .popover     panel flotante bajo un botón (Cola, Guardar en…)
+   .dlg         diálogo modal (<dialog>): h3, .dlg-sub, .dlg-note, .opts, .dlg-field, .dlg-actions
+   .toast       aviso abajo al centro; data-kind = error | ok | warn
+   ===================================================================== */
+
+.popover {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; width: 260px;
+  background: var(--surface); border: var(--line); padding: 10px;
+}
+.popover ul { list-style: none; margin: 0 0 8px; padding: 0; max-height: 240px; overflow-y: auto; }
+.popover li label { display: flex; gap: 8px; align-items: center; padding: 6px 4px; cursor: pointer; font: 600 14px/1.2 var(--font-text); }
+.popover li label:hover { background: var(--surface-2); }
+
+/* ------------------------------------------------------------- diálogo */
+.dlg { border: var(--line); padding: 0; width: min(440px, calc(100vw - 32px)); background: var(--surface); color: var(--fg); }
+.dlg.wide { width: min(620px, calc(100vw - 32px)); }
+.dlg::backdrop { background: var(--backdrop); }
+.dlg form { display: grid; gap: 12px; padding: 18px 20px; }
+.dlg h3 { margin: 0; font: 600 20px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.dlg-sub, .dlg-note { margin: 0; font: var(--t-small); color: var(--fg-muted); }
+.dlg-sub:empty, .dlg-note:empty { display: none; }
+.dlg .opts { display: grid; border: var(--line); }
+.dlg .opts label { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; cursor: pointer; font: 600 14px/1.2 var(--font-text); }
+.dlg .opts label + label { border-top: 1px solid var(--border-soft); }
+.dlg .opts label:hover { background: var(--surface-2); }
+.dlg .opts small { font: 10.5px/1 var(--font-mono); color: var(--fg-muted); }
+.dlg-field { display: flex; align-items: center; gap: 10px; }
+.dlg-field .select { flex: 1; }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* --------------------------------------------------------------- aviso */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50;
+  max-width: min(620px, calc(100vw - 32px)); padding: 12px 16px;
+  background: var(--surface); color: var(--fg); border: var(--line); border-left: 6px solid var(--danger);
+  font: 600 14px/1.4 var(--font-text); cursor: pointer;
+}
+.toast[data-kind="ok"] { border-left-color: var(--ok); }
+.toast[data-kind="warn"] { border-left-color: var(--warn); }

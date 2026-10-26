@@ -50,6 +50,13 @@ Al abrir la herramienta se ve la **Biblioteca**: tarjetas con miniatura, nombre,
 - **Reproducción automática** (Preferencias → Video): al abrir un video empieza solo en cuanto está listo para sonar sin cortes; al terminar sigue el próximo de «Siguientes». Con «Pausar hasta que esté listo», si saltas a una parte aún sin voz en español el video se pausa («Sigue al estar listo N %») y se reanuda solo; si le das reproducir a mano, sigue igual.
 - Las voces se descargan a medida que se acercan (3 a la vez): bajarlas todas al abrir un video llenaba las conexiones del navegador y el video tardaba en cargar (parecía que «Ver» necesitaba dos clics). Las tarjetas se actualizan en su lugar en vez de redibujarse con cada avance de la cola (se perdían clics y la casilla parpadeaba).
 
+### Temas y estructura de la interfaz
+
+- **Apariencia** (Preferencias): *Modo* (según el sistema, claro u oscuro) es la base; *Tema* (Clásico, Claude, Pastel, Pink, Cyberpunk, Matrix, Code, Alto contraste) la sigue, y *Tono* aparece en los temas que lo tienen (Pastel: lavanda, menta, durazno, cielo; Cyberpunk: neón, eléctrico; Matrix: verde, ámbar). Cambiar uno conserva lo demás (oscuro + Claude = Claude oscuro). Cada opción muestra sus colores reales.
+- **Estilos por capas** en `web/css/`: `tokens.css` (todos los valores visuales; un bloque `[data-theme="tema-tono-modo"]` por combinación), `base.css`, `components/` (botón, controles, indicadores, listas, capas, tarjeta), `layout.css` y `views/` (reproductor, transcripción, biblioteca, cola, preferencias).
+- **Componentes JS** en `web/js/ui.js`: `el()`, `icon()` (íconos de línea, sin emojis), `btn()` / `setBtn()`, `meter()`. Para un tema nuevo: sus bloques claro y oscuro en `tokens.css`, la opción en `vt/prefs.py` y, si tiene tonos, `TONES` en `web/js/theme.js`.
+- **Prioridad en la cola:** «Priorizar» (en la Cola o en la tarjeta) pone un video primero y deja atrás al trabajo de fondo en curso, que se retoma después.
+
 ### Vista ampliada y vista dividida
 
 Por defecto el video se ve **ampliado**: un solo video grande (subtítulo en español abajo, inglés pequeño arriba) y la transcripción al costado. "Ver dividido" vuelve a los dos paneles EN | ES; la elección se recuerda.

@@ -1,0 +1,435 @@
+/* =====================================================================
+   Tokens: todo valor visual sale de aquí. Un tema es un bloque
+   [data-theme="…"] que redefine estos tokens; nada más cambia.
+   Nombre de cada bloque: «tema-tono-modo» (modo = light | dark), p. ej.
+   "pastel-menta-dark"; el tema Clásico es simplemente "light" / "dark".
+   Para agregar un tema: sus bloques claro y oscuro (y por tono, si tiene),
+   la opción en vt/prefs.py (theme_style / theme_tone) y TONES en web/js/theme.js.
+   ===================================================================== */
+
+:root {
+  /* tipografía */
+  --font-display: "Fredoka", system-ui, sans-serif;  /* nombres y títulos */
+  --font-text: "Nunito", system-ui, sans-serif;       /* texto */
+  --font-mono: "DM Mono", ui-monospace, monospace;    /* etiquetas pequeñas */
+  --t-label: 500 10.5px/1 var(--font-mono);            /* etiquetas en mayúsculas */
+  --t-small: 11px/1.4 var(--font-mono);
+  --t-body: 15px/1.45 var(--font-text);
+  --t-strong: 700 14.5px/1.3 var(--font-text);
+  --t-button: 600 14px/1 var(--font-text);
+  --t-title: 600 22px/1.15 var(--font-display);
+  --track-label: .07em;
+  /* derivados de las fuentes: se recalculan en cada tema (algunos cambian la fuente) */
+
+  /* medidas */
+  --gap: 16px;
+  --line-w: 1.5px;
+  --radius-pill: 999px;
+  --dot-size: 18px;
+
+  /* estado */
+  --ok: #2f9e5b;
+  --warn: #d08a1c;
+  --danger: #c44536;
+}
+
+/* ------------------------------------------------------------- claro */
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;            /* fondo de la página (con puntitos) */
+  --surface: #ffffff;       /* cajas */
+  --surface-2: #f3f3f1;     /* hover, filas activas suaves */
+  --fg: #111111;            /* texto y bordes */
+  --fg-muted: #8b8b8b;
+  --fg-faint: #a3a29d;      /* deshabilitado */
+  --border: #111111;
+  --border-soft: #e4e4e0;   /* separadores de filas */
+  --border-faint: #d6d5cf;
+  --dot: rgba(17, 17, 17, .16);
+  --fill: #111111;          /* botón principal, elemento activo */
+  --on-fill: #ffffff;
+  --fill-hover: #3a3a3a;
+  --video-bg: #111111;
+  --backdrop: rgba(255, 255, 255, .7);
+  --track-cov: #dddcd6;     /* línea de avance: reconocido */
+  --track-dub: #9d9c96;     /* línea de avance: con voz en español */
+  --dl-fill: #cfe8d8;       /* «Descargando N %» */
+  --dl-fill-hover: #b9dfc7;
+  --ok: #2f9e5b;
+  --warn: #d08a1c;
+  --danger: #c44536;
+}
+
+/* ------------------------------------------------------------- oscuro */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e0e0e;
+  --surface: #151515;
+  --surface-2: #232322;
+  --fg: #ecebe6;
+  --fg-muted: #8f8e89;
+  --fg-faint: #5f5e5a;
+  --border: #4d4c48;         /* líneas grises tenues (no blancas) */
+  --border-soft: #262625;
+  --border-faint: #353533;
+  --dot: rgba(255, 255, 255, .085);
+  --fill: #ecebe6;
+  --on-fill: #111111;
+  --fill-hover: #c9c8c2;
+  --video-bg: #000000;
+  --backdrop: rgba(0, 0, 0, .6);
+  --track-cov: #3b3b39;
+  --track-dub: #7b7a74;
+  --dl-fill: #1e4a31;
+  --dl-fill-hover: #26603f;
+  --ok: #3fbf74;
+  --warn: #e3a43f;
+  --danger: #e2654f;
+}
+
+/* ------------------------------------------------------------- claude (cálido, crema y terracota) */
+[data-theme="claude-light"] {
+  color-scheme: light;
+  --bg: #f4f2ea; --surface: #faf9f4; --surface-2: #ebe7dc;
+  --fg: #3b3626; --fg-muted: #8a8370; --fg-faint: #b6af9b;
+  --border: #3b3626; --border-soft: #e2ddd0; --border-faint: #cfc8b6;
+  --dot: rgba(59, 54, 38, .13);
+  --fill: #c4623f; --on-fill: #ffffff; --fill-hover: #ad5333;
+  --video-bg: #26231a; --backdrop: rgba(244, 242, 234, .75);
+  --track-cov: #e2ddd0; --track-dub: #c9a58f;
+  --dl-fill: #ecd9c8; --dl-fill-hover: #e4c9b2;
+  --ok: #5b8a3a; --warn: #c88a2a; --danger: #b8452f;
+}
+
+/* ------------------------------------------------------------- pastel */
+[data-theme="pastel-lavanda-light"] {
+  color-scheme: light;
+  --bg: #fbf8ff; --surface: #ffffff; --surface-2: #f2edfa;
+  --fg: #4a4458; --fg-muted: #9a93ab; --fg-faint: #c4bdd4;
+  --border: #b9aad8; --border-soft: #eee8f7; --border-faint: #ddd4ee;
+  --dot: rgba(150, 120, 200, .2);
+  --fill: #b9a5ec; --on-fill: #2f2742; --fill-hover: #a892e6;
+  --video-bg: #2f2742; --backdrop: rgba(251, 248, 255, .75);
+  --track-cov: #ece6f6; --track-dub: #c9bbe9;
+  --dl-fill: #d6f0e3; --dl-fill-hover: #c3e8d5;
+  --ok: #5fb08d; --warn: #e6ae6c; --danger: #e57a8e;
+}
+
+/* ------------------------------------------------------------- pink */
+[data-theme="pink-light"] {
+  color-scheme: light;
+  --bg: #fff5f9; --surface: #ffffff; --surface-2: #ffe8f1;
+  --fg: #4a1830; --fg-muted: #b0738f; --fg-faint: #d9a9be;
+  --border: #e0559a; --border-soft: #ffdbe9; --border-faint: #f6bcd4;
+  --dot: rgba(224, 85, 154, .2);
+  --fill: #e0559a; --on-fill: #ffffff; --fill-hover: #c83f84;
+  --video-bg: #2b0c1b; --backdrop: rgba(255, 245, 249, .75);
+  --track-cov: #ffdbe9; --track-dub: #ee9cc4;
+  --dl-fill: #ffd6e8; --dl-fill-hover: #ffc2dd;
+  --ok: #2f9e6b; --warn: #e0962a; --danger: #d6336c;
+}
+
+/* ------------------------------------------------------------- cyberpunk (neón) */
+[data-theme="cyberpunk-neon-dark"] {
+  color-scheme: dark;
+  --bg: #0d0221; --surface: #150835; --surface-2: #23104d;
+  --fg: #f3efff; --fg-muted: #9e90cf; --fg-faint: #5b4d8f;
+  --border: #ff2a6d; --border-soft: #2b1658; --border-faint: #3d2373;
+  --dot: rgba(5, 217, 232, .14);
+  --fill: #f9f002; --on-fill: #0d0221; --fill-hover: #fff76a;
+  --video-bg: #05010f; --backdrop: rgba(13, 2, 33, .7);
+  --track-cov: #2b1658; --track-dub: #05d9e8;
+  --dl-fill: #0b4a63; --dl-fill-hover: #0f5f7f;
+  --ok: #05d9e8; --warn: #f9f002; --danger: #ff2a6d;
+}
+
+/* ------------------------------------------------------------- matrix (verde sobre negro, todo monoespaciado) */
+[data-theme="matrix-verde-dark"] {
+  color-scheme: dark;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --font-text: "DM Mono", ui-monospace, monospace;
+  --bg: #000900; --surface: #020f03; --surface-2: #062107;
+  --fg: #3dff6e; --fg-muted: #22a84a; --fg-faint: #146b2d;
+  --border: #1d9e44; --border-soft: #0a2a0e; --border-faint: #104a1b;
+  --dot: rgba(61, 255, 110, .1);
+  --fill: #3dff6e; --on-fill: #001a06; --fill-hover: #85ffa6;
+  --video-bg: #000000; --backdrop: rgba(0, 9, 0, .7);
+  --track-cov: #0d3a14; --track-dub: #22a84a;
+  --dl-fill: #0d3a14; --dl-fill-hover: #145021;
+  --ok: #3dff6e; --warn: #d8ff3d; --danger: #ff5050;
+}
+
+/* ------------------------------------------------------------- code (editor oscuro) */
+[data-theme="code-dark"] {
+  color-scheme: dark;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --bg: #1b1d23; --surface: #21252b; --surface-2: #2c313a;
+  --fg: #d7dae0; --fg-muted: #7f848e; --fg-faint: #4f5562;
+  --border: #3e4451; --border-soft: #2a2e36; --border-faint: #353a45;
+  --dot: rgba(255, 255, 255, .05);
+  --fill: #61afef; --on-fill: #10141a; --fill-hover: #85c2f4;
+  --video-bg: #0f1115; --backdrop: rgba(27, 29, 35, .7);
+  --track-cov: #353a45; --track-dub: #5c8fbf;
+  --dl-fill: #29425a; --dl-fill-hover: #33526f;
+  --ok: #98c379; --warn: #e5c07b; --danger: #e06c75;
+}
+
+/* ------------------------------------------------------------- alto contraste */
+[data-theme="contraste-dark"] {
+  color-scheme: dark;
+  --line-w: 2px;
+  --bg: #000000; --surface: #000000; --surface-2: #1c1c1c;
+  --fg: #ffffff; --fg-muted: #e0e0e0; --fg-faint: #9e9e9e;
+  --border: #ffffff; --border-soft: #8a8a8a; --border-faint: #6e6e6e;
+  --dot: transparent;
+  --fill: #ffe600; --on-fill: #000000; --fill-hover: #ffffff;
+  --video-bg: #000000; --backdrop: rgba(0, 0, 0, .8);
+  --track-cov: #6e6e6e; --track-dub: #ffffff;
+  --dl-fill: #00703a; --dl-fill-hover: #008a48;
+  --ok: #00ff73; --warn: #ffd400; --danger: #ff6b6b;
+}
+
+/* ===================== variaciones ===================== */
+
+/* claude · oscuro */
+[data-theme="claude-dark"] {
+  color-scheme: dark;
+  --bg: #1f1d18; --surface: #262420; --surface-2: #322f29;
+  --fg: #ece7da; --fg-muted: #9c9584; --fg-faint: #625c4f;
+  --border: #5a5446; --border-soft: #2e2b25; --border-faint: #3d3930;
+  --dot: rgba(236, 231, 218, .07);
+  --fill: #d97757; --on-fill: #1f1d18; --fill-hover: #e5906f;
+  --video-bg: #0f0e0b; --backdrop: rgba(31, 29, 24, .7);
+  --track-cov: #3d3930; --track-dub: #a8735b;
+  --dl-fill: #4a3324; --dl-fill-hover: #5c3f2c;
+  --ok: #7fb35a; --warn: #e0a548; --danger: #e0664c;
+}
+
+/* pastel · menta */
+[data-theme="pastel-menta-light"] {
+  color-scheme: light;
+  --bg: #f4fbf8; --surface: #ffffff; --surface-2: #e6f5ee;
+  --fg: #344a42; --fg-muted: #86a399; --fg-faint: #b9cfc7;
+  --border: #8fcdb5; --border-soft: #e2f2ea; --border-faint: #c7e6d9;
+  --dot: rgba(80, 170, 135, .2);
+  --fill: #9ad9c0; --on-fill: #1f3a30; --fill-hover: #84cfb2;
+  --video-bg: #1f3a30; --backdrop: rgba(244, 251, 248, .75);
+  --track-cov: #e2f2ea; --track-dub: #a7d9c4;
+  --dl-fill: #d4f1e4; --dl-fill-hover: #bfe9d6;
+  --ok: #4fa883; --warn: #e3ac62; --danger: #e47c86;
+}
+
+/* pastel · durazno */
+[data-theme="pastel-durazno-light"] {
+  color-scheme: light;
+  --bg: #fff8f3; --surface: #ffffff; --surface-2: #fdeee3;
+  --fg: #5a4236; --fg-muted: #b09282; --fg-faint: #d8c1b3;
+  --border: #f0b394; --border-soft: #fbe6d9; --border-faint: #f5d3c0;
+  --dot: rgba(230, 140, 100, .2);
+  --fill: #f7c2a4; --on-fill: #4a2f22; --fill-hover: #f3ad88;
+  --video-bg: #3a2820; --backdrop: rgba(255, 248, 243, .75);
+  --track-cov: #fbe6d9; --track-dub: #f0bc9f;
+  --dl-fill: #dcf0e2; --dl-fill-hover: #c9e8d3;
+  --ok: #5fae84; --warn: #e2a253; --danger: #e5767a;
+}
+
+/* pastel · cielo */
+[data-theme="pastel-cielo-light"] {
+  color-scheme: light;
+  --bg: #f5f9ff; --surface: #ffffff; --surface-2: #e7f0fc;
+  --fg: #354459; --fg-muted: #8b9cb4; --fg-faint: #bccadb;
+  --border: #9dbde6; --border-soft: #e3edfa; --border-faint: #c9dbf1;
+  --dot: rgba(100, 145, 210, .2);
+  --fill: #a9c8f0; --on-fill: #1f3150; --fill-hover: #93b8ea;
+  --video-bg: #1f2b3d; --backdrop: rgba(245, 249, 255, .75);
+  --track-cov: #e3edfa; --track-dub: #acc6ea;
+  --dl-fill: #d6f0e4; --dl-fill-hover: #c2e8d6;
+  --ok: #55a886; --warn: #e2ab62; --danger: #e3798b;
+}
+
+/* pink · noche */
+[data-theme="pink-dark"] {
+  color-scheme: dark;
+  --bg: #1c0d15; --surface: #241119; --surface-2: #331827;
+  --fg: #fbe3ee; --fg-muted: #b98aa1; --fg-faint: #6e4a5c;
+  --border: #8a3a63; --border-soft: #33182a; --border-faint: #4a2238;
+  --dot: rgba(255, 120, 180, .1);
+  --fill: #ff6fae; --on-fill: #1c0d15; --fill-hover: #ff93c3;
+  --video-bg: #0d0509; --backdrop: rgba(28, 13, 21, .7);
+  --track-cov: #4a2238; --track-dub: #c8578d;
+  --dl-fill: #1d4a35; --dl-fill-hover: #255c42;
+  --ok: #4fd18e; --warn: #f2b04a; --danger: #ff5c7a;
+}
+
+/* cyberpunk · eléctrico (cian y violeta) */
+[data-theme="cyberpunk-electrico-dark"] {
+  color-scheme: dark;
+  --bg: #050816; --surface: #0a1028; --surface-2: #131c42;
+  --fg: #e6f7ff; --fg-muted: #7f9cc7; --fg-faint: #3f5585;
+  --border: #00e5ff; --border-soft: #141f48; --border-faint: #1f2d63;
+  --dot: rgba(180, 90, 255, .14);
+  --fill: #b45cff; --on-fill: #ffffff; --fill-hover: #c783ff;
+  --video-bg: #02040c; --backdrop: rgba(5, 8, 22, .7);
+  --track-cov: #1f2d63; --track-dub: #00e5ff;
+  --dl-fill: #3a1f66; --dl-fill-hover: #4a2884;
+  --ok: #00e5ff; --warn: #ffd23f; --danger: #ff3d81;
+}
+
+/* matrix · ámbar (terminal antigua) */
+[data-theme="matrix-ambar-dark"] {
+  color-scheme: dark;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --font-text: "DM Mono", ui-monospace, monospace;
+  --bg: #0b0700; --surface: #120c02; --surface-2: #241805;
+  --fg: #ffb000; --fg-muted: #b57d0a; --fg-faint: #6e4c08;
+  --border: #b57d0a; --border-soft: #2a1c05; --border-faint: #4a3208;
+  --dot: rgba(255, 176, 0, .09);
+  --fill: #ffb000; --on-fill: #1a1000; --fill-hover: #ffc845;
+  --video-bg: #000000; --backdrop: rgba(11, 7, 0, .7);
+  --track-cov: #3a2806; --track-dub: #b57d0a;
+  --dl-fill: #3a2806; --dl-fill-hover: #4f370a;
+  --ok: #9ccc3c; --warn: #ffb000; --danger: #ff5a36;
+}
+
+/* code · claro */
+[data-theme="code-light"] {
+  color-scheme: light;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f0f0f1;
+  --fg: #383a42; --fg-muted: #8e9099; --fg-faint: #c0c2c8;
+  --border: #c8cad0; --border-soft: #ececee; --border-faint: #dcdde1;
+  --dot: rgba(56, 58, 66, .1);
+  --fill: #4078f2; --on-fill: #ffffff; --fill-hover: #2f66e0;
+  --video-bg: #1b1d23; --backdrop: rgba(250, 250, 250, .75);
+  --track-cov: #ececee; --track-dub: #9fb8ef;
+  --dl-fill: #dbe7fd; --dl-fill-hover: #c7d9fb;
+  --ok: #50a14f; --warn: #c18401; --danger: #e45649;
+}
+
+/* ===================== versiones que faltaban (cada tema tiene claro y oscuro) ===================== */
+
+/* pastel oscuro: fondo profundo y acentos pastel */
+[data-theme="pastel-lavanda-dark"] {
+  color-scheme: dark;
+  --bg: #17161e; --surface: #1e1d27; --surface-2: #2a2836;
+  --fg: #ece8f7; --fg-muted: #9a94ad; --fg-faint: #5e5970;
+  --border: #4d4763; --border-soft: #26243a; --border-faint: #37334c;
+  --dot: rgba(195, 179, 245, .09);
+  --fill: #c3b3f5; --on-fill: #1c1a26; --fill-hover: #d4c8f8;
+  --video-bg: #0c0b10; --backdrop: rgba(23, 22, 30, .7);
+  --track-cov: #37334c; --track-dub: #9a88d6;
+  --dl-fill: #22413a; --dl-fill-hover: #2b5248;
+  --ok: #7fd1ae; --warn: #f0c27e; --danger: #f08ea0;
+}
+[data-theme="pastel-menta-dark"] {
+  color-scheme: dark;
+  --bg: #121a17; --surface: #18221e; --surface-2: #22302a;
+  --fg: #e3f4ec; --fg-muted: #8ba89b; --fg-faint: #536b60;
+  --border: #3f5e51; --border-soft: #1f2b26; --border-faint: #2d4038;
+  --dot: rgba(154, 217, 192, .09);
+  --fill: #9ad9c0; --on-fill: #12201a; --fill-hover: #b3e4d0;
+  --video-bg: #0a0f0d; --backdrop: rgba(18, 26, 23, .7);
+  --track-cov: #2d4038; --track-dub: #6fb898;
+  --dl-fill: #24453a; --dl-fill-hover: #2d5648;
+  --ok: #7fd1ae; --warn: #efc47f; --danger: #ee8e98;
+}
+[data-theme="pastel-durazno-dark"] {
+  color-scheme: dark;
+  --bg: #1d1714; --surface: #251e1a; --surface-2: #332822;
+  --fg: #f6e9e0; --fg-muted: #ad9688; --fg-faint: #6e5c52;
+  --border: #665046; --border-soft: #2d2420; --border-faint: #43362f;
+  --dot: rgba(247, 194, 164, .09);
+  --fill: #f7c2a4; --on-fill: #2a1d16; --fill-hover: #f9d3bd;
+  --video-bg: #0f0b09; --backdrop: rgba(29, 23, 20, .7);
+  --track-cov: #43362f; --track-dub: #d39c7d;
+  --dl-fill: #2b4535; --dl-fill-hover: #345642;
+  --ok: #86cf9f; --warn: #f0c07b; --danger: #f08b8f;
+}
+[data-theme="pastel-cielo-dark"] {
+  color-scheme: dark;
+  --bg: #12171f; --surface: #182029; --surface-2: #222c38;
+  --fg: #e4edf8; --fg-muted: #8b9cb2; --fg-faint: #536176;
+  --border: #405470; --border-soft: #1e2733; --border-faint: #2d3a4b;
+  --dot: rgba(169, 200, 240, .09);
+  --fill: #a9c8f0; --on-fill: #142033; --fill-hover: #c0d7f4;
+  --video-bg: #0a0d12; --backdrop: rgba(18, 23, 31, .7);
+  --track-cov: #2d3a4b; --track-dub: #7ea3d6;
+  --dl-fill: #22413a; --dl-fill-hover: #2b5248;
+  --ok: #7fd1ae; --warn: #efc27c; --danger: #ef8e9f;
+}
+
+/* cyberpunk claro: papel brillante con neón */
+[data-theme="cyberpunk-neon-light"] {
+  color-scheme: light;
+  --bg: #fff6fb; --surface: #ffffff; --surface-2: #ffe6f2;
+  --fg: #1a0b33; --fg-muted: #7a5c9c; --fg-faint: #c3aedb;
+  --border: #ff2a6d; --border-soft: #ffdbea; --border-faint: #ffb3cf;
+  --dot: rgba(5, 180, 200, .2);
+  --fill: #1a0b33; --on-fill: #f9f002; --fill-hover: #34175f;
+  --video-bg: #0d0221; --backdrop: rgba(255, 246, 251, .75);
+  --track-cov: #ffdbea; --track-dub: #05b8c8;
+  --dl-fill: #d2f6f9; --dl-fill-hover: #b8eff4;
+  --ok: #04a3b3; --warn: #c9a000; --danger: #e8195b;
+}
+[data-theme="cyberpunk-electrico-light"] {
+  color-scheme: light;
+  --bg: #f4f8ff; --surface: #ffffff; --surface-2: #e6eeff;
+  --fg: #0a1028; --fg-muted: #5a6f99; --fg-faint: #a9b8d6;
+  --border: #00b8d4; --border-soft: #dce7fb; --border-faint: #b3d9e6;
+  --dot: rgba(155, 61, 255, .16);
+  --fill: #9b3dff; --on-fill: #ffffff; --fill-hover: #8526ec;
+  --video-bg: #050816; --backdrop: rgba(244, 248, 255, .75);
+  --track-cov: #dce7fb; --track-dub: #00b8d4;
+  --dl-fill: #e6d6ff; --dl-fill-hover: #d8c0ff;
+  --ok: #00a3bd; --warn: #c79400; --danger: #e0286c;
+}
+
+/* matrix claro: papel de impresora con tinta verde o ámbar */
+[data-theme="matrix-verde-light"] {
+  color-scheme: light;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --font-text: "DM Mono", ui-monospace, monospace;
+  --bg: #f2fbf3; --surface: #fbfffb; --surface-2: #e2f4e5;
+  --fg: #0b3d17; --fg-muted: #4f8a5d; --fg-faint: #a3c9ab;
+  --border: #2e9e4f; --border-soft: #d5ecd9; --border-faint: #b4dcbd;
+  --dot: rgba(46, 158, 79, .18);
+  --fill: #1f8a3d; --on-fill: #ffffff; --fill-hover: #17702f;
+  --video-bg: #001a06; --backdrop: rgba(242, 251, 243, .75);
+  --track-cov: #d5ecd9; --track-dub: #5fb876;
+  --dl-fill: #d5ecd9; --dl-fill-hover: #c0e3c7;
+  --ok: #1f8a3d; --warn: #9a7d00; --danger: #c43c2c;
+}
+[data-theme="matrix-ambar-light"] {
+  color-scheme: light;
+  --font-display: "DM Mono", ui-monospace, monospace;
+  --font-text: "DM Mono", ui-monospace, monospace;
+  --bg: #fffaf0; --surface: #fffdf8; --surface-2: #fbefd6;
+  --fg: #4a3000; --fg-muted: #9a7322; --fg-faint: #d6bf8c;
+  --border: #c48a00; --border-soft: #f3e3bf; --border-faint: #e6cc8f;
+  --dot: rgba(196, 138, 0, .18);
+  --fill: #a87400; --on-fill: #ffffff; --fill-hover: #8c6000;
+  --video-bg: #1a1000; --backdrop: rgba(255, 250, 240, .75);
+  --track-cov: #f3e3bf; --track-dub: #d6a63c;
+  --dl-fill: #e6efcf; --dl-fill-hover: #d9e6b8;
+  --ok: #5c8a1f; --warn: #a87400; --danger: #c4421f;
+}
+
+/* alto contraste claro */
+[data-theme="contraste-light"] {
+  color-scheme: light;
+  --line-w: 2px;
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #e8e8e8;
+  --fg: #000000; --fg-muted: #1f1f1f; --fg-faint: #5c5c5c;
+  --border: #000000; --border-soft: #6e6e6e; --border-faint: #8a8a8a;
+  --dot: transparent;
+  --fill: #0030c8; --on-fill: #ffffff; --fill-hover: #000000;
+  --video-bg: #000000; --backdrop: rgba(255, 255, 255, .85);
+  --track-cov: #8a8a8a; --track-dub: #000000;
+  --dl-fill: #b8f0cc; --dl-fill-hover: #9de8b8;
+  --ok: #006b2e; --warn: #7a4f00; --danger: #b00020;
+}
+
+/* atajos derivados */
+:root, [data-theme] {
+  --line: var(--line-w) solid var(--border);
+}

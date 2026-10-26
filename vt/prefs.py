@@ -9,8 +9,18 @@ import json
 import threading
 from pathlib import Path
 
-SECTIONS = [["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["youtube", "YouTube"]]
+SECTIONS = [["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["youtube", "YouTube"]]
 SCHEMA = [
+    # apariencia: modo (la base clara u oscura) · tema · tono; el bloque de colores es
+    # «tema-tono-modo» en web/css/tokens.css (ver web/js/theme.js)
+    {"key": "theme_mode", "section": "apariencia", "label": "Modo", "type": "choice", "default": "sistema",
+     "options": [["sistema", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"]]},
+    {"key": "theme_style", "section": "apariencia", "label": "Tema", "type": "choice", "default": "clasico",
+     "options": [["clasico", "Clásico"], ["claude", "Claude"], ["pastel", "Pastel"], ["pink", "Pink"],
+                 ["cyberpunk", "Cyberpunk"], ["matrix", "Matrix"], ["code", "Code"], ["contraste", "Alto contraste"]]},
+    {"key": "theme_tone", "section": "apariencia", "label": "Tono", "type": "choice", "default": "",
+     "options": [["", "—"], ["lavanda", "Lavanda"], ["menta", "Menta"], ["durazno", "Durazno"], ["cielo", "Cielo"],
+                 ["neon", "Neón"], ["electrico", "Eléctrico"], ["verde", "Verde"], ["ambar", "Ámbar"]]},
     {"key": "layout", "section": "video", "label": "Vista del video", "type": "choice", "default": "ampliada",
      "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
     {"key": "autoplay", "section": "video", "label": "Reproducir al abrir un video", "type": "bool", "default": True},
@@ -48,9 +58,28 @@ class Prefs:
         self.values = {p["key"]: p["default"] for p in SCHEMA}
         if path.exists():
             saved = json.loads(path.read_text(encoding="utf-8"))
+            saved.update(self._migrate(saved))
             for k, v in saved.items():
                 if self._valid(k, v):
                     self.values[k] = v
+
+    @staticmethod
+    def _migrate(saved: dict) -> dict:
+        """La preferencia vieja "theme" (un solo valor) pasa a modo · tema · tono."""
+        old = saved.get("theme")
+        if not old or "theme_style" in saved:
+            return {}
+        table = {"claro": ("claro", "clasico", ""), "oscuro": ("oscuro", "clasico", ""),
+                 "claude": ("claro", "claude", ""), "claude-oscuro": ("oscuro", "claude", ""),
+                 "pastel": ("claro", "pastel", "lavanda"), "pastel-menta": ("claro", "pastel", "menta"),
+                 "pastel-durazno": ("claro", "pastel", "durazno"), "pastel-cielo": ("claro", "pastel", "cielo"),
+                 "pink": ("claro", "pink", ""), "pink-noche": ("oscuro", "pink", ""),
+                 "cyberpunk": ("oscuro", "cyberpunk", "neon"), "cyberpunk-electrico": ("oscuro", "cyberpunk", "electrico"),
+                 "matrix": ("oscuro", "matrix", "verde"), "matrix-ambar": ("oscuro", "matrix", "ambar"),
+                 "code": ("oscuro", "code", ""), "code-claro": ("claro", "code", ""),
+                 "contraste": ("oscuro", "contraste", "")}
+        mode, style, tone = table.get(old, ("sistema", "clasico", ""))
+        return {"theme_mode": mode, "theme_style": style, "theme_tone": tone}
 
     @staticmethod
     def _valid(key, value) -> bool:

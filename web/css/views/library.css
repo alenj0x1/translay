@@ -1,0 +1,36 @@
+/* =====================================================================
+   Biblioteca: colecciones, estante (encabezado + tarjetas), inicio vacío
+   ===================================================================== */
+
+.collections { border: var(--line); background: var(--surface); }
+
+.shelf { display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); gap: var(--gap); min-width: 0; min-height: 0; }
+.shelf-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 10px 14px;
+  border: var(--line); background: var(--surface);
+}
+.shelf-head h2 {
+  flex: 1 1 200px; min-width: 0; margin: 0; font: var(--t-title);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.shelf-head small { font: 11px/1 var(--font-mono); color: var(--fg-muted); letter-spacing: .06em; text-transform: uppercase; }
+.shelf-head .acts { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; max-width: 100%; }
+
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--gap);
+  align-content: start; overflow-y: auto; min-height: 0;
+}
+
+/* biblioteca vacía: empezar aquí mismo */
+.welcome {
+  grid-column: 1 / -1; display: grid; justify-items: center; gap: 14px; padding: 56px 24px;
+  border: var(--line); background: var(--surface); text-align: center;
+}
+.welcome h2 { margin: 0 0 4px; font: 600 28px/1.15 var(--font-display); }
+.welcome .field { width: min(560px, 100%); }
+
+@media (max-width: 760px) {
+  .collections { max-height: 220px; }
+  .welcome { padding: 32px 16px; }
+  .welcome h2 { font-size: 22px; }
+}

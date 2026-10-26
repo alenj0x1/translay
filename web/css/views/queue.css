@@ -1,0 +1,24 @@
+/* =====================================================================
+   Panel «Cola» (como las descargas del navegador)
+   ===================================================================== */
+
+#queue-btn.busy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); border: 1px solid var(--border); }
+
+.queue-pop { width: 380px; padding: 0; }
+.queue-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-bottom: var(--line);
+  font: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted);
+}
+.queue-pop ul { margin: 0; max-height: 360px; }
+.qsec { padding: 8px 12px 6px; list-style: none; border-bottom: 1px solid var(--border-soft); font: 500 10px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+.qitem { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-soft); }
+.qitem.run { background: var(--surface-2); }
+.qthumb.exp { display: grid; place-items: center; background: var(--surface); }
+.qthumb.exp svg { width: 18px; height: 18px; fill: none; stroke: var(--fg); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.qbody { display: grid; gap: 5px; min-width: 0; }
+.qbody strong { font: 700 13px/1.25 var(--font-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qbody small { font: 10.5px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted); }
+.qactions { display: flex; flex-direction: column; gap: 4px; }
+#queue-clear { margin: 8px 12px 10px; }
+
+@media (max-width: 760px) { .queue-pop { width: auto; } }

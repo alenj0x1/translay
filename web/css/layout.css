@@ -1,0 +1,81 @@
+/* =====================================================================
+   Distribución de la página
+   body.view-library | body.view-prefs | (sin clase: reproductor)
+   body.layout-wide   reproductor ampliado (un video + panel al costado)
+   body.mini          video en miniatura fuera del reproductor
+   El encabezado (.bar) es el mismo en todas las vistas.
+   ===================================================================== */
+
+body {
+  display: grid; gap: var(--gap); padding: var(--gap);
+  grid-template-rows: auto auto auto minmax(0, 1fr);   /* barra · barra del video · videos · panel */
+}
+
+/* --------------------------------------------------------------- vistas */
+.library, .prefs-screen { display: none; }
+body.view-library, body.view-prefs { grid-template-rows: auto minmax(0, 1fr); }
+body.view-library .stage, body.view-library .side, body.view-library .vbar,
+body.view-prefs .stage, body.view-prefs .side, body.view-prefs .vbar, body.view-prefs .library { display: none; }
+body.view-library .library, body.view-prefs .prefs-screen {
+  display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--gap); grid-row: 2; min-height: 0;
+}
+
+/* reproductor ampliado (por defecto) */
+body.layout-wide:not(.view-library):not(.view-prefs) {
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+body.layout-wide:not(.view-library):not(.view-prefs) .bar { grid-column: 1 / -1; }
+body.layout-wide:not(.view-library):not(.view-prefs) .vbar { grid-column: 1; grid-row: 2; }
+body.layout-wide:not(.view-library):not(.view-prefs) .stage { grid-column: 1; grid-row: 3; min-height: 0; }
+body.layout-wide:not(.view-library):not(.view-prefs) .side { grid-column: 2; grid-row: 2 / 4; }
+
+/* ------------------------------------------------------------ encabezado */
+.bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-width: 0;
+  padding: 8px 10px 8px 16px; border: var(--line); background: var(--surface);
+}
+.brand { font: 600 20px/1 var(--font-display); white-space: nowrap; }
+.brand span { margin-left: 6px; font: 400 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.bar .status { margin-right: 4px; }
+.bar .field { flex: 1 1 320px; max-width: 640px; min-width: 260px; margin: 0 auto; }
+.nav-sep { flex: none; width: var(--line-w); height: 26px; background: var(--border); opacity: .2; }
+.queue-wrap { position: relative; }
+.bar .count { margin-left: 2px; }
+
+@media (max-width: 1200px) {
+  .bar .field { order: 10; flex: 1 1 100%; max-width: none; min-width: 0; margin: 0; }
+  .nav-sep { display: none; }
+  .bar .files-btn { margin-left: auto; }
+}
+
+/* ---------------------------------------------------- barra del video */
+.vbar {
+  display: flex; align-items: center; gap: 14px; min-width: 0;
+  padding: 7px 10px 7px 16px; border: var(--line); background: var(--surface);
+}
+.vtitle { flex: 1; min-width: 0; font: 600 17px/1.2 var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vacts { display: flex; gap: 8px; align-items: center; }
+/* barra angosta: los botones quedan solo con su ícono (el nombre aparece al pasar el mouse) */
+.vbar { container-type: inline-size; }
+@container (max-width: 620px) {
+  .vacts .btn-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .vacts .btn { padding: 7px 9px; }
+}
+.save-wrap { position: relative; }
+
+/* ---------------------------------------------------------------- celular */
+@media (max-width: 760px) {
+  body { overflow: auto; height: auto; min-height: 100%; grid-template-rows: auto auto auto auto; }
+  body.layout-wide:not(.view-library):not(.view-prefs) { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+  body.layout-wide:not(.view-library):not(.view-prefs) .vbar { grid-row: 2; }
+  body.layout-wide:not(.view-library):not(.view-prefs) .stage { grid-row: 3; }
+  body.layout-wide:not(.view-library):not(.view-prefs) .side { grid-column: 1; grid-row: 4; }
+  body.view-library .library, body.view-prefs .prefs-screen { grid-template-columns: minmax(0, 1fr); grid-row: auto; }
+  .bar { gap: 10px 14px; }
+  .bar .files-btn { margin-left: 0; }
+  .vbar { flex-wrap: wrap; row-gap: 8px; padding-left: 12px; }
+  .vtitle { flex-basis: 100%; font-size: 15px; }
+  .vacts { flex-wrap: wrap; }
+  .popover { position: fixed; left: 16px; right: 16px; top: auto; width: auto; }
+}

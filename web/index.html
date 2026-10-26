@@ -4,72 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Traductor de video</title>
+<script>
+  // tema antes de pintar (evita el destello claro en modo oscuro); luego manda la preferencia del servidor
+  (function () {
+    var t = "";
+    try { t = localStorage.getItem("vt-theme-block") || ""; } catch (e) {}
+    document.documentElement.dataset.theme = t
+      || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css">
+<!-- estilos: tokens (temas) → base → componentes → distribución → vistas -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components/button.css">
+<link rel="stylesheet" href="css/components/controls.css">
+<link rel="stylesheet" href="css/components/indicators.css">
+<link rel="stylesheet" href="css/components/lists.css">
+<link rel="stylesheet" href="css/components/overlays.css">
+<link rel="stylesheet" href="css/components/card.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/views/player.css">
+<link rel="stylesheet" href="css/views/transcript.css">
+<link rel="stylesheet" href="css/views/library.css">
+<link rel="stylesheet" href="css/views/queue.css">
+<link rel="stylesheet" href="css/views/prefs.css">
 </head>
 <body class="view-library layout-wide">
+
+<!-- encabezado: el mismo en todas las vistas -->
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
-  <form class="yt" id="yt">
-    <svg class="yt-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
+  <form class="field" id="yt">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
     <input id="yt-url" type="text" placeholder="Pega uno o varios enlaces de YouTube" spellcheck="false" aria-label="Enlaces de YouTube">
-    <button class="btn" id="import-go" type="submit" disabled>Importar</button>
+    <button class="btn sm dark" id="import-go" type="submit" data-icon="import" disabled>Importar</button>
   </form>
-  <label class="btn files-btn" id="file-btn" title="Importar videos o audios del equipo">
-    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M4.8 5.6L8 2.5l3.2 3.1M2.5 10v3.5h11V10"/></svg>Archivos<input id="file" type="file" accept="video/*,audio/*" multiple hidden>
-  </label>
+  <label class="btn files-btn" id="file-btn" data-icon="upload" title="Importar videos o audios del equipo">Archivos<input id="file" type="file" accept="video/*,audio/*" multiple hidden></label>
   <i class="nav-sep" aria-hidden="true"></i>
   <div class="queue-wrap">
-    <button class="btn" id="queue-btn" type="button">Cola<span class="badge" id="queue-badge" hidden></span></button>
+    <button class="btn" id="queue-btn" type="button" data-icon="queue">Cola<span class="count" id="queue-badge" hidden></span></button>
     <div class="popover queue-pop" id="queue-pop" hidden>
-      <div class="queue-head"><span id="queue-state"></span><button class="btn" id="queue-toggle" type="button"></button></div>
+      <div class="queue-head"><span id="queue-state"></span><button class="btn xs" id="queue-toggle" type="button"></button></div>
       <ul id="queue-list"></ul>
-      <button class="btn ghost" id="queue-clear" type="button" hidden>Limpiar terminados</button>
+      <button class="btn xs ghost" id="queue-clear" type="button" data-icon="check" hidden>Limpiar terminados</button>
     </div>
   </div>
-  <button class="btn" id="prefs-btn" type="button">Preferencias</button>
-  <button class="btn" id="view" type="button">Biblioteca</button>
+  <button class="btn" id="prefs-btn" type="button" data-icon="sliders">Preferencias</button>
+  <button class="btn" id="view" type="button" data-icon="grid">Biblioteca</button>
 </header>
 
 <!-- acciones del video abierto -->
-<div class="vbar player-only" id="vbar">
+<div class="vbar" id="vbar">
   <div class="vtitle" id="file-name"></div>
   <div class="vacts">
     <div class="save-wrap">
-      <button class="btn" id="save" type="button">Guardar en…</button>
+      <button class="btn sm" id="save" type="button" data-icon="bookmark" title="Guardar en una colección">Guardar en…</button>
       <div class="popover" id="save-pop" hidden>
         <ul id="save-list"></ul>
-        <form id="save-new"><input id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn" type="submit">Crear</button></form>
+        <form class="inline-form" id="save-new"><input class="input" id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn sm" type="submit">Crear</button></form>
       </div>
     </div>
-    <button class="btn" id="layout" type="button">Ver dividido</button>
-    <button class="btn" id="export-btn" type="button">Exportar</button>
+    <button class="btn sm" id="layout" type="button" data-icon="columns" title="Cambiar la vista">Ver dividido</button>
+    <button class="btn sm" id="export-btn" type="button" data-icon="download" title="Exportar">Exportar</button>
   </div>
 </div>
 
 <main class="stage">
   <section class="pane" id="pane-en">
-    <div class="tag">EN · original</div>
+    <div class="tag chip">EN · original</div>
     <div class="screen">
       <video id="v-en" playsinline preload="auto"></video>
       <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
       <div class="caption es-wide" id="cap-es-wide"><span class="c"></span></div>
       <div class="ready" id="ready" hidden><i></i><span></span><b><em></em></b></div>
       <div class="mini-acts">
-        <button class="ic" id="mini-back" type="button" aria-label="Volver al video" title="Volver al video">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L8.5 7.5M6.5 13.5h-4v-4M2.5 13.5l5-5"/></svg>
-        </button>
-        <button class="ic" id="mini-close" type="button" aria-label="Cerrar" title="Cerrar">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>
-        </button>
+        <button class="ic sm" id="mini-back" type="button" data-icon="restore" aria-label="Volver al video" title="Volver al video"></button>
+        <button class="ic sm" id="mini-close" type="button" data-icon="x" aria-label="Cerrar" title="Cerrar"></button>
       </div>
     </div>
     <div class="ctrl" id="ctrl">
       <button class="ic" id="c-play" type="button" aria-label="Reproducir">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-play" d="M4.5 2.8v10.4l8.6-5.2z"/><g class="i-pause"><rect x="3.8" y="2.8" width="2.8" height="10.4"/><rect x="9.4" y="2.8" width="2.8" height="10.4"/></g></svg>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path class="solid i-play" d="M4.5 2.8v10.4l8.6-5.2z"/><g class="i-pause"><rect class="solid" x="3.8" y="2.8" width="2.8" height="10.4"/><rect class="solid" x="9.4" y="2.8" width="2.8" height="10.4"/></g></svg>
       </button>
       <span class="c-time" id="c-time">0:00 / 0:00</span>
       <div class="track" id="track">
@@ -84,18 +103,14 @@
         <button type="button" data-v="es" title="Escuchar en español">ES</button><button type="button" data-v="en" title="Escuchar el original">EN</button>
       </div>
       <div class="vol">
-        <button class="ic" id="c-mute" type="button" aria-label="Silenciar">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-spk" d="M2.5 6h2.6l3.6-3v10l-3.6-3H2.5z"/><path class="i-wave" d="M10.8 5.4a3.6 3.6 0 0 1 0 5.2M12.6 3.6a6.2 6.2 0 0 1 0 8.8"/><path class="i-x" d="M10.6 6l3.6 4M14.2 6l-3.6 4"/></svg>
-        </button>
+        <button class="ic" id="c-mute" type="button" data-icon="speaker" aria-label="Silenciar"></button>
         <input type="range" id="c-vol" min="0" max="1" step="0.05" value="1" aria-label="Volumen">
       </div>
-      <button class="ic" id="c-full" type="button" aria-label="Pantalla completa">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
-      </button>
+      <button class="ic" id="c-full" type="button" data-icon="fullscreen" aria-label="Pantalla completa"></button>
     </div>
   </section>
   <section class="pane">
-    <div class="tag">ES · traducido</div>
+    <div class="tag chip">ES · traducido</div>
     <div class="screen">
       <video id="v-es" muted playsinline preload="auto"></video>
       <div class="caption" id="cap-es"><span class="c"></span></div>
@@ -114,7 +129,7 @@
 </section>
 
 <section class="library" id="library">
-  <nav class="collections" id="collections"></nav>
+  <nav class="collections navlist" id="collections"></nav>
   <div class="shelf">
     <div class="shelf-head" id="shelf-head"></div>
     <div class="grid" id="grid"></div>
@@ -122,7 +137,7 @@
 </section>
 
 <section class="prefs-screen" id="prefs-screen">
-  <aside class="prefs-nav" id="prefs-nav"></aside>
+  <aside class="prefs-nav navlist" id="prefs-nav"></aside>
   <div class="prefs-body" id="prefs-body"></div>
 </section>
 
@@ -141,15 +156,15 @@
     <h3 id="export-title"></h3>
     <p class="dlg-sub" id="export-sub"></p>
     <div class="opts">
-      <label><input type="checkbox" name="kind" value="es_video" checked><span>Video traducido</span><small>MP4</small></label>
-      <label><input type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small>M4A</small></label>
-      <label><input type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
-      <label><input type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small>M4A</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="es_video" checked><span>Video traducido</span><small>MP4</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small>M4A</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small>M4A</small></label>
     </div>
     <p class="dlg-note" id="export-note"></p>
     <div class="dlg-actions">
       <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
-      <button class="btn dark" value="ok" type="submit" id="export-go">Exportar</button>
+      <button class="btn dark" value="ok" type="submit" id="export-go" data-icon="download">Exportar</button>
     </div>
   </form>
 </dialog>
@@ -159,20 +174,20 @@
     <h3>Este enlace es de una playlist</h3>
     <div class="dlg-actions">
       <button class="btn ghost" value="video" type="submit">Solo este video</button>
-      <button class="btn dark" value="playlist" type="submit">Agregar playlist</button>
+      <button class="btn dark" value="playlist" type="submit" data-icon="queue">Agregar playlist</button>
     </div>
   </form>
 </dialog>
 
-<dialog class="dlg dlg-wide" id="multi-dlg">
+<dialog class="dlg wide" id="multi-dlg">
   <form method="dialog" id="multi-form">
     <h3>Importar varios enlaces</h3>
-    <textarea id="multi-text" rows="8" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…&#10;https://www.youtube.com/playlist?list=…"></textarea>
+    <textarea class="area" id="multi-text" rows="8" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…&#10;https://www.youtube.com/playlist?list=…"></textarea>
     <p class="dlg-sub" id="multi-sum"></p>
-    <label class="dlg-field"><span>Guardar en</span><select id="multi-coll"></select></label>
+    <label class="dlg-field"><span class="label">Guardar en</span><select class="select" id="multi-coll"></select></label>
     <div class="dlg-actions">
       <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
-      <button class="btn dark" value="ok" type="submit" id="multi-go">Importar</button>
+      <button class="btn dark" value="ok" type="submit" id="multi-go" data-icon="import">Importar</button>
     </div>
   </form>
 </dialog>
@@ -190,7 +205,11 @@
 
 <div class="toast" id="toast" role="alert" hidden></div>
 
-<script src="app.js"></script>
-<script src="library.js"></script>
+<!-- scripts: componentes y tema primero; luego la app -->
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/app.js"></script>
+<script src="js/library.js"></script>
+<script>hydrateIcons();</script>
 </body>
 </html>

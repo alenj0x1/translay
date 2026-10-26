@@ -1,0 +1,34 @@
+/* =====================================================================
+   Base: reset, página, barras de scroll y utilidades. Sin componentes.
+   ===================================================================== */
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+[hidden] { display: none !important; }
+
+body {
+  color: var(--fg);
+  font: var(--t-body);
+  background: var(--bg) radial-gradient(var(--dot) 1px, transparent 1.3px) 0 0 / var(--dot-size) var(--dot-size);
+  overflow: hidden;
+  transition: background-color .2s, color .2s;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+img { display: block; }
+
+/* barras de scroll con el estilo de la página (todas iguales) */
+* { scrollbar-width: thin; scrollbar-color: var(--fg) var(--surface-2); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--surface-2); }
+::-webkit-scrollbar-thumb { background: var(--fg); border: 2px solid var(--surface-2); border-radius: var(--radius-pill); }
+
+/* caja con borde fino: la unidad visual del sitio */
+.box { border: var(--line); background: var(--surface); }
+
+/* etiqueta pequeña en mayúsculas (pestañas, encabezados de grupo, estados) */
+.label { font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+
+/* íconos (web/js/ui.js): trazo con el color del texto; las partes .solid van rellenas */
+svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+svg .solid { fill: currentColor; stroke: none; }

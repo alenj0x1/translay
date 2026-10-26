@@ -1,0 +1,127 @@
+/* =====================================================================
+   Reproductor: videos, subtítulos, indicador, controles, miniatura
+   ===================================================================== */
+
+.stage { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); min-width: 0; }
+.pane { position: relative; min-width: 0; border: var(--line); background: var(--surface); container-type: inline-size; }
+.tag { position: absolute; top: 10px; left: 10px; z-index: 2; }
+.screen { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 52vh; background: var(--video-bg); }
+.screen video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
+
+/* ampliado: un solo video que llena su columna */
+body.layout-wide:not(.view-library):not(.view-prefs) .stage { grid-template-columns: 1fr; }
+body.layout-wide:not(.view-library):not(.view-prefs) .stage .pane + .pane { display: none; }
+body.layout-wide:not(.view-library):not(.view-prefs) .stage .pane { display: flex; flex-direction: column; min-height: 0; }
+body.layout-wide:not(.view-library):not(.view-prefs) .screen { flex: 1; aspect-ratio: auto; max-height: none; min-height: 0; }
+body.layout-wide .tag { display: none; }
+
+/* línea bajo el video en español (vista dividida) */
+.timeline { position: relative; height: 6px; border-top: var(--line); background: var(--surface-2); }
+.timeline b { position: absolute; top: 0; bottom: 0; background: var(--fill); }
+.timeline .head { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--danger); }
+
+/* ------------------------------------------------------------ subtítulos */
+.caption {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 88%; width: max-content;
+  padding: 7px 14px; border: var(--line); background: var(--surface); color: var(--fg);
+  font: 600 17px/1.35 var(--font-text); text-align: center; pointer-events: none;
+}
+.caption:empty, .caption.hidden { display: none; }
+.caption .t { color: var(--fg-muted); }
+#cap-es { bottom: 18px; }
+.caption.es-wide { display: none; }
+/* ampliado: español grande abajo, inglés pequeño arriba */
+body.layout-wide .caption.es-wide { display: block; bottom: 18px; font-size: 21px; }
+body.layout-wide .caption.es-wide.hidden { display: none; }
+body.layout-wide #cap-en { bottom: auto; top: 12px; max-width: 70%; font-size: 14px; color: var(--fg-muted); }
+body.layout-wide #cap-en .c { color: var(--fg); }
+body.no-sub-es #cap-es, body.no-sub-es #cap-es-wide { display: none !important; }
+body.no-sub-en #cap-en { display: none !important; }
+
+/* ------------------------------------------- indicador «listo para reproducir» */
+.ready {
+  position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border: var(--line); background: var(--surface); color: var(--fg);
+  font: var(--t-label); letter-spacing: .06em; text-transform: uppercase;
+}
+.ready i { width: 8px; height: 8px; border-radius: 50%; border: var(--line); background: var(--warn); }
+.ready[data-state="ok"] i { background: var(--ok); }
+.ready b { display: block; width: 56px; height: 6px; border: 1px solid var(--border); }
+.ready em { display: block; height: 100%; width: 0; background: var(--fill); transition: width .4s; }
+.ready[data-state="ok"] b { display: none; }
+body.layout-wide .ready { top: auto; bottom: 18px; right: 12px; }
+body.layout-wide .caption.es-wide:not(.hidden) ~ .ready { bottom: auto; top: 12px; }
+
+/* ------------------------------------------------------------- controles */
+.ctrl { display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-top: var(--line); background: var(--surface); user-select: none; }
+.ctrl .i-pause, .ctrl.playing .i-play { display: none; }
+.ctrl.playing .i-pause { display: inline; }
+.ctrl .i-x, .ctrl.muted .i-wave { display: none; }
+.ctrl.muted .i-x { display: inline; }
+.c-time { flex: none; min-width: 92px; font: 500 11.5px/1 var(--font-mono); letter-spacing: .02em; }
+
+.track { position: relative; flex: 1; min-width: 60px; height: 22px; cursor: pointer; touch-action: none; }
+.track::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 8px; border: 1px solid var(--border); background: var(--surface); }
+.t-layer, .t-play { position: absolute; left: 1px; right: 1px; top: 8px; height: 6px; pointer-events: none; }
+.t-layer b { position: absolute; top: 0; bottom: 0; }
+.t-cov b { background: var(--track-cov); }
+.t-dub b { background: var(--track-dub); }
+.t-play { right: auto; background: var(--fill); }
+.t-head { position: absolute; top: 3px; width: 3px; height: 16px; margin-left: -1.5px; background: var(--danger); pointer-events: none; }
+.t-notes { position: absolute; left: 1px; right: 1px; top: 0; height: 7px; pointer-events: none; }
+.t-notes i { position: absolute; top: 0; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--border); }
+.t-tip {
+  position: absolute; bottom: 24px; transform: translateX(-50%); padding: 3px 6px; pointer-events: none;
+  border: 1px solid var(--border); background: var(--surface); color: var(--fg); font: 500 10.5px/1 var(--font-mono); white-space: nowrap;
+}
+.t-tip.note { max-width: 260px; white-space: normal; text-align: left; line-height: 1.3; }
+
+.vol { flex: none; display: flex; align-items: center; gap: 6px; }
+#c-vol { -webkit-appearance: none; appearance: none; width: 72px; height: 4px; border-radius: var(--radius-pill); background: var(--fill); outline: 0; cursor: pointer; }
+#c-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--surface); border: var(--line); }
+#c-vol::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--surface); border: var(--line); }
+
+/* video angosto: la línea de avance va en su propia fila; muy angosto, sin deslizador de volumen */
+@container (max-width: 600px) {
+  .ctrl { flex-wrap: wrap; gap: 8px 10px; }
+  .track { order: -1; flex-basis: 100%; }
+  .c-time { min-width: 0; margin-right: auto; }
+}
+@container (max-width: 420px) { #c-vol { display: none; } }
+
+/* pantalla completa */
+#pane-en:fullscreen { display: flex; flex-direction: column; border: 0; background: var(--video-bg); }
+#pane-en:fullscreen .screen { flex: 1; aspect-ratio: auto; max-height: none; }
+#pane-en:fullscreen .tag { display: none; }
+#pane-en:fullscreen .caption { font-size: 24px; }
+
+/* --------------------------------------------- miniatura (fuera del video) */
+.mini-acts { display: none; }
+body.mini .stage {
+  display: block !important; position: fixed; right: 16px; bottom: 16px; z-index: 40;
+  width: 360px; max-width: calc(100vw - 32px);
+}
+body.mini .stage .pane + .pane, body.mini .tag, body.mini .ready, body.mini #cap-en { display: none !important; }
+body.mini .stage .pane { display: flex !important; flex-direction: column; container-type: normal; }
+body.mini .screen { aspect-ratio: 16 / 9; max-height: none; flex: none; }
+body.mini .caption { bottom: 8px !important; max-width: 94%; padding: 4px 8px; font-size: 12.5px; }
+body.mini .caption.es-wide { display: block; }
+body.mini .caption.es-wide.hidden { display: none; }
+body.mini .mini-acts { display: flex; gap: 6px; position: absolute; top: 8px; right: 8px; z-index: 3; }
+body.mini .ctrl { flex-wrap: nowrap; gap: 8px; padding: 5px 8px; }
+body.mini .ctrl .track { order: 0; flex-basis: auto; }
+body.mini .c-time, body.mini .lang, body.mini .vol, body.mini #c-full { display: none; }
+body.mini .ctrl .ic { width: 28px; height: 28px; }
+
+/* ---------------------------------------------------------------- celular */
+@media (max-width: 760px) {
+  .stage { grid-template-columns: 1fr; }
+  .screen { max-height: none; }
+  body.layout-wide:not(.view-library):not(.view-prefs) .screen { aspect-ratio: 16 / 9; flex: none; }
+  .caption { font-size: 14px; }
+  body.layout-wide #cap-en { display: none; }    /* el inglés queda en la transcripción */
+  body.layout-wide .caption.es-wide { font-size: 14px; bottom: 10px; max-width: 94%; }
+  .ready { padding: 4px 7px; font-size: 9.5px; gap: 6px; }
+  .ready b { width: 36px; }
+  body.mini .stage { width: 62vw; right: 12px; bottom: 12px; }
+}

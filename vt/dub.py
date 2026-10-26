@@ -37,7 +37,6 @@ class VideoVoices:
                 wav = self.dir / v["file"]
                 if wav.exists():  # la referencia guardada vuelve como un solo fragmento
                     x, _ = read_wav(wav)
-                    x = x[: int(self.tracker.max_ref_s * SR)]  # referencias de versiones viejas
                     self.tracker.refs[int(k)] = [(v.get("score", 3.0), x, v.get("text", ""))]
 
     def add(self, spk: int, audio: np.ndarray, text: str) -> bool:
