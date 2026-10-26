@@ -6,6 +6,8 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar 
 
 ## Sin publicar
 
+## 1.1.0 · 2026-10-26
+
 ### Corregido
 
 - Crear, renombrar o eliminar una biblioteca fallaba al avisar a los webhooks y la pestaña no se actualizaba.

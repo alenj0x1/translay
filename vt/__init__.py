@@ -8,4 +8,4 @@ Etapas del pipeline (cada una reemplazable de forma independiente):
 Arquitectura: docs/src/content/docs/funcionamiento/arquitectura.mdx
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
