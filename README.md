@@ -1,8 +1,15 @@
-# Translay
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/translay-logo-oscuro.svg">
+    <img src="assets/translay-logo.svg" alt="Translay" height="48">
+  </picture>
+</h1>
 
 Traduce y dobla videos del inglés al español **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en español: subtítulos, transcripción alineada EN | ES y voz clonada sincronizada con la imagen.
 
 **Versión 1.0.0** · [Documentación](https://alenj0x1.github.io/translay/) · [Cambios](CHANGELOG.md) · [Versiones](https://github.com/alenj0x1/translay/releases)
+
+![Translay: video doblado al español con subtítulos y la transcripción alineada](docs/src/assets/capturas/reproductor.webp)
 
 ## Qué hace
 
@@ -11,6 +18,17 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 - **Biblioteca:** colecciones propias y automáticas (canales, categorías), varias bibliotecas en carpetas propias, búsqueda en todas las transcripciones, glosario.
 - **Exportar:** video y audio traducidos u originales, subtítulos SRT y transcripción.
 - **Acceso e integraciones:** bibliotecas privadas, con contraseña o públicas; API REST con claves y webhooks firmados.
+
+## Capturas
+
+| | |
+|---|---|
+| ![Portada de una biblioteca](docs/src/assets/capturas/inicio.webp) | ![Varias bibliotecas, cada una con su banner](docs/src/assets/capturas/bibliotecas.webp) |
+| ![Colección de un canal de YouTube](docs/src/assets/capturas/coleccion.webp) | ![Vista dividida: original y traducido](docs/src/assets/capturas/dividido.webp) |
+| ![Importar varios enlaces](docs/src/assets/capturas/importar.webp) | ![Exportar video, audio y subtítulos](docs/src/assets/capturas/exportar.webp) |
+| ![Búsqueda en las transcripciones](docs/src/assets/capturas/busqueda.webp) | ![Modo claro](docs/src/assets/capturas/inicio-claro.webp) |
+
+Capturas de una instancia de prueba con videos de dominio público de la NASA y la NOAA.
 
 ## Empezar
 

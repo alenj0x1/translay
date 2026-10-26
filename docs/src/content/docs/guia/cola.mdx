@@ -9,6 +9,8 @@ import { Aside } from "@astrojs/starlight/components";
 
 Todo se procesa en una sola cola, en el servidor (`vt/processor.py`). Sigue trabajando aunque cierres la pestaña o recargues, y se retoma donde quedó si reinicias el servidor. Se guarda en `data/queue.json`.
 
+![Pantalla de la Cola con los videos de la biblioteca Ciencia listos](../../../assets/capturas/cola.webp)
+
 ## Orden y prioridades
 
 1. **El video que estás viendo** va siempre primero. Se procesa desde tu punto de reproducción hacia el final y después lo que quedó antes; si saltas a una parte sin terminar, el procesamiento salta contigo. Al volver a la biblioteca sigue en la cola como cualquier otro.

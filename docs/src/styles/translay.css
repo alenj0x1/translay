@@ -125,3 +125,12 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 
 /* el nombre del sitio con el color del texto, como en la app */
 .site-title { color: var(--sl-color-white); font-weight: 800; letter-spacing: -.01em; }
+
+/* la marca de la app (cuadro de color con el reproductor) junto al nombre */
+.site-title img { width: 28px; height: 28px; }
+
+/* capturas: esquinas de la app, sin borde ni sombra */
+.sl-markdown-content img { border-radius: 14px; }
+.capturas-par { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 1.5rem; align-items: center; }
+.capturas-par img { width: 100%; height: auto; }
+@media (max-width: 40rem) { .capturas-par { grid-template-columns: minmax(0, 1fr); } .capturas-par img { max-width: 260px; } }
