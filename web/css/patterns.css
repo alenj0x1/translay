@@ -32,3 +32,7 @@
   .cbadge.lg { width: 48px; height: 48px; border-radius: 14px; }
   .cbadge.lg svg { width: 22px; height: 22px; }
 }
+
+/* imágenes reales (avatar, banner del canal): aparecen solo cuando cargaron, sin ícono roto */
+.cbanner img, .cbadge img { opacity: 0; transition: opacity .25s; }
+.cbanner.has-img img, .cbadge.has-img img { opacity: 1; }

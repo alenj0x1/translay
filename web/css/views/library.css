@@ -140,3 +140,16 @@
   .hitcard { grid-template-columns: minmax(0, 1fr); }
   .welcome { padding: 0 var(--s4) var(--s6); }
 }
+
+/* ------------------------------------------------------------ silueta al cargar */
+.grid.skeleton { pointer-events: none; }
+.sk { border-radius: var(--r-md); background: var(--surface); animation: sk-pulse 1.4s ease-in-out infinite; }
+@keyframes sk-pulse { 50% { opacity: .55; } }
+.sk-head { grid-column: 1 / -1; display: grid; gap: var(--s5); padding-bottom: var(--s1); }
+.sk-banner { height: clamp(96px, 13vw, 160px); border-radius: var(--r-lg); }
+.sk-title { width: min(320px, 60%); height: 34px; border-radius: var(--r-sm); }
+.sk-hero { flex: none; height: clamp(300px, 30vw, 420px); border-radius: var(--r-lg); }
+.sk-card { display: grid; gap: var(--s2); min-width: 0; }
+.sk-thumb { aspect-ratio: 16 / 9; }
+.sk-line { height: 14px; border-radius: var(--r-xs); }
+.sk-line.short { width: 55%; }

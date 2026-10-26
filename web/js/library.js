@@ -51,6 +51,7 @@ function togglePrefs() {
 $("#view").addEventListener("click", () => setView(currentView() === "library" ? "player" : "library"));
 
 function libraryUpdate(m) {
+  lib.loaded = true;
   lib.videos = m.videos;
   lib.collections = m.collections;
   lib.hero = m.hero || null;  // lo que se estaba viendo (portada)
@@ -209,8 +210,9 @@ function renderLibrary() {
     }
   }
 
+  if (!lib.loaded) return renderSkeleton();  // aún sin datos: la forma de la página, no «Traduce tu primer video»
   $("#shelf-head").hidden = false;
-  $("#grid").classList.remove("home");
+  $("#grid").classList.remove("home", "skeleton");
   if (lib.search) return renderSearch();
   if (lib.sel === "home" && Object.keys(lib.videos).length) return renderHome();  // portada (web/js/home.js)
   const c = lib.collections.find((x) => x.id === lib.sel) || lib.collections.find((x) => x.id === "recent")
@@ -245,6 +247,20 @@ function renderLibrary() {
 }
 
 const KIND_NAME = { propia: "Colección", playlist: "Playlist de YouTube", canal: "Canal", "categoría": "Categoría" };
+// mientras llega la biblioteca (al recargar): la silueta de lo que se va a ver
+function renderSkeleton() {
+  lib.shelfSig = null;
+  $("#shelf-head").hidden = true;
+  const grid = $("#grid");
+  const coll = /^#\/c\//.test(location.hash);
+  const cards = (n) => Array.from({ length: n }, () => el("div", { class: "sk-card" },
+    el("div", { class: "sk sk-thumb" }), el("div", { class: "sk sk-line" }), el("div", { class: "sk sk-line short" })));
+  grid.className = coll ? "grid skeleton" : "grid home skeleton";
+  grid.replaceChildren(...(coll
+    ? [el("div", { class: "sk-head" }, el("div", { class: "sk sk-banner" }), el("div", { class: "sk sk-title" })), ...cards(8)]
+    : [el("div", { class: "sk sk-hero" }), el("div", { class: "sk sk-title" }), el("div", { class: "strip" }, ...cards(4))]));
+}
+
 function renderShelfHead(c) {
   const head = $("#shelf-head");
   head.classList.remove("has-banner", "picking");
