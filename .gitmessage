@@ -1,0 +1,11 @@
+# tipo(alcance): descripción en minúscula, sin punto final (máx. 100)
+#
+# Tipos: feat fix perf refactor style docs test build ci chore revert
+# Alcances: biblioteca bibliotecas importar cola reproductor voz traducción
+#           reconocimiento exportar acceso api webhooks youtube interfaz docker docs
+#
+# Cuerpo opcional: qué cambia y por qué (no cómo).
+#
+# Pies opcionales:
+#   BREAKING CHANGE: qué deja de funcionar y cómo migrar
+#   Docs: no aplica

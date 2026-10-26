@@ -1,0 +1,68 @@
+#!/bin/sh
+# Valida el mensaje de commit: Conventional Commits + documentación al día.
+# Se activa una vez por clon:  git config core.hooksPath .githooks
+#
+#   tipo(alcance opcional)!: descripción en minúscula, sin punto final
+#
+# Tipos: feat fix perf refactor style docs test build ci chore revert
+# Un feat/fix/perf que toca vt/, web/, Dockerfile o requirements.txt debe incluir
+# cambios en docs/ o CHANGELOG.md. Si de verdad no hace falta, agrega la línea
+#   Docs: no aplica
+# al final del mensaje.
+
+msg_file="$1"
+header=$(grep -v '^#' "$msg_file" | sed -n '/./{p;q;}')
+
+# commits que arma git solo
+case "$header" in
+  Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
+esac
+
+types='feat|fix|perf|refactor|style|docs|test|build|ci|chore|revert'
+if ! printf '%s' "$header" | grep -Eq "^($types)(\([a-z0-9áéíóúñü/._-]+\))?!?: [^ ].*[^.]$"; then
+  cat >&2 <<MSG
+
+  ✗ El mensaje no sigue la convención de commits.
+
+    tipo(alcance): descripción
+    ej.  feat(cola): priorizar desde la tarjeta
+         fix(voz): referencias sin recortar
+         docs: guía de exportar
+
+    Tipos: feat fix perf refactor style docs test build ci chore revert
+    «!» antes de «:» marca un cambio incompatible. Sin punto final.
+    Detalle: docs/src/content/docs/desarrollo/commits.mdx
+
+  Recibido: $header
+MSG
+  exit 1
+fi
+
+if [ ${#header} -gt 100 ]; then
+  echo "  ✗ La primera línea tiene ${#header} caracteres (máximo 100)." >&2
+  exit 1
+fi
+
+# documentación al día (en CI solo se revisa el formato: VT_SOLO_FORMATO=1)
+[ -n "$VT_SOLO_FORMATO" ] && exit 0
+type=$(printf '%s' "$header" | sed -E 's/^([a-z]+).*/\1/')
+case "$type" in
+  feat|fix|perf)
+    if grep -qi '^Docs: no aplica' "$msg_file"; then exit 0; fi
+    staged=$(git diff --cached --name-only)
+    code=$(printf '%s\n' "$staged" | grep -E '^(vt/|web/|Dockerfile|docker-compose.yml|requirements.txt|run.py)' | head -1)
+    docs=$(printf '%s\n' "$staged" | grep -E '^(docs/src/content/|CHANGELOG.md|README.md)' | head -1)
+    if [ -n "$code" ] && [ -z "$docs" ]; then
+      cat >&2 <<MSG
+
+  ✗ Este $type cambia la app pero no la documentación.
+
+    Actualiza la página que corresponda en docs/src/content/docs/ y anota el
+    cambio en CHANGELOG.md («Sin publicar»). Si de verdad no hace falta,
+    agrega al mensaje la línea:  Docs: no aplica
+MSG
+      exit 1
+    fi
+    ;;
+esac
+exit 0
