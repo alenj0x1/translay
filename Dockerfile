@@ -23,9 +23,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH
 
-# ffmpeg: descargas, miniaturas y exportar · Node: el desafío JS de YouTube (yt-dlp)
+# ffmpeg: descargas, miniaturas y exportar · git: DeepFilterNet lo pide al cargar
+# Node: el desafío JS de YouTube (yt-dlp)
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg ca-certificates tini \
+ && apt-get install -y --no-install-recommends ffmpeg ca-certificates tini git \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=uv /uv /usr/local/bin/uv
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
