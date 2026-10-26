@@ -75,7 +75,9 @@ def main():
     a.translator = a.translator or prof["mt"]
     a.voice = a.voice or ("omnivoice" if prof["voice"] else "none")
     g = hw.get("gpu")
-    print(f"Equipo: {g['name'] + ' ' + str(round((g.get('vram_total_mb') or 0) / 1024)) + ' GB' if g else 'sin GPU'} · "
+    unified = bool(g and g.get("unified"))  # memoria unificada, como DGX Spark (vt/hardware.py)
+    mem = " de memoria unificada" if unified else ""
+    print(f"Equipo: {g['name'] + ' ' + str(round((g.get('vram_total_mb') or 0) / 1024)) + ' GB' + mem if g else 'sin GPU'} · "
           f"{round((hw['ram']['total_mb'] or 0) / 1024)} GB de RAM · {hw['cpu']['usable_threads']} hilos · "
           f"perfil «{prof['name']}»" + (f" (con {', '.join(cli)} por línea de comandos)" if cli else ""), flush=True)
 
@@ -301,7 +303,9 @@ def main():
 
         loop.call_soon_threadsafe(send_all)
 
-    res = Resources(asr, translator, tts, on_change=lambda st: notify({"type": "power", "state": st}))
+    # con memoria unificada «pasar a la RAM» no libera nada: se duerme directo al cerrar la voz (2 min)
+    res = Resources(asr, translator, tts, on_change=lambda st: notify({"type": "power", "state": st}),
+                    idle_s=120 if unified else 45)
     # arranca en reposo: la preparación cargó los modelos para verificarlos; vuelven a la RAM
     asr.unload()
     translator.unload()

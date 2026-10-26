@@ -10,6 +10,12 @@ TRANSLAY_EMULATE (JSON) reemplaza lo detectado por el equipo de un lab
 (tools/lab), p. ej. {"vram_mb": 4096, "ram_mb": 8192, "threads": 6} o
 {"gpu": false}; así las recomendaciones se prueban como en ese equipo.
 
+Memoria unificada (NVIDIA DGX Spark / GB10 y similares): la GPU no tiene VRAM
+propia, usa la RAM del sistema, y `nvidia-smi` informa la memoria como «[N/A]».
+Si además el modo de direccionamiento es ATS o HMM, la GPU se marca `unified` y
+su memoria es la RAM que este proceso puede usar. TRANSLAY_UNIFIED_MEMORY=1 o 0
+fuerza la detección en un sentido u otro.
+
     python -m vt.hardware          # lo detectado, en JSON
 """
 
@@ -46,6 +52,37 @@ def _nvidia_smi() -> list[dict]:
         gpus.append({"index": i, "name": f[0], "vram_total_mb": num(f[1]), "vram_used_mb": num(f[2]),
                      "vram_free_mb": num(f[3]), "driver": f[4], "compute_cap": f[5], "util": num(f[6])})
     return gpus
+
+
+_modes: dict[int, str | None] = {}
+
+
+def _addressing_mode(index: int) -> str | None:
+    """Modo de direccionamiento de la GPU («ATS», «HMM» o «None»), consultado aparte: un driver
+    viejo que no conoce el campo no puede romper la consulta principal. No cambia: se pregunta una vez."""
+    if index not in _modes:
+        exe = shutil.which("nvidia-smi")
+        mode = None
+        if exe:
+            try:
+                out = subprocess.run([exe, "-i", str(index), "--query-gpu=addressing_mode", "--format=csv,noheader"],
+                                     capture_output=True, text=True, timeout=8,
+                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                mode = out.stdout.strip() if out.returncode == 0 else None
+            except (OSError, subprocess.TimeoutExpired):
+                mode = None
+        _modes[index] = mode or None
+    return _modes[index]
+
+
+def unified_memory(g: dict | None) -> bool:
+    """La GPU comparte la RAM del sistema (sin VRAM propia que informar)."""
+    if not g:
+        return False
+    forced = os.environ.get("TRANSLAY_UNIFIED_MEMORY", "").strip()
+    if forced in ("0", "1"):
+        return forced == "1"
+    return g.get("vram_total_mb") is None and _addressing_mode(g.get("index", 0)) in ("ATS", "HMM")
 
 
 def gpus(max_age: float = 5.0) -> list[dict]:
@@ -221,6 +258,18 @@ def detect() -> dict:
         "cpu": cpu(),
         "emulated": None,
     }
+    if unified_memory(info["gpu"]):
+        # la memoria de la GPU es la RAM que este proceso puede usar (tope del contenedor incluido)
+        r = info["ram"]
+        total = r.get("limit_mb") or r.get("total_mb")
+        free = r.get("available_mb")
+        if total and free is not None:
+            free = min(free, total)
+        info["gpu"] = dict(info["gpu"], unified=True,
+                           vram_total_mb=info["gpu"].get("vram_total_mb") or total,
+                           vram_free_mb=info["gpu"].get("vram_free_mb") if info["gpu"].get("vram_total_mb") else free,
+                           vram_used_mb=info["gpu"].get("vram_used_mb") if info["gpu"].get("vram_total_mb")
+                           else (total - free if total and free is not None else None))
     lab = os.environ.get("TRANSLAY_EMULATE")
     if lab:
         try:

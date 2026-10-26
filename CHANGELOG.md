@@ -6,6 +6,11 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar 
 
 ## Sin publicar
 
+### Agregado
+
+- Soporte para equipos con memoria unificada, como NVIDIA DGX Spark (GB10): la GPU se detecta con la RAM del sistema como memoria, así que Rendimiento ya no la trata como «sin GPU» (marcaba «Muy forzado» a 0,02×) y el perfil automático elige «Máxima calidad». Los equipos con GPU dedicada no cambian.
+- Con memoria unificada, el reposo ligero se hace junto con el profundo: pasar los modelos a la RAM no liberaba nada.
+
 ## 1.1.0 · 2026-10-26
 
 ### Corregido

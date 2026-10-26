@@ -36,7 +36,8 @@ function renderPerf() {
   // ---------------------------------------------------------------- equipo
   PERF_HW.querySelector(".pref-ctl").replaceChildren(el("div", { class: "hwchips" },
     chip("monitor", g ? g.name.replace(/^NVIDIA (GeForce )?/, "") : "Sin GPU NVIDIA",
-      g ? `${gb(g.vram_total_mb)} de VRAM · ${gb(g.vram_free_mb || 0)} libres` : "Se usa la CPU"),
+      g ? `${gb(g.vram_total_mb)} de ${g.unified ? "memoria unificada" : "VRAM"} · ${gb(g.vram_free_mb || 0)} libres`
+        : "Se usa la CPU"),
     chip("library", `${gb(hw.ram.total_mb || 0)} de RAM`, `${gb(hw.ram.available_mb || 0)} libres ahora`),
     chip("spark", hw.cpu.name.replace(/\(R\)|\(TM\)|CPU|@.*$/g, "").replace(/\s+/g, " ").trim(),
       `${hw.cpu.cores} núcleos · ${hw.cpu.usable_threads} hilos`)));

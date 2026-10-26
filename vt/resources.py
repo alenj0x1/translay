@@ -10,6 +10,9 @@ despierta (carga) y queda marcado como ocupado. Un hilo vigila la inactividad:
 
 Medido en RTX 4060: Whisper + traductor 2.7 GB → 0.1 GB en reposo; voz
 2.1 GB → 0.85 GB (RAM) → 0 GB (proceso cerrado).
+
+Con memoria unificada (DGX Spark) «pasar a la RAM» no libera nada: el servidor
+usa `idle_s = deep_s` y se duerme directo al cerrar la voz.
 """
 
 import threading

@@ -76,7 +76,7 @@ Desde el reproductor, una tarjeta, una colección entera o una selección; vario
 
 ## Rendimiento: qué equipo necesitas
 
-Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Preferencias › Rendimiento**.
+Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Preferencias › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://alenj0x1.github.io/translay/funcionamiento/gpu-y-reposo/#memoria-unificada-dgx-spark)).
 
 ### Perfiles
 

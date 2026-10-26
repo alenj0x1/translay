@@ -83,6 +83,8 @@ class Perf:
                                 f"«{profiles.PROFILES[profiles.recommend(hw, lim)]['name']}»."})
         for n in (act or {}).get("notes", []):
             out.append({"level": "warn", "text": n})
+        if (hw.get("gpu") or {}).get("unified"):
+            out.append({"level": "info", "text": "Memoria unificada: la GPU usa la RAM del sistema (como en DGX Spark)."})
         if lim.get("vram_mb") and lim["vram_mb"] < 2048:
             out.append({"level": "warn", "text": "Con menos de 2 GB de VRAM solo entran los subtítulos ligeros."})
         if lim.get("ram_mb") and lim["ram_mb"] < 3072:

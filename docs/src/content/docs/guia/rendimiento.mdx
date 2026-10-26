@@ -13,6 +13,8 @@ Translay se adapta al equipo. Al arrancar detecta la GPU, la RAM y la CPU, y eli
 
 Muestra la GPU NVIDIA (con la VRAM total y la libre ahora), la RAM (total y libre) y la CPU (núcleos e hilos). Si no hay GPU NVIDIA, Translay corre en la CPU.
 
+En equipos con **memoria unificada**, como NVIDIA DGX Spark, la GPU usa la RAM del sistema: se muestra como «memoria unificada» y los perfiles se calculan con esa memoria. Ver [GPU y reposo](../../funcionamiento/gpu-y-reposo/#memoria-unificada-dgx-spark).
+
 ## Perfiles
 
 | Perfil | Reconocimiento | Traductor | Voz | Para |
@@ -71,3 +73,4 @@ Explican por qué algo va lento y qué hacer:
 - Un límite demasiado bajo (menos de 2 GB de VRAM o 3 GB de RAM).
 - **En vivo**: frases de voz que tardan mucho más de lo normal, poca RAM libre en el sistema, u otro programa usando casi toda la VRAM.
 - Hay un perfil nuevo que se aplica al reiniciar.
+- El equipo tiene memoria unificada.

@@ -38,6 +38,26 @@ Hay dos razones medidas:
 
 Además, en el servidor hay un solo hilo para reconocimiento y traducción (`gpu`) y uno para la voz (`tts`), así que como mucho dos cálculos compiten por el turno.
 
+## Memoria unificada (DGX Spark)
+
+En equipos como NVIDIA DGX Spark (GB10) la GPU no tiene VRAM propia: usa la RAM del sistema, y `nvidia-smi` informa la memoria como `[N/A]`. Sin saber cuánta memoria tiene, Translay trataba la GPU como si no existiera: Rendimiento marcaba «Muy forzado» a 0,02× y el perfil automático elegía «Subtítulos ligeros».
+
+`vt/hardware.py` la detecta cuando la memoria no se informa **y** el modo de direccionamiento (`nvidia-smi --query-gpu=addressing_mode`, consultado aparte para no romper drivers viejos) es `ATS` o `HMM`. La GPU queda marcada `unified` y su memoria es la RAM que el proceso puede usar, con el tope del contenedor si lo hay. `TRANSLAY_UNIFIED_MEMORY=1` o `0` fuerza la detección. Una GPU con VRAM propia nunca entra en este modo, aunque el driver diga `ATS` (como la GH200).
+
+Con memoria unificada, los perfiles y avisos usan esa memoria, y el [reposo ligero](#modo-reposo) se hace junto con el profundo, a los 120 s: pasar los modelos a la RAM no libera nada.
+
+Los turnos y la voz de a una frase se mantienen. Medido en una GB10 con «Máxima calidad», sobre el mismo video, 6 min por configuración:
+
+| Configuración | Velocidad |
+|---|---|
+| Turnos, 1 proceso de voz, 1 frase por pedido (lo de siempre) | 1,69–1,80× |
+| Sin turnos | 1,41× |
+| Sin turnos, 2 procesos de voz | 1,23× |
+| Voz en lotes de 4 frases | 1,69× |
+| Voz en lotes de 8 frases | 1,48× |
+
+Por separado, Whisper va a 5,1× el tiempo real y la voz a 2,45×, y la GPU marca ~95 % de uso con poca potencia: el límite es el ancho de banda de la memoria unificada (LPDDR5x), no una GPU ociosa. Calcular a la vez solo reparte el tiempo de la GPU, y en un lote las frases cortas se generan al largo de la más larga.
+
 ## Modo reposo
 
 Los modelos ocupan la GPU solo mientras se procesa algo. `Resources` lleva la cuenta de los usos en curso y de la última actividad; un hilo la revisa cada 2 s.
