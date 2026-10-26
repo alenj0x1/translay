@@ -1,0 +1,7 @@
+Zira|Welcome to this short demonstration. Today we are going to talk about how machines understand speech.
+Zira|First, the audio is split into small frames, and each frame is analyzed to detect whether someone is speaking.
+
+Zira|Then, a neural network converts the sound into words. This happens in real time, while the video is playing.
+
+Zira|Finally, in a future version, the text will be translated into Spanish and spoken with a natural voice.
+Zira|Thank you for watching, and see you in the next episode.

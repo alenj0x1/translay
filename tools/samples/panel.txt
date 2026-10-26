@@ -1,0 +1,14 @@
+bf_emma|Good evening, and welcome to tonight's panel. I'm joined by two experts on artificial intelligence.
+am_adam|Thank you, Emma. It's a pleasure to be here.
+bm_lewis|Good evening. Thanks for the invitation.
+bf_emma|Let's start with the big question. Will AI replace our jobs?
+am_adam|I don't think so. It will change most jobs, but history shows that new technology creates more work than it destroys.
+bm_lewis|I'd be a bit more careful. The transition could be very painful for millions of people, especially in the next ten years.
+bf_emma|So what should governments do about it?
+bm_lewis|Invest in education, and make sure that workers can learn new skills without losing their income.
+am_adam|I agree with that. And companies need to take responsibility too, not just governments.
+
+bf_emma|One last question. Are you optimistic about the future?
+am_adam|Very much so. I think we're about to solve problems that seemed impossible twenty years ago.
+bm_lewis|Cautiously optimistic. The technology is incredible, but we have to use it wisely.
+bf_emma|Thank you both. That's all for tonight. Good night.

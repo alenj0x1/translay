@@ -1,0 +1,13 @@
+af_bella|Hey, are you guys coming to the party on Saturday?
+am_fenrir|I can't, I have to work. My boss is driving me crazy.
+af_nicole|I'll be there! What should I bring?
+af_bella|Just bring some snacks. And maybe your speaker, the one with the good bass.
+bm_george|Count me in as well. Is it alright if I bring my sister?
+af_bella|Of course! The more, the merrier.
+am_fenrir|Ugh, now I really want to go. Maybe I'll stop by after my shift.
+af_nicole|You'd better! We haven't seen you in weeks.
+bm_george|Right, should we split the cost of the pizza?
+af_bella|Sure. It's about forty dollars, so ten each.
+am_fenrir|Fine, but I want pineapple on mine.
+af_nicole|No way. That's a crime.
+bm_george|Let's just get two pizzas and call it a day.

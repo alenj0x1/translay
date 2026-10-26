@@ -1,0 +1,13 @@
+af_heart|Welcome back to the show! Today I'm here with my good friend Michael, who just got back from Japan.
+am_michael|Thanks for having me. It's great to be back, although I'm still a little jet-lagged.
+af_heart|So tell me, what surprised you the most about Tokyo?
+am_michael|Honestly, how quiet it is. Millions of people, and yet you can hear yourself think on the subway.
+af_heart|That's amazing. Did you try anything weird to eat?
+am_michael|Oh, absolutely. I had raw horse meat, which was surprisingly good, and a pancake filled with octopus.
+
+af_heart|I don't think I could do that. What about the prices? Is it as expensive as people say?
+am_michael|Not really. A bowl of ramen costs about eight dollars, and the hotels were cheaper than in New York.
+af_heart|Okay, now I really want to go. Would you go back?
+am_michael|In a heartbeat. I'm already planning a trip for next spring, during the cherry blossom season.
+af_heart|Well, that's all the time we have today. Thanks again, Michael!
+am_michael|My pleasure. See you next time, everyone.
