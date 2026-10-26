@@ -66,9 +66,29 @@ class TTSClient:
             if s and "Warning" not in s and "warn(" not in s and "NOTE: Redirects" not in s:
                 self._log(f"[voz] {s}")
 
-    def _call(self, header: dict, payload: bytes = b"") -> tuple[dict, bytes]:
-        write_msg(self.proc.stdin, header, payload)
-        return read_msg(self.proc.stdout)
+    def _call(self, header: dict, payload: bytes = b"", timeout: float = 300) -> tuple[dict, bytes]:
+        """Pedido al proceso de voz. Si no responde en `timeout` s (driver colgado), se cierra:
+        si no, tendría tomado el turno de la GPU para siempre y nada más avanzaría."""
+        proc = self.proc
+        write_msg(proc.stdin, header, payload)
+        out: dict = {}
+
+        def read():
+            try:
+                out["r"] = read_msg(proc.stdout)
+            except Exception as e:  # noqa: BLE001 — se relanza abajo
+                out["e"] = e
+
+        th = threading.Thread(target=read, daemon=True)
+        th.start()
+        th.join(timeout)
+        if th.is_alive():
+            proc.kill()
+            self.proc = None
+            raise TimeoutError("el proceso de voz no respondió; se reinicia al próximo uso")
+        if "e" in out:
+            raise out["e"]
+        return out["r"]
 
     # ---------------------------------------------------------------- reposo
     def onload(self):
@@ -76,7 +96,10 @@ class TTSClient:
             if not self._alive():
                 self._start()
             else:
-                self._call({"op": "onload"})
+                h, _ = self._call({"op": "onload"})
+                if not h.get("ok"):  # quedó a medio cargar: se cierra y el próximo uso arranca limpio
+                    self.close()
+                    raise RuntimeError(f"la voz no cargó: {h.get('error')}")
 
     def offload(self, deep: bool = False):
         with self._lock:
@@ -85,7 +108,9 @@ class TTSClient:
             if deep:
                 self.close()
             else:
-                self._call({"op": "offload"})
+                h, _ = self._call({"op": "offload"})
+                if not h.get("ok"):  # no pudo soltar la VRAM: se cierra el proceso (la libera seguro)
+                    self.close()
 
     # --------------------------------------------------------------- síntesis
     def synth(self, text: str, ref: str | None = None, ref_text: str | None = None,

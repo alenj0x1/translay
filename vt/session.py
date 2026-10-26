@@ -13,7 +13,8 @@ Cliente → servidor
   {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
   {"type":"export", "videos":[ids], "kinds":[…], "name"}  exportar (vt/exporter.py) · export_remove
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
-  lib_delete {videos:[ids]} · lib_clear              borra videos (y sus archivos) o toda la biblioteca
+  lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
+  trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}   papelera
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
   vault_open {id} · vault_create {name, folder, color, icon} · vault_open_folder {folder}
@@ -40,7 +41,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from functools import partial
 
-from .store import Store, Transcript
+from .store import _SAFE_ID as _SAFE_VID, Store, Transcript
 from . import events
 from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
@@ -59,8 +60,9 @@ class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
                  youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
-                 vaults=None, access: Access | None = None, admin=None):
+                 vaults=None, access: Access | None = None, admin=None, perf=None):
         self.ws = ws
+        self.perf = perf  # equipo, perfil y límites (vt/perf.py)
         self.gpu = gpu
         # quién es (vt/auth.py): el dueño o un invitado con permisos por biblioteca
         self.access = access or Access(owner=True, local=True)
@@ -164,7 +166,8 @@ class Session:
         a = self.access
         if a.owner:
             return True
-        if t in OWNER_ONLY or t.startswith("admin_") or (t.startswith("vault_") and t != "vault_open"):
+        if t in OWNER_ONLY or t.startswith(("admin_", "trash_", "perf_")) or t == "server_restart" or \
+                (t.startswith("vault_") and t != "vault_open"):
             return False
         if t == "vault_open":
             return a.can_view(str(m.get("id", "")))
@@ -175,6 +178,8 @@ class Session:
             if t == "queue_video":
                 vs = [self.vaults.of(str(x)) for x in m.get("videos", [])]
                 return bool(vs) and all(v and a.can_import(v.id) for v in vs)
+            if t in ("lib_register", "watch"):  # la del video, si ya está en alguna biblioteca
+                return a.can_import(self._vault_of(str(m.get("id") or m.get("video") or "")).id)
             return a.can_import(self.vault.id)
         if t == "open":
             v = self.vaults.of(str(m.get("id", "")))
@@ -249,9 +254,14 @@ class Session:
                         await self._people_saved_op(m)
                     elif m.get("type") == "people_get":
                         v = self.vaults.get(str(m.get("vault", ""))) or self.vault
-                        await self.ws.send_json({"type": "people_saved", "vault": v.id, "items": self._people_saved(v)})
+                        if self.access.can_view(v.id):  # un invitado solo ve las de sus bibliotecas
+                            await self.ws.send_json({"type": "people_saved", "vault": v.id, "items": self._people_saved(v)})
                     elif m.get("type", "").startswith("vault_"):
                         asyncio.create_task(self._vault(m))
+                    elif m.get("type", "").startswith("trash_"):
+                        asyncio.create_task(self._trash(m))
+                    elif m.get("type") in ("perf_get", "perf_set", "server_restart") and self.perf:
+                        asyncio.create_task(self._perf(m))
                     elif self.library and m.get("type") in ("lib_delete", "lib_clear"):
                         asyncio.create_task(self._delete(m))
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
@@ -810,35 +820,87 @@ class Session:
 
     # ------------------------------------------------------- borrar videos
     async def _delete(self, m: dict):
-        vault = self.vault
-        vids = vault.library.clear() if m["type"] == "lib_clear" else [str(v) for v in m.get("videos", [])
-                                                                     if str(v) in vault.library.data["videos"]]
+        """Borrar videos o vaciar la biblioteca: van a la papelera (30 días, se pueden devolver)."""
+        from .trash import Trash
+
+        vault = self.vaults.get(str(m.get("vault", ""))) or self.vault  # vaciar otra biblioteca (desde su tarjeta)
+        cleared = m["type"] == "lib_clear"
+        vids = (list(vault.library.data["videos"]) if cleared else
+                [str(v) for v in m.get("videos", []) if str(v) in vault.library.data["videos"]])
         if self.processor:
             self.processor.remove_many(vids)
-        if m["type"] == "lib_delete":
-            vault.library.remove_many(vids)
-        await asyncio.get_running_loop().run_in_executor(None, self._delete_files, vids, vault)
+        entry = await asyncio.get_running_loop().run_in_executor(None, lambda: Trash(vault.root).videos(vault, vids, cleared))
+        # solo lo que fue a la papelera: si mientras tanto llegó un video nuevo (la cola), se queda
+        vault.library.remove_many(vids)
+        if cleared and entry:
+            gone = {c["id"] for c in entry.get("collections", [])}
+            vault.library.data["collections"] = [c for c in vault.library.data["collections"] if c["id"] not in gone]
+            vault.library.save()
         self.notify({"type": "deleted", "videos": vids})
         self.notify({"type": "library_changed"})
+        if entry:
+            await self.ws.send_json({"type": "trashed", "id": entry["id"], "vault": vault.id, "title": entry["title"],
+                                     "count": entry["count"], "kind": entry["kind"]})
         if vids:
             events.emit("video.eliminado", vault.id, videos=vids, count=len(vids))
 
-    def _delete_files(self, vids, vault):
-        """Copias, transcripciones, voces y referencias de cada video."""
-        import re
-        import shutil
+    # ------------------------------------------------------------- rendimiento
+    async def _perf(self, m: dict):
+        """perf_get · perf_set {profile?, vram_mb?, ram_mb?, threads?} · server_restart"""
+        loop = asyncio.get_running_loop()
+        if m["type"] == "server_restart":
+            await self.ws.send_json({"type": "restarting"})
+            self.notify({"type": "restarting"})
+            tts = getattr(self.dubber, "tts", None)
+            self.perf.restart(before=tts.close if tts else None)
+            return
+        if m["type"] == "perf_set":
+            err = await loop.run_in_executor(None, self.perf.set, m)
+            if err:
+                await self.ws.send_json({"type": "vault_error", "error": err})
+        msg = await loop.run_in_executor(None, self.perf.public)
+        if m["type"] == "perf_set":
+            self.notify(msg)  # todas las pestañas del dueño
+        else:
+            await self.ws.send_json(msg)
 
-        data = vault.root
-        for vid in vids:
-            if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
-                continue
-            vault.store.delete(vid)
-            for d in (data / "audio" / vid, data / "voices" / vid):
-                shutil.rmtree(d, ignore_errors=True)
-            folder, stem = (data / "youtube", vid[3:]) if vid.startswith("yt_") else (data / "library", vid)
-            for f in folder.glob(f"{stem}.*"):
-                if f.stem == stem:
-                    f.unlink(missing_ok=True)
+    # ------------------------------------------------------------- papelera
+    async def _trash(self, m: dict):
+        """trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}"""
+        from .trash import Trash
+
+        loop = asyncio.get_running_loop()
+        t = m["type"]
+        try:
+            if t == "trash_restore":
+                vault = self.vaults.get(str(m.get("vault", ""))) or self.vault
+                tid = str(m.get("id", ""))
+                e = next((x for x in Trash(vault.root).entries() if x["id"] == tid), None)
+                if e and e["kind"] == "biblioteca":
+                    e = await loop.run_in_executor(None, Trash(vault.root).restore_vault_files, tid)
+                    v = await loop.run_in_executor(None, self.vaults.open_folder, e["root"])
+                    events.emit("biblioteca.creada", v.id, name=v.name)
+                    self.notify({"type": "vaults_changed"})
+                    await self._send_vault_state()
+                else:
+                    vids = await loop.run_in_executor(None, Trash(vault.root).restore_videos, vault, tid, self.vaults)
+                    self.notify({"type": "library_changed"})
+                    events.emit("video.agregado", vault.id, videos=vids, count=len(vids))
+                await self.ws.send_json({"type": "trash_restored", "id": tid})
+            elif t == "trash_purge":
+                tid, everything = str(m.get("id") or ""), m.get("all") is True
+                if not tid and not everything:
+                    raise ValueError("falta qué borrar de la papelera")
+                for v in ([self.vaults.get(str(m["vault"]))] if m.get("vault") else self.vaults.all()):
+                    if v:
+                        await loop.run_in_executor(None, lambda v=v: Trash(v.root).purge(tid=tid or None, everything=everything))
+        except (ValueError, OSError) as e:
+            await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+        items = []
+        for v in self.vaults.all():
+            if self.access.can_view(v.id):
+                items += [dict(x, vault=v.id) for x in Trash(v.root).entries()]
+        await self.ws.send_json({"type": "trash", "items": sorted(items, key=lambda x: -x["created"])})
 
     # ------------------------------------------------------------- biblioteca
     async def _library(self, m: dict):
@@ -854,12 +916,18 @@ class Session:
                               **{f: v.url(e[f]) for f in ("thumb", "media") if e.get(f)}}
             return await self.ws.send_json({"type": "lib_meta", "videos": out})
         if kind == "lib_register":  # en su biblioteca (un archivo ya importado en otra queda allá)
-            target = self._vault_of(str(m["id"]))
-            if str(m["id"]) not in target.library.data["videos"]:
-                events.emit("video.agregado", target.id, videos=[str(m["id"])], count=1)
+            rid = str(m.get("id", ""))
+            if not _SAFE_VID.fullmatch(rid):
+                return
+            target = self._vault_of(rid)
+            if rid not in target.library.data["videos"]:
+                events.emit("video.agregado", target.id, videos=[rid], count=1)
+            # solo datos descriptivos: las rutas de archivos (media, audio, miniatura) las pone el servidor
+            dur = m.get("duration")
             target.library.register(
-                str(m["id"]), **{k: m.get(k) for k in ("title", "duration", "source", "media",
-                                                        "audio", "thumb", "channel", "categories")})
+                rid, title=str(m.get("title") or "")[:300] or None,
+                duration=float(dur) if isinstance(dur, (int, float)) and 0 < dur < 1e6 else None,
+                source=m.get("source") if m.get("source") in ("file", "youtube") else None)
         elif kind == "lib_remove":
             self._vault_of(vid).library.remove(vid)
         elif kind == "coll_create":
@@ -944,7 +1012,7 @@ class Session:
         if t == "bg":
             return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
         if not self.access.owner:
-            if t in ("cookies", "webhooks", "webhooks_log", "glossary_applied", "admin", "yt_blocked"):
+            if t in ("cookies", "webhooks", "webhooks_log", "glossary_applied", "admin", "yt_blocked", "perf", "restarting"):
                 return None
             if t == "queue":  # solo lo de sus bibliotecas
                 return {**msg, "jobs": [j for j in msg["jobs"] if self.access.can_view(j.get("lib") or "principal")]}

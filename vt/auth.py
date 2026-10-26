@@ -70,8 +70,20 @@ def same_origin(headers: dict, allowed: tuple = ()) -> bool:
     return bool(netloc) and netloc in hosts
 
 
+def _loopback_host(host: str) -> bool:
+    """¿El Host es este mismo equipo? (localhost, 127.0.0.1, [::1], *.localhost o su nombre).
+    Una página de otro dominio cuyo DNS apunta a 127.0.0.1 (DNS rebinding) trae su propio Host."""
+    import socket
+
+    name = host.strip().lower()
+    name = name[1:name.index("]")] if name.startswith("[") and "]" in name else name.rsplit(":", 1)[0] if name.count(":") == 1 else name
+    return (name in ("localhost", "127.0.0.1", "::1") or name.endswith(".localhost")
+            or name == socket.gethostname().lower())
+
+
 def is_local(req) -> bool:
-    return req.peer in ("127.0.0.1", "::1", "::ffff:127.0.0.1") and not any(h in req.headers for h in _PROXY_HEADERS)
+    return (req.peer in ("127.0.0.1", "::1", "::ffff:127.0.0.1") and not any(h in req.headers for h in _PROXY_HEADERS)
+            and _loopback_host(req.headers.get("host", "")))
 
 
 class Access:
@@ -133,23 +145,30 @@ class Auth:
         self._save()
 
     # ----------------------------------------------------------- sesiones
-    def login(self, password: str, vault_id: str = "", token: str = "") -> str | None:
-        """Contraseña del dueño (sin biblioteca) o de una biblioteca. Devuelve el token de sesión."""
+    def verify(self, password: str, vault_id: str = ""):
+        """¿La contraseña vale? False, o lo que da: None (dueño) o el permiso de la biblioteca.
+        Solo calcula el hash (lento): se puede llamar desde otro hilo."""
         if vault_id:
             v = self.vaults.get(vault_id)
             acc = (v.meta.get("access") or {}) if v else {}
             if not v or acc.get("mode") != "clave" or not check_pw(password, acc.get("pw")):
+                return False
+            return {"vault": vault_id, "pv": acc.get("pv", 0)}
+        return None if check_pw(password, self.data.get("owner")) else False
+
+    def login(self, password: str, vault_id: str = "", token: str = "", grant=False) -> str | None:
+        """Contraseña del dueño (sin biblioteca) o de una biblioteca. Devuelve el token de sesión.
+        grant: el resultado de verify() si ya se comprobó."""
+        if grant is False:
+            grant = self.verify(password, vault_id)
+            if grant is False:
                 return None
-            grant = {"vault": vault_id, "pv": acc.get("pv", 0)}
-        else:
-            if not check_pw(password, self.data.get("owner")):
-                return None
-            grant = None
-        s = self.data["sessions"].get(_sha(token)) if token else None
-        if s is None:
-            token = secrets.token_urlsafe(32)
-            s = {"owner": False, "grants": [], "exp": 0}
-            self.data["sessions"][_sha(token)] = s
+        # siempre un token nuevo (los permisos que ya tenía la sesión pasan a él): un token
+        # plantado antes de iniciar sesión no sirve para colarse en la sesión de otro
+        old = self.data["sessions"].pop(_sha(token), None) if token else None
+        token = secrets.token_urlsafe(32)
+        s = {"owner": bool(old and old.get("owner")), "grants": list((old or {}).get("grants", [])), "exp": 0}
+        self.data["sessions"][_sha(token)] = s
         if grant:
             s["grants"] = [g for g in s["grants"] if g["vault"] != vault_id] + [grant]
         else:

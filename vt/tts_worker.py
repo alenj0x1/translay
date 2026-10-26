@@ -187,7 +187,13 @@ def main():
                 import torch
 
                 dev = "cpu" if h["op"] == "offload" else args.device
-                for m in (getattr(eng, "model", None), getattr(getattr(eng, "enhancer", None), "model", None)):
+                main = getattr(eng, "model", None)
+                if h["op"] == "offload" and not hasattr(main, "to"):
+                    # motores sin .to (Chatterbox, VoxCPM): no se pueden pasar a la RAM; el cliente
+                    # cierra el proceso, que es lo que de verdad libera la VRAM
+                    write_msg(_OUT, {"ok": False, "error": "este motor no se puede mover a la RAM"})
+                    continue
+                for m in (main, getattr(getattr(eng, "enhancer", None), "model", None)):
                     if m is not None and hasattr(m, "to"):
                         m.to(dev)
                 if dev == "cpu":

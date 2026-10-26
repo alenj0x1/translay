@@ -177,8 +177,10 @@ class StreamingTranscriber:
         events += self._cut()
 
         if self.duration > self.cfg.max_buffer_s:
-            if self.commit_t > self.t0 + 1.0:
-                self._trim_to(self.commit_t)
+            # sin cortar el audio de palabras confirmadas que aún no salieron en una frase
+            cut = min(self.commit_t, self.open[0].start - 0.05) if self.open else self.commit_t
+            if cut > self.t0 + 1.0:
+                self._trim_to(cut)
             else:  # nada confirmado en 24 s: forzar cierre
                 events += self._close(self.prev)
                 self._trim_to(self.end_t)

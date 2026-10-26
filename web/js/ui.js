@@ -59,6 +59,7 @@ const ICONS = {
   user: '<circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 13.8c.6-2.6 2.7-4.1 5.2-4.1s4.6 1.5 5.2 4.1"/>',
   lock: '<rect x="3" y="7" width="10" height="7"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/>',
   arrow: '<path d="M3 8h10M9 4l4 4-4 4"/>',
+  undo: '<path d="M5.5 3.5L2.5 6.5l3 3M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>',
   dice: '<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle class="solid" cx="5.6" cy="5.6" r="1"/><circle class="solid" cx="10.4" cy="10.4" r="1"/><circle class="solid" cx="8" cy="8" r="1"/>',
   sidebar: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/>',
   dots: '<circle class="solid" cx="3.5" cy="8" r="1.2"/><circle class="solid" cx="8" cy="8" r="1.2"/><circle class="solid" cx="12.5" cy="8" r="1.2"/>',

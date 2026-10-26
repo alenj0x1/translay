@@ -14,6 +14,7 @@ Medido en RTX 4060: Whisper + traductor 2.7 GB → 0.1 GB en reposo; voz
 
 import threading
 import time
+from collections import deque
 from contextlib import contextmanager
 
 
@@ -55,6 +56,8 @@ class Resources:
         self._loaded = {"asr": False, "mt": False, "tts": False}
         self._part_locks = {p: threading.Lock() for p in self._loaded}
         self._compute = FairLock()  # un cálculo en la GPU a la vez, por orden de llegada
+        # últimos cálculos (parte, segundos, momento): Rendimiento muestra si algo va lento (vt/perf.py)
+        self.recent: deque = deque(maxlen=200)
         threading.Thread(target=self._watch, daemon=True).start()
 
     # ------------------------------------------------------------------ uso
@@ -81,7 +84,11 @@ class Resources:
         resta velocidad."""
         with self.use(*parts):
             with self._compute:
-                return fn(*args)
+                t = time.perf_counter()
+                try:
+                    return fn(*args)
+                finally:
+                    self.recent.append((parts[0] if parts else "", time.perf_counter() - t, time.time()))
 
     def info(self) -> dict:
         return {"state": self.state, "busy": self._busy, "idle_s": round(time.monotonic() - self._last, 1),
@@ -97,13 +104,18 @@ class Resources:
             with self._part_locks[p]:
                 if self._loaded[p]:
                     continue
+                before = self.state
                 self._set("cargando")
-                if p == "asr":
-                    self.asr.load()
-                elif p == "mt":
-                    self.translator.load()
-                elif p == "tts" and self.tts:
-                    self.tts.onload()
+                try:
+                    if p == "asr":
+                        self.asr.load()
+                    elif p == "mt":
+                        self.translator.load()
+                    elif p == "tts" and self.tts:
+                        self.tts.onload()
+                except Exception:
+                    self._set(before if before != "cargando" else "reposo")  # no queda «cargando» para siempre
+                    raise
                 self._loaded[p] = True
         if all(self._loaded[p] for p in parts):
             self._set("activo")
@@ -136,11 +148,15 @@ class Resources:
             if self._busy:
                 deep_done = False
                 continue
-            if any(self._loaded.values()) and idle > self.idle_s:
-                self.sleep()
-            if not deep_done and idle > self.deep_s:
-                self.sleep(deep=True)
-                deep_done = True
+            try:  # un error al dormir un modelo no puede matar al vigía (no volverían a dormir)
+                if any(self._loaded.values()) and idle > self.idle_s:
+                    self.sleep()
+                if not deep_done and idle > self.deep_s:
+                    self.sleep(deep=True)
+                    deep_done = True
+            except Exception as e:  # noqa: BLE001
+                print(f"[recursos] reposo: {e}", flush=True)
+                self._loaded = {"asr": False, "mt": False, "tts": False}
 
     def _set(self, state: str):
         if state != self.state:

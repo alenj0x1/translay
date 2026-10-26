@@ -29,6 +29,9 @@ También corren sin pytest: `python tests/test_core.py` ejecuta todas e imprime 
 | `test_download_only_queue` | «Solo descargar»: no se procesa solo, «Procesar» lo pone en cola, «Limpiar terminados» lo quita y «Bajar video» descarga el video completo sin volver a procesar. |
 | `test_vaults` | Crear una biblioteca, mover un video con sus archivos, rutas con prefijo `/v/<biblioteca>`, ninguna ruta sale de su carpeta, persistencia al reiniciar y eliminar solo lo propio de la carpeta. |
 | `test_access_and_webhooks` | Dueño desde este equipo pero no por un túnel; bibliotecas privadas, públicas y con contraseña; cambiar la contraseña invalida las sesiones; claves de API de lectura; webhooks filtrados por biblioteca y evento, firmados con HMAC-SHA256. |
+| `test_hardware` (`tests/test_hardware.py`) | Forma de lo detectado (GPU, RAM, CPU), sin GPU, la lectura de `nvidia-smi`, y el equipo de un lab con `TRANSLAY_EMULATE` (VRAM, RAM, hilos, sin GPU). |
+| `test_trash` (`tests/test_trash.py`) | Vaciar y borrar videos los mueve a la papelera y restaurar devuelve videos, archivos y colecciones (con sus videos); una biblioteca eliminada vuelve con `open_folder`; se purga lo de más de 30 días y todo. |
+| `test_security` (`tests/test_security.py`) | El JSON guardado deja copia y se recupera si se daña; iniciar sesión siempre da un token nuevo; un id raro nunca apunta fuera de la biblioteca; el WebSocket rechaza marcos sin máscara, continuaciones sueltas, controles largos y códigos desconocidos. |
 
 ## Herramientas de medición
 
@@ -161,6 +164,28 @@ python tools/dub_file.py samples/podcast.mp4 --voice omnivoice
 | `--data` | `data/offline` | Dónde guarda transcripción, voces y audio. La transcripción del video (`off_<nombre>`) se borra al empezar: cada corrida empieza de cero. |
 
 La pista doblada pone cada frase en su momento sobre el original atenuado (amplitud × 0,14, el nivel «Bajo»); si una frase pisa a la siguiente, la siguiente espera. Por frase imprime persona, compresión aplicada, segundos de GPU y traducción. Al final: frases, personas, segundos de GPU de la voz y su RTF, cuántas frases se comprimieron y cuánto como máximo, el mayor desfase, y cuánto después del final de cada frase original estaría lista su voz en vivo (mediana y máximo, suponiendo 1,5 s de reconocimiento). Si existe la verdad de referencia, también la diarización.
+
+### Labs de hardware
+
+`tools/lab/` corre el pipeline de la cola **como si fuera otro equipo**, con límites reales en esta máquina (no estimaciones). De ahí salen los perfiles y las velocidades de [Rendimiento](../../guia/rendimiento/).
+
+| Herramienta | Qué hace |
+|---|---|
+| `ballast.py` | Ocupa VRAM con la API del driver de CUDA (ctypes, sin torch) para que solo quede la del lab, con el mismo escritorio encima. Si el lab no alcanza, el driver desborda a memoria compartida, igual que en esa tarjeta. |
+| `vt/limits.py` | *Job Object* de Windows: tope duro de memoria residente por proceso (sin permisos de administrador) y afinidad a N hilos; el proceso de voz lo hereda. |
+| `bench.py` | El camino de la cola con una configuración (modelo, precisión, beam, traductor, voz, pasos, dispositivo). Mide velocidad (segundos de video por segundo de reloj), espera para ver en vivo, cálculo y espera de turno por etapa, voz p50/p95, carga de cada modelo, pico de VRAM, error de palabras y personas acertadas. |
+| `run.py` | Corre cada configuración en cada lab y deja un JSON por prueba y `resumen.md` en `data/labs/<corrida>/`. |
+
+```sh
+python tools/lab/run.py --list
+python tools/lab/run.py --labs gpu-4g gpu-6g --configs calidad ligero --media samples/podcast_cafe10.mp4 --limit-s 90
+```
+
+Labs: `rtx4060-8g` (el equipo, sin límites), `gpu-6g`, `gpu-4g`, `gpu-2g` (VRAM con lastre y la RAM que le queda a Translay en un equipo de 16 u 8 GB) y `cpu-8`, `cpu-4` (sin GPU). Configuraciones: `calidad`, `equilibrado`, `ligero`, `texto` y `texto-ligero` (los perfiles de `vt/profiles.py`).
+
+<Aside type="caution">
+Los labs necesitan la GPU solo para ellos: con otra instancia de Translay procesando en paralelo, la primera corrida dio 0,33× en «calidad» donde limpio da 2,2×. Cierra Translay y lo que use la GPU antes de correrlos.
+</Aside>
 
 <Aside>
 `samples/`, `data/` y `.venvs/` no van a git: los videos de prueba se generan con `make_dialogue.py` o `make_sample.ps1`, y los entornos de los motores se instalan aparte (ver [Instalación](../../empezar/instalacion/)).

@@ -22,6 +22,8 @@ import time
 import uuid
 from pathlib import Path
 
+from .jsonio import read_json, write_json
+
 CATEGORIES_ES = {
     "Film & Animation": "Cine y animación", "Autos & Vehicles": "Autos y vehículos",
     "Music": "Música", "Pets & Animals": "Mascotas y animales", "Sports": "Deportes",
@@ -42,8 +44,10 @@ class Library:
     def __init__(self, path: Path):
         self.path = path
         self.data = {"videos": {}, "collections": []}
-        if path.exists():
-            self.data = json.loads(path.read_text(encoding="utf-8"))
+        if path.exists() or path.with_name(path.name + ".bak").exists():
+            self.data = read_json(path)
+            if self.data is None:  # dañado y sin respaldo: mejor no arrancar que guardarla vacía encima
+                raise ValueError(f"{path} está dañado")
             # miniaturas remotas de versiones anteriores → la copia local (se baja una sola vez)
             for vid, v in self.data["videos"].items():
                 t = v.get("thumb") or ""
@@ -52,9 +56,7 @@ class Library:
         self._dirty_at = 0.0
 
     def save(self):
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self.data, ensure_ascii=False, indent=1), encoding="utf-8")
-        tmp.replace(self.path)
+        write_json(self.path, self.data)
 
     # ---------------------------------------------------------------- videos
     def register(self, vid: str, **info) -> dict:

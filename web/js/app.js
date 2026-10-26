@@ -67,6 +67,8 @@ function onMessage(m) {
       // al reconectar, la pestaña sigue en su biblioteca (la responde con todo: lista, prefs, videos)
       if (typeof vaults !== "undefined" && vaults.current) send({ type: "vault_open", id: vaults.current });
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
+      // la sesión nueva no sabe qué se está viendo: la cola vuelve a darle prioridad
+      if (state.videoId && state.serverSide && (currentView() === "player" || lib.mini)) send({ type: "watch", video: state.videoId, t: vEn.currentTime || 0 });
       send({ type: "library" });
       send({ type: "glossary_get" });
       break;
@@ -145,6 +147,11 @@ function onMessage(m) {
     case "deleted":
       if (m.videos.includes(state.videoId)) closeVideo();
       break;
+    case "perf": perfUpdate(m); break;              // web/js/perf.js
+    case "restarting": restarting(m); break;
+    case "trashed": trashed(m); break;              // web/js/trash.js
+    case "trash": trashUpdate(m); break;
+    case "trash_restored": trashRestored(m); break;
     case "yt_blocked":
       toast("YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min. "
         + "Si sigue, renueva las cookies en Preferencias → YouTube.", "warn");
@@ -285,8 +292,48 @@ async function fingerprint(file) {
 
 async function sha256(data) {
   const buf = data instanceof Blob ? await data.arrayBuffer() : new TextEncoder().encode(data);
-  const h = await crypto.subtle.digest("SHA-256", buf);
+  // crypto.subtle solo existe con https o en este equipo; desde otro equipo de la red (http) se calcula aquí
+  const h = window.crypto?.subtle ? await crypto.subtle.digest("SHA-256", buf) : sha256js(new Uint8Array(buf));
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+function sha256js(bytes) {
+  const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  const H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  const n = bytes.length, total = Math.ceil((n + 9) / 64) * 64;
+  const m = new Uint8Array(total);
+  m.set(bytes);
+  m[n] = 0x80;
+  const dv = new DataView(m.buffer);
+  dv.setUint32(total - 8, Math.floor(n / 0x20000000));
+  dv.setUint32(total - 4, (n << 3) >>> 0);
+  const w = new Uint32Array(64);
+  const rot = (x, r) => (x >>> r) | (x << (32 - r));
+  for (let o = 0; o < total; o += 64) {
+    for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rot(w[i - 15], 7) ^ rot(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+      const s1 = rot(w[i - 2], 17) ^ rot(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (rot(e, 6) ^ rot(e, 11) ^ rot(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) >>> 0;
+      const t2 = ((rot(a, 2) ^ rot(a, 13) ^ rot(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    [a, b, c, d, e, f, g, h].forEach((x, i) => { H[i] = (H[i] + x) >>> 0; });
+  }
+  const out = new DataView(new ArrayBuffer(32));
+  H.forEach((x, i) => out.setUint32(i * 4, x));
+  return out.buffer;
 }
 
 function loadVideo(src, id, name, audioSrc, opts = {}) {
@@ -593,14 +640,17 @@ $("#multi-csv").addEventListener("change", (e) => {
   e.target.value = "";
 });
 $("#multi-dlg").addEventListener("close", () => {
-  if ($("#multi-dlg").returnValue !== "ok") return;
+  if ($("#multi-dlg").returnValue !== "ok") {
+    $("#multi-coll").value = "";  // cancelado: la colección elegida no queda para la próxima importación
+    return;
+  }
   const items = multiParsed();
   if (!items.length) return;
   importVideos(items.map((x) => x.url));
   $("#multi-coll").value = "";
 });
 
-(async () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(location.search);
   if (params.get("yt")) {
     const go = () => (state.ready ? openYouTube(params.get("yt")) : setTimeout(go, 300));
@@ -611,7 +661,7 @@ $("#multi-dlg").addEventListener("close", () => {
     const abs = new URL(src, location.href).href;
     loadVideo(abs, await sha256(abs), decodeURIComponent(abs.split("/").pop()));
   }
-})();
+});
 
 /* ------------------------------------------------------------ audio → servidor */
 async function ensureAudio() {
@@ -620,15 +670,7 @@ async function ensureAudio() {
     return;
   }
   const ctx = new AudioContext({ latencyHint: "interactive" });
-  state.audio = { ctx };
-  await ctx.audioWorklet.addModule("js/capture-worklet.js");
   const src = ctx.createMediaElementSource(vEn);
-  const node = new AudioWorkletNode(ctx, "capture", {
-    numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
-    processorOptions: { target: SR, chunk: 1600 },
-  });
-  const mute = ctx.createGain();
-  mute.gain.value = 0;
   // original → (ganancia) → parlantes; la captura para el ASR va antes de la ganancia
   const orig = ctx.createGain();
   const dub = ctx.createGain();
@@ -638,9 +680,22 @@ async function ensureAudio() {
   master.connect(ctx.destination);
   src.connect(orig).connect(master);
   dub.connect(master);
-  state.audio.orig = orig;
-  state.audio.dub = dub;
-  state.audio.master = master;
+  state.audio = { ctx, orig, dub, master };  // completo antes de esperar nada: la voz ya puede sonar
+  // la captura (reconocer en vivo lo que suena) necesita https o este equipo; sin ella,
+  // lo hace la cola del servidor
+  if (!ctx.audioWorklet) return;
+  try {
+    await ctx.audioWorklet.addModule("js/capture-worklet.js");
+  } catch (e) {
+    console.warn("sin captura de audio", e);
+    return;
+  }
+  const node = new AudioWorkletNode(ctx, "capture", {
+    numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+    processorOptions: { target: SR, chunk: 1600 },
+  });
+  const mute = ctx.createGain();
+  mute.gain.value = 0;
   src.connect(node);
   node.connect(mute).connect(ctx.destination);
   node.port.onmessage = (e) => onPcm(e.data);
@@ -982,10 +1037,14 @@ function playDubStretched(seg, item, offset, rate) {
   a.preservesPitch = true;
   a.playbackRate = rate;
   a.currentTime = offset;
-  state.audio.ctx.createMediaElementSource(a).connect(state.audio.dub);
-  const handle = { stop: () => a.pause() };
+  const node = state.audio.ctx.createMediaElementSource(a);
+  node.connect(state.audio.dub);
+  // al terminar o cortarse, el elemento y su nodo se sueltan (si no, se acumulan frase a frase)
+  const release = () => { a.pause(); node.disconnect(); a.removeAttribute("src"); a.load(); };
+  const handle = { stop: release };
   player.cur = { src: handle, id: seg.id };
   a.addEventListener("ended", () => {
+    release();
     if (player.cur?.src === handle) {
       player.cur = null;
       liveNext();
@@ -1253,13 +1312,24 @@ function focusEditor() {
 }
 
 // diálogo de confirmación con el estilo de la página
-function confirmDlg(title, text, okLabel) {
+// typeToConfirm: hay que escribir ese texto (p. ej. el nombre de la biblioteca) para poder aceptar
+function confirmDlg(title, text, okLabel, typeToConfirm = "") {
   const dlg = $("#confirm-dlg");
+  const ok = $("#confirm-ok");
+  const input = $("#confirm-input");
   $("#confirm-title").textContent = title;
   $("#confirm-text").textContent = text;
-  $("#confirm-ok").textContent = okLabel;
+  ok.textContent = okLabel;
+  input.hidden = !typeToConfirm;
+  input.value = "";
+  input.placeholder = typeToConfirm;
+  $("#confirm-type").hidden = !typeToConfirm;
+  $("#confirm-type").textContent = typeToConfirm ? `Escribe «${typeToConfirm}» para confirmar` : "";
+  ok.disabled = !!typeToConfirm;
+  input.oninput = () => { ok.disabled = input.value.trim() !== typeToConfirm; };
   dlg.returnValue = "";
   dlg.showModal();
+  if (typeToConfirm) input.focus();
   return new Promise((resolve) => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true }));
 }
 
@@ -1308,7 +1378,9 @@ function closeVideo() {
   vEn.load();
   document.title = "Translay";
   renderTranscript();
-  setView("library");
+  lib.mini = false;  // si sonaba en miniatura, la miniatura se va con él
+  document.body.classList.remove("mini");
+  if (currentView() === "player") setView("library");
 }
 
 function renderActive(force) {
@@ -1395,7 +1467,8 @@ function renderHead() {
 
 vEn.addEventListener("loadedmetadata", renderTimeline);
 
-connect();
+// después de cargar todos los scripts: los primeros mensajes del servidor ya encuentran quién los atiende
+window.addEventListener("DOMContentLoaded", connect);
 
 /* ------------------------------------------------------------ reposo */
 // estado en palabras simples; el detalle técnico queda al pasar el mouse
@@ -1477,6 +1550,14 @@ const PREF_BLOCKS = {
   bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
   glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
   youtube: () => [[YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
+  rendimiento: () => {
+    perfStart();
+    renderPerf();
+    return [[PERF_HW, "Tu equipo", ""], [PERF_PROFILE, "Perfil", "Qué modelos usa Translay. Los tiempos y el estado salen de mediciones reales en equipos como el tuyo."],
+      [PERF_LIMITS, "Límites", "Cuánto del equipo puede usar Translay. La RAM y la CPU se aplican al momento."],
+      [PERF_ALERTS, "Avisos", ""]];
+  },
+  papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, "En la papelera", "Cada cosa se borra sola a los 30 días de borrarla."]]; },
   acceso: () => [
     [ACC.owner, "Contraseña del dueño", "Con ella entras como dueño desde otros equipos. Desde este equipo no se pide."],
     [ACC.net, "Acceso desde otros equipos", "Abre Translay a tu red local: otros equipos y celulares de la misma red."],
@@ -1501,7 +1582,19 @@ function prefControl(p) {
 function renderPrefs() {
   const nav = $("#prefs-nav");
   const body = $("#prefs-body");
-  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, ...Object.values(ACC));  // se vuelven a poner en su página
+  // escribiendo en esta misma página (una contraseña, una URL): se redibuja al salir del cuadro,
+  // no a mitad (un aviso de otra pestaña borraría lo escrito)
+  const f = document.activeElement;
+  if (f && body.contains(f) && f.matches("input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea")
+      && body.dataset.sec === lib.prefSec) {
+    if (!renderPrefs.pending) {
+      renderPrefs.pending = true;
+      f.addEventListener("blur", () => setTimeout(() => { renderPrefs.pending = false; renderPrefs(); }, 400), { once: true });
+    }
+    return;
+  }
+  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, TRASH_BLOCK, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
+    ...Object.values(ACC));  // se vuelven a poner en su página
   if (!prefsSections.length) return;
   if (!prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = prefsSections[0][0];
   if (typeof syncRoute === "function" && currentView() === "prefs") syncRoute();
@@ -1539,6 +1632,7 @@ function renderPrefs() {
     page.append(el("section", { class: "set-group block" }, el("h3", { text: t }), d ? el("p", { class: "set-desc", text: d }) : null, block));
   }
   body.replaceChildren(page);
+  body.dataset.sec = lib.prefSec;
 }
 function markPrefsNav() {}  // (antes: índice que seguía el scroll; ahora cada sección es su página)
 function openPrefs(sec) {
@@ -1601,13 +1695,16 @@ function downloadText(m) {
 
 /* ------------------------------------------------------------ avisos */
 let toastTimer = null;
-function toast(text, kind = "error") {
+// action: { label, onClick } — un botón en el aviso (p. ej. «Deshacer»)
+function toast(text, kind = "error", action = null) {
   const t = $("#toast");
-  t.textContent = text;
+  t.replaceChildren(...[el("span", { class: "toast-text", text }),
+    action ? btn(action.label, { size: "xs", cls: "toast-act", onClick: (e) => { e.stopPropagation(); t.hidden = true; action.onClick(); } }) : null]
+    .filter(Boolean));
   t.dataset.kind = kind;  // error (rojo) · ok (verde) · warn (ámbar)
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 15000);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 12000 : 15000);
 }
 $("#toast").addEventListener("click", () => { $("#toast").hidden = true; });
 
@@ -1895,3 +1992,13 @@ function notifyLater(kind, name) {
     b.names = [];
   }, 4000);
 }
+
+// Enter en un cuadro de texto de un diálogo acepta (el envío implícito tomaría «Cancelar», el primero)
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.isComposing) return;
+  const inp = e.target.closest?.("dialog form[method=dialog] input");
+  if (!inp) return;
+  e.preventDefault();
+  const ok = inp.form.querySelector('button[value="ok"]');
+  if (ok && !ok.disabled) inp.form.requestSubmit(ok);
+}, true);

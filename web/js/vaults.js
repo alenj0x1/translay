@@ -31,6 +31,8 @@ DD_DECO.vault = (o) => (o.value === "all" ? icon("library") : vaultById(o.value)
 
 function vaultsUpdate(m) {
   const changed = vaults.current && vaults.current !== m.current;
+  // se eliminó la biblioteca abierta: su video (archivos ya en la papelera) se cierra
+  if (changed && state.videoId && !m.items.some((v) => v.id === vaults.current) && typeof closeVideo === "function") closeVideo();
   vaults.list = m.items;
   vaults.current = m.current;
   if (changed) {  // otra biblioteca: la vista empieza desde arriba
@@ -228,6 +230,8 @@ function vaultCard(v, mode) {
   const isCur = v.id === vaults.current;
   const owner = !document.body.classList.contains("guest");
   const counts = `${v.count ?? 0} ${v.count === 1 ? "video" : "videos"}` + (v.downloaded != null ? ` · ${v.downloaded} en el equipo` : "");
+  // la abierta: lo que hay ahora (la lista de bibliotecas se actualiza menos seguido)
+  const count = isCur && typeof lib !== "undefined" && lib.loaded ? Object.keys(lib.videos).length : (v.count || 0);
   const menu = (at) => {
     openMenu([
       { head: v.name },
@@ -241,9 +245,17 @@ function vaultCard(v, mode) {
           send({ type: "vault_remove", id: v.id, delete_files: false });
         }
       } },
+      owner && count > 0 && { label: "Vaciar…", icon: "trash", danger: true, onClick: async () => {
+        if (await confirmDlg(`¿Vaciar «${v.name}»?`,
+          `${count === 1 ? "Su video" : `Sus ${count} videos`}, con traducciones, voces, descargas y colecciones, van a la papelera. Puedes devolverlos durante 30 días.`,
+          "Vaciar", v.name)) {
+          send({ type: "lib_clear", vault: v.id });
+        }
+      } },
       owner && !v.main && { label: "Eliminar", icon: "trash", danger: true, onClick: async () => {
         if (await confirmDlg(`¿Eliminar «${v.name}»?`,
-          `Se borran sus ${v.count} videos con sus traducciones, voces y archivos descargados. No se puede deshacer.`, "Eliminar")) {
+          `La biblioteca, con sus ${v.count} videos y todos sus archivos, va a la papelera. Puedes devolverla durante 30 días.`,
+          "Eliminar", v.name)) {
           send({ type: "vault_remove", id: v.id, delete_files: true });
         }
       } },

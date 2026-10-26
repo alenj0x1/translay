@@ -124,7 +124,10 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   .libside, .prefs-nav, .qnav { flex-direction: row; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 10px 12px; box-shadow: 0 1px 0 var(--line); }
   .libside { flex-direction: column; gap: 8px; height: auto; }
   .side-main, .libside #collections { display: flex; gap: 6px; overflow-x: auto; padding: 0; border: 0; }
-  .navlist h4, .navlist .inline-form { display: none !important; }
+  .navlist h4:not(.with-add), .navlist .inline-form { display: none !important; }
+  /* «Nueva colección»: solo su botón, como una píldora más */
+  .navlist h4.with-add { display: flex; flex: none; margin: 0; padding: 0; font-size: 0; }
+  .navlist h4.with-add .btn { min-height: var(--h-sm); width: var(--h-sm); border-radius: var(--r-pill); background: var(--surface-2); }
   .navlist .item { flex: none; width: auto; min-height: var(--h-sm); padding: 0 var(--s3); border-radius: var(--r-pill); background: var(--surface-2); }
   .navlist .item.active { background: var(--accent); color: var(--on-accent); }
   .navlist .item.active > span:first-child > svg, .navlist .item.active > span + span { color: inherit; }

@@ -35,7 +35,7 @@ function applyRoute(hash) {
       else setView("player");
     } else if (kind === "cola") {
       setView("queue");
-    } else if (kind === "preferencias") {
+    } else if (kind === "preferencias" && can("owner")) {  // invitados: la biblioteca
       if (id) lib.prefSec = id;
       setView("prefs");
       if (typeof renderPrefs === "function") renderPrefs();

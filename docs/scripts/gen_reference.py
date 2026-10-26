@@ -45,6 +45,8 @@ def cli_options() -> list[dict]:
                     item["default"] = ast.literal_eval(kw["default"])
                 except ValueError:  # se lee de una variable de entorno
                     item["default"] = ""
+                if item["default"] is None:  # sin valor fijo: lo decide el perfil de rendimiento
+                    item["default"] = "según el perfil"
             action = ast.literal_eval(kw["action"]) if "action" in kw else None
             if action == "version":
                 continue
@@ -56,7 +58,7 @@ def cli_options() -> list[dict]:
                     item["help"] = ast.literal_eval(kw["help"])
                 except ValueError:  # texto armado con los modelos de vt/translate.py
                     models = literal(parse("translate.py"), "MODELS")
-                    item["help"] = "none | " + " | ".join(models) + " | repo de HF (Marian CT2)"
+                    item["help"] = "none | " + " | ".join(models) + " | repo de HF (Marian CT2) (por defecto, el del perfil)"
             out.append(item)
     return out
 

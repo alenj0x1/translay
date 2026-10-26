@@ -23,6 +23,7 @@ _MIME = {
     ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".json": "application/json",
     ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".m4a": "audio/mp4",
     ".mp4": "video/mp4", ".webm": "video/webm", ".mkv": "video/x-matroska",
     ".mov": "video/quicktime", ".mp3": "audio/mpeg", ".wav": "audio/wav",
 }
@@ -46,12 +47,19 @@ class WebSocket:
                     n = struct.unpack("!H", await self.reader.readexactly(2))[0]
                 elif n == 127:
                     n = struct.unpack("!Q", await self.reader.readexactly(8))[0]
-                if n > _MAX_MSG:
+                control = op >= 0x8
+                # los marcos del cliente van enmascarados; los de control son cortos y enteros;
+                # una continuación sin mensaje empezado (o un mensaje dentro de otro) es un error
+                if not masked or (control and (n > 125 or not fin)) or (op == 0x0 and not op_msg) \
+                        or (op in (0x1, 0x2) and op_msg):
+                    await self.close(1002)
+                    return None
+                if n > _MAX_MSG or (not control and sum(map(len, parts)) + n > _MAX_MSG):
                     await self.close(1009)
                     return None
-                mask = await self.reader.readexactly(4) if masked else None
+                mask = await self.reader.readexactly(4)
                 data = await self.reader.readexactly(n)
-                if mask and n:
+                if n:
                     m = np.resize(np.frombuffer(mask, np.uint8), n)
                     data = (np.frombuffer(data, np.uint8) ^ m).tobytes()
                 if op == 0x8:
@@ -64,8 +72,11 @@ class WebSocket:
                     continue
                 if op in (0x1, 0x2):
                     op_msg, parts = op, [data]
-                else:
+                elif op == 0x0:
                     parts.append(data)
+                else:  # código de operación desconocido
+                    await self.close(1002)
+                    return None
                 if fin:
                     payload = b"".join(parts)
                     return payload.decode("utf-8") if op_msg == 0x1 else payload
@@ -137,6 +148,7 @@ class AppServer:
         origin_ok: fn(cabeceras) → bool: si el pedido viene de la propia app (vt/auth.py same_origin).
         Se exige al WebSocket y a todo lo que no sea GET/HEAD, salvo con clave de API."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
+        self._app_root = routes["/"].resolve() if "/" in routes else None  # la interfaz: lo único que es página
         self.ws_routes = ws_routes
         self.put_routes = put_routes or {}
         self.get_routes = get_routes or {}
@@ -153,19 +165,29 @@ class AppServer:
         """Otra dirección más (p. ej. la de la red local); devuelve el servidor para cerrarlo."""
         return await asyncio.start_server(self._handle, host, port)
 
+    async def _read_head(self, reader):
+        """Línea del pedido y cabeceras: como máximo 100 cabeceras (y 15 s, ver _handle)."""
+        line = await reader.readline()
+        if not line:
+            return None, None
+        headers = {}
+        for _ in range(100):
+            h = await reader.readline()
+            if h in (b"\r\n", b"\n", b""):
+                return line, headers
+            k, _, v = h.decode("latin-1").partition(":")
+            headers[k.strip().lower()] = v.strip()
+        raise ValueError("demasiadas cabeceras")
+
     async def _handle(self, reader, writer):
         try:
-            line = await reader.readline()
+            try:  # una conexión que no termina de mandar sus cabeceras se cierra (slowloris)
+                line, headers = await asyncio.wait_for(self._read_head(reader), 15)
+            except asyncio.TimeoutError:
+                return
             if not line:
                 return
             method, target, _ = line.decode("latin-1").split(" ", 2)
-            headers = {}
-            while True:
-                h = await reader.readline()
-                if h in (b"\r\n", b"\n", b""):
-                    break
-                k, _, v = h.decode("latin-1").partition(":")
-                headers[k.strip().lower()] = v.strip()
             parts = urlsplit(target)
             path = unquote(parts.path)
             from urllib.parse import parse_qs
@@ -255,7 +277,11 @@ class AppServer:
                 return await self._simple(writer, 416, "Range Not Satisfiable")
             status = "206 Partial Content"
         length = end - start + 1
-        head = [f"HTTP/1.1 {status}", f"Content-Type: {_MIME.get(f.suffix.lower(), 'application/octet-stream')}",
+        ctype = _MIME.get(f.suffix.lower(), "application/octet-stream")
+        app = self._app_root is not None and f.resolve().is_relative_to(self._app_root)
+        if not app and not ctype.startswith(("video/", "audio/", "image/png", "image/jpeg", "image/webp")):
+            ctype = "application/octet-stream"  # archivos del usuario: nunca se interpretan como página
+        head = [f"HTTP/1.1 {status}", f"Content-Type: {ctype}", "X-Content-Type-Options: nosniff",
                 f"Content-Length: {length}", "Accept-Ranges: bytes",
                 # miniaturas: en caché (al redibujar listas no se vuelven a pedir); lo demás cambia
                 "Cache-Control: max-age=3600" if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
@@ -268,7 +294,8 @@ class AppServer:
 
         dl = parse_qs(query).get("dl", [""])[0]
         if dl:
-            ascii_name = dl.encode("ascii", "replace").decode().replace("?", "_").replace('"', "")
+            dl = "".join(c for c in dl if c >= " " and c != "\x7f")  # sin saltos de línea en la cabecera
+            ascii_name = dl.encode("ascii", "replace").decode().replace("?", "_").replace('"', "").replace("\\", "_")
             head.append(f'Content-Disposition: attachment; filename="{ascii_name}"; '
                         f"filename*=UTF-8''{quote(dl)}")
         writer.write(("\r\n".join(head) + "\r\n\r\n").encode())

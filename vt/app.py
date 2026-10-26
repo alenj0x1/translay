@@ -29,13 +29,15 @@ def main():
     p.add_argument("--host", default="127.0.0.1",
                    help="Dirección donde escucha el servidor (0.0.0.0 para todas, p. ej. en Docker)")
     p.add_argument("--port", type=int, default=8765, help="Puerto HTTP y WebSocket")
-    p.add_argument("--model", default="large-v3-turbo", help="Modelo de Whisper para el reconocimiento")
-    p.add_argument("--device", default="cuda", help="cuda (GPU NVIDIA) o cpu")
-    p.add_argument("--compute-type", default="float16", help="Precisión de CTranslate2: float16, int8_float16, int8…")
-    p.add_argument("--beam", type=int, default=5, help="Ancho de búsqueda de Whisper (5 segmenta mejor que 1)")
-    p.add_argument("--translator", default="opus-big",
-                   help="none | " + " | ".join(MT_MODELS) + " | repo de HF (Marian CT2)")
-    p.add_argument("--voice", default="omnivoice", help="none | omnivoice | chatterbox")
+    # sin estos argumentos, los modelos salen del perfil de rendimiento (Preferencias → Rendimiento,
+    # vt/profiles.py), elegido según el equipo; si se pasan, ganan sobre el perfil
+    p.add_argument("--model", default=None, help="Modelo de Whisper (por defecto, el del perfil de rendimiento)")
+    p.add_argument("--device", default=None, help="cuda (GPU NVIDIA) o cpu (por defecto, cuda si hay GPU)")
+    p.add_argument("--compute-type", default=None, help="Precisión de Whisper en CTranslate2: float16, int8_float16, int8…")
+    p.add_argument("--beam", type=int, default=None, help="Ancho de búsqueda de Whisper (5 segmenta mejor que 1)")
+    p.add_argument("--translator", default=None,
+                   help="none | " + " | ".join(MT_MODELS) + " | repo de HF (Marian CT2) (por defecto, el del perfil)")
+    p.add_argument("--voice", default=None, help="none | omnivoice | chatterbox (por defecto, según el perfil)")
     p.add_argument("--owner-password", default=os.environ.get("TRANSLAY_OWNER_PASSWORD", ""),
                    help="Contraseña del dueño al arrancar (o TRANSLAY_OWNER_PASSWORD); hace falta cuando "
                         "nadie entra desde 127.0.0.1, como en Docker")
@@ -46,11 +48,42 @@ def main():
     p.add_argument("--no-browser", action="store_true", help="No abrir el navegador al arrancar")
     a = p.parse_args()
 
+    # equipo, límites y perfil de rendimiento (vt/hardware.py, vt/limits.py, vt/profiles.py)
+    from . import hardware, profiles
+    from .limits import apply_self
+
+    prefs = Prefs(ROOT / "data" / "prefs.json")
+    hw = hardware.detect()
+    lim = {"vram_mb": int(prefs.values.get("limit_vram_mb") or 0) or None,
+           "ram_mb": int(prefs.values.get("limit_ram_mb") or 0) or None,
+           "threads": int(prefs.values.get("limit_threads") or 0) or None}
+    err = apply_self(lim["ram_mb"], lim["threads"])
+    if err:
+        print(f"[rendimiento] {err}", flush=True)
+    cli = {k: v for k, v in vars(a).items() if k in ("model", "device", "compute_type", "beam", "translator", "voice")
+           and v is not None}
+    # el dispositivo real decide el perfil: con --device cpu (o sin CUDA usable) es como no tener GPU
+    a.device = a.device or ("cuda" if hw.get("gpu") and hardware.cuda_usable() else "cpu")
+    if a.device != "cuda":
+        hw = dict(hw, gpu=None)
+    active = profiles.resolve(prefs.values.get("perf_profile", "auto"), hw, lim)
+    prof = profiles.PROFILES[active]
+    a.model = a.model or prof["asr"]
+    a.compute_type = a.compute_type or (prof["asr_ct"] if a.device == "cuda" else "int8")
+    a.beam = a.beam or prof["beam"]
+    mt_ct = None if a.translator else prof["mt_ct"]
+    a.translator = a.translator or prof["mt"]
+    a.voice = a.voice or ("omnivoice" if prof["voice"] else "none")
+    g = hw.get("gpu")
+    print(f"Equipo: {g['name'] + ' ' + str(round((g.get('vram_total_mb') or 0) / 1024)) + ' GB' if g else 'sin GPU'} · "
+          f"{round((hw['ram']['total_mb'] or 0) / 1024)} GB de RAM · {hw['cpu']['usable_threads']} hilos · "
+          f"perfil «{prof['name']}»" + (f" (con {', '.join(cli)} por línea de comandos)" if cli else ""), flush=True)
+
     print(f"Preparando {a.model} en {a.device} ({a.compute_type})…", flush=True)
     asr = WhisperASR(a.model, a.device, a.compute_type, a.beam)
     asr.warmup()
     print(f"Preparando traductor {a.translator}…", flush=True)
-    translator = load_translator(a.translator, a.device)
+    translator = load_translator(a.translator, a.device, mt_ct)
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
     # bibliotecas (vt/vaults.py): Principal es data/; las demás, cada una en su carpeta
@@ -89,18 +122,25 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
         return d
 
+    MEDIA_EXTS = {"mp4", "m4v", "webm", "mkv", "mov", "avi", "ts", "flv", "wmv", "3gp", "mpg", "mpeg", "mp3", "m4a", "wav", "ogg", "opus", "flac", "aac"}
+
     async def put_media(rest, query, headers, body):
         """Copia de un archivo local, para volver a verlo desde la biblioteca."""
         vid = rest.strip("/")
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
             return 400, "id invalido"
         ext = re.sub(r"[^a-z0-9]", "", Path(query.get("name", "video.mp4")).suffix.lower())[:5] or "mp4"
+        if ext not in MEDIA_EXTS:  # solo video o audio: nada que el navegador abra como página
+            return 400, "formato no admitido"
         out = vault_dir(vid, query) / f"{vid}.{ext}"
         tmp = out.with_suffix(".part")
-        with tmp.open("wb") as f:
-            async for chunk in body:
-                f.write(chunk)
-        tmp.replace(out)
+        try:
+            with tmp.open("wb") as f:
+                async for chunk in body:
+                    f.write(chunk)
+            tmp.replace(out)
+        finally:
+            tmp.unlink(missing_ok=True)  # subida cortada: no queda el archivo a medias
         library.set_field(vid, media=f"/media/lib/{out.name}")
         return 200, "OK"
 
@@ -109,8 +149,12 @@ def main():
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
             return 400, "id invalido"
         out = vault_dir(vid, query) / f"{vid}.jpg"
-        data = b"".join([c async for c in body])
-        out.write_bytes(data[: 2 << 20])
+        data = b""
+        async for c in body:  # como mucho 2 MB: lo demás no se guarda en memoria
+            data += c[: (2 << 20) - len(data)]
+        if not data.startswith(b"\xff\xd8"):
+            return 400, "no es una imagen JPEG"
+        out.write_bytes(data)
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
         return 200, "OK"
     thumbs_dir = ROOT / "data" / "youtube" / "thumbs"
@@ -155,7 +199,8 @@ def main():
 
     chan_dir = ROOT / "data" / "youtube" / "channels"
     chan_dir.mkdir(parents=True, exist_ok=True)
-    chan_locks: dict = {}
+    chan_locks: dict = {}  # canales ya pedidos en esta sesión
+    chan_sem = asyncio.Semaphore(1)  # de a uno con YouTube
 
     async def get_channel_art(rest):
         """/chan/<avatar|banner>/<canal>: avatar o banner del canal de YouTube, bajado una
@@ -176,17 +221,29 @@ def main():
                     if v.get("source") == "youtube" and v.get("channel") == name), None)
         if not vid:
             return None
-        async with chan_locks.setdefault(slug, asyncio.Lock()):
-            if not f.exists() and not miss.exists():
-                try:
-                    got = await asyncio.get_running_loop().run_in_executor(
-                        None, youtube.channel_art, vid[3:], out, prefs.values.get("yt_session", "ninguna"))
-                    if not got:
-                        miss.write_text("", encoding="utf-8")
-                except Exception as e:
-                    print(f"[canal] {name}: {e}", flush=True)
-                    miss.write_text(str(e)[:300], encoding="utf-8")
-        return f if f.exists() else None
+        # se baja aparte, de a uno: esperar aquí a yt-dlp dejaría ocupadas las conexiones del
+        # navegador (con muchos canales, el video no llega a cargar) y YouTube frena las ráfagas.
+        # Mientras tanto la vista usa el patrón; la próxima vez ya está.
+        if slug not in chan_locks:
+            chan_locks[slug] = True
+
+            async def fetch():
+                async with chan_sem:
+                    if f.exists() or miss.exists():
+                        return
+                    try:
+                        got = await asyncio.get_running_loop().run_in_executor(
+                            None, youtube.channel_art, vid[3:], out, prefs.values.get("yt_session", "ninguna"))
+                        if not got:
+                            miss.write_text("", encoding="utf-8")
+                    except Exception as e:
+                        print(f"[canal] {name}: {e}", flush=True)
+                        if "rate-limited" not in str(e):  # frenado por YouTube: se reintenta otro día
+                            miss.write_text(str(e)[:300], encoding="utf-8")
+                        await asyncio.sleep(60)
+
+            asyncio.ensure_future(fetch())
+        return None
 
     async def get_vault_file(rest):
         """Archivos de las demás bibliotecas: /v/<biblioteca>/media/yt/…, /audio/…, /voices/…, /people/…"""
@@ -222,9 +279,10 @@ def main():
 
         tts = TTSClient(a.voice, a.device, lazy=True)  # el proceso de voz arranca al primer uso
         dubber = Dubber(tts, ROOT / "data")
+        dubber.tts_params = {"num_step": prof["steps"] or 16}
     tts_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
     info = {"model": a.model, "device": "GPU" if a.device == "cuda" else a.device.upper(),
-            "translator": translator.name, "voice": a.voice}
+            "translator": translator.name, "voice": a.voice, "profile": active}
 
     # avisos para todas las pestañas abiertas (cola, reposo, avance en segundo plano)
     sessions: set = set()
@@ -247,7 +305,9 @@ def main():
     # arranca en reposo: la preparación cargó los modelos para verificarlos; vuelven a la RAM
     asr.unload()
     translator.unload()
-    prefs = Prefs(ROOT / "data" / "prefs.json")
+    from .perf import Perf
+
+    perf = Perf(prefs, res, active, cli, device=a.device)
     processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
                           youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
                           order=lambda: prefs.values.get("download_order", "orden"))
@@ -267,7 +327,7 @@ def main():
 
     def make_session(vault, access):
         s = Session(CollectorWS(), asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                    processor, prefs, notify, exporter, vaults=vaults, access=access, admin=admin)
+                    processor, prefs, notify, exporter, vaults=vaults, access=access, admin=admin, perf=perf)
         s.vault = vault
         return s
 
@@ -280,7 +340,7 @@ def main():
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
                           processor, prefs, notify, exporter, vaults=vaults, access=auth.access(ws.request),
-                          admin=admin)
+                          admin=admin, perf=perf)
         sessions.add(session)
         try:
             await session.run()

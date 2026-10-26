@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .jsonio import write_json
 from .audiofx import active_rms_db, fade, match_loudness, read_wav, time_stretch, trim_silence, write_wav
 from .speakers import SR, SpeakerEmbedder, SpeakerTracker
 
@@ -37,7 +38,7 @@ class VideoVoices:
                 wav = self.dir / v["file"]
                 if wav.exists():  # la referencia guardada vuelve como un solo fragmento
                     x, _ = read_wav(wav)
-                    self.tracker.refs[int(k)] = [(v.get("score", 3.0), x, v.get("text", ""))]
+                    self.tracker.refs[self.tracker.resolve(int(k))] = [(v.get("score", 3.0), x, v.get("text", ""))]
 
     def add(self, spk: int, audio: np.ndarray, text: str) -> bool:
         if not self.tracker.add_reference(spk, audio, text):
@@ -46,17 +47,24 @@ class VideoVoices:
         version = self.meta.get(str(spk), {}).get("version", 0) + 1
         name = f"spk{spk}_v{version}.wav"  # nombre nuevo: el motor no reutiliza la voz vieja
         write_wav(self.dir / name, x, SR)
+        # la versión anterior se conserva: el proceso de voz puede estar leyéndola ahora mismo
+        keep = {name, f"spk{spk}_v{version - 1}.wav"}
         for old in self.dir.glob(f"spk{spk}_v*.wav"):
-            if old.name != name:
-                old.unlink(missing_ok=True)
+            if old.name not in keep:
+                try:
+                    old.unlink(missing_ok=True)
+                except OSError:  # en uso (Windows): se borra en la próxima versión
+                    pass
         self.meta[str(spk)] = {"file": name, "version": version, "text": ref_text,
                                "score": float(max(r[0] for r in self.tracker.refs[spk]))}
-        self.meta_path.write_text(json.dumps(self.meta, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_json(self.meta_path, self.meta)
         return True
 
     def ref_for(self, spk: int | None) -> tuple[str | None, str | None]:
         v = self.tracker.voice_for(spk)
         m = self.meta.get(str(v)) if v is not None else None
+        if not m and v is not None:  # personas fusionadas: la referencia puede estar bajo el id absorbido
+            m = next((x for k, x in self.meta.items() if k.isdigit() and self.tracker.voice_for(int(k)) == v), None)
         if not m:
             return None, None
         return str(self.dir / m["file"]), m["text"]
@@ -69,6 +77,8 @@ class Dubber:
         self.audio_root = data_root / "audio"
         self.voice_root = data_root / "voices"
         self.max_rate = max_rate
+        # parámetros de la voz (los perfiles de rendimiento bajan los pasos en equipos chicos)
+        self.tts_params = {"num_step": 16}
         self._videos: dict[str, VideoVoices] = {}
         self._lock = threading.Lock()
 
@@ -175,7 +185,7 @@ class Dubber:
         slot = slot or self.slot(tr, seg)
         target = self.target_duration(seg, slot)
         y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target,
-                                    num_step=16, clean_ref="auto")
+                                    clean_ref="auto", **self.tts_params)
         y = trim_silence(y, sr, pad_s=0.03)
         room = slot
         dur = len(y) / sr

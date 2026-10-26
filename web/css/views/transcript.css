@@ -45,7 +45,6 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
 .transcript .cbtn svg { width: 12px; height: 12px; stroke-width: 1.8; }
 .transcript li:hover .cbtn { display: grid; }
 .transcript li .cell:last-child, body.layout-wide .transcript li .cell { padding-right: 40px; }
-.transcript li.has-notes::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 2px; background: var(--accent); }
 .transcript .cbtn.has { display: inline-flex; align-items: center; gap: 3px; width: auto; padding: 0 7px; border-radius: var(--r-pill); font: 700 11px/1 var(--font); }
 .transcript .cbtn.has svg { width: 11px; height: 11px; }
 

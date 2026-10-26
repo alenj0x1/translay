@@ -13,7 +13,7 @@ Translay distingue entre el dueño, que puede todo, y los invitados, que entran 
 
 ## El dueño
 
-Es dueño quien se conecta **desde el mismo equipo donde corre la app**: la conexión llega desde `127.0.0.1` (o `::1`) y no trae ninguna de estas cabeceras de proxy:
+Es dueño quien se conecta **desde el mismo equipo donde corre la app**: la conexión llega desde `127.0.0.1` (o `::1`), pide la app por `localhost`, `127.0.0.1` o `[::1]` (así un dominio que apunte a tu equipo, el llamado *DNS rebinding*, no cuenta como local) y no trae ninguna de estas cabeceras de proxy:
 
 `X-Forwarded-For` · `X-Real-IP` · `Forwarded` · `CF-Connecting-IP` · `X-Forwarded-Host`
 
@@ -133,7 +133,7 @@ Si arrancas con `--host 0.0.0.0`, el servidor ya escucha en todas las direccione
 | Claves de API | SHA-256 de la clave; se muestra completa una sola vez | `data/auth.json` |
 | Secretos de los webhooks | En claro (hacen falta para firmar) | `data/webhooks.json` |
 
-Ninguna contraseña ni clave se guarda en claro. Cada intento de inicio de sesión espera 0,4 s antes de responder, lo que frena los intentos seguidos, pero no hay bloqueo tras varios fallos.
+Ninguna contraseña ni clave se guarda en claro. Cada intento de inicio de sesión espera 0,4 s antes de responder y, tras 10 intentos fallidos en 10 minutos, ese equipo espera (`429`). Iniciar sesión siempre entrega un token nuevo: uno que alguien haya plantado antes no sirve para colarse en tu sesión.
 
 ## Otros sitios web
 

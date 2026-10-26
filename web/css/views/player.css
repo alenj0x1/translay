@@ -48,6 +48,12 @@ body.no-sub-en #cap-en { display: none !important; }
 .ready b { display: block; width: 52px; height: 4px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .2); overflow: hidden; }
 .ready em { display: block; height: 100%; width: 0; background: #fff; transition: width .4s; }
 .ready[data-state="ok"] b { display: none; }
+/* «Listo para reproducir» arriba a la izquierda (no tapa el subtítulo en inglés) y se va solo al estar listo */
+body.layout-wide .ready { top: var(--s4); left: var(--s4); right: auto; }
+.ready[data-state="ok"] { animation: ready-out .4s 2.5s forwards; }
+@keyframes ready-out { to { opacity: 0; visibility: hidden; } }
+/* mientras prepara, el subtítulo en inglés baja un poco para no encimarse */
+body.layout-wide .screen:has(.ready:not([hidden]):not([data-state="ok"])) #cap-en { top: 56px; }
 
 /* ------------------------------------------------------------- controles */
 .ctrl {

@@ -68,7 +68,7 @@ function videoMenu(v, coll) {
     "sep",
     isOwner() && coll?.kind === "propia" && { label: "Quitar de la colección", icon: "x", onClick: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) },
     isOwner() && { label: "Eliminar video", icon: "trash", danger: true, onClick: async () => {
-      if (await confirmDlg("¿Eliminar este video?", "Se borra de la biblioteca junto con su traducción, sus voces y los archivos descargados.", "Eliminar")) {
+      if (await confirmDlg("¿Eliminar este video?", "Va a la papelera con su traducción, sus voces y lo descargado. Puedes devolverlo durante 30 días.", "Eliminar")) {
         send({ type: "lib_delete", videos: [v.id] });
       }
     } },

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .jsonio import write_json
 from .audiofx import snr_estimate, trim_silence, write_wav
 from .processor import decode_audio
 from .speakers import MAX_CLIP_S, MAX_FALLBACK_S, SR
@@ -111,14 +112,14 @@ def main(check: bool = False):
             write_wav(folder / name, x, SR)
             meta[spk] = {"file": name, "version": version, "text": text, "score": float(score)}
             print(f"   voz {spk}: {len(x) / SR:.1f} s · …{text[-60:]!r}")
-        meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_json(meta_path, meta)
         # toda la voz del video se rehace (quien no tiene referencia usa la de otra persona)
         n = 0
         for s in tr["segments"]:
             if s.pop("dub", None) is not None:
                 n += 1
         tr["updated"] = time.time()
-        tr_path.write_text(json.dumps(tr, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_json(tr_path, tr)
         job = next((j for j in queue["jobs"] if j["id"] == vid), None)
         if job is None:
             queue["jobs"].append({"id": vid, "state": "en cola", "added": time.time(), "error": ""})
@@ -127,7 +128,7 @@ def main(check: bool = False):
         repaired.append((vid, n))
         print(f"   {n} frases a doblar de nuevo (en la cola)")
     if repaired and not check:
-        queue_path.write_text(json.dumps(queue, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_json(queue_path, queue)
     print(f"listo: {len(repaired)} videos")
 
 

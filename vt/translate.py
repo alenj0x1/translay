@@ -139,7 +139,10 @@ class CT2Translator:
         return self.translate_many([text], glossary=glossary)[0]
 
 
-def load_translator(name: str, device: str = "cuda") -> Translator:
+def load_translator(name: str, device: str = "cuda", compute_type: str | None = None) -> Translator:
+    """compute_type: None = el del modelo; en CPU, int8 (float16 no corre en CPU)."""
     if name in ("", "none"):
         return NullTranslator()
-    return CT2Translator(name, device=device)
+    if device == "cpu" and compute_type in (None, "float16", "int8_float16"):
+        compute_type = "int8"
+    return CT2Translator(name, device=device, compute_type=compute_type)

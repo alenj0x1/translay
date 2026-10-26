@@ -88,3 +88,7 @@
 .menu-item .cbadge, .menu-item .vbadge { flex: none; }
 .menu-item.current { background: var(--surface-2); }
 .menu-item > svg:last-child:not(:first-child) { color: var(--accent); }
+
+/* aviso con acción («Deshacer») */
+.toast .toast-text { flex: 1; min-width: 0; }
+.toast .toast-act { flex: none; margin-left: var(--s2); }

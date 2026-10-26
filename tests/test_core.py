@@ -263,7 +263,7 @@ def test_access_and_webhooks():
         sci = vs.create("Ciencia")
         assert vs.create("Océanos").id == "oceanos"                         # el enlace /b/<id> sin tildes rotas
         auth = Auth(data / "auth.json", vs)
-        req = lambda peer="127.0.0.1", **h: Request("GET", "/", {}, {k.replace("_", "-"): v for k, v in h.items()}, peer)
+        req = lambda peer="127.0.0.1", **h: Request("GET", "/", {}, {"host": "127.0.0.1:8765", **{k.replace("_", "-"): v for k, v in h.items()}}, peer)
         assert auth.access(req()).owner                                    # este equipo: dueño
         assert not auth.access(req(x_forwarded_for="1.2.3.4")).any         # por un túnel: remoto
         assert not auth.access(req("192.168.1.5")).any                     # todo es privado

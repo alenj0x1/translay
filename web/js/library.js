@@ -244,7 +244,14 @@ function renderSidebar() {
     if (label && (items.length || kind === "propia")) {
       nav.append(kind === "propia"
         ? el("h4", { class: "with-add" }, label, btn("Nueva colección", { icon: "plus", size: "xs", variant: "ghost", cls: "icon owner-only",
-          title: "Nueva colección", onClick: () => { const f = nav.querySelector(".inline-form"); f.hidden = !f.hidden; if (!f.hidden) f.querySelector("input").focus(); } }))
+          title: "Nueva colección", onClick: async () => {
+            if (innerWidth <= 760) {  // celular: la barra es una fila de píldoras, sin lugar para el formulario
+              const name = await promptDlg("Nueva colección", "", "Crear");
+              if (name) send({ type: "coll_create", name });
+              return;
+            }
+            const f = nav.querySelector(".inline-form"); f.hidden = !f.hidden; if (!f.hidden) f.querySelector("input").focus();
+          } }))
         : el("h4", { text: label }));
     }
     for (const c of items) {
@@ -344,7 +351,7 @@ function renderShelfHead(c) {
           const ids = pickedIn(c);
           const what = ids.length === 1 ? "este video" : `estos ${ids.length} videos`;
           if (await confirmDlg(`¿Eliminar ${what}?`,
-            "Se borran de la biblioteca junto con su traducción, sus voces y los archivos descargados.", "Eliminar")) {
+            "Van a la papelera con su traducción, sus voces y lo descargado. Puedes devolverlos durante 30 días.", "Eliminar")) {
             send({ type: "lib_delete", videos: ids });
             lib.picked.clear();
           }
@@ -381,17 +388,7 @@ function renderShelfHead(c) {
         if (await confirmDlg(`¿Eliminar ${what} «${c.name}»?`, extra, "Eliminar")) send({ type: "coll_delete", coll: c.id });
       } }));
   }
-  if (c.id === "all" && c.items.length) {
-    acts.append(btn("Vaciar biblioteca", { icon: "trash", variant: "ghost", cls: "owner-only", onClick: async () => {
-      if (await confirmDlg("¿Vaciar la biblioteca?",
-        "Se borran todos los videos, colecciones y playlists, con sus traducciones, voces y archivos descargados. No se puede deshacer.",
-        "Vaciar biblioteca")) {
-        send({ type: "lib_clear" });
-        lib.picked.clear();
-        lib.sel = "home";
-      }
-    } }));
-  }
+
   const own = c.kind !== "auto";  // colecciones, playlists, canales y categorías: con banner y distintivo
   head.classList.toggle("has-banner", own);
   head.replaceChildren(...[
@@ -729,21 +726,7 @@ function renderQueuePanel() {
   ul.replaceChildren();
   // exportaciones
   if (lib.exports.length) ul.append(el("li", { class: "qsec", text: "Exportar" }));
-  for (const x of lib.exports) {
-    const label = cap(x.state === "listo" ? "listo"
-      : x.state === "error" ? (x.error || "error")
-      : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state);
-    ul.append(el("li", { class: "qitem" + (x.state === "exportando" ? " run" : "") },
-      el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),
-      el("div", { class: "qbody" },
-        el("strong", { text: x.name }),
-        meter(x.pct),
-        el("small", { text: label })),
-      el("div", { class: "qactions" },
-        x.state === "listo" ? btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) }) : null,
-        btn(x.state === "listo" || x.state === "error" ? "Quitar" : "Cancelar", { variant: "ghost", size: "xs",
-          onClick: () => send({ type: "export_remove", job: x.id }) }))));
-  }
+  for (const x of lib.exports) ul.append(exportItem(x));
   // descargas de YouTube en curso (al abrir un enlace): cada etapa visible
   const downloads = Object.values(state.downloads);
   if (lib.exports.length && (downloads.length || q.jobs.length)) ul.append(el("li", { class: "qsec", text: "Traducir" }));
@@ -888,8 +871,7 @@ function renderQueueScreen() {
   const ul = $("#qlist");
   if (lib.qsec === "exportar") {
     ul.dataset.sig = "";
-    ul.replaceChildren(...$("#queue-list").querySelectorAll(":scope > .qitem:not([data-id])").length
-      ? [...$("#queue-list").querySelectorAll(":scope > .qitem:not([data-id])")].map((n) => n.cloneNode(true)) : []);
+    ul.replaceChildren(...lib.exports.map(exportItem));  // con sus botones (una copia no los traería)
     return;
   }
   const jobs = orderedJobs(lib.qsec === "todo" ? null : lib.qsec);
@@ -1035,8 +1017,12 @@ function libOnOpen({ id, name, file, fromLibrary, position, keepContext }) {
   }
   lib.keepCtxFor = null;
   renderUpNext(true);
-  vEn.addEventListener("loadedmetadata", function once() {
+  // el aviso pendiente del video anterior (si no llegó a cargar) no se aplica a este
+  if (lib.onMeta) vEn.removeEventListener("loadedmetadata", lib.onMeta);
+  vEn.addEventListener("loadedmetadata", lib.onMeta = function once() {
     vEn.removeEventListener("loadedmetadata", once);
+    lib.onMeta = null;
+    if (state.videoId !== id) return;
     if (position) vEn.currentTime = position;
     send({ type: "lib_register", id, title: name, duration: vEn.duration,
       source: file ? "file" : (id.startsWith("yt_") ? "youtube" : "file") });
@@ -1158,4 +1144,22 @@ function renderSearch() {
             h.translation ? el("p", { class: "es" }, h.field === "es" ? highlight(h.translation, m.q) : document.createTextNode(h.translation)) : null,
             h.note ? el("p", { class: "note" }, icon("comment"), " ", highlight(h.note, m.q)) : null)))))));
   }
+}
+
+/* Una exportación en la cola (panel y pantalla Cola → Exportaciones) */
+function exportItem(x) {
+  const label = cap(x.state === "listo" ? "listo"
+    : x.state === "error" ? (x.error || "error")
+    : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state);
+  const done = x.state === "listo" || x.state === "error";
+  return el("li", { class: "qitem" + (x.state === "exportando" ? " run" : "") },
+    el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),
+    el("div", { class: "qbody" },
+      el("strong", { text: x.name }),
+      meter(x.pct),
+      el("small", { text: label })),
+    el("div", { class: "qactions" },
+      x.state === "listo" ? btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) }) : null,
+      btn(done ? "Quitar" : "Cancelar", { icon: "x", variant: "ghost", size: "xs", title: done ? "Quitar" : "Cancelar",
+        onClick: () => send({ type: "export_remove", job: x.id }) })));
 }

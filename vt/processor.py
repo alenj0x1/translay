@@ -383,6 +383,8 @@ class Processor:
             began = time.time()
             try:
                 done = self._process(job["id"], start)
+                if done:
+                    self._audio = (None, None)  # terminado: el audio decodificado no se queda en memoria
                 if self._job(job["id"]) is job:
                     job["state"] = "listo" if done else "en cola"
                     if done:
@@ -445,10 +447,11 @@ class Processor:
             f = vault.file(src)
             if f:
                 return f
-        if src.startswith("/media/yt/"):
-            return self.root / "youtube" / src.rsplit("/", 1)[1].split("?")[0]
-        if src.startswith("/media/lib/"):
-            return self.root / "library" / src.rsplit("/", 1)[1].split("?")[0]
+        name = src.rsplit("/", 1)[-1].split("?")[0]
+        if name not in ("", ".", "..") and src.startswith("/media/yt/"):
+            return self.root / "youtube" / name
+        if name not in ("", ".", "..") and src.startswith("/media/lib/"):
+            return self.root / "library" / name
         raise FileNotFoundError("el video no tiene copia en el servidor")
 
     def _load_audio(self, vid: str) -> np.ndarray:
@@ -559,9 +562,13 @@ class Processor:
                         end_span(abort=True)
                         drop_pending()
                         return False
+                # nunca más allá del siguiente tramo ya reconocido (ni del final de esta pasada):
+                # volver a transcribir un trozo de algo hecho lo reemplazaría por una frase cortada
+                lim = min([hi] + [ca for ca, _ in tr.covered if ca > pos + 0.05])
                 a = int(pos * SR)
-                st.feed(pos, audio[a:a + step])
-                pos = min(hi, (a + step) / SR)
+                b = min(a + step, int(lim * SR))
+                st.feed(pos, audio[a:b])
+                pos = min(lim, b / SR)
                 if st.ready():
                     handle(self.gpu.submit(self.res.run, ("asr",), st.step).result())
                 self.res.touch()
@@ -584,6 +591,9 @@ class Processor:
             t0 = time.perf_counter()
             try:
                 info = self.res.run(("tts",), self.dubber.synthesize, tr, seg, seg.get("orig_db"))
+            except Exception as e:  # una frase que falla no tumba el video: queda sin voz y se reintenta
+                print(f"[cola] voz {seg['start']:.0f}s falló: {e}", flush=True)
+                return
             finally:
                 inflight.discard(seg["id"])
             if time.perf_counter() - t0 > 5:  # aviso solo si algo anda lento (p. ej. GPU desbordada)

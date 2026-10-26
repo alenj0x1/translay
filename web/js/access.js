@@ -30,6 +30,7 @@ function authUpdate(m) {
   if (none) showLogin(m);
   else hideLogin();
   if (m.owner) send({ type: "admin_get" });
+  else if (currentView() === "prefs") setView("library");  // Preferencias es solo del dueño
 }
 
 /* ------------------------------------------------------------ inicio de sesión */
@@ -72,7 +73,7 @@ $("#login-btn").addEventListener("click", () => showLogin({ ...state.access, ask
 
 /* ------------------------------------------------------------ utilidades */
 const fill = (box, ...kids) => box.replaceChildren(...kids.filter(Boolean));
-function copyText(text, what = "Copiado") {
+function copyAccess(text, what = "Copiado") {  // (copyText es la del menú contextual)
   const done = () => toast(`${what}.`, "ok");
   if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(done);
   const ta = el("textarea", { style: "position:fixed;opacity:0" });
@@ -84,7 +85,7 @@ function copyText(text, what = "Copiado") {
   done();
 }
 const copyBtn = (text, label = "Copiar", what = "Copiado") =>
-  btn(label, { icon: "copy", size: "xs", variant: "ghost", onClick: () => copyText(text, what) });
+  btn(label, { icon: "copy", size: "xs", variant: "ghost", onClick: () => copyAccess(text, what) });
 const segsOf = (opts, cur, pick) => el("div", { class: "segs" }, ...opts.map(([v, t]) =>
   el("button", { type: "button", class: "seg" + (cur === v ? " on" : ""), on: { click: () => pick(v) } }, t)));
 const ago = (t) => {

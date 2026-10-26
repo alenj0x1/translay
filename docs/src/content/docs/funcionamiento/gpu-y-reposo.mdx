@@ -1,13 +1,13 @@
 ---
 title: GPU y reposo
-description: Cómo comparten 8 GB de GPU Whisper, el traductor y la voz, cuándo se duermen los modelos y qué límites evitan que la memoria se desborde.
+description: Cómo comparten la GPU Whisper, el traductor y la voz, cómo se elige el perfil según el equipo, cuándo se duermen los modelos y qué límites evitan que la memoria se desborde.
 sidebar:
   order: 4
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-Whisper y el traductor corren en el servidor sobre CTranslate2; la voz, en su propio proceso con torch. Los tres comparten la misma GPU. Translay se probó en una RTX 4060 de 8 GB: todas las cifras de esta página son de esa tarjeta.
+Whisper y el traductor corren en el servidor sobre CTranslate2; la voz, en su propio proceso con torch. Los tres comparten la misma GPU. Las cifras de memoria y tiempo de esta página son de una RTX 4060 de 8 GB con el perfil «Máxima calidad»; para equipos más chicos, ver [Perfiles según el equipo](#perfiles-según-el-equipo).
 
 ## Memoria medida
 
@@ -86,3 +86,22 @@ En Windows, `vt/gpu.py` también registra las carpetas `bin` de los paquetes `nv
 | Traducción con `opus-big` | 52 ms por frase (mediana). |
 
 Si una voz tarda más de 5 s, la cola lo anota en la consola (`[cola] voz 42s tardó 7.3s`): casi siempre es la GPU desbordada a la memoria compartida.
+
+
+## Perfiles según el equipo
+
+Al arrancar, `vt/hardware.py` detecta la GPU (con `nvidia-smi`), la RAM y la CPU, sin dependencias nuevas; en Linux también lee los límites del contenedor (cgroups). `vt/profiles.py` elige el perfil con la tabla de velocidades medidas en los [labs de hardware](../../desarrollo/pruebas-y-evaluacion/#labs-de-hardware): el más completo cuya velocidad alcance para ver en vivo (1× o más) con la VRAM, la RAM y los hilos disponibles, recortados por los límites de Preferencias. Lo que se pasa por línea de comandos gana sobre el perfil. La guía de uso está en [Rendimiento](../../guia/rendimiento/).
+
+| Perfil | Whisper | Traductor | Voz | VRAM pico | RAM comprometida |
+|---|---|---|---|---|---|
+| Máxima calidad | large-v3-turbo fp16, beam 5 | opus-big | OmniVoice, 16 pasos | ~4,6 GB | ~12 GB |
+| Equilibrado | large-v3-turbo int8_float16 | opus-big int8_float16 | OmniVoice, 8 pasos | ~3,5 GB | ~11 GB |
+| Ligero | small.en int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 pasos | ~3,3 GB | ~10,7 GB |
+| Solo subtítulos | large-v3-turbo int8_float16 | opus-big | — | ~1,9 GB | ~3,5 GB |
+| Subtítulos ligeros | small.en int8, beam 3 | opus-base int8 | — | ~0,6 GB | ~2,2 GB |
+
+Cuando un perfil no entra en la VRAM, el driver de Windows no falla: desborda a la memoria compartida y la mayoría de las frases salen igual de rápido, pero algunas pasan de 0,3 s a 15–40 s. `vt/perf.py` cuenta esas frases (más de 6 veces la mediana reciente) y lo avisa en Rendimiento.
+
+## Límites de RAM y CPU
+
+`vt/limits.py` pone al servidor en un *Job Object* de Windows al arrancar (o al cambiar los límites, en caliente); el proceso de voz lo hereda. La RAM se limita con un tope duro de memoria residente por proceso (`SetProcessWorkingSetSizeEx`, que no pide permisos de administrador), repartido entre los procesos del job: lo que no entra se pagina. Los hilos, con la afinidad de cada proceso. En Docker se usan `--memory` y `--cpus`.

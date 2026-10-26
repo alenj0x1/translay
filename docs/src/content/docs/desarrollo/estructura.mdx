@@ -27,7 +27,13 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - tts_worker.py el proceso de voz
   - ipc.py tramas por tuberías entre procesos
   - enhance_df.py limpieza de referencias con DeepFilterNet
-  - resources.py modo reposo y turnos en la GPU
+  - resources.py modo reposo y turnos en la GPU (y tiempos recientes de cada cálculo)
+  - hardware.py qué equipo hay: GPU, VRAM, RAM, CPU (y el de un lab con TRANSLAY_EMULATE)
+  - profiles.py perfiles de rendimiento con las velocidades medidas en los labs
+  - perf.py Preferencias › Rendimiento: perfil, límites, avisos y reinicio
+  - limits.py límites de RAM y CPU con un Job Object de Windows
+  - trash.py papelera de 30 días (videos y bibliotecas borrados)
+  - jsonio.py JSON que no queda a medias (temporal + reemplazo, copia .bak)
   - gpu.py DLL de CUDA en Windows y caché de CTranslate2
   - store.py transcripción de cada video
   - library.py videos y colecciones
@@ -48,6 +54,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - css/ tokens, base, componentes, armazón, vistas y patrones
   - js/ componentes, conexión, vistas, menús y rutas
 - tools/ herramientas de medición y prueba, sin navegador (ver [Pruebas y evaluación](../pruebas-y-evaluacion/))
+  - lab/ labs de hardware: lastre de VRAM, banco de pruebas y corridas por equipo
   - dub_file.py dobla un video completo y exporta `<nombre>.es.mp4`
   - eval_tts.py compara motores de voz
   - eval_pipeline.py mide reconocimiento y diarización

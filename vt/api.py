@@ -106,6 +106,8 @@ class Admin:
 class Api:
     def __init__(self, vaults, auth, processor, exporter, make_session):
         self.vaults, self.auth, self.processor, self.exporter = vaults, auth, processor, exporter
+        self._fails: dict[str, list[float]] = {}  # intentos fallidos por equipo (últimos 10 min)
+        self._login_sem = asyncio.Semaphore(2)  # scrypt pesa: como mucho dos a la vez
         self.make_session = make_session  # (biblioteca, acceso) → Session con CollectorWS
 
     # ------------------------------------------------------------ sesión de la vista
@@ -113,11 +115,21 @@ class Api:
         sub = req.path[len("/api/auth/"):]
         if sub == "login" and req.method == "POST":
             body = req.json() or {}
+            ip = req.peer or ""
+            now = time.time()
+            fails = self._fails[ip] = [t for t in self._fails.get(ip, []) if now - t < 600]
+            if len(fails) >= 10:  # diez fallos en diez minutos: ese equipo espera
+                return 429, {"error": "demasiados intentos; espera unos minutos"}, {}
             await asyncio.sleep(0.4)  # frena los intentos en ráfaga
-            token = self.auth.login(str(body.get("password", "")), str(body.get("vault", "") or ""),
-                                    req.cookies.get(COOKIE, ""))
+            async with self._login_sem:  # el hash corre aparte: el servidor sigue respondiendo
+                vault = str(body.get("vault", "") or "")
+                grant = await asyncio.get_running_loop().run_in_executor(
+                    None, self.auth.verify, str(body.get("password", "")), vault)
+            token = None if grant is False else self.auth.login("", vault, req.cookies.get(COOKIE, ""), grant)
             if not token:
+                fails.append(now)
                 return 401, {"error": "contraseña incorrecta"}, {}
+            self._fails.pop(ip, None)
             return 200, {"ok": True}, {"Set-Cookie": f"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; "
                                                      f"Max-Age={30 * 86400}"}
         if sub == "logout" and req.method == "POST":
@@ -320,7 +332,7 @@ def make_guard(auth, vaults):
             ok = auth.access(req).can_view(vid)
         elif p.startswith(("/media/", "/audio/", "/voices/", "/people/")):
             ok = auth.access(req).can_view("principal")
-        elif p.startswith(("/thumb/", "/exports/")):
+        elif p.startswith(("/thumb/", "/exports/", "/chan/")):
             ok = auth.access(req).any
         elif p.startswith(("/api/upload/", "/api/thumb/")):
             vid = p.rsplit("/", 1)[-1]

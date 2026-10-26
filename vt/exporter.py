@@ -205,9 +205,9 @@ class Exporter:
         if v and v.file(src):
             return v.file(src)
         if src.startswith("/media/yt/"):
-            return self.root / "youtube" / src[10:]
+            return self.root / "youtube" / Path(src[10:]).name  # solo el nombre: nunca fuera de la carpeta
         if src.startswith("/media/lib/"):
-            return self.root / "library" / src[11:]
+            return self.root / "library" / Path(src[11:]).name
         raise FileNotFoundError("el video no tiene copia en el equipo")
 
     def _ensure_media(self, job, vid, video: bool = False):

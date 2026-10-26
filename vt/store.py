@@ -122,26 +122,40 @@ class Store:
         self.root = root
         self.root.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, Transcript] = {}
+        # la cola, las descargas y las pestañas abren a la vez: un solo objeto por video
+        self._open_lock = threading.Lock()
 
     def open(self, vid: str, name: str = "") -> Transcript:
         if not _SAFE_ID.match(vid):
             raise ValueError("id de video inválido")
-        if vid in self._cache:
-            return self._cache[vid]
-        path = self.root / f"{vid}.json"
-        if path.exists():
-            data = json.loads(path.read_text(encoding="utf-8"))
-        else:
-            data = {"id": vid, "name": name, "segments": [], "covered": [],
-                    "next_id": 0, "created": time.time()}
-        t = Transcript(path, data)
-        self._cache[vid] = t
-        return t
+        t = self._cache.get(vid)
+        if t is not None:
+            return t
+        with self._open_lock:
+            if vid in self._cache:
+                return self._cache[vid]
+            path = self.root / f"{vid}.json"
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+            else:
+                data = {"id": vid, "name": name, "segments": [], "covered": [],
+                        "next_id": 0, "created": time.time()}
+            t = Transcript(path, data)
+            self._cache[vid] = t
+            return t
+
+    def forget(self, vid: str):
+        """Suelta la transcripción abierta (su archivo se movió, p. ej. a la papelera)."""
+        with self._open_lock:
+            t = self._cache.pop(vid, None)
+        if t:
+            t.deleted = True
 
     def delete(self, vid: str):
         if not _SAFE_ID.match(vid):
             return
-        t = self._cache.pop(vid, None)
+        with self._open_lock:
+            t = self._cache.pop(vid, None)
         if t:
             t.deleted = True
         (self.root / f"{vid}.json").unlink(missing_ok=True)

@@ -1,0 +1,73 @@
+---
+title: Rendimiento
+description: Tu equipo, el perfil de modelos que usa Translay, los límites de VRAM, RAM y CPU, cuánto tarda un video y por qué algo va lento.
+sidebar:
+  order: 11
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Translay se adapta al equipo. Al arrancar detecta la GPU, la RAM y la CPU, y elige un **perfil**: qué modelo de reconocimiento, qué traductor y cómo se genera la voz. En **Preferencias › Rendimiento** ves todo eso, cambias el perfil, pones límites y lees los avisos.
+
+## Tu equipo
+
+Muestra la GPU NVIDIA (con la VRAM total y la libre ahora), la RAM (total y libre) y la CPU (núcleos e hilos). Si no hay GPU NVIDIA, Translay corre en la CPU.
+
+## Perfiles
+
+| Perfil | Reconocimiento | Traductor | Voz | Para |
+|---|---|---|---|---|
+| **Máxima calidad** | large-v3-turbo, fp16 | opus-big | Clonada, 16 pasos | GPU de 8 GB o más |
+| **Equilibrado** | large-v3-turbo, int8 | opus-big, int8 | Clonada, 8 pasos | GPU de 6 GB |
+| **Ligero** | small, int8 | opus-base | Clonada, 8 pasos | GPU de 4 GB |
+| **Solo subtítulos** | large-v3-turbo, int8 | opus-big | Sin voz | GPU de 2 GB |
+| **Subtítulos ligeros** | small, int8 | opus-base | Sin voz | Sin GPU |
+
+**Automático** (lo que viene elegido) toma el perfil más completo que se puede ver en vivo en tu equipo. Cada tarjeta dice cómo va ese perfil aquí:
+
+- **Va bien**: procesa 1,5 veces más rápido que el video o más.
+- **Al límite**: alcanza para verlo en vivo, con unos segundos de espera al empezar.
+- **Forzado** y **Muy forzado**: no llega a tiempo; sirve para dejarlo procesando en la cola, no para verlo en vivo.
+
+Cada tarjeta también dice cuánto tarda un video del largo que elijas («10 min de video → ~5 min»), si se puede ver en vivo y cuánto hay que esperar para que la voz no se atrase, y si tiene voz o solo subtítulos.
+
+Cambiar de perfil carga otros modelos: aparece **Reiniciar ahora** y Translay vuelve solo en unos segundos. Lo que se estaba procesando se retoma.
+
+<Aside>
+Si arrancas Translay con `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` o `--device`, eso gana sobre el perfil (ver [Línea de comandos](../../referencia/linea-de-comandos/)).
+</Aside>
+
+### De dónde salen los números
+
+No son estimaciones: se midieron con el mismo camino que la cola, en equipos emulados con límites reales de VRAM, RAM y CPU (ver [Labs de hardware](../../desarrollo/pruebas-y-evaluacion/#labs-de-hardware)). Con 90 s de un podcast con ruido de cafetería:
+
+| Equipo | Calidad | Equilibrado | Ligero | Subtítulos | Subtítulos ligeros |
+|---|---|---|---|---|---|
+| GPU de 8 GB | **2,2×** | 2,7× | 2,5× | 7,3× | 6,7× |
+| GPU de 6 GB | 0,94× | **2,5×** | 2,3× | 7,2× | 6,2× |
+| GPU de 4 GB | 0,54× | 0,89× | **1,3×** | 7,2× | 6,1× |
+| GPU de 2 GB | 0,25× | 0,46× | 0,47× | **3,4×** | 5,2× |
+| Sin GPU, 8 hilos | 0,02× | 0,03× | 0,04× | 0,3× | **1,2×** |
+
+«2,2×» quiere decir que procesa 2,2 segundos de video por segundo de reloj. En negrita, lo que elige el modo automático.
+
+## Límites
+
+Cuánto del equipo puede usar Translay. Sirven para dejarle espacio a otros programas.
+
+- **VRAM**: el perfil automático elige modelos que entren en ese límite.
+- **RAM**: tope de memoria para Translay y su proceso de voz juntos. Lo que no entra se pasa al disco (más lento, pero no se cae).
+- **Hilos de la CPU**: cuántos puede usar.
+
+La RAM y los hilos se aplican al momento, sin reiniciar. En Windows usan un *Job Object* (el mismo mecanismo de los contenedores) y no piden permisos de administrador. En Docker se usan `--memory` y `--cpus` del contenedor.
+
+## Avisos
+
+Explican por qué algo va lento y qué hacer:
+
+- El perfil elegido va forzado en este equipo (y cuál conviene).
+- No entra entero en la VRAM: el driver desborda a la memoria compartida y algunas frases tardan mucho más.
+- Hace falta más RAM de la que tiene Translay.
+- Un límite demasiado bajo (menos de 2 GB de VRAM o 3 GB de RAM).
+- **En vivo**: frases de voz que tardan mucho más de lo normal, poca RAM libre en el sistema, u otro programa usando casi toda la VRAM.
+- Hay un perfil nuevo que se aplica al reiniciar.

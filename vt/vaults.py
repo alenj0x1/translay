@@ -32,8 +32,9 @@ from collections import ChainMap
 from pathlib import Path
 
 from .glossary import Glossary
+from .jsonio import read_json, write_json
 from .library import Library
-from .store import Store
+from .store import _SAFE_ID as _SAFE_VID, Store
 from .youtube import YouTube
 
 MAIN = "principal"
@@ -115,10 +116,7 @@ class Vault:
     # ------------------------------------------------------- personas guardadas
     def people(self) -> list[dict]:
         f = self.root / "people" / "people.json"
-        try:
-            return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
-        except ValueError:
-            return []
+        return read_json(f, []) or []
 
     def save_person(self, name: str, wav: Path, text: str, pid: str | None = None) -> dict:
         """Guarda a una persona (nombre y su voz) para usarla en cualquier video de la biblioteca."""
@@ -134,7 +132,7 @@ class Vault:
         if p.get("file"):
             (d / p["file"]).unlink(missing_ok=True)
         p.update(name=name.strip()[:60] or "Sin nombre", file=file, text=text)
-        (d / "people.json").write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
+        write_json(d / "people.json", items)
         return p
 
     def forget_person(self, pid: str):
@@ -145,7 +143,7 @@ class Vault:
                 (d / p["file"]).unlink(missing_ok=True)
         items = [p for p in items if p["id"] != pid]
         if d.exists():
-            (d / "people.json").write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
+            write_json(d / "people.json", items)
 
     def person_ref(self, pid: str) -> tuple[str | None, str | None]:
         p = next((x for x in self.people() if x["id"] == pid), None)
@@ -179,6 +177,14 @@ class Vaults:
             self.last = MAIN
         self.store = RoutedStore(self, lambda: self.main)
         self.library = RoutedLibrary(self)
+        # papelera: lo que tiene más de 30 días se borra al arrancar
+        from .trash import KEEP_DAYS, Trash
+
+        for v in self._vaults.values():
+            try:
+                Trash(v.root).purge(older_than_days=KEEP_DAYS)
+            except OSError:
+                pass
 
     def _save(self):
         with self._lock:
@@ -302,51 +308,60 @@ class Vaults:
         vids = list(v.library.data["videos"])
         for t in v.store._cache.values():
             t.deleted = True
-        if delete_files:
-            for name in OWN:  # solo lo de la biblioteca: la carpeta puede tener otras cosas
-                p = v.root / name
-                shutil.rmtree(p, ignore_errors=True) if p.is_dir() else p.unlink(missing_ok=True)
-            try:
-                v.root.rmdir()  # vacía: también se quita
-            except OSError:
-                pass
+        if delete_files:  # a la papelera de Principal (30 días), nunca se borra al momento
+            from .trash import Trash
+
+            Trash(self.main.root).vault(v, OWN)
         return vids
 
     def move(self, videos: list[str], dest_id: str, busy=lambda vid: False) -> tuple[int, int]:
         """Mueve videos (con sus archivos) a otra biblioteca. Devuelve (movidos, saltados)."""
         dest = self._vaults[dest_id]
         moved = skipped = 0
-        for video in videos:
-            src = self.of(video)
-            if src is None or src is dest:
-                continue
-            if busy(video):  # descargándose o procesándose: se deja para no cortar el trabajo
-                skipped += 1
-                continue
-            t = src.store._cache.pop(video, None)
-            if t:
-                t.save()
-                t.deleted = True  # otra pestaña que lo tenga abierto ya no escribe en la carpeta vieja
-            files = [(src.root / "transcripts" / f"{video}.json", dest.root / "transcripts"),
-                     (src.root / "audio" / video, dest.root / "audio"),
-                     (src.root / "voices" / video, dest.root / "voices")]
-            folder, stem = (("youtube", video[3:]) if video.startswith("yt_") else ("library", video))
-            files += [(f, dest.root / folder) for f in (src.root / folder).glob(f"{glob_escape(stem)}.*")
-                      if f.stem == stem]
-            for f, to in files:
-                if f.exists():
-                    to.mkdir(parents=True, exist_ok=True)
-                    target = to / f.name
-                    if target.exists():
-                        shutil.rmtree(target, ignore_errors=True) if target.is_dir() else target.unlink()
-                    shutil.move(str(f), str(target))
-            entry = src.library.data["videos"].get(video)
-            if entry:
-                dest.library.data["videos"][video] = entry
-            src.library.remove_many([video])
-            moved += 1
-        if moved:
-            dest.library.save()
+        try:
+            for video in videos:
+                src = self.of(video)
+                if src is None or src is dest or not _SAFE_VID.match(video):
+                    continue
+                if busy(video):  # descargándose o procesándose: se deja para no cortar el trabajo
+                    skipped += 1
+                    continue
+                t = src.store._cache.pop(video, None)
+                if t:
+                    t.save()
+                    t.deleted = True  # otra pestaña que lo tenga abierto ya no escribe en la carpeta vieja
+                files = [(src.root / "transcripts" / f"{video}.json", dest.root / "transcripts"),
+                         (src.root / "audio" / video, dest.root / "audio"),
+                         (src.root / "voices" / video, dest.root / "voices")]
+                folder, stem = (("youtube", video[3:]) if video.startswith("yt_") else ("library", video))
+                files += [(f, dest.root / folder) for f in (src.root / folder).glob(f"{glob_escape(stem)}.*")
+                          if f.stem == stem]
+                done = []
+                try:
+                    for f, to in files:
+                        if f.exists():
+                            to.mkdir(parents=True, exist_ok=True)
+                            target = to / f.name
+                            if target.exists():
+                                shutil.rmtree(target, ignore_errors=True) if target.is_dir() else target.unlink()
+                            shutil.move(str(f), str(target))
+                            done.append((f, target))
+                except OSError:  # algo en uso: lo ya movido vuelve y el video queda donde estaba
+                    for f, target in reversed(done):
+                        try:
+                            shutil.move(str(target), str(f))
+                        except OSError:
+                            pass
+                    skipped += 1
+                    continue
+                entry = src.library.data["videos"].get(video)
+                if entry:
+                    dest.library.data["videos"][video] = entry
+                src.library.remove_many([video])
+                moved += 1
+        finally:
+            if moved:  # aunque algo falle a mitad, lo ya movido queda anotado en el destino
+                dest.library.save()
         return moved, skipped
 
 
