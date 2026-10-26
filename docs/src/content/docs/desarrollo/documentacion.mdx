@@ -63,4 +63,6 @@ Si trabajas con Claude Code, `CLAUDE.md` en la raíz le pide actualizar la docum
 
 ## Publicar
 
-`.github/workflows/docs.yml` compila y publica el sitio en GitHub Pages en cada push a `main` que toque `docs/`, `vt/` o `CHANGELOG.md`. En el repositorio: Settings → Pages → Source: **GitHub Actions**.
+`.github/workflows/docs.yml` compila el sitio con Node 24 y lo publica en [GitHub Pages](https://alenj0x1.github.io/translay/) en cada push a `main` que toque `docs/`, `vt/` o `CHANGELOG.md` (también se lanza a mano desde la pestaña Actions). Cada página tiene «Editar página», que abre su archivo en GitHub.
+
+En un fork, activa Pages en Settings → Pages → Source: **GitHub Actions**; la dirección se arma sola con el usuario y el nombre del repositorio.

@@ -16,6 +16,8 @@ export default defineConfig({
       defaultLocale: "root",
       locales: { root: { label: "Español", lang: "es" } },
       customCss: ["./src/styles/translay.css"],
+      social: [{ icon: "github", label: "GitHub", href: "https://github.com/alenj0x1/translay" }],
+      editLink: { baseUrl: "https://github.com/alenj0x1/translay/edit/main/docs/" },
       head: [
         { tag: "link", attrs: { rel: "preconnect", href: "https://fonts.googleapis.com" } },
         { tag: "link", attrs: { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" } },
@@ -31,6 +33,7 @@ export default defineConfig({
         { label: "Referencia", items: [{ autogenerate: { directory: "referencia" } }] },
         { label: "Desarrollo", items: [{ autogenerate: { directory: "desarrollo" } }] },
         { label: "Cambios", link: "/cambios/" },
+        { label: "Versiones en GitHub", link: "https://github.com/alenj0x1/translay/releases", attrs: { target: "_blank" } },
       ],
     }),
   ],

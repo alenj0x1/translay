@@ -2,7 +2,7 @@
 
 Traduce y dobla videos del inglés al español **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en español: subtítulos, transcripción alineada EN | ES y voz clonada sincronizada con la imagen.
 
-**Versión 1.0.0** · [Cambios](CHANGELOG.md) · [Documentación](docs/)
+**Versión 1.0.0** · [Documentación](https://alenj0x1.github.io/translay/) · [Cambios](CHANGELOG.md) · [Versiones](https://github.com/alenj0x1/translay/releases)
 
 ## Qué hace
 
@@ -17,6 +17,7 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 ### Con Docker (GPU NVIDIA)
 
 ```sh
+git clone https://github.com/alenj0x1/translay.git && cd translay
 cp .env.example .env          # y cambia TRANSLAY_OWNER_PASSWORD
 docker compose up -d --build
 ```
@@ -38,7 +39,7 @@ En Linux, el Python del motor está en `.venvs/omnivoice/bin/python`. Se abre ht
 
 ## Documentación
 
-Todo el funcionamiento (guía de uso, arquitectura, pipeline, GPU, datos, API, webhooks y desarrollo) está en un sitio Starlight en [`docs/`](docs/):
+Todo el funcionamiento (guía de uso, arquitectura, pipeline, GPU, datos, API, webhooks y desarrollo) está en **https://alenj0x1.github.io/translay/**, un sitio Starlight que vive en [`docs/`](docs/) y se publica solo en cada cambio. Para verlo en local:
 
 ```sh
 cd docs

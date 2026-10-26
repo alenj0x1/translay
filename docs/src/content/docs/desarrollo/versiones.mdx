@@ -42,6 +42,21 @@ Translay usa [versionado semántico](https://semver.org/lang/es/): `mayor.menor.
    git push --follow-tags
    ```
 
-   `.github/workflows/release.yml` crea la versión en GitHub con las notas del changelog al llegar la etiqueta.
+   `.github/workflows/release.yml` crea la versión en [Releases](https://github.com/alenj0x1/translay/releases) con las notas del changelog al llegar la etiqueta.
 
 </Steps>
+
+## Repositorio
+
+[github.com/alenj0x1/translay](https://github.com/alenj0x1/translay), rama `main`. Los commits van a nombre de `alenj0x1` con el correo privado de GitHub (`140274341+alenj0x1@users.noreply.github.com`), configurado en el repositorio:
+
+```sh
+git config user.name alenj0x1
+git config user.email 140274341+alenj0x1@users.noreply.github.com
+```
+
+| Flujo | Cuándo | Qué hace |
+|---|---|---|
+| `docs.yml` | push a `main` con cambios en `docs/`, `vt/` o `CHANGELOG.md` | Compila y publica la documentación |
+| `release.yml` | etiqueta `vX.Y.Z` | Crea la versión con las notas del changelog |
+| `commits.yml` | pull request | Revisa que los commits sigan la convención |
