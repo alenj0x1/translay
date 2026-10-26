@@ -1,11 +1,11 @@
-"""vt — traductor de video EN→ES en tiempo real.
+"""vt — servidor de Translay: traduce y dobla videos del inglés al español.
 
 Etapas del pipeline (cada una reemplazable de forma independiente):
 
-    audio (navegador) → VAD → ASR en streaming → traducción → (futuro) voz ES
+    audio → VAD → reconocimiento en streaming (Whisper) → traducción (Opus-MT)
+          → diarización (WeSpeaker) → voz clonada (OmniVoice, proceso aparte)
 
-Fase 1: solo detección de texto (ASR). La traducción existe como interfaz
-(`vt.translate`) con una implementación nula.
+Arquitectura: docs/src/content/docs/funcionamiento/arquitectura.mdx
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
