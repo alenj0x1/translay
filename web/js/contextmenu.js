@@ -8,8 +8,23 @@
 const isOwner = () => !document.body.classList.contains("guest");
 const canImport = () => document.body.classList.contains("can-import");
 const ytUrl = (v) => (v?.source === "youtube" ? `https://www.youtube.com/watch?v=${v.id.slice(3)}` : "");
+// copiar: el portapapeles moderno solo existe en conexiones seguras (no desde otro equipo por http)
 function copyText(text, what) {
-  navigator.clipboard?.writeText(text).then(() => toast(`${what} copiado.`, "ok"), () => toast("No se pudo copiar."));
+  const ok = () => toast(`${what} copiado.`, "ok");
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(ok, () => legacyCopy(text) ? ok() : toast("No se pudo copiar."));
+  } else if (legacyCopy(text)) ok();
+  else toast("No se pudo copiar.");
+}
+function legacyCopy(text) {
+  const t = el("textarea", { style: "position:fixed;opacity:0;pointer-events:none" });
+  t.value = text;
+  (document.querySelector("dialog[open]") || document.body).append(t);
+  t.select();
+  let done = false;
+  try { done = document.execCommand("copy"); } catch (e) { done = false; }
+  t.remove();
+  return done;
 }
 
 /* ------------------------------------------------------------ video */
@@ -95,7 +110,11 @@ function jobMenu(j) {
   const v = videoInfo(j.id) || { id: j.id, title: j.id };
   return [
     { head: v.title || j.id },
-    { label: "Ver", icon: "play", disabled: !v.media && v.source !== "youtube", onClick: () => { closeQueue(); playItem(v.id); } },
+    { label: "Ver", icon: "play", disabled: !v.media && v.source !== "youtube", onClick: () => {
+      closeQueue();
+      if (j.lib && j.lib !== vaults.current) return playAcross(v.id, j.lib);  // de otra biblioteca
+      playItem(v.id);
+    } },
     canImport() && j.state === "en cola" && !j.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: j.id, front: true }) },
     canImport() && j.state === "descargado" && { label: "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
     ytUrl(v) && { label: "Copiar enlace", icon: "link", onClick: () => copyText(ytUrl(v), "Enlace") },

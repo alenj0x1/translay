@@ -40,7 +40,8 @@ function buildMenu(items, depth = 0) {
       b.addEventListener("click", open);
     } else {
       b.addEventListener("mouseenter", () => { for (const m of document.querySelectorAll(`.menu.d${depth + 1}`)) m.remove(); });
-      b.addEventListener("click", () => { closeMenu(); it.onClick?.(); });
+      // la acción corre después de que termine este clic: si abre otro panel, el mismo clic no lo cierra
+      b.addEventListener("click", (e) => { e.stopPropagation(); closeMenu(); setTimeout(() => it.onClick?.(), 0); });
     }
     box.append(b);
   }
@@ -97,7 +98,10 @@ function openMenu(items, at, opts = {}) {
 document.addEventListener("pointerdown", (e) => { if (menuOpen && !e.target.closest(".menu")) closeMenu(); }, true);
 addEventListener("blur", closeMenu);
 addEventListener("resize", closeMenu);
-document.addEventListener("scroll", (e) => { if (menuOpen && !e.target.closest?.(".menu")) closeMenu(); }, true);
+// se cierra cuando la persona desplaza la página (no con desplazamientos automáticos, como la transcripción que sigue al video)
+for (const ev of ["wheel", "touchmove"]) {
+  document.addEventListener(ev, (e) => { if (menuOpen && !e.target.closest?.(".menu")) closeMenu(); }, { capture: true, passive: true });
+}
 document.addEventListener("keydown", (e) => {
   if (!menuOpen) return;
   const menus = [...document.querySelectorAll(".menu")];

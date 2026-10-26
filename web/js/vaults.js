@@ -43,7 +43,6 @@ function vaultsUpdate(m) {
   renderVaultBtn();
   renderVaultPop();
   if (typeof applyAccent === "function") applyAccent(prefs.accent_lib ? currentVault().color : null);  // Preferencias → Apariencia
-  if (vaults.editAfterOpen === m.current) { vaults.editAfterOpen = null; openVaultDlg("edit", m.current); }
   if (typeof applyCan === "function") applyCan();  // los permisos son por biblioteca
   if (typeof renderQueuePanel === "function") {  // la cola muestra lo de la biblioteca abierta
     for (const n of ["#qnav", "#qhead", "#qlist"]) $(n).dataset.sig = "";
@@ -65,13 +64,18 @@ function renderSideVault() {
     el("button", { type: "button", class: "ic sm owner-only", title: "Editar la biblioteca", "aria-label": "Editar la biblioteca",
       on: { click: () => editVault(v.id) } }, icon("pencil")));
 }
-// editar una biblioteca: se abre su inicio y el diálogo encima
+// editar una biblioteca: el diálogo se abre ahí mismo (sin cambiar de biblioteca ni de pantalla)
 function editVault(id) {
-  if (id !== vaults.current) { vaults.editAfterOpen = id; send({ type: "vault_open", id }); }
-  if (currentView() !== "library") setView("library");
-  lib.sel = "home";
-  renderLibrary();
-  if (id === vaults.current) openVaultDlg("edit", id);
+  if (vaultById(id)) openVaultDlg("edit", id);
+}
+
+// otro patrón para el banner de una biblioteca: se ve al instante y se guarda en el servidor
+function reshuffleVault(id) {
+  const v = vaultById(id);
+  if (!v) return;
+  v.pattern = newPattern();
+  send({ type: "vault_update", id, pattern: v.pattern });
+  renderVaultViews();
 }
 
 function renderVaultBtn() {
@@ -220,7 +224,7 @@ function vaultCard(v, mode) {
       { head: v.name },
       !isCur && { label: "Abrir", icon: "arrow", onClick: () => { closeVaultScreen(); openVault(v.id); } },
       owner && { label: "Editar…", icon: "pencil", onClick: () => { closeVaultScreen(); editVault(v.id); } },
-      owner && { label: "Otro patrón", icon: "shuffle", onClick: () => send({ type: "vault_update", id: v.id, pattern: newPattern() }) },
+      owner && { label: "Otro patrón", icon: "shuffle", onClick: () => reshuffleVault(v.id) },
       "sep",
       owner && !v.main && { label: "Quitar de la lista", icon: "x", onClick: async () => {
         if (await confirmDlg(`¿Quitar «${v.name}» de la lista?`,
@@ -276,6 +280,7 @@ function closeVaultScreen() { if ($("#vault-screen").open) $("#vault-screen").cl
 function renderVaultViews() {
   if ($("#vault-screen").open) renderVaultScreen();
   if (currentView() === "prefs" && typeof renderPrefs === "function") renderPrefs();
+  renderVaultBtn();
 }
 $("#vault-screen-manage").addEventListener("click", () => { closeVaultScreen(); openPrefs("bibliotecas"); });
 $("#vault-screen-folder").addEventListener("click", () => send({ type: "vault_pick_folder", for: "open" }));
