@@ -277,6 +277,11 @@ def test_access_and_webhooks():
         assert a.can_import("ciencia") and not a.owner
         auth.set_vault_access("ciencia", "clave", "importar", "otra1234")  # contraseña nueva: la sesión vieja no entra
         assert not auth.access(req("192.168.1.5", cookie=f"vt_s={tok}")).any
+        auth.set_vault_access("ciencia", "clave", "importar", "otra1234")
+        tok2 = auth.login("otra1234", "ciencia")
+        auth.set_vault_access("ciencia", "publica", "ver")
+        auth.set_vault_access("ciencia", "clave", "importar")              # vuelve a pedir la misma contraseña
+        assert not auth.access(req("192.168.1.5", cookie=f"vt_s={tok2}")).any  # la sesión de antes no revive
         auth.set_owner_password("dueño123")
         tok = auth.login("dueño123")
         assert auth.access(req("192.168.1.5", cookie=f"vt_s={tok}")).owner
@@ -315,7 +320,59 @@ def test_access_and_webhooks():
         events._sinks.remove(hooks.on_event)
 
 
+def test_same_origin():
+    """Otro sitio abierto en el navegador no puede usar la app (CSRF / WebSocket entre orígenes)."""
+    import asyncio
+
+    from vt.auth import same_origin
+    from vt.httpws import AppServer
+
+    h = {"host": "127.0.0.1:8765"}
+    assert same_origin(h)                                                  # sin Origin: curl, scripts
+    assert same_origin({**h, "origin": "http://127.0.0.1:8765"})
+    assert not same_origin({**h, "origin": "https://malo.example"})
+    assert not same_origin({**h, "origin": "null"})
+    assert same_origin({**h, "origin": "https://t.example.com", "x-forwarded-host": "t.example.com"})
+    assert same_origin({**h, "origin": "https://t.example.com/"}, ("https://t.example.com",))
+
+    async def run():
+        hits = []
+
+        async def api(req):
+            hits.append(req.method)
+            return 200, {"ok": True}, {}
+
+        async def ws(sock):
+            hits.append("ws")
+
+        srv = AppServer({}, {"/ws": ws}, http_routes={"/api/v1": api}, origin_ok=same_origin)
+        server = await asyncio.start_server(srv._handle, "127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+
+        async def ask(lines):
+            r, w = await asyncio.open_connection("127.0.0.1", port)
+            w.write(("\r\n".join(lines + [f"Host: 127.0.0.1:{port}", "Content-Length: 0", "", ""])).encode())
+            await w.drain()
+            status = (await r.readline()).decode()
+            w.close()
+            return int(status.split()[1])
+
+        evil = "Origin: https://malo.example"
+        assert await ask(["POST /api/v1/queue HTTP/1.1", evil]) == 403
+        assert await ask(["GET /ws HTTP/1.1", "Upgrade: websocket", "Connection: Upgrade",
+                          "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==", evil]) == 403
+        assert await ask(["GET /api/v1 HTTP/1.1", evil]) == 200                # leer no cambia nada
+        assert await ask(["POST /api/v1/queue HTTP/1.1", evil, "Authorization: Bearer vt_x"]) == 200
+        assert await ask(["POST /api/v1/queue HTTP/1.1", f"Origin: http://127.0.0.1:{port}"]) == 200
+        assert await ask(["POST /api/v1/queue HTTP/1.1"]) == 200
+        assert hits == ["GET", "POST", "POST", "POST"]
+        server.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
+    test_same_origin()
     test_access_and_webhooks()
     test_vaults()
     test_download_only_queue()

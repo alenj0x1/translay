@@ -91,7 +91,7 @@ Si **Acceso desde otros equipos** está activo y abres Preferencias desde este e
 
 Al guardar una contraseña nueva para una biblioteca `clave`, quien había entrado con la anterior pierde el acceso en ese momento y tiene que escribir la nueva. Cambiar solo el permiso (`ver` / `importar`) no lo expulsa.
 
-Para pasar una biblioteca a `clave` por primera vez hay que darle una contraseña; mientras no la tenga, el cambio no se guarda.
+Para pasar una biblioteca a `clave` por primera vez hay que darle una contraseña; mientras no la tenga, el cambio no se guarda. Si vuelve a `clave` desde otra visibilidad con la contraseña que ya tenía, quienes entraron antes tienen que escribirla de nuevo.
 
 ## Quién puede qué
 
@@ -132,6 +132,27 @@ Si arrancas con `--host 0.0.0.0`, el servidor ya escucha en todas las direccione
 | Secretos de los webhooks | En claro (hacen falta para firmar) | `data/webhooks.json` |
 
 Ninguna contraseña ni clave se guarda en claro. Cada intento de inicio de sesión espera 0,4 s antes de responder, lo que frena los intentos seguidos, pero no hay bloqueo tras varios fallos.
+
+## Otros sitios web
+
+El navegador manda la cookie de sesión a `localhost:8765` aunque el pedido lo haga otra página, y desde este equipo ni siquiera hace falta la cookie para ser dueño. Para que un sitio cualquiera que abras no pueda usar Translay por ti, el servidor exige que la cabecera `Origin` sea la propia app en:
+
+- el WebSocket de la interfaz (`/ws`);
+- todo pedido que cambia algo (`POST`, `PUT`, `DELETE`): la API, el inicio de sesión, subir archivos y cookies.
+
+Si el origen es otro (o `null`), responde `403 Origen no permitido`. No aplica a:
+
+- pedidos sin `Origin`, como los de `curl` o un script: no vienen de un navegador;
+- pedidos con `Authorization: Bearer …`: otra página no conoce tu clave;
+- lecturas (`GET`): el navegador no le deja a otra página leer la respuesta.
+
+El origen vale si coincide con el `Host` del pedido o con el `X-Forwarded-Host` que agrega un proxy. Si pones Translay detrás de un proxy o túnel que cambia el `Host` y no agrega `X-Forwarded-Host`, declara la dirección pública:
+
+```sh
+python run.py --allow-origin https://translay.midominio.com
+# o
+TRANSLAY_ORIGINS=https://translay.midominio.com python run.py
+```
 
 ## Recomendaciones de seguridad
 

@@ -126,19 +126,23 @@ class Request:
 
 class AppServer:
     def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None,
-                 get_routes: dict | None = None, http_routes: dict | None = None, guard=None):
+                 get_routes: dict | None = None, http_routes: dict | None = None, guard=None,
+                 origin_ok=None):
         """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
         get_routes: prefijo → async fn(resto_de_ruta) → archivo a servir (o None: 404).
         put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
         `cuerpo` es un iterador asíncrono de bloques (el archivo no pasa entero por memoria).
         http_routes: prefijo → async fn(Request) → (código, cuerpo: dict|str|bytes, cabeceras) (cualquier método).
-        guard: fn(Request) → None (pasa) o (código, texto): se consulta antes de archivos y subidas."""
+        guard: fn(Request) → None (pasa) o (código, texto): se consulta antes de archivos y subidas.
+        origin_ok: fn(cabeceras) → bool: si el pedido viene de la propia app (vt/auth.py same_origin).
+        Se exige al WebSocket y a todo lo que no sea GET/HEAD, salvo con clave de API."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self.ws_routes = ws_routes
         self.put_routes = put_routes or {}
         self.get_routes = get_routes or {}
         self.http_routes = http_routes or {}
         self.guard = guard
+        self.origin_ok = origin_ok or (lambda h: True)
 
     async def serve(self, host: str, port: int):
         server = await asyncio.start_server(self._handle, host, port)
@@ -169,7 +173,12 @@ class AppServer:
             peer = (writer.get_extra_info("peername") or ("",))[0]
             req = Request(method, path, query, headers, peer)
 
-            if path in self.ws_routes and headers.get("upgrade", "").lower() == "websocket":
+            # otro sitio abierto en el navegador no puede usar la app (CSRF / WebSocket entre orígenes)
+            writes = method not in ("GET", "HEAD") and not headers.get("authorization")
+            is_ws = path in self.ws_routes and headers.get("upgrade", "").lower() == "websocket"
+            if (is_ws or writes) and not self.origin_ok(headers):
+                return await self._simple(writer, 403, "Origen no permitido")
+            if is_ws:
                 key = headers.get("sec-websocket-key", "").encode()
                 accept = base64.b64encode(hashlib.sha1(key + _GUID).digest()).decode()
                 writer.write(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"

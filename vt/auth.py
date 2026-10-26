@@ -17,6 +17,11 @@ Las sesiones son una cookie con un token al azar (30 días).
 "Este equipo" = la conexión viene de 127.0.0.1 sin cabeceras de proxy: un túnel
 (Cloudflare, ngrok) corre en el equipo pero agrega X-Forwarded-For y similares,
 así que lo que llega por él cuenta como remoto.
+
+Otros sitios: el navegador del dueño manda sus cookies (y, desde este equipo, ni
+hacen falta) a cualquier página que le pida algo a localhost:8765. Por eso el
+WebSocket y todo pedido que cambia algo exigen que la cabecera Origin sea la
+propia app (same_origin); los scripts con clave de API no la necesitan.
 """
 
 import hashlib
@@ -26,6 +31,7 @@ import secrets
 import threading
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 
 SESSION_DAYS = 30
 _PROXY_HEADERS = ("x-forwarded-for", "x-real-ip", "forwarded", "cf-connecting-ip", "x-forwarded-host")
@@ -47,6 +53,21 @@ def check_pw(pw: str, rec: dict | None) -> bool:
 
 def _sha(t: str) -> str:
     return hashlib.sha256(t.encode()).hexdigest()
+
+
+def same_origin(headers: dict, allowed: tuple = ()) -> bool:
+    """¿El pedido viene de la propia app? Sin Origin = no es un navegador (curl, scripts).
+    Vale si el Origin coincide con el Host (o el X-Forwarded-Host de un proxy) o está en
+    `allowed` (--allow-origin). "null" (iframes aislados, archivos locales) nunca vale."""
+    origin = headers.get("origin")
+    if origin is None:
+        return True
+    origin = origin.strip().rstrip("/").lower()
+    if origin in allowed:
+        return True
+    netloc = urlsplit(origin).netloc
+    hosts = {headers.get("host", "").lower(), headers.get("x-forwarded-host", "").split(",")[0].strip().lower()}
+    return bool(netloc) and netloc in hosts
 
 
 def is_local(req) -> bool:
@@ -202,6 +223,8 @@ class Auth:
                 acc["pv"] = acc.get("pv", 0) + 1  # contraseña nueva: quien entró con la vieja ya no entra
             elif not acc.get("pw"):
                 raise ValueError("falta la contraseña de la biblioteca")
+            elif acc.get("mode") != "clave":
+                acc["pv"] = acc.get("pv", 0) + 1  # vuelve a pedir contraseña: las sesiones de antes no reviven
         acc.update(mode=mode, perm=perm)
         v.meta["access"] = acc
         v.save_meta()

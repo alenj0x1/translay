@@ -54,7 +54,7 @@ Las respuestas son JSON (`application/json; charset=utf-8`), salvo los subtítul
 | `202` | Aceptado y en marcha: importar, mandar a la cola, pedir una exportación. |
 | `400` | Datos inválidos (p. ej. faltan `urls`, `mode` desconocido, `kinds` vacío). Un cuerpo que no es JSON válido se toma como `{}`. |
 | `401` | Sin clave válida, o sin acceso a ninguna biblioteca. |
-| `403` | La clave es de solo lectura, o pausar la cola sin una clave de escritura para todas las bibliotecas. |
+| `403` | La clave es de solo lectura, pausar la cola sin una clave de escritura para todas las bibliotecas, o un pedido que cambia algo desde otro sitio web sin clave ([Otros sitios web](../acceso/#otros-sitios-web)). |
 | `404` | La ruta, la biblioteca, el video o la exportación no existe, **o la clave no puede verlo**: no se distingue a propósito. |
 | `413` | El cuerpo pasa de 2 MB (respuesta en texto plano). |
 
@@ -112,7 +112,7 @@ Responde `202` con `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2}}`:
 ## Exportaciones
 
 - `POST /exports` (**lectura** de cada video) con `{"videos": ["yt_…"], "kinds": ["es_video", "srt_es"], "name": "…"}` responde `202` con `{id, state}`. Los valores de `kinds` están en [Rutas de la API](../../referencia/api/#tipos-de-exportación); los desconocidos se ignoran. `name` es opcional.
-- `GET /exports/{id}` da `{id, name, state, pct, detail, url, error}`. `state` pasa por `en espera`, `exportando` o `esperando …` (si el video aún no termina de procesarse) hasta `listo` o `error`.
+- `GET /exports/{id}` da `{id, name, state, pct, detail, url, error}`, solo si puedes ver todos sus videos (si no, `404`). `state` pasa por `en espera`, `exportando` o `esperando …` (si el video aún no termina de procesarse) hasta `listo` o `error`.
 
 Al quedar `listo`, `url` es una ruta del mismo servidor (empieza por `/`). Descárgala con la misma cabecera `Authorization`.
 

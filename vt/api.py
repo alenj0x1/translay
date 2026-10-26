@@ -300,6 +300,10 @@ class Api:
                 return 202, {"id": job["id"], "state": job["state"]}, {}
             if len(p) == 2 and m == "GET":
                 j = next((x for x in self.exporter.public()["jobs"] if x["id"] == p[1]), None)
+                if j is not None and not acc.owner:  # solo exportaciones de videos que se pueden ver
+                    vs = [self.vaults.of(v) for v in j.get("videos") or []]
+                    if not vs or not all(v is not None and acc.can_view(v.id) for v in vs):
+                        j = None
                 if j is None:
                     raise LookupError("exportación no encontrada")
                 return 200, j, {}

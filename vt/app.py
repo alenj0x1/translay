@@ -39,6 +39,10 @@ def main():
     p.add_argument("--owner-password", default=os.environ.get("TRANSLAY_OWNER_PASSWORD", ""),
                    help="Contraseña del dueño al arrancar (o TRANSLAY_OWNER_PASSWORD); hace falta cuando "
                         "nadie entra desde 127.0.0.1, como en Docker")
+    p.add_argument("--allow-origin", action="append",
+                   default=[o for o in os.environ.get("TRANSLAY_ORIGINS", "").split(",") if o.strip()],
+                   help="Otro origen desde el que se puede usar la app (p. ej. https://translay.midominio.com "
+                        "detrás de un proxy que cambia el Host); se repite, o TRANSLAY_ORIGINS separados por comas")
     p.add_argument("--no-browser", action="store_true", help="No abrir el navegador al arrancar")
     a = p.parse_args()
 
@@ -251,12 +255,13 @@ def main():
 
     # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)
     from .api import Admin, Api, CollectorWS, make_guard
-    from .auth import Auth, check_pw
+    from .auth import Auth, check_pw, same_origin
     from .webhooks import Webhooks
 
     auth = Auth(ROOT / "data" / "auth.json", vaults)
     if a.owner_password and not check_pw(a.owner_password, auth.data.get("owner")):
         auth.set_owner_password(a.owner_password)  # Docker: desde el contenedor nadie llega por 127.0.0.1
+    origins = tuple(o.strip().rstrip("/").lower() for o in a.allow_origin)
     hooks = Webhooks(ROOT / "data" / "webhooks.json", notify)
     admin = Admin(auth, hooks, a.port)
 
@@ -290,7 +295,8 @@ def main():
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
                                              "/api/cookies": put_cookies},
                        {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page},
-                       {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults))
+                       {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults),
+                       origin_ok=lambda h: same_origin(h, origins))
     admin.server = server
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)

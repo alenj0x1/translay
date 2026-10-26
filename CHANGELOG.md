@@ -6,6 +6,12 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar 
 
 ## Sin publicar
 
+### Seguridad
+
+- Otro sitio abierto en el navegador ya no puede usar Translay como el dueño: el WebSocket y los pedidos que cambian algo exigen que el `Origin` sea la propia app (`--allow-origin` / `TRANSLAY_ORIGINS` para proxies que cambian el Host).
+- `GET /api/v1/exports/{id}` solo muestra exportaciones de videos que se pueden ver.
+- Al volver una biblioteca a «con contraseña», las sesiones de antes ya no reviven.
+
 ### Agregado
 
 - Barra lateral también en el reproductor (se pliega a íconos con el botón junto al logo).
