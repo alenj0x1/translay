@@ -1,7 +1,8 @@
 """Servidor HTTP estático + WebSocket (RFC 6455) sobre asyncio, sin dependencias.
 
 Alcance intencionalmente pequeño: GET/HEAD de archivos (con Range para que el
-video permita saltar), y rutas WebSocket con mensajes de texto/binarios.
+video permita saltar), rutas WebSocket con mensajes de texto/binarios, rutas HTTP
+de una API (JSON) y un guardián que decide quién puede pedir cada ruta (vt/auth.py).
 """
 
 import asyncio
@@ -15,6 +16,8 @@ from urllib.parse import unquote, urlsplit
 import numpy as np
 
 _GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+_REASONS = {200: "OK", 201: "Created", 204: "No Content", 400: "Bad Request", 401: "Unauthorized",
+            403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 409: "Conflict", 429: "Too Many Requests"}
 _MAX_MSG = 16 * 1024 * 1024
 _MIME = {
     ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -99,22 +102,52 @@ class WebSocket:
                 self.closed = True
 
 
+class Request:
+    """Pedido HTTP para las rutas de la API y el guardián."""
+
+    def __init__(self, method, path, query, headers, peer, body=b""):
+        self.method, self.path, self.query, self.headers, self.peer, self.body = method, path, query, headers, peer, body
+
+    def json(self):
+        try:
+            return json.loads(self.body or b"{}")
+        except ValueError:
+            return None
+
+    @property
+    def cookies(self) -> dict:
+        out = {}
+        for part in self.headers.get("cookie", "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k:
+                out[k] = v
+        return out
+
+
 class AppServer:
     def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None,
-                 get_routes: dict | None = None):
+                 get_routes: dict | None = None, http_routes: dict | None = None, guard=None):
         """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
         get_routes: prefijo → async fn(resto_de_ruta) → archivo a servir (o None: 404).
         put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
-        `cuerpo` es un iterador asíncrono de bloques (el archivo no pasa entero por memoria)."""
+        `cuerpo` es un iterador asíncrono de bloques (el archivo no pasa entero por memoria).
+        http_routes: prefijo → async fn(Request) → (código, cuerpo: dict|str|bytes, cabeceras) (cualquier método).
+        guard: fn(Request) → None (pasa) o (código, texto): se consulta antes de archivos y subidas."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self.ws_routes = ws_routes
         self.put_routes = put_routes or {}
         self.get_routes = get_routes or {}
+        self.http_routes = http_routes or {}
+        self.guard = guard
 
     async def serve(self, host: str, port: int):
         server = await asyncio.start_server(self._handle, host, port)
         async with server:
             await server.serve_forever()
+
+    async def listen(self, host: str, port: int):
+        """Otra dirección más (p. ej. la de la red local); devuelve el servidor para cerrarlo."""
+        return await asyncio.start_server(self._handle, host, port)
 
     async def _handle(self, reader, writer):
         try:
@@ -131,6 +164,10 @@ class AppServer:
                 headers[k.strip().lower()] = v.strip()
             parts = urlsplit(target)
             path = unquote(parts.path)
+            from urllib.parse import parse_qs
+            query = {k: v[0] for k, v in parse_qs(parts.query).items()}
+            peer = (writer.get_extra_info("peername") or ("",))[0]
+            req = Request(method, path, query, headers, peer)
 
             if path in self.ws_routes and headers.get("upgrade", "").lower() == "websocket":
                 key = headers.get("sec-websocket-key", "").encode()
@@ -138,8 +175,22 @@ class AppServer:
                 writer.write(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n"
                               f"Connection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n").encode())
                 await writer.drain()
-                await self.ws_routes[path](WebSocket(reader, writer))
+                ws = WebSocket(reader, writer)
+                ws.request = req  # quién se conecta (para los permisos)
+                await self.ws_routes[path](ws)
                 return
+            api = next((p for p in self.http_routes if path.startswith(p)), None)
+            if api:
+                length = int(headers.get("content-length", "0") or 0)
+                if length > 2 << 20:
+                    return await self._simple(writer, 413, "Payload Too Large")
+                req.body = await reader.readexactly(length) if length else b""
+                code, body, extra = await self.http_routes[api](req)
+                return await self._respond(writer, code, body, extra)
+            if self.guard:
+                denied = self.guard(req)
+                if denied:
+                    return await self._simple(writer, *denied)
             if method == "PUT":
                 for prefix, fn in self.put_routes.items():
                     if path.startswith(prefix):
@@ -153,8 +204,6 @@ class AppServer:
                                 left -= len(chunk)
                                 yield chunk
 
-                        from urllib.parse import parse_qs
-                        query = {k: v[0] for k, v in parse_qs(parts.query).items()}
                         code, text = await fn(path[len(prefix):], query, headers, body())
                         return await self._simple(writer, code, text)
                 return await self._simple(writer, 404, "Not Found")
@@ -227,8 +276,24 @@ class AppServer:
                     left -= len(chunk)
         await writer.drain()
 
+    async def _respond(self, writer, code, body, extra=None):
+        ctype = "text/plain; charset=utf-8"
+        if isinstance(body, (dict, list)):
+            body, ctype = json.dumps(body, ensure_ascii=False).encode(), "application/json; charset=utf-8"
+        elif isinstance(body, str):
+            body = body.encode()
+        extra = dict(extra or {})
+        ctype = extra.pop("Content-Type", ctype)
+        head = [f"HTTP/1.1 {code} {_REASONS.get(code, 'OK')}", f"Content-Type: {ctype}",
+                f"Content-Length: {len(body)}", "Cache-Control: no-store", "Connection: close"]
+        for k, v in (extra or {}).items():
+            for one in (v if isinstance(v, list) else [v]):
+                head.append(f"{k}: {one}")
+        writer.write(("\r\n".join(head) + "\r\n\r\n").encode() + body)
+        await writer.drain()
+
     async def _simple(self, writer, code, msg):
         body = msg.encode()
-        writer.write(f"HTTP/1.1 {code} {msg}\r\nContent-Length: {len(body)}\r\n"
-                     f"Connection: close\r\n\r\n".encode() + body)
+        writer.write(f"HTTP/1.1 {code} {_REASONS.get(code, 'OK')}\r\nContent-Type: text/plain; charset=utf-8\r\n"
+                     f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n".encode() + body)
         await writer.drain()

@@ -8,24 +8,33 @@
 
 const vaults = { list: [], current: null, dlg: { mode: "new", id: null, folder: "", color: "", icon: "library" } };
 const VAULT_COLORS = ["#e4572e", "#f3a712", "#29bf12", "#00a5cf", "#7d5ba6", "#e84f9b", "#2b2d42", "#8d6e63"];
+const VAULT_NAMES = ["Documentales", "Para aprender", "Risas", "Música en vivo", "Charlas", "Tecnología", "Viajes",
+  "Cocina", "Historia", "Podcasts", "Pendientes", "Favoritos", "Clásicos", "Entrevistas", "Ciencia", "Deportes",
+  "Videojuegos", "Tutoriales", "Noticias", "Para la noche"];
+const newPattern = () => Math.random().toString(36).slice(2, 8);
 const VAULT_ICONS = [["library", "Biblioteca"], ["flask", "Ciencia"], ["smile", "Humor"], ["music", "Música"],
-  ["book", "Aprender"], ["globe", "Mundo"], ["star", "Favoritos"], ["film", "Cine"]];
+  ["book", "Aprender"], ["globe", "Mundo"], ["star", "Favoritos"], ["film", "Cine"], ["heart", "Me gusta"], ["atom", "Tecnología"],
+  ["cap", "Educación"], ["gamepad", "Videojuegos"], ["ball", "Deportes"], ["plane", "Viajes"], ["chat", "Charlas"],
+  ["brush", "Arte y estilo"], ["news", "Noticias"], ["paw", "Animales"]];
 
 const currentVault = () => vaults.list.find((v) => v.id === vaults.current) || vaults.list[0] || { name: "Principal", id: "principal" };
 const vaultById = (id) => vaults.list.find((v) => v.id === id);
 // insignia: el ícono de la biblioteca sobre su color
 function vaultBadge(v, cls = "") {
   const b = el("span", { class: ("vbadge " + cls).trim(), "aria-hidden": "true" }, icon(v.icon || "library"));
-  b.style.setProperty("--vc", v.color || "var(--fill)");
+  b.style.setProperty("--vc", v.color || "var(--primary)");
   return b;
 }
+
+// distintivo de cada biblioteca en las listas desplegables (web/js/menu.js)
+DD_DECO.vault = (o) => (o.value === "all" ? icon("library") : vaultById(o.value) ? vaultBadge(vaultById(o.value)) : null);
 
 function vaultsUpdate(m) {
   const changed = vaults.current && vaults.current !== m.current;
   vaults.list = m.items;
   vaults.current = m.current;
   if (changed) {  // otra biblioteca: la vista empieza desde arriba
-    lib.sel = "recent";
+    lib.sel = "home";
     lib.picked.clear();
     lib.meta = {};
     lib.qlib = null;  // la Cola vuelve a mostrar la biblioteca abierta
@@ -33,15 +42,40 @@ function vaultsUpdate(m) {
   }
   renderVaultBtn();
   renderVaultPop();
+  if (typeof applyAccent === "function") applyAccent(prefs.accent_lib ? currentVault().color : null);  // Preferencias → Apariencia
+  if (vaults.editAfterOpen === m.current) { vaults.editAfterOpen = null; openVaultDlg("edit", m.current); }
+  if (typeof applyCan === "function") applyCan();  // los permisos son por biblioteca
   if (typeof renderQueuePanel === "function") {  // la cola muestra lo de la biblioteca abierta
     for (const n of ["#qnav", "#qhead", "#qlist"]) $(n).dataset.sig = "";
     renderQueuePanel();
   }
   if (typeof renderPrefs === "function" && prefsSections.length) renderPrefs();
+  if ($("#vault-screen").open) renderVaultScreen();
 }
 
 /* ------------------------------------------------------------ selector del encabezado */
+function renderSideVault() {
+  const v = currentVault();
+  const box = $("#side-vault");
+  if (!box) return;
+  box.replaceChildren(
+    vaultBadge(v, "lg"),
+    el("div", { class: "sv-info" }, el("strong", { text: v.name }),
+      el("small", { text: `${v.count ?? 0} ${v.count === 1 ? "video" : "videos"}` + (v.downloaded != null ? ` · ${v.downloaded} en el equipo` : "") })),
+    el("button", { type: "button", class: "ic sm owner-only", title: "Editar la biblioteca", "aria-label": "Editar la biblioteca",
+      on: { click: () => editVault(v.id) } }, icon("pencil")));
+}
+// editar una biblioteca: se abre su inicio y el diálogo encima
+function editVault(id) {
+  if (id !== vaults.current) { vaults.editAfterOpen = id; send({ type: "vault_open", id }); }
+  if (currentView() !== "library") setView("library");
+  lib.sel = "home";
+  renderLibrary();
+  if (id === vaults.current) openVaultDlg("edit", id);
+}
+
 function renderVaultBtn() {
+  renderSideVault();
   const v = currentVault();
   const b = $("#vault-btn");
   b.replaceChildren(vaultBadge(v), el("span", { class: "btn-text", text: v.name }), icon("chevron", "chev"));
@@ -49,19 +83,21 @@ function renderVaultBtn() {
 }
 function renderVaultPop() {
   const ul = $("#vault-list");
-  ul.replaceChildren(...vaults.list.map((v) => el("li", {},
+  ul.replaceChildren(...vaults.list.map((v) => el("li", { class: v.id === vaults.current ? "on" : "" },
     el("button", { type: "button", class: "vitem" + (v.id === vaults.current ? " on" : ""),
       on: { click: () => { closeVaultPop(); openVault(v.id); } } },
       vaultBadge(v),
       el("span", { class: "vname", text: v.name }),
-      el("span", { class: "vcount", text: String(v.count) }),
-      v.id === vaults.current ? icon("check", "vcheck") : null))));
+      el("span", { class: "vcount", text: String(v.count) })),
+    el("button", { type: "button", class: "ic sm vedit owner-only", title: `Editar «${v.name}»`, "aria-label": `Editar «${v.name}»`,
+      on: { click: (e) => { e.stopPropagation(); closeVaultPop(); editVault(v.id); } } }, icon("pencil")))));
 }
 function openVault(id) {
-  if (id === vaults.current) return;
-  send({ type: "vault_open", id });
-  if (currentView() === "queue" || currentView() === "prefs") return;
-  setView("library");
+  // otra biblioteca: se entra por su inicio
+  if (id !== vaults.current) send({ type: "vault_open", id });
+  lib.sel = "home";
+  if (currentView() !== "library") setView("library");
+  else renderLibrary();
 }
 const openVaultPop = () => { renderVaultPop(); $("#vault-pop").hidden = false; };
 const closeVaultPop = () => { $("#vault-pop").hidden = true; };
@@ -71,17 +107,13 @@ $("#vault-btn").addEventListener("click", (e) => {
 });
 document.addEventListener("click", (e) => { if (!e.target.closest(".vault-wrap")) closeVaultPop(); });
 $("#vault-new").addEventListener("click", () => { closeVaultPop(); openVaultDlg("new"); });
-$("#vault-manage").addEventListener("click", () => {
-  closeVaultPop();
-  setView("prefs");
-  requestAnimationFrame(() => $("#sec-bibliotecas")?.scrollIntoView({ block: "start" }));
-});
+$("#vault-manage").addEventListener("click", openVaultScreen);
 
 /* ------------------------------------------------------------ crear / editar */
 function openVaultDlg(mode, id = null) {
   const v = id ? vaultById(id) : null;
   vaults.dlg = { mode, id, folder: "", color: v?.color || VAULT_COLORS[vaults.list.length % VAULT_COLORS.length],
-    icon: v?.icon || "library" };
+    icon: v?.icon || "library", pattern: v ? v.pattern || "" : newPattern() };
   $("#vault-dlg-title").textContent = mode === "new" ? "Nueva biblioteca" : `Editar «${v.name}»`;
   $("#vault-name").value = v ? v.name : "";
   $("#vault-go").textContent = mode === "new" ? "Crear" : "Guardar";
@@ -98,6 +130,10 @@ function openVaultDlg(mode, id = null) {
 }
 function renderVaultLook() {
   const d = vaults.dlg;
+  // vista previa: el banner con el color elegido, su ícono y su nombre
+  const pv = { id: d.id || "new", color: d.color, icon: d.icon, pattern: d.pattern };
+  $("#vault-preview").replaceChildren(vaultBanner(pv, "fill"), vaultBadge(pv, "lg"),
+    el("strong", { text: $("#vault-name").value.trim() || $("#vault-name").placeholder.split(",")[0] }));
   $("#vault-colors").replaceChildren(...VAULT_COLORS.map((c) => {
     const b = el("button", { type: "button", class: "vcolor" + (d.color === c ? " on" : ""), "aria-label": `Color ${c}`,
       on: { click: () => { d.color = c; renderVaultLook(); } } });
@@ -105,7 +141,7 @@ function renderVaultLook() {
     return b;
   }));
   $("#vault-icons").replaceChildren(...VAULT_ICONS.map(([ic, t]) => {
-    const b = el("button", { type: "button", class: "seg vicon" + (d.icon === ic ? " on" : ""), title: t, "aria-label": t,
+    const b = el("button", { type: "button", class: "btn vicon" + (d.icon === ic ? " on" : ""), title: t, "aria-label": t,
       on: { click: () => { d.icon = ic; renderVaultLook(); } } }, icon(ic));
     return b;
   }));
@@ -122,6 +158,23 @@ $("#vault-where-segs").addEventListener("click", (e) => {
   if (b.dataset.where === "folder" && !$("#vault-folder").value) send({ type: "vault_pick_folder", for: "new" });
 });
 $("#vault-pick").addEventListener("click", () => send({ type: "vault_pick_folder", for: "new" }));
+$("#vault-name").addEventListener("input", () => {
+  $("#vault-preview strong").textContent = $("#vault-name").value.trim() || $("#vault-name").placeholder.split(",")[0];
+});
+$("#vault-shuffle").addEventListener("click", () => { vaults.dlg.pattern = newPattern(); renderVaultLook(); });
+// todo al azar: nombre (si es nueva), color, ícono y banner
+$("#vault-random").addEventListener("click", () => {
+  const d = vaults.dlg;
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  if (d.mode === "new") {
+    const used = new Set(vaults.list.map((v) => v.name));
+    $("#vault-name").value = pick(VAULT_NAMES.filter((n) => !used.has(n)).length ? VAULT_NAMES.filter((n) => !used.has(n)) : VAULT_NAMES);
+  }
+  d.color = pick(VAULT_COLORS.filter((c) => c !== d.color));
+  d.icon = pick(VAULT_ICONS.map(([ic]) => ic).filter((ic) => ic !== d.icon));
+  d.pattern = newPattern();
+  renderVaultLook();
+});
 $("#vault-form").addEventListener("submit", (e) => {
   const dlg = $("#vault-dlg");
   if (e.submitter?.value !== "ok") return;
@@ -131,10 +184,10 @@ $("#vault-form").addEventListener("submit", (e) => {
   const folder = d.where === "folder" ? $("#vault-folder").value.trim() : "";
   if (d.where === "folder" && !folder) { e.preventDefault(); send({ type: "vault_pick_folder", for: "new" }); return; }
   if (d.mode === "new") {
-    send({ type: "vault_create", name, folder, color: d.color, icon: d.icon });
+    send({ type: "vault_create", name, folder, color: d.color, icon: d.icon, pattern: d.pattern });
     if (currentView() !== "prefs") setView("library");
   } else {
-    send({ type: "vault_update", id: d.id, name, color: d.color, icon: d.icon });
+    send({ type: "vault_update", id: d.id, name, color: d.color, icon: d.icon, pattern: d.pattern });
   }
   dlg.close("ok");
 });
@@ -151,38 +204,81 @@ const VAULTS_BLOCK = el("div", { class: "pref vaults-pref", id: "pref-vaults" },
   el("span", { class: "pref-label", text: "Tus bibliotecas" }), el("div", { class: "pref-ctl" }));
 function renderVaultsPref() {
   const ctl = VAULTS_BLOCK.querySelector(".pref-ctl");
-  const rows = vaults.list.map((v) => {
-    const isCur = v.id === vaults.current;
-    const acts = el("div", { class: "vacts" },
-      isCur ? el("span", { class: "chip", text: "Abierta" })
-        : btn("Abrir", { size: "xs", icon: "play", onClick: () => send({ type: "vault_open", id: v.id }) }),
-      btn("Editar", { size: "xs", icon: "pencil", variant: "ghost", onClick: () => openVaultDlg("edit", v.id) }),
-      v.main ? null : btn("Quitar", { size: "xs", icon: "x", variant: "ghost", title: "Quitar de la lista (los archivos quedan en su carpeta)",
-        onClick: async () => {
-          if (await confirmDlg(`¿Quitar «${v.name}» de la lista?`,
-            "Sus videos y archivos quedan en su carpeta; puedes volver a abrirla con «Abrir carpeta».", "Quitar")) {
-            send({ type: "vault_remove", id: v.id, delete_files: false });
-          }
-        } }),
-      v.main ? null : btn("Eliminar", { size: "xs", icon: "trash", variant: "danger", onClick: async () => {
+  ctl.replaceChildren(el("div", { class: "vcards" }, ...vaults.list.map((v) => vaultCard(v, "pref")), newVaultCard()),
+    el("div", { class: "acts" }, btn("Abrir carpeta", { icon: "folder", size: "sm", title: "Una carpeta que ya es biblioteca (de un disco externo u otro equipo)",
+      onClick: () => send({ type: "vault_pick_folder", for: "open" }) })));
+}
+
+// tarjeta de biblioteca: banner con su color · ícono · nombre · cifras · acciones
+// mode "pref": con su carpeta y botones · "pick": toda la tarjeta la abre (pantalla de bibliotecas)
+function vaultCard(v, mode) {
+  const isCur = v.id === vaults.current;
+  const owner = !document.body.classList.contains("guest");
+  const counts = `${v.count ?? 0} ${v.count === 1 ? "video" : "videos"}` + (v.downloaded != null ? ` · ${v.downloaded} en el equipo` : "");
+  const menu = (at) => {
+    openMenu([
+      { head: v.name },
+      !isCur && { label: "Abrir", icon: "arrow", onClick: () => { closeVaultScreen(); openVault(v.id); } },
+      owner && { label: "Editar…", icon: "pencil", onClick: () => { closeVaultScreen(); editVault(v.id); } },
+      owner && { label: "Otro patrón", icon: "shuffle", onClick: () => send({ type: "vault_update", id: v.id, pattern: newPattern() }) },
+      "sep",
+      owner && !v.main && { label: "Quitar de la lista", icon: "x", onClick: async () => {
+        if (await confirmDlg(`¿Quitar «${v.name}» de la lista?`,
+          "Sus videos y archivos quedan en su carpeta; puedes volver a abrirla con «Abrir carpeta».", "Quitar")) {
+          send({ type: "vault_remove", id: v.id, delete_files: false });
+        }
+      } },
+      owner && !v.main && { label: "Eliminar", icon: "trash", danger: true, onClick: async () => {
         if (await confirmDlg(`¿Eliminar «${v.name}»?`,
           `Se borran sus ${v.count} videos con sus traducciones, voces y archivos descargados. No se puede deshacer.`, "Eliminar")) {
           send({ type: "vault_remove", id: v.id, delete_files: true });
         }
-      } }));
-    return el("div", { class: "vrow" + (isCur ? " on" : "") },
-      vaultBadge(v, "lg"),
-      el("div", { class: "vinfo" },
-        el("strong", { text: v.name }),
-        el("small", { text: `${v.count} ${v.count === 1 ? "video" : "videos"} · ${v.downloaded} en el equipo` }),
-        el("code", { text: v.path, title: v.path })),
-      acts);
-  });
-  ctl.replaceChildren(el("div", { class: "vrows" }, ...rows), el("div", { class: "segs" },
-    btn("Nueva biblioteca", { icon: "plus", variant: "dark", onClick: () => openVaultDlg("new") }),
-    btn("Abrir carpeta", { icon: "folder", title: "Una carpeta que ya es biblioteca (de un disco externo u otro equipo)",
-      onClick: () => send({ type: "vault_pick_folder", for: "open" }) })));
+      } },
+    ], at);
+  };
+  const card = el("article", { class: `vcard ${mode}` + (isCur ? " on" : ""), "data-vault": v.id },
+    el("div", { class: "vcard-top" }, vaultBanner(v, "fill"), vaultBadge(v, "lg"),
+      isCur ? el("span", { class: "chip vcur", text: "Abierta" }) : null),
+    el("div", { class: "vcard-body" },
+      el("div", { class: "vcard-name" }, el("strong", { text: v.name }), v.access && v.access.mode !== "privada"
+        ? el("span", { class: "chip", text: v.access.mode === "publica" ? "Pública" : "Con contraseña" }) : null),
+      el("small", { text: counts }),
+      mode === "pref" ? el("code", { class: "vpath", text: v.path, title: v.path }) : null),
+    el("div", { class: "vcard-acts" },
+      mode === "pref" && !isCur ? btn("Abrir", { size: "sm", icon: "arrow", onClick: () => openVault(v.id) }) : null,
+      mode === "pref" && owner ? btn("Editar", { size: "sm", icon: "pencil", variant: "ghost", onClick: () => editVault(v.id) }) : null,
+      el("span", { class: "grow" }),
+      btn("Más", { size: "sm", icon: "dots", variant: "ghost", cls: "icon", title: "Más opciones", onClick: (e) => { e.stopPropagation(); menu(e.currentTarget.getBoundingClientRect()); } })));
+  if (mode === "pick") {
+    card.tabIndex = 0;
+    card.addEventListener("click", () => { closeVaultScreen(); openVault(v.id); });
+    card.addEventListener("keydown", (e) => { if (e.key === "Enter") card.click(); });
+  }
+  card.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); menu({ x: e.clientX, y: e.clientY }); });
+  return card;
 }
+function newVaultCard() {
+  return el("button", { type: "button", class: "vcard new owner-only", on: { click: () => { closeVaultScreen(); openVaultDlg("new"); } } },
+    el("span", { class: "vnew-ic" }, icon("plus")), el("strong", { text: "Nueva biblioteca" }),
+    el("small", { text: "Con su propio color, ícono y carpeta" }));
+}
+
+/* ------------------------------------------------------------ pantalla de bibliotecas */
+function renderVaultScreen() {
+  $("#vault-grid").replaceChildren(...vaults.list.map((v) => vaultCard(v, "pick")), newVaultCard());
+}
+function openVaultScreen() {
+  closeVaultPop();
+  renderVaultScreen();
+  $("#vault-screen").showModal();
+}
+function closeVaultScreen() { if ($("#vault-screen").open) $("#vault-screen").close(); }
+function renderVaultViews() {
+  if ($("#vault-screen").open) renderVaultScreen();
+  if (currentView() === "prefs" && typeof renderPrefs === "function") renderPrefs();
+}
+$("#vault-screen-manage").addEventListener("click", () => { closeVaultScreen(); openPrefs("bibliotecas"); });
+$("#vault-screen-folder").addEventListener("click", () => send({ type: "vault_pick_folder", for: "open" }));
 
 /* ------------------------------------------------------------ mover videos */
 // botón con menú de las demás bibliotecas (en la selección del estante)
@@ -196,7 +292,7 @@ function moveMenu(ids, after) {
       after?.();
     } } }, vaultBadge(v), el("span", { class: "vname", text: v.name }))))));
   const b = btn("Mover a…", { icon: "folder", onClick: (e) => { e.stopPropagation(); pop.hidden = !pop.hidden; } });
-  return el("div", { class: "menu-wrap" }, b, pop);
+  return el("div", { class: "menu-wrap owner-only" }, b, pop);
 }
 document.addEventListener("click", (e) => {
   for (const p of document.querySelectorAll(".move-pop")) if (!p.parentElement.contains(e.target)) p.hidden = true;

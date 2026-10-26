@@ -1,0 +1,62 @@
+/* =====================================================================
+   Acceso: inicio de sesión, vista de invitado y Preferencias → Acceso y API
+   body.guest        no es el dueño: sin lo que solo hace el dueño (.owner-only)
+   body.can-import   puede importar en la biblioteca abierta (.import-only)
+   body.locked       sin acceso: solo el inicio de sesión
+   ===================================================================== */
+
+body.guest .owner-only, body.guest .save-wrap, body.guest .vault-foot, body.guest #prefs-btn,
+body.guest #queue-toggle, body.guest #queue-clear, body.guest .cbtn, body.guest .nacts { display: none !important; }
+body:not(.can-import) .import-only, body:not(.can-import) #yt, body:not(.can-import) #file-btn,
+body:not(.can-import) .welcome .field, body:not(.can-import) .welcome label,
+body:not(.can-import) .welcome small { display: none !important; }
+
+/* ------------------------------------------------------------ inicio de sesión */
+.login { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: var(--s4); background: var(--bg); }
+.login[hidden] { display: none; }
+body.locked > :not(.login):not(script):not(dialog):not(.toast) { visibility: hidden; }
+.login-box { display: grid; gap: var(--s4); width: min(420px, 100%); padding: var(--s8) var(--s7); border-radius: var(--r-lg); background: var(--surface); }
+.login-box h2 { margin-top: var(--s2); font: 800 var(--fs-2xl)/1.15 var(--font); overflow-wrap: anywhere; }
+.login-sub { margin: calc(-1 * var(--s2)) 0 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
+.login-form { margin: 0; }
+.login-form[hidden] { display: none; }
+.login-err { margin: 0; font: 600 var(--fs-sm)/1.4 var(--font); color: var(--danger); }
+.login-err:empty { display: none; }
+.login-public { display: grid; gap: 2px; }
+.login-public:empty { display: none; }
+.login-public h4 { margin: var(--s2) 0 var(--s1); font: 700 var(--fs-xs)/1.2 var(--font); color: var(--fg-faint); }
+
+/* --------------------------------------------------- Preferencias: acceso y API */
+.acc .pref-ctl { width: 100%; justify-items: stretch; gap: var(--s3); }
+.acc .inline-form { display: flex; gap: var(--s2); margin: 0; }
+.acc .inline-form .input { flex: 1; min-width: 0; }
+.acc code, .acc-url code { font: 600 var(--fs-sm)/1.4 var(--font); overflow-wrap: anywhere; }
+.acc-urls { display: grid; gap: 2px; padding: 4px; border-radius: var(--r-md); background: var(--surface-2); }
+.acc-url { display: flex; align-items: center; gap: var(--s2); min-width: 0; min-height: 40px; padding: 0 4px 0 var(--s3); border-radius: var(--r-sm); }
+.acc-url:hover { background: var(--surface-3); }
+.acc-url code { flex: 1; min-width: 0; }
+.acc-lib .vinfo { gap: var(--s2); }
+.acc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3); border-radius: var(--r-sm); }
+.acc-row.off { opacity: .6; }
+.acc-row > .btn { justify-self: start; }
+.acc-row .vacts { display: flex; flex-wrap: wrap; gap: var(--s1); justify-content: flex-end; }
+.acc-form { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.acc-form .input { flex: 1 1 200px; min-width: 0; }
+.acc-form .dd { width: auto; flex: 0 1 240px; }
+.acc-token, .acc-hook { display: grid; gap: var(--s3); padding: var(--s4); border-radius: var(--r-md); background: var(--surface-2); }
+.acc-evs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px; padding: 4px; border-radius: var(--r-md); background: var(--surface); }
+.acc-ev { display: grid; grid-template-columns: 18px 1fr; gap: 2px 10px; align-items: center; padding: var(--s2) 10px; border-radius: var(--r-sm); cursor: pointer;
+  font: 600 var(--fs-sm)/1.25 var(--font); }
+.acc-ev code { grid-column: 2; font: 500 var(--fs-xs)/1.2 var(--font); color: var(--fg-muted); }
+.acc-ev:hover { background: var(--surface-2); }
+.acc-ev.all { justify-self: start; }
+.acc-log { display: grid; gap: 2px; }
+.acc-log h4 { margin: var(--s2) 0 var(--s1); font: 700 var(--fs-xs)/1.2 var(--font); color: var(--fg-faint); }
+.acc-logrow { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: var(--s3); font: 500 var(--fs-xs)/1.6 var(--font); font-variant-numeric: tabular-nums; }
+.acc-logrow.bad span:last-child { color: var(--danger); }
+.acc-chip { margin-left: var(--s2); }
+
+@media (max-width: 760px) {
+  .acc-row { grid-template-columns: minmax(0, 1fr); }
+  .acc-row .vacts { justify-content: flex-start; }
+}

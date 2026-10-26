@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API de Translay</title>
+<script>
+  (function () {
+    var t = "";
+    try { t = localStorage.getItem("vt-theme-block") || ""; } catch (e) {}
+    document.documentElement.dataset.theme = t || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<style>
+  body { display: block; padding: var(--s6) var(--s4); overflow: auto; height: auto; }
+  main { max-width: 920px; margin: 0 auto; display: grid; gap: var(--s4); }
+  section { border-radius: var(--r-lg); background: var(--surface); padding: var(--s6); min-width: 0; }
+  h1 { font: 800 var(--fs-2xl)/1.15 var(--font); }
+  h2 { margin: 0 0 var(--s3); font: 800 var(--fs-xl)/1.2 var(--font); }
+  p, li { font: 500 var(--fs-body)/1.6 var(--font); color: var(--fg-muted); }
+  code, pre { font: 600 var(--fs-sm)/1.55 var(--font); color: var(--fg); }
+  pre { margin: var(--s3) 0 0; padding: var(--s3) var(--s4); overflow-x: auto; border-radius: var(--r-sm); background: var(--surface-2); }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: var(--s2); border-top: 1px solid var(--line); vertical-align: top; font: 500 var(--fs-md)/1.45 var(--font); }
+  td:first-child { white-space: nowrap; font: 700 var(--fs-xs)/1.7 var(--font); color: var(--fg-muted); }
+  td:nth-child(2) { font: 600 var(--fs-sm)/1.6 var(--font); overflow-wrap: anywhere; }
+  .wrap { overflow-x: auto; }
+  a { color: var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <section>
+    <h1>API de Translay</h1>
+    <p>Todo lo que hace la app (bibliotecas, importar, la cola, transcripciones, exportar) también se puede pedir por HTTP, y los <a href="#webhooks">webhooks</a> avisan cuando algo pasa.</p>
+  </section>
+
+  <section>
+    <h2>Autenticación</h2>
+    <p>Crea una clave en <b>Preferencias → Acceso y API → Claves de API</b>: para todas las bibliotecas o una, de <i>lectura</i> o <i>escritura</i>. Mándala en cada pedido:</p>
+    <pre>curl -H "Authorization: Bearer vt_…" http://localhost:8765/api/v1/libraries</pre>
+    <p>Desde el mismo equipo donde corre la app, sin clave, la API responde como al dueño. Para entrar desde otros equipos, activa «Acceso desde otros equipos».</p>
+  </section>
+
+  <section>
+    <h2>Rutas</h2>
+    <div class="wrap"><table>
+      <tr><td>get</td><td>/api/v1/libraries</td><td>Bibliotecas que la clave puede ver</td></tr>
+      <tr><td>get</td><td>/api/v1/libraries/{lib}</td><td>Una biblioteca</td></tr>
+      <tr><td>get</td><td>/api/v1/libraries/{lib}/videos</td><td><code>?collection=all|recent|&lt;id&gt;&amp;limit=100&amp;offset=0</code></td></tr>
+      <tr><td>get</td><td>/api/v1/libraries/{lib}/collections</td><td>Colecciones, playlists, canales y categorías</td></tr>
+      <tr><td>get</td><td>/api/v1/libraries/{lib}/search?q=</td><td>Buscar en las transcripciones (inglés, español y comentarios)</td></tr>
+      <tr><td>post</td><td>/api/v1/libraries/{lib}/import</td><td><code>{"urls": ["https://youtu.be/…"], "mode": "traducir|descargar", "priority": false}</code> — videos y playlists</td></tr>
+      <tr><td>get · put</td><td>/api/v1/libraries/{lib}/glossary</td><td><code>{"entries": [{"src": "prompt", "dst": "instrucción"}]}</code></td></tr>
+      <tr><td>get</td><td>/api/v1/videos/{id}</td><td>Datos, avance (<code>progress.asr</code>, <code>progress.dub</code>) y estado en la cola</td></tr>
+      <tr><td>get</td><td>/api/v1/videos/{id}/transcript</td><td>Frases con inglés, español, persona y comentarios</td></tr>
+      <tr><td>get</td><td>/api/v1/videos/{id}/subtitles?lang=es</td><td>Subtítulos SRT (<code>es</code> o <code>en</code>)</td></tr>
+      <tr><td>delete</td><td>/api/v1/videos/{id}</td><td>Borra el video con sus archivos</td></tr>
+      <tr><td>get</td><td>/api/v1/queue?library=</td><td>La cola</td></tr>
+      <tr><td>post</td><td>/api/v1/queue</td><td><code>{"video": "yt_…", "priority": true}</code></td></tr>
+      <tr><td>delete</td><td>/api/v1/queue/{id}</td><td>Lo quita de la cola</td></tr>
+      <tr><td>post</td><td>/api/v1/queue/pause · /resume</td><td>Pausa o reanuda el procesamiento (clave de escritura para todas)</td></tr>
+      <tr><td>post</td><td>/api/v1/exports</td><td><code>{"videos": ["yt_…"], "kinds": ["es_video", "es_audio", "orig_video", "orig_audio", "srt_es", "srt_en", "txt"]}</code></td></tr>
+      <tr><td>get</td><td>/api/v1/exports/{id}</td><td>Estado; al terminar, <code>url</code> para descargar</td></tr>
+      <tr><td>get</td><td>/api/v1/events</td><td>Eventos disponibles para los webhooks</td></tr>
+    </table></div>
+    <pre># importar un video y avisar a la cola que va primero
+curl -X POST -H "Authorization: Bearer vt_…" -H "Content-Type: application/json" \
+     -d '{"urls": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"], "priority": true}' \
+     http://localhost:8765/api/v1/libraries/principal/import</pre>
+    <p>Errores: <code>401</code> sin clave válida · <code>403</code> clave de solo lectura · <code>404</code> no existe o no se puede ver · <code>400</code> datos inválidos. El cuerpo trae <code>{"error": "…"}</code>.</p>
+  </section>
+
+  <section id="webhooks">
+    <h2>Webhooks</h2>
+    <p>En <b>Preferencias → Acceso y API → Webhooks</b> agrega una URL, elige los eventos y de qué bibliotecas. Cada aviso es un <code>POST</code> JSON:</p>
+    <pre>POST https://tu-servidor/hook
+X-VT-Event: video.procesado
+X-VT-Delivery: 3f9a1c2b4d5e
+X-VT-Signature: sha256=…
+
+{"event": "video.procesado", "time": 1730000000.0, "vault": "ciencia",
+ "data": {"video": "yt_…", "title": "…"}}</pre>
+    <p>Si tu servidor no responde 2xx, se reintenta a los 10 s, 1 min y 5 min. <code>cola.cambio</code> y <code>descarga.progreso</code> llegan agrupados (el último cada 5 s).</p>
+    <p>Para comprobar que el aviso viene de tu app, calcula el HMAC-SHA256 del cuerpo con el secreto del webhook:</p>
+    <pre># Python
+import hmac, hashlib
+ok = hmac.compare_digest("sha256=" + hmac.new(SECRETO.encode(), cuerpo, hashlib.sha256).hexdigest(),
+                         cabeceras["X-VT-Signature"])
+
+// Node
+const ok = crypto.timingSafeEqual(
+  Buffer.from("sha256=" + crypto.createHmac("sha256", SECRETO).update(cuerpo).digest("hex")),
+  Buffer.from(req.headers["x-vt-signature"]));</pre>
+    <p>Eventos: <code>video.agregado</code>, <code>video.descargado</code>, <code>video.procesado</code>, <code>video.error</code>, <code>video.movido</code>, <code>video.eliminado</code>, <code>coleccion.creada</code>, <code>coleccion.cambio</code>, <code>coleccion.eliminada</code>, <code>biblioteca.creada</code>, <code>biblioteca.cambio</code>, <code>biblioteca.eliminada</code>, <code>cola.cambio</code>, <code>cola.pausa</code>, <code>cola.terminada</code>, <code>descarga.progreso</code>, <code>exportacion.lista</code>, <code>exportacion.error</code>, <code>glosario.cambio</code>, <code>comentario.cambio</code>, <code>youtube.bloqueo</code>.</p>
+  </section>
+</main>
+</body>
+</html>

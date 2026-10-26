@@ -27,7 +27,7 @@ const state = {
 };
 
 // preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
-let prefs = { theme_mode: "sistema", theme_style: "clasico", theme_tone: "", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
+let prefs = { theme_mode: "sistema", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
   autoplay: true, autoplay_next: true };
 let prefsSchema = [];
 let prefsSections = [];
@@ -35,7 +35,9 @@ let prefsVaultKeys = [];  // las que son de cada biblioteca (vt/vaults.py)
 
 /* ------------------------------------------------------------ conexión */
 function connect() {
-  const ws = new WebSocket(`ws://${location.host}/ws`);
+  // /b/<biblioteca>: la página abre esa biblioteca (y es lo único que ve un invitado)
+  const libPath = (location.pathname.match(/^\/b\/([a-z0-9-]+)/) || [])[1];
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws${libPath ? `?lib=${libPath}` : ""}`);
   ws.binaryType = "arraybuffer";
   setStatus("busy", "conectando");
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
@@ -83,6 +85,21 @@ function onMessage(m) {
     case "vaults":
       vaultsUpdate(m);
       break;
+    case "auth":
+      authUpdate(m);
+      break;
+    case "admin":
+      adminUpdate(m);
+      break;
+    case "admin_key":
+      keyCreated(m);
+      break;
+    case "webhooks_log":
+      hooksLog(m);
+      break;
+    case "denied":
+      toast("No tienes permiso para hacer eso en esta biblioteca.", "warn");
+      break;
     case "vault_folder":
       vaultFolder(m);
       break;
@@ -96,6 +113,10 @@ function onMessage(m) {
       break;
     case "lib_meta":
       libMeta(m);
+      break;
+    case "video_fetch":
+      toast(m.count ? `${m.count === 1 ? "El video se baja" : `${m.count} videos se bajan`} en la cola (sin volver a traducir).`
+        : "Ya tienen el video completo.", m.count ? "ok" : "warn");
       break;
     case "people_saved":
       if (m.vault === state.videoVault) { state.peopleSaved = m.items; renderPeople(); }
@@ -245,7 +266,7 @@ function setStatus(kind, text, base = true) {
   if (base) baseStatus = [kind, text];
   const el = $("#status");
   el.dataset.state = kind;
-  el.querySelector("span").textContent = text;
+  el.querySelector("span").textContent = cap(text);
 }
 
 /* ------------------------------------------------------------ carga de video */
@@ -300,7 +321,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   setView("player");
   $("#file-name").textContent = name;
   $("#file-name").title = name;
-  document.title = `${name} · Traductor`;
+  document.title = `${name} · Translay`;
   renderTranscript();
   renderTimeline();
   renderCaptions();
@@ -389,7 +410,8 @@ function importVideos(urls) {
     const only = prefs.import_mode === "descargar";
     toast(ids.length === 1 ? (only ? "Importado: se descarga sin traducir." : "Importado: ya está en la cola.")
       : `${ids.length} videos importados${only ? ": se descargan sin traducir" : " a la cola"}.`, "ok");
-    if (currentView() === "library") { lib.sel = "recent"; renderLibrary(); }
+    // importado desde una colección o categoría: se queda ahí
+    if (currentView() === "library" && !$("#multi-coll").value) { lib.sel = "home"; renderLibrary(); }
   }
 }
 
@@ -528,19 +550,39 @@ function updateMulti() {
   if (nv) parts.push(nv === 1 ? "1 video" : `${nv} videos`);
   if (np) parts.push(np === 1 ? "1 playlist" : `${np} playlists`);
   if (known) parts.push(known === 1 ? "1 ya está en la biblioteca" : `${known} ya están en la biblioteca`);
-  $("#multi-sum").textContent = parts.join(" · ") || "sin enlaces de YouTube";
+  $("#multi-sum").textContent = cap(parts.join(" · ")) || "Sin enlaces de YouTube";
   $("#multi-go").disabled = !items.length;
 }
-function openMulti(text = "") {
+// target: id de la colección o categoría donde se guarda lo importado (desde su cabecera)
+function openMulti(text = "", target = "") {
   $("#multi-text").value = text;
   const sel = $("#multi-coll");
   sel.replaceChildren(new Option("Sin colección", ""));
-  for (const c of lib.collections.filter((x) => x.kind === "propia")) sel.append(new Option(c.name, c.id));
+  const own = lib.collections.filter((x) => x.kind === "propia");
+  if (own.length) {
+    const g = el("optgroup", { label: "Colecciones" });
+    for (const c of own) g.append(new Option(c.name, c.id));
+    sel.append(g);
+  }
+  // las categorías de YouTube (web/js/patterns.js) y las que ya existan
+  const cats = [...new Set([...Object.keys(CATEGORY_ICON), ...lib.collections.filter((x) => x.kind === "categoría").map((c) => c.name)])]
+    .sort((a, b) => a.localeCompare(b, "es"));
+  const g = el("optgroup", { label: "Categorías" });
+  for (const n of cats) g.append(new Option(n, "cat-" + slugify(n)));
+  sel.append(g);
+  sel.value = target;
+  dropdown(sel, (o) => {
+    if (!o.value) return icon("x");
+    const c = lib.collections.find((x) => x.id === o.value) || { id: o.value, name: o.textContent, kind: o.value.startsWith("cat-") ? "categoría" : "propia" };
+    return collBadge(c);
+  });
   updateMulti();
   $("#yt-url").value = ""; updateImportBtn();
   $("#multi-dlg").showModal();
   $("#multi-text").focus();
 }
+// igual que _slug de vt/library.py (los ids de las categorías)
+const slugify = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "x";
 $("#multi-text").addEventListener("input", updateMulti);
 $("#multi-csv").addEventListener("change", (e) => {
   for (const f of e.target.files) importCsvFile(f, true);
@@ -1217,6 +1259,37 @@ function confirmDlg(title, text, okLabel) {
   return new Promise((resolve) => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true }));
 }
 
+// «Escuchar» una voz: el mismo botón la pausa; una sola suena a la vez
+let previewAudio = null;
+function previewBtn(url, title) {
+  const b = btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost", title });
+  const done = () => { setBtn(b, "Escuchar", "speaker"); b.classList.remove("on"); };
+  b.addEventListener("click", () => {
+    if (previewAudio?.btn === b && !previewAudio.paused) { previewAudio.pause(); return; }
+    previewAudio?.pause();
+    const a = new Audio(url);
+    a.btn = b;
+    a.addEventListener("pause", done);
+    a.addEventListener("ended", done);
+    a.play().then(() => { setBtn(b, "Pausar", "pause"); b.classList.add("on"); }).catch(done);
+    previewAudio = a;
+  });
+  return b;
+}
+
+// pide un texto (nombre de una colección…); null si se cancela
+function promptDlg(title, value, okLabel) {
+  const dlg = $("#prompt-dlg");
+  const input = $("#prompt-input");
+  $("#prompt-title").textContent = title;
+  $("#prompt-ok").textContent = okLabel;
+  input.value = value || "";
+  dlg.returnValue = "";
+  dlg.showModal();
+  input.select();
+  return new Promise((resolve) => dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok" && input.value.trim() ? input.value.trim() : null), { once: true }));
+}
+
 // el video abierto se eliminó (desde esta u otra pestaña)
 function closeVideo() {
   vEn.pause();
@@ -1229,7 +1302,7 @@ function closeVideo() {
   vEn.removeAttribute("src");
   vEs.removeAttribute("src");
   vEn.load();
-  document.title = "Traductor de video";
+  document.title = "Translay";
   renderTranscript();
   setView("library");
 }
@@ -1357,6 +1430,7 @@ function applyPrefs(m) {
   prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
+  if (typeof applyAccent === "function" && typeof vaults !== "undefined") applyAccent(prefs.accent_lib ? currentVault().color : null);
   setLayout(prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
   document.body.classList.toggle("no-sub-en", !prefs.sub_en);
@@ -1366,94 +1440,84 @@ function applyPrefs(m) {
 }
 
 const YT_IMPORT = $("#yt-import");
-// Pantalla de preferencias: índice a la izquierda (sección → cada opción) y todas
-// las opciones a la derecha, agrupadas por sección.
+// Preferencias como en una app: las secciones a la izquierda (una página cada una) y,
+// en la página, las opciones agrupadas con su descripción. Los bloques propios
+// (bibliotecas, glosario, sesión de YouTube, acceso) van como un grupo más.
+const PREF_BLOCKS = {
+  bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
+  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
+  youtube: () => [[YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
+  acceso: () => [
+    [ACC.owner, "Contraseña del dueño", "Con ella entras como dueño desde otros equipos. Desde este equipo no se pide."],
+    [ACC.net, "Acceso desde otros equipos", "Abre Translay a tu red local: otros equipos y celulares de la misma red."],
+    [ACC.libs, "Quién entra a cada biblioteca", "Privada, con contraseña o pública; y si quien entra solo mira o también importa."],
+    [ACC.keys, "Claves de API", "Para que otras apps y scripts usen Translay. Cada clave sirve para todas las bibliotecas o una, de lectura o escritura."],
+    [ACC.hooks, "Webhooks", "Avisos a otras apps cuando algo pasa: un video listo, cambios en la cola, descargas, exportaciones…"],
+  ],
+};
+
+function prefControl(p) {
+  if (p.key === "theme_mode") return appearanceRow(p);
+  const opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
+  if (p.type === "bool") {  // interruptor
+    const on = prefs[p.key] === true;
+    return el("button", { type: "button", class: "switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), "aria-label": p.label,
+      on: { click: () => { setPref(p.key, !on); if (p.key === "notify" && !on) requestNotify(); renderPrefs(); } } }, el("i"));
+  }
+  return el("div", { class: "segs" }, ...opts.map(([value, text]) => el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : ""),
+    on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, text)));
+}
+
 function renderPrefs() {
   const nav = $("#prefs-nav");
   const body = $("#prefs-body");
-  const scroll = body.scrollTop;
-  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK);  // se vuelven a poner en su sección (no se pierden al redibujar)
+  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, ...Object.values(ACC));  // se vuelven a poner en su página
+  if (!prefsSections.length) return;
+  if (!prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = prefsSections[0][0];
+  if (typeof syncRoute === "function" && currentView() === "prefs") syncRoute();
   const vaultKeys = new Set(prefsVaultKeys);
   const vaultName = typeof currentVault === "function" && vaults.list.length > 1 ? currentVault().name : "";
-  nav.replaceChildren();
-  body.replaceChildren();
-  for (const [sec, title] of prefsSections) {
-    const items = prefsSchema.filter((p) => p.section === sec);
-    const box = document.createElement("section");
-    box.className = "prefs-sec";
-    box.id = `sec-${sec}`;
-    const h = document.createElement("h3");
-    h.textContent = title;
-    box.append(h);
-    const h4 = document.createElement("h4");
-    h4.textContent = title;
-    nav.append(h4);
-    for (const p of items) {
-      const row = document.createElement("div");
-      row.className = "pref";
-      row.id = `pref-${p.key}`;
-      const label = document.createElement("span");
-      label.className = "pref-label";
-      label.textContent = p.label;
-      // propia de la biblioteca abierta (con varias, se aclara cuál)
-      if (vaultName && vaultKeys.has(p.key)) label.append(el("small", { class: "vtag", text: vaultName, title: `Solo en «${vaultName}»` }));
-      const ctl = document.createElement("div");
-      ctl.className = "pref-ctl";
-      const group = document.createElement("div");
-      group.className = "segs";
-      if (p.key.startsWith("theme_")) {  // apariencia: con íconos y muestras de color
-        const picker = appearanceRow(p);
-        if (!picker) continue;          // el tono solo existe en algunos temas
-        ctl.append(picker);
-        row.append(label, ctl);
-        box.append(row);
-        nav.append(navButton(p.label, row));
-        continue;
-      }
-      const opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
-      for (const [value, text] of opts) {
-        const b = el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : "") });
-        // tema: muestra de sus propios colores (el bloque de tokens se aplica a la muestra)
-        if (p.key === "theme") {
-          b.append(value === "sistema" ? icon("monitor")
-            : el("span", { class: "swatch", "data-theme": THEMES[value], "aria-hidden": "true" }));
-        }
-        b.append(text);
-        b.addEventListener("click", () => {
-          setPref(p.key, value);
-          if (p.key === "notify" && value === true) requestNotify();
-          renderPrefs();
-        });
-        group.append(b);
-      }
-      ctl.append(group);
-      row.append(label, ctl);
-      box.append(row);
-      nav.append(navButton(p.label, row));
-    }
-    if (sec === "youtube") {
-      box.append(YT_IMPORT);
-      nav.append(navButton("Importar sesión", YT_IMPORT));
-    }
-    if (sec === "glosario") {
-      box.append(GLOSSARY_BLOCK);
-      nav.append(navButton("Términos", GLOSSARY_BLOCK));
-      if (vaultName) GLOSSARY_BLOCK.querySelector(".pref-label").replaceChildren("Términos",
-        el("small", { class: "vtag", text: vaultName, title: `Solo en «${vaultName}»` }));
-      else GLOSSARY_BLOCK.querySelector(".pref-label").textContent = "Términos";
-    }
-    if (sec === "bibliotecas") {
-      renderVaultsPref();
-      box.append(VAULTS_BLOCK);
-      nav.append(navButton("Tus bibliotecas", VAULTS_BLOCK));
-    }
-    body.append(box);
+  nav.replaceChildren(el("h4", { text: "Preferencias" }), ...prefsSections.map(([k, title, , ic]) =>
+    el("button", { type: "button", class: "item" + (k === lib.prefSec ? " active" : ""),
+      on: { click: () => { lib.prefSec = k; renderPrefs(); body.scrollTop = 0; } } }, el("span", {}, icon(ic || "sliders"), title))));
+  const [sec, title, desc] = prefsSections.find(([k]) => k === lib.prefSec);
+  const page = el("div", { class: "pref-page" },
+    el("header", { class: "pref-head" }, el("h2", { text: title }), desc ? el("p", { text: desc }) : null,
+      vaultName && prefsSchema.some((p) => p.section === sec && vaultKeys.has(p.key)) || sec === "glosario" && vaultName
+        ? el("span", { class: "pref-scope" }, vaultBadge(currentVault(), "xs"), `Se guarda en «${vaultName}»`) : null));
+  // opciones, por grupo
+  const groups = new Map();
+  for (const p of prefsSchema.filter((x) => x.section === sec)) {
+    if (!groups.has(p.group)) groups.set(p.group, []);
+    groups.get(p.group).push(p);
   }
-  body.scrollTop = scroll;
-  markPrefsNav();
+  for (const [g, items] of groups) {
+    const rows = items.map((p) => {
+      const ctl = prefControl(p);
+      if (!ctl) return null;
+      return el("div", { class: "set-row", id: `pref-${p.key}` },
+        el("div", { class: "set-text" }, el("strong", { text: p.label }), p.desc ? el("p", { text: p.desc }) : null),
+        el("div", { class: "set-ctl" }, ctl));
+    }).filter(Boolean);
+    // un grupo de una sola opción no repite su título (la opción ya lo tiene)
+    if (rows.length) page.append(el("section", { class: "set-group" }, g && rows.length > 1 ? el("h3", { text: g }) : null, el("div", { class: "set-rows" }, ...rows)));
+  }
+  // bloques propios de la página
+  if (sec === "bibliotecas") renderVaultsPref();
+  if (sec === "acceso") renderAdmin();
+  for (const [block, t, d] of (PREF_BLOCKS[sec] ? PREF_BLOCKS[sec]() : [])) {
+    page.append(el("section", { class: "set-group block" }, el("h3", { text: t }), d ? el("p", { class: "set-desc", text: d }) : null, block));
+  }
+  body.replaceChildren(page);
 }
-// Apariencia: modo (íconos), tema y tono (muestras con los colores reales de cada
-// opción en el modo actual). Cada cambio conserva lo demás.
+function markPrefsNav() {}  // (antes: índice que seguía el scroll; ahora cada sección es su página)
+function openPrefs(sec) {
+  lib.prefSec = sec;
+  setView("prefs");
+  renderPrefs();
+}
+
+// Apariencia: el modo, con íconos.
 function appearanceRow(p) {
   const choose = (value) => {
     setPref(p.key, value);
@@ -1465,37 +1529,9 @@ function appearanceRow(p) {
     const icons = { sistema: "monitor", claro: "sun", oscuro: "moon" };
     return el("div", { class: "segs" }, ...p.options.map(([v, t]) => seg(v, prefs.theme_mode === v, icon(icons[v]), t)));
   }
-  if (p.key === "theme_style") {
-    return el("div", { class: "segs" }, ...p.options.map(([v, t]) => seg(v, (prefs.theme_style || "clasico") === v,
-      el("span", { class: "swatch", "data-theme": themeBlock(prefs.theme_mode, v, prefs.theme_tone), "aria-hidden": "true" }), t)));
-  }
-  const tones = TONES[prefs.theme_style];  // theme_tone
-  if (!tones) return null;
-  const current = themeTone(prefs.theme_style, prefs.theme_tone);
-  const names = Object.fromEntries(p.options);
-  return el("div", { class: "segs" }, ...tones.map((v) => seg(v, current === v,
-    el("span", { class: "swatch", "data-theme": themeBlock(prefs.theme_mode, prefs.theme_style, v), "aria-hidden": "true" }), names[v])));
+  return null;
 }
 
-function navButton(text, target) {
-  const b = el("button", { type: "button", class: "item" }, el("span", { text }));
-  b.dataset.target = target.id;
-  b.addEventListener("click", () => target.scrollIntoView({ behavior: "smooth", block: "start" }));
-  return b;
-}
-// la opción visible arriba queda marcada en el índice
-function markPrefsNav() {
-  const body = $("#prefs-body");
-  const top = body.getBoundingClientRect().top;
-  let cur = null;
-  for (const row of body.querySelectorAll(".pref")) {
-    if (row.getBoundingClientRect().top - top <= 40) cur = row.id;
-  }
-  cur ||= body.querySelector(".pref")?.id;
-  if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4) cur = [...body.querySelectorAll(".pref")].pop()?.id;
-  for (const b of $("#prefs-nav").querySelectorAll("button")) b.classList.toggle("on", b.dataset.target === cur);
-}
-$("#prefs-body").addEventListener("scroll", markPrefsNav, { passive: true });
 $("#prefs-btn").addEventListener("click", () => togglePrefs());
 
 /* ------------------------------------------------------------ pestañas: transcripción / siguientes */
@@ -1551,7 +1587,7 @@ function renderCookies(m) {
   const box = $("#yt-browsers");
   box.replaceChildren();
   for (const b of m.browsers) {
-    box.append(el("button", { type: "button", class: "seg", text: `Importar de ${b.name}`, on: { click: () => {
+    box.append(el("button", { type: "button", class: "btn sm", text: `Importar de ${b.name}`, on: { click: () => {
       $("#cookies-status").textContent = `leyendo la sesión de ${b.name}…`;
       send({ type: "cookies_import", browser: b.key });
     } } }));
@@ -1722,12 +1758,11 @@ function renderPeople() {
     voice.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, voice: voice.value }));
     const used = state.people.voices[key] || key;
     const usedUrl = savedUrl(used) || refs[used];
-    const listen = usedUrl ? btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost",
-      title: "Escuchar la voz de referencia", onClick: () => new Audio(usedUrl).play().catch(() => {}) }) : null;
+    const listen = usedUrl ? previewBtn(usedUrl, "Escuchar la voz de referencia") : null;
     // guardar a esta persona (nombre y su voz) para usarla en otros videos de la biblioteca
     const nm = (state.people.names[key] || "").trim();
     const same = saved.find((p) => p.name.toLowerCase() === nm.toLowerCase() && nm);
-    const keep = refs[key] ? btn(same ? "Actualizar voz" : "Guardar", { icon: "bookmark", size: "xs", variant: "ghost",
+    const keep = refs[key] ? btn(same ? "Actualizar voz" : "Guardar", { icon: "bookmark", size: "xs", variant: "ghost", cls: "owner-only",
       title: `Guardar su nombre y su voz en «${vname}»`,
       onClick: () => send({ type: "people_save", video: state.videoId, spk: key, name: nm || `Persona ${n}`, id: same?.id || "" }) }) : null;
     return el("div", { class: "person" },
@@ -1742,13 +1777,16 @@ function renderPeople() {
     ...saved.map((p) => el("div", { class: "psaved" },
       el("span", { text: p.name }),
       el("span", { class: "pacts" },
-        btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost", onClick: () => new Audio(p.url).play().catch(() => {}) }),
-        btn("Olvidar", { icon: "x", size: "xs", variant: "ghost", onClick: async () => {
+        previewBtn(p.url, "Escuchar esta voz"),
+        btn("Olvidar", { icon: "x", size: "xs", variant: "ghost", cls: "owner-only", onClick: async () => {
           if (await confirmDlg(`¿Olvidar a ${p.name}?`, "Los videos que usan su voz vuelven a la voz de cada persona al rehacerse.", "Olvidar")) {
             send({ type: "people_forget", id: p.id, vault: state.videoVault });
           }
         } }))))) : null;
   box.replaceChildren(names, ...rows, kept || "");
+  if (typeof can === "function" && !can("owner")) {
+    for (const x of box.querySelectorAll("input, select")) x.disabled = true;
+  }
 }
 
 /* ------------------------------------------------------------ glosario */
@@ -1783,7 +1821,7 @@ function renderGlossary(entries) {
     send({ type: "glossary_set", entries: items });
     toast("Glosario guardado. Las frases que lo usan se traducen de nuevo.", "ok");
   } });
-  ctl.replaceChildren(rows, el("div", { class: "segs" },
+  ctl.replaceChildren(rows, el("div", { class: "acts" },
     btn("Agregar término", { icon: "plus", onClick: () => addRow().focus() }), save),
     el("small", { class: "label", text: "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas)." }));
 }

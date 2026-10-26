@@ -200,6 +200,14 @@ def test_download_only_queue():
             job["state"] = "descargado"
             p.clear_done()
             assert p._job("yt_abcdefghij1") is None       # «Limpiar terminados» también lo quita
+            # «Bajar video»: lo que solo tiene audio entra a descargarse sin volver a procesarse
+            lib.set_field("yt_abcdefghij1", media="/media/yt/x.m4a", audio_only=True)
+            assert p.fetch_videos(["yt_abcdefghij1"]) == 1
+            job = p._job("yt_abcdefghij1")
+            assert job["fetch_video"] and job["state"] in ("listo", "descargado") and p._next() is None
+            assert p._next_download() is job
+            p.clear_done()
+            assert p._job("yt_abcdefghij1") is job        # pendiente: «Limpiar terminados» no lo quita
     finally:
         Processor._loop = loop
 
@@ -235,7 +243,80 @@ def test_vaults():
         assert not (sci.root / "youtube").exists() and vs.get("ciencia") is None
 
 
+def test_access_and_webhooks():
+    """Acceso: dueño local, invitados por biblioteca, claves de API; webhooks firmados."""
+    import hashlib
+    import hmac
+    import http.server
+    import threading
+    import time as _t
+
+    from vt import events
+    from vt.auth import Auth
+    from vt.httpws import Request
+    from vt.vaults import Vaults
+    from vt.webhooks import Webhooks
+
+    with tempfile.TemporaryDirectory() as d:
+        data = Path(d)
+        vs = Vaults(data)
+        sci = vs.create("Ciencia")
+        auth = Auth(data / "auth.json", vs)
+        req = lambda peer="127.0.0.1", **h: Request("GET", "/", {}, {k.replace("_", "-"): v for k, v in h.items()}, peer)
+        assert auth.access(req()).owner                                    # este equipo: dueño
+        assert not auth.access(req(x_forwarded_for="1.2.3.4")).any         # por un túnel: remoto
+        assert not auth.access(req("192.168.1.5")).any                     # todo es privado
+        auth.set_vault_access("ciencia", "publica", "ver")
+        a = auth.access(req("192.168.1.5"))
+        assert a.can_view("ciencia") and not a.can_import("ciencia") and not a.can_view("principal")
+        auth.set_vault_access("ciencia", "clave", "importar", "secreta1")
+        assert not auth.access(req("192.168.1.5")).any
+        assert auth.login("mala", "ciencia") is None
+        tok = auth.login("secreta1", "ciencia")
+        a = auth.access(req("192.168.1.5", cookie=f"vt_s={tok}"))
+        assert a.can_import("ciencia") and not a.owner
+        auth.set_vault_access("ciencia", "clave", "importar", "otra1234")  # contraseña nueva: la sesión vieja no entra
+        assert not auth.access(req("192.168.1.5", cookie=f"vt_s={tok}")).any
+        auth.set_owner_password("dueño123")
+        tok = auth.login("dueño123")
+        assert auth.access(req("192.168.1.5", cookie=f"vt_s={tok}")).owner
+        key, token = auth.create_key("script", "ciencia", "lectura")
+        a = auth.access(req("192.168.1.5", authorization=f"Bearer {token}"))
+        assert a.perm("ciencia") == "ver" and not a.can_view("principal") and "hash" not in auth.keys_public()[0]
+        assert not auth.access(req("192.168.1.5", authorization="Bearer vt_falsa")).any
+
+        got = []
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers["Content-Length"]))
+                got.append((self.headers["X-VT-Event"], self.headers["X-VT-Signature"], body))
+                self.send_response(204)
+                self.end_headers()
+
+            def log_message(self, *a):
+                pass
+
+        srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        hooks = Webhooks(data / "webhooks.json")
+        h = hooks.upsert({"url": f"http://127.0.0.1:{srv.server_port}/x", "events": ["video.procesado"], "vault": "ciencia"})
+        events.emit("video.procesado", "principal", video="a")             # otra biblioteca: no
+        events.emit("video.descargado", "ciencia", video="b")              # otro evento: no
+        events.emit("video.procesado", "ciencia", video="c")
+        for _ in range(50):
+            if got:
+                break
+            _t.sleep(0.05)
+        srv.shutdown()
+        assert len(got) == 1 and got[0][0] == "video.procesado"
+        sig = "sha256=" + hmac.new(h["secret"].encode(), got[0][2], hashlib.sha256).hexdigest()
+        assert got[0][1] == sig and b'"video": "c"' in got[0][2]
+        events._sinks.remove(hooks.on_event)
+
+
 if __name__ == "__main__":
+    test_access_and_webhooks()
     test_vaults()
     test_download_only_queue()
     test_playlist_library_and_srt()

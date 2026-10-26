@@ -109,21 +109,29 @@ def main():
     async def get_thumb(rest):
         """Miniatura de un video de YouTube: se baja una sola vez y queda en el equipo
         (con miles importados, pedirlas a YouTube cada vez que se muestran sobra)."""
-        vid = rest.removesuffix(".jpg")
+        hd = rest.endswith("_hd.jpg")  # grande (la portada de la biblioteca)
+        vid = rest.removesuffix(".jpg").removesuffix("_hd")
         if not re.fullmatch(r"[A-Za-z0-9_-]{11}", vid):
             return None
-        for f in [v.root / "youtube" / f"{vid}.jpg" for v in vaults.all()] + [thumbs_dir / f"{vid}.jpg"]:
+        for f in [v.root / "youtube" / f"{vid}.jpg" for v in vaults.all()] + [thumbs_dir / f"{vid}{'_hd' if hd else ''}.jpg"]:
             if f.exists():  # la del video descargado (en su biblioteca) vale
                 return f
         lock = thumb_locks.setdefault(vid, asyncio.Lock())
         async with lock:
-            out = thumbs_dir / f"{vid}.jpg"
+            out = thumbs_dir / f"{vid}{'_hd' if hd else ''}.jpg"
             if not out.exists():
                 def fetch():
                     import urllib.request
 
-                    with urllib.request.urlopen(f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg", timeout=8) as r:
-                        data = r.read(2 << 20)
+                    for size in (("maxresdefault", "hqdefault") if hd else ("mqdefault",)):
+                        try:
+                            with urllib.request.urlopen(f"https://i.ytimg.com/vi/{vid}/{size}.jpg", timeout=8) as r:
+                                data = r.read(4 << 20)
+                            break
+                        except Exception:
+                            data = None
+                    if not data:
+                        raise OSError("sin miniatura")
                     tmp = out.with_suffix(".part")
                     tmp.write_bytes(data)
                     tmp.replace(out)
@@ -133,6 +141,41 @@ def main():
                     return None
         thumb_locks.pop(vid, None)
         return out if out.exists() else None
+
+    chan_dir = ROOT / "data" / "youtube" / "channels"
+    chan_dir.mkdir(parents=True, exist_ok=True)
+    chan_locks: dict = {}
+
+    async def get_channel_art(rest):
+        """/chan/<avatar|banner>/<canal>: avatar o banner del canal de YouTube, bajado una
+        sola vez (si el canal no tiene, se recuerda y la vista usa su patrón)."""
+        from urllib.parse import unquote
+
+        kind, _, name = rest.partition("/")
+        name = unquote(name).strip()
+        if kind not in ("avatar", "banner") or not name:
+            return None
+        slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:60] or "x"
+        out = chan_dir / slug
+        f = chan_dir / f"{slug}_{kind}.jpg"
+        miss = chan_dir / f"{slug}.none"
+        if f.exists() or miss.exists():
+            return f if f.exists() else None
+        vid = next((i for vault in vaults.all() for i, v in vault.library.data["videos"].items()
+                    if v.get("source") == "youtube" and v.get("channel") == name), None)
+        if not vid:
+            return None
+        async with chan_locks.setdefault(slug, asyncio.Lock()):
+            if not f.exists() and not miss.exists():
+                try:
+                    got = await asyncio.get_running_loop().run_in_executor(
+                        None, youtube.channel_art, vid[3:], out, prefs.values.get("yt_session", "ninguna"))
+                    if not got:
+                        miss.write_text("", encoding="utf-8")
+                except Exception as e:
+                    print(f"[canal] {name}: {e}", flush=True)
+                    miss.write_text(str(e)[:300], encoding="utf-8")
+        return f if f.exists() else None
 
     async def get_vault_file(rest):
         """Archivos de las demás bibliotecas: /v/<biblioteca>/media/yt/…, /audio/…, /voices/…, /people/…"""
@@ -195,13 +238,35 @@ def main():
     translator.unload()
     prefs = Prefs(ROOT / "data" / "prefs.json")
     processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
-                          youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults)
+                          youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
+                          order=lambda: prefs.values.get("download_order", "orden"))
     exporter = Exporter(ROOT / "data", store, library, processor, youtube, prefs, notify, vaults=vaults)
+
+    # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)
+    from .api import Admin, Api, CollectorWS, make_guard
+    from .auth import Auth
+    from .webhooks import Webhooks
+
+    auth = Auth(ROOT / "data" / "auth.json", vaults)
+    hooks = Webhooks(ROOT / "data" / "webhooks.json", notify)
+    admin = Admin(auth, hooks, a.port)
+
+    def make_session(vault, access):
+        s = Session(CollectorWS(), asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
+                    processor, prefs, notify, exporter, vaults=vaults, access=access, admin=admin)
+        s.vault = vault
+        return s
+
+    api = Api(vaults, auth, processor, exporter, make_session)
+
+    async def get_app_page(rest):
+        return ROOT / "web" / "index.html"  # /b/<biblioteca>: la misma página, con esa biblioteca
 
     async def ws_handler(ws):
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                          processor, prefs, notify, exporter, vaults=vaults)
+                          processor, prefs, notify, exporter, vaults=vaults, access=auth.access(ws.request),
+                          admin=admin)
         sessions.add(session)
         try:
             await session.run()
@@ -215,13 +280,22 @@ def main():
                         "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
                                              "/api/cookies": put_cookies},
-                       {"/thumb/yt/": get_thumb, "/v/": get_vault_file, "/people/": get_main_people})
+                       {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page},
+                       {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults))
+    admin.server = server
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)
     if not a.no_browser:
         threading.Timer(0.5, webbrowser.open, (url,)).start()
     try:
-        asyncio.run(server.serve(a.host, a.port))
+        async def run_all():
+            loop_ref["loop"] = asyncio.get_running_loop()
+            if admin.network:  # «Acceso desde otros equipos» (Preferencias → Acceso y API)
+                await admin.set_network(True)
+                print("En la red: " + ", ".join(f"http://{ip}:{a.port}" for ip in admin.lan_ips()), flush=True)
+            await server.serve(a.host, a.port)
+
+        asyncio.run(run_all())
     except KeyboardInterrupt:
         pass
 

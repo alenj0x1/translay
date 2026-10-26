@@ -1,0 +1,34 @@
+/* =====================================================================
+   Patrones Bauhaus (web/js/patterns.js): banner y distintivo de cada colección,
+   miniaturas que faltan, estados vacíos y la portada vacía
+   ===================================================================== */
+
+.bau { display: block; background: center / cover no-repeat; }
+.bau.fill { position: absolute; inset: 0; }
+
+/* distintivo: ícono sobre el color de la colección, o el avatar del canal */
+.cbadge {
+  position: relative; flex: none; display: grid; place-items: center; overflow: hidden;
+  width: 22px; height: 22px; border-radius: 7px; background: var(--c); color: #fff;
+}
+.cbadge svg { width: 13px; height: 13px; stroke-width: 1.7; color: #fff !important; }
+.cbadge img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cbadge.has-img { border-radius: 50%; background: var(--surface-2); }
+.cbadge.has-img svg { visibility: hidden; }
+.cbadge.md { width: 28px; height: 28px; border-radius: 9px; }
+.cbadge.md svg { width: 16px; height: 16px; }
+.cbadge.lg { width: 64px; height: 64px; border-radius: 18px; }
+.cbadge.lg svg { width: 30px; height: 30px; stroke-width: 1.5; }
+
+/* banner de la colección */
+.cbanner { position: relative; overflow: hidden; height: clamp(96px, 13vw, 160px); border-radius: var(--r-lg); background: var(--surface-2); }
+.cbanner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cbanner .cb-shuffle { position: absolute; right: var(--s3); bottom: var(--s3); background: rgba(10, 11, 13, .7); color: #fff; opacity: 0; transition: opacity .2s; }
+.cbanner .cb-shuffle:hover { background: rgba(10, 11, 13, .85); }
+.cbanner:hover .cb-shuffle, .cb-shuffle:focus-visible { opacity: 1; }
+@media (hover: none) { .cbanner .cb-shuffle { opacity: 1; } }
+
+@media (max-width: 760px) {
+  .cbadge.lg { width: 48px; height: 48px; border-radius: 14px; }
+  .cbadge.lg svg { width: 22px; height: 22px; }
+}

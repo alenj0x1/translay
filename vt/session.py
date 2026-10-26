@@ -17,7 +17,7 @@ Cliente → servidor
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
   vault_open {id} · vault_create {name, folder, color, icon} · vault_open_folder {folder}
-  vault_update {id, name, color, icon} · vault_remove {id, delete_files} · vault_pick_folder
+  vault_update {id, name, color, icon, pattern} · vault_remove {id, delete_files} · vault_pick_folder
   vault_move {videos, to}                            bibliotecas (vt/vaults.py; responde "vaults")
   people_save {video, spk, name} · people_forget {id}  personas guardadas en la biblioteca
 
@@ -41,7 +41,16 @@ import numpy as np
 from functools import partial
 
 from .store import Store, Transcript
+from . import events
+from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
+
+# lo que solo hace el dueño; lo que además de ver puede hacer quien tiene "importar"
+OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "queue_pause", "queue_resume", "queue_clear",
+              "queue_unblock", "queue_remove", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
+              "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete",
+              "comment_add", "comment_edit", "comment_delete"}
+IMPORT_ONLY = {"youtube", "playlist", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
 from .streaming import Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
@@ -50,12 +59,23 @@ class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
                  youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
-                 vaults=None):
+                 vaults=None, access: Access | None = None, admin=None):
         self.ws = ws
         self.gpu = gpu
+        # quién es (vt/auth.py): el dueño o un invitado con permisos por biblioteca
+        self.access = access or Access(owner=True, local=True)
+        self.admin = admin  # acceso, claves de API, webhooks y red (solo el dueño)
+        self._my_exports: set[str] = set()
         # bibliotecas: la que esta pestaña tiene abierta; cada video se abre en la suya
         self.vaults = vaults
-        self.vault = vaults.get(vaults.last) or vaults.main
+        req = getattr(ws, "request", None)
+        asked = vaults.get((req.query.get("lib") if req else "") or "")  # /b/<biblioteca>
+        if asked and self.access.can_view(asked.id):
+            self.vault = asked
+        elif self.access.owner:
+            self.vault = vaults.get(vaults.last) or vaults.main
+        else:
+            self.vault = next((v for v in vaults.all() if self.access.can_view(v.id)), vaults.main)
         self._store = RoutedStore(vaults, lambda: self.vault)
         self.translator = translator
         self.info = info
@@ -114,31 +134,82 @@ class Session:
         m["vault_keys"] = list(VAULT_PREFS)
         return m
 
+    def _vaults_msg(self) -> dict:
+        items = [i for i in self.vaults.public() if self.access.can_view(i["id"])]
+        if not self.access.owner:  # el invitado no ve dónde están las carpetas
+            items = [{**i, "path": "", "access": None, "perm": self.access.perm(i["id"])} for i in items]
+        return {"type": "vaults", "current": self.vault.id, "items": items}
+
     async def _send_vault_state(self):
         """Todo lo que cambia con la biblioteca: lista, preferencias, glosario y videos."""
-        await self.ws.send_json({"type": "vaults", "current": self.vault.id, "items": self.vaults.public()})
+        await self.ws.send_json(self._vaults_msg())
         await self.ws.send_json(self._prefs_msg())
         await self.ws.send_json({"type": "glossary", "entries": self.glossary.entries, "vault": self.vault.id})
         await self.ws.send_json({"type": "people_saved", "vault": self.vault.id, "items": self._people_saved()})
         await self._library({"type": "library"})
 
+    def _auth_msg(self) -> dict:
+        req = getattr(self.ws, "request", None)
+        asked = self.vaults.get((req.query.get("lib") if req else "") or "")
+        acc = (asked.meta.get("access") or {}) if asked else {}
+        return {"type": "auth", **self.access.public(), "vault": self.vault.id if self.access.any else None,
+                "asked": asked.id if asked else None, "asked_name": asked.name if asked else "",
+                "asked_mode": acc.get("mode", "privada") if asked else "",
+                "owner_set": bool(self.admin and self.admin.auth.owner_set),
+                "public": [{"id": v.id, "name": v.name, "color": v.meta.get("color"), "icon": v.meta.get("icon")}
+                           for v in self.vaults.all() if (v.meta.get("access") or {}).get("mode") == "publica"]}
+
+    def _allowed(self, t: str, m: dict) -> bool:
+        """¿Esta conexión puede pedir esto?"""
+        a = self.access
+        if a.owner:
+            return True
+        if t in OWNER_ONLY or t.startswith("admin_") or (t.startswith("vault_") and t != "vault_open"):
+            return False
+        if t == "vault_open":
+            return a.can_view(str(m.get("id", "")))
+        if t in IMPORT_ONLY:
+            if t == "queue_add":
+                v = self.vaults.of(str(m.get("video", "")))
+                return bool(v) and a.can_import(v.id)
+            if t == "queue_video":
+                vs = [self.vaults.of(str(x)) for x in m.get("videos", [])]
+                return bool(vs) and all(v and a.can_import(v.id) for v in vs)
+            return a.can_import(self.vault.id)
+        if t == "open":
+            v = self.vaults.of(str(m.get("id", "")))
+            return a.can_view(v.id) if v else a.can_import(self.vault.id)
+        return True
+
     async def run(self):
+        await self.ws.send_json(self._auth_msg())
+        if not self.access.any:  # sin permiso: la vista muestra el inicio de sesión
+            while await self.ws.recv() is not None:
+                pass
+            return
         worker = asyncio.create_task(self._worker())
         if self.dubber:
             self._dub_task = asyncio.create_task(self._dub_worker())
         await self.ws.send_json({"type": "ready", **self.info})
         await self.ws.send_json({"type": "power", "state": self.res.state})
         if self.prefs:
-            await self.ws.send_json({"type": "vaults", "current": self.vault.id, "items": self.vaults.public()})
+            await self.ws.send_json(self._vaults_msg())
             await self.ws.send_json(self._prefs_msg())
-            await self._cookies_status()
+            if self.access.owner:
+                await self._cookies_status()
         if self.processor:
-            await self.ws.send_json(self.processor.public())
+            out = self.forward_bg(self.processor.public())
+            if out:
+                await self.ws.send_json(out)
         if self.exporter:
-            await self.ws.send_json(self.exporter.public())
+            out = self.forward_bg(self.exporter.public())
+            if out:
+                await self.ws.send_json(out)
         try:
             while (msg := await self.ws.recv()) is not None:
                 if isinstance(msg, bytes):
+                    if not self.access.can_import(self.vault.id):
+                        continue  # procesar audio en vivo usa la GPU: no para quien solo ve
                     if len(msg) > 8:
                         self.res.touch()
                         t = struct.unpack("<d", msg[:8])[0]
@@ -146,7 +217,12 @@ class Session:
                         self.q.put_nowait(("audio", t, pcm))
                 else:
                     m = json.loads(msg)
-                    if m.get("type") == "pos":
+                    if not self._allowed(str(m.get("type", "")), m):
+                        await self.ws.send_json({"type": "denied", "what": m.get("type")})
+                        continue
+                    if m.get("type", "").startswith("admin_"):
+                        asyncio.create_task(self._admin(m))
+                    elif m.get("type") == "pos":
                         self.playhead = float(m.get("t", 0))
                         if self.tr is not None:  # en su biblioteca (puede no ser la abierta)
                             self.vaults.library.position(self.tr.data["id"], self.playhead)
@@ -473,7 +549,7 @@ class Session:
     def _download_only(self) -> bool:
         return bool(self.prefs) and self._pref("import_mode") == "descargar"
 
-    async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False):
+    async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False, mode: str = ""):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
         orden) y cada playlist se importa como colección."""
         from .youtube import playlist_id, video_id
@@ -505,8 +581,11 @@ class Session:
                 lib.toggle(coll, vid, True)
         if self.processor and ids:
             # "abrirlo": se descarga primero; «Solo descargar» (Preferencias): sin traducir
-            self.processor.add_many(ids, front=front, download_only=self._download_only() and not front,
+            dl_only = (mode == "descargar") if mode else self._download_only()  # mode: desde la API
+            self.processor.add_many(ids, front=front, download_only=dl_only and not front,
                                     audio_only=self._audio_only())
+        if ids:
+            events.emit("video.agregado", self.vault.id, videos=ids, count=len(ids))
         await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists),
                                  "quiet": bool(quiet), "elsewhere": elsewhere})
         self.notify({"type": "library_changed"})
@@ -553,17 +632,22 @@ class Session:
         if self.processor:  # en orden: la cola descarga y procesa uno tras otro
             self.processor.add_many([i for i in c["items"] if i in lib.data["videos"]],
                                     download_only=self._download_only(), audio_only=self._audio_only())
+        events.emit("coleccion.creada", self.vault.id, collection=c["id"], name=c["name"], kind="playlist",
+                    count=len(c["items"]))
         await self.ws.send_json({"type": "playlist_added", "coll": c["id"], "name": c["name"],
                                  "count": len(c["items"])})
         self.notify({"type": "library_changed"})
 
     async def _export(self, m: dict):
         if m["type"] == "export_remove":
-            self.exporter.remove(str(m.get("job", "")))
+            if self.access.owner or str(m.get("job", "")) in self._my_exports:
+                self.exporter.remove(str(m.get("job", "")))
             return
         try:
-            job = self.exporter.add([str(v) for v in m.get("videos", [])], list(m.get("kinds", [])),
-                                    str(m.get("name", ""))[:120])
+            vids = [str(v) for v in m.get("videos", [])
+                    if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
+            job = self.exporter.add(vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120])
+            self._my_exports.add(job["id"])
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
             await self.ws.send_json({"type": "yt_error", "error": str(e)})
@@ -615,6 +699,7 @@ class Session:
         if m["type"] == "glossary_set":
             old, new = gl.set(m.get("entries") or [])
             self.notify({"type": "glossary", "entries": gl.entries, "vault": self.vault.id})
+            events.emit("glosario.cambio", self.vault.id, entries=gl.entries)
             # frases afectadas por lo que cambió: se vuelven a traducir (y su voz se rehace en la cola)
             changed = [e for e in new if e not in old] + [e for e in old if e not in new]
             if changed:
@@ -721,6 +806,7 @@ class Session:
             tr.delete_comment(seg, str(m.get("id")))
         tr.save()
         self.notify({"type": "comments", "video": vid, "comments": tr.comments})  # todas las pestañas
+        events.emit("comentario.cambio", self._vault_of(vid).id, video=vid, segment=seg, action=m["type"][8:])
 
     # ------------------------------------------------------- borrar videos
     async def _delete(self, m: dict):
@@ -734,6 +820,8 @@ class Session:
         await asyncio.get_running_loop().run_in_executor(None, self._delete_files, vids, vault)
         self.notify({"type": "deleted", "videos": vids})
         self.notify({"type": "library_changed"})
+        if vids:
+            events.emit("video.eliminado", vault.id, videos=vids, count=len(vids))
 
     def _delete_files(self, vids, vault):
         """Copias, transcripciones, voces y referencias de cada video."""
@@ -760,13 +848,16 @@ class Session:
             out = {}
             for i in [str(x) for x in m.get("ids", [])][:300]:
                 v = self.vaults.of(i)
-                e = v.library.data["videos"].get(i) if v else None
+                e = v.library.data["videos"].get(i) if v and self.access.can_view(v.id) else None
                 if e:
                     out[i] = {"id": i, "lib": v.id, "title": e.get("title", i), "source": e.get("source"),
                               **{f: v.url(e[f]) for f in ("thumb", "media") if e.get(f)}}
             return await self.ws.send_json({"type": "lib_meta", "videos": out})
         if kind == "lib_register":  # en su biblioteca (un archivo ya importado en otra queda allá)
-            self._vault_of(str(m["id"])).library.register(
+            target = self._vault_of(str(m["id"]))
+            if str(m["id"]) not in target.library.data["videos"]:
+                events.emit("video.agregado", target.id, videos=[str(m["id"])], count=1)
+            target.library.register(
                 str(m["id"]), **{k: m.get(k) for k in ("title", "duration", "source", "media",
                                                         "audio", "thumb", "channel", "categories")})
         elif kind == "lib_remove":
@@ -775,16 +866,21 @@ class Session:
             c = lib.create(m.get("name", ""))
             if vid:
                 lib.toggle(c["id"], vid, True)
+            events.emit("coleccion.creada", self.vault.id, collection=c["id"], name=c["name"], kind="propia")
         elif kind == "coll_toggle":
             lib.toggle(m["coll"], vid, bool(m.get("on")))
+            events.emit("coleccion.cambio", self.vault.id, collection=m["coll"], video=vid, added=bool(m.get("on")))
         elif kind == "coll_rename":
             lib.rename(m["coll"], m.get("name", ""))
+            events.emit("coleccion.cambio", self.vault.id, collection=m["coll"], name=m.get("name", ""))
         elif kind == "coll_delete":
+            events.emit("coleccion.eliminada", self.vault.id, collection=m["coll"])
             orphans = lib.delete(m["coll"])  # lo pendiente de una playlist borrada sale de la cola
             if orphans and self.processor:
                 self.processor.remove_many(orphans)
         data = self.vault.public_library()
         data["vault"] = self.vault.id
+        data["hero"] = self._hero(data["videos"])
         if self.processor:  # avance de cada video (para "Procesar" y las barras)
             for vid, v in data["videos"].items():
                 try:
@@ -793,11 +889,29 @@ class Session:
                     v["progress"] = {"asr": 0, "dub": 0}
         await self.ws.send_json({"type": "library", **data})
 
+    def _hero(self, videos: dict) -> dict | None:
+        """Portada: el último video que se estaba viendo y la frase (inglés y español) donde quedó."""
+        best = None
+        for vid, v in videos.items():
+            pos, dur = v.get("position") or 0, v.get("duration") or 0
+            if v.get("media") and pos > 5 and dur and pos < dur - 10 and (best is None or (v.get("opened") or 0) > best[0]):
+                best = ((v.get("opened") or 0), vid, pos)
+        if best is None:
+            return None
+        _, vid, pos = best
+        try:
+            segs = self.vault.store.open(vid).segments
+        except (ValueError, OSError):
+            return {"video": vid}
+        seg = next((s for s in reversed(segs) if s["start"] <= pos + 0.5 and s.get("translation")), None)
+        return {"video": vid, "en": seg.get("text", "") if seg else "", "es": seg.get("translation", "") if seg else ""}
+
     # --------------------------------------------------------- cola de fondo
     async def _queue(self, m: dict):
         kind, vid = m["type"], str(m.get("video", ""))
         if kind == "queue_add":
-            self.processor.add(vid, front=bool(m.get("front")))
+            # download_only: «Descargar» desde «Ver» (bajarlo sin abrirlo ni traducirlo)
+            self.processor.add_many([vid], front=bool(m.get("front")), download_only=bool(m.get("download_only")))
         elif kind == "queue_remove":
             self.processor.remove(vid)
         elif kind == "queue_pause":
@@ -812,6 +926,9 @@ class Session:
             self.processor.clear_done()
         elif kind == "queue_unblock":
             self.processor.unblock()
+        elif kind == "queue_video":  # «Bajar video» de lo que solo tiene el audio
+            n = self.processor.fetch_videos([str(v) for v in m.get("videos", [])])
+            await self.ws.send_json({"type": "video_fetch", "count": n})
 
     def _sleep_when_idle(self):
         # lo que estaba en curso (una traducción o una voz) termina primero
@@ -826,6 +943,24 @@ class Session:
         t = msg.get("type")
         if t == "bg":
             return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
+        if not self.access.owner:
+            if t in ("cookies", "webhooks", "webhooks_log", "glossary_applied", "admin", "yt_blocked"):
+                return None
+            if t == "queue":  # solo lo de sus bibliotecas
+                return {**msg, "jobs": [j for j in msg["jobs"] if self.access.can_view(j.get("lib") or "principal")]}
+            if t == "exports":
+                return {**msg, "jobs": [j for j in msg["jobs"] if j["id"] in self._my_exports]}
+            if t == "comments":
+                v = self.vaults.of(str(msg.get("video", "")))
+                return msg if v and self.access.can_view(v.id) else None
+            if t == "vaults_changed":  # cambió el acceso: se recalcula (quizá ya no puede entrar)
+                req = getattr(self.ws, "request", None)
+                if self.admin and req is not None:
+                    self.access = self.admin.auth.access(req)
+                if not self.access.can_view(self.vault.id):
+                    asyncio.ensure_future(self.ws.close())
+                    return None
+                return self._vaults_msg()
         if t == "prefs":  # con los valores propios de la biblioteca de esta pestaña
             return self._prefs_msg()
         if t in ("glossary", "people_saved") and msg.get("vault") not in (None, self.vault.id):
@@ -835,8 +970,46 @@ class Session:
                 self.vault = self.vaults.main
                 asyncio.ensure_future(self._send_vault_state())
                 return None
-            return {"type": "vaults", "current": self.vault.id, "items": self.vaults.public()}
+            return self._vaults_msg()
         return msg
+
+    # ------------------------------------------------------- administración
+    async def _admin(self, m: dict):
+        """Acceso, claves de API, webhooks y red: Preferencias → Acceso y API (solo el dueño)."""
+        a, t = self.admin, m["type"]
+        if a is None:
+            return
+        try:
+            if t == "admin_owner_pw":
+                pw = str(m.get("password", ""))
+                if pw and len(pw) < 6:
+                    raise ValueError("la contraseña debe tener al menos 6 caracteres")
+                a.auth.set_owner_password(pw)
+            elif t == "admin_vault_access":
+                a.auth.set_vault_access(str(m.get("id", "")), str(m.get("mode", "")), str(m.get("perm", "ver")),
+                                        str(m.get("password", "")))
+                events.emit("biblioteca.cambio", str(m.get("id", "")), access=m.get("mode"))
+                self.notify({"type": "vaults_changed"})
+            elif t == "admin_key_create":
+                key, token = a.auth.create_key(str(m.get("name", "")), str(m.get("scope", "all")),
+                                               str(m.get("perm", "lectura")))
+                await self.ws.send_json({"type": "admin_key", "key": key, "token": token})
+            elif t == "admin_key_revoke":
+                a.auth.revoke_key(str(m.get("id", "")))
+            elif t == "admin_hook_save":
+                a.hooks.upsert(m.get("hook") or {})
+            elif t == "admin_hook_remove":
+                a.hooks.remove(str(m.get("id", "")))
+            elif t == "admin_hook_test":
+                a.hooks.test(str(m.get("id", "")))
+                return
+            elif t == "admin_network":
+                await a.set_network(bool(m.get("on")))
+        except (ValueError, OSError) as e:
+            return await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+        if t == "admin_get":
+            return await self.ws.send_json(a.public())
+        self.notify(a.public())  # todas las pestañas del dueño
 
     # ------------------------------------------------------------ bibliotecas
     async def _vault(self, m: dict):
@@ -856,15 +1029,18 @@ class Session:
                 prefs = {k: self._pref(k) for k in VAULT_PREFS}
                 v = await loop.run_in_executor(None, lambda: self.vaults.create(
                     str(m.get("name", "")), str(m.get("folder", "")).strip(), str(m.get("color", "")),
-                    str(m.get("icon", "")), prefs))
+                    str(m.get("icon", "")), prefs, str(m.get("pattern", ""))))
                 self.vault = v
                 self.vaults.set_last(v.id)
+                events.emit("biblioteca.creada", v.id, name=v.name)
             elif t == "vault_open_folder":
                 v = await loop.run_in_executor(None, self.vaults.open_folder, str(m.get("folder", "")).strip())
                 self.vault = v
                 self.vaults.set_last(v.id)
             elif t == "vault_update":
-                self.vaults.update(str(m.get("id", "")), **{k: str(m.get(k, "")) for k in ("name", "color", "icon")})
+                v = self.vaults.update(str(m.get("id", "")), **{k: str(m.get(k, "")) for k in ("name", "color", "icon")},
+                                       **({"pattern": str(m["pattern"])} if "pattern" in m else {}))
+                events.emit("biblioteca.cambio", v.id, name=v.name)
             elif t == "vault_remove":
                 vid = str(m.get("id", ""))
                 vids = await loop.run_in_executor(None, self.vaults.remove, vid, bool(m.get("delete_files")))
@@ -872,6 +1048,7 @@ class Session:
                     self.processor.remove_many(vids)
                 if self.vault.id == vid:
                     self.vault = self.vaults.main
+                events.emit("biblioteca.eliminada", vid, deleted_files=bool(m.get("delete_files")))
             elif t == "vault_move":
                 to = str(m.get("to", ""))
                 busy = self.processor.busy if self.processor else (lambda v: False)
@@ -882,6 +1059,9 @@ class Session:
                         self.dubber.forget(str(v))
                 await self.ws.send_json({"type": "vault_moved", "moved": moved, "skipped": skipped,
                                          "to": self.vaults.get(to).name})
+                if moved:
+                    events.emit("video.movido", to, videos=[str(v) for v in m.get("videos", [])
+                                                            if self.vaults.of(str(v)) is self.vaults.get(to)], to=to)
                 self.notify({"type": "library_changed"})
                 if self.processor:
                     self.processor._broadcast()

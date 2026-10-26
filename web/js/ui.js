@@ -50,7 +50,33 @@ const ICONS = {
   globe: '<circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.6 2.3 3.4 2.3 5.5S9.6 11.9 8 13.5C6.4 11.9 5.7 10.1 5.7 8S6.4 4.1 8 2.5z"/>',
   star: '<path d="M8 2.3l1.7 3.6 3.9.5-2.9 2.7.8 3.9L8 11.1 4.5 13l.8-3.9-2.9-2.7 3.9-.5z"/>',
   folder: '<path d="M2 4.5V12.5h12V5.5H7.5L6 3.5H2z"/>',
+  home: '<path d="M2.5 7.2L8 2.8l5.5 4.4V13.5h-3.7V9.6H6.2v3.9H2.5z"/>',
+  clock: '<circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.2l2.2 1.4"/>',
+  tag: '<path d="M2.5 2.5h5l6 6-5 5-6-6z"/><circle class="solid" cx="5.4" cy="5.4" r="1"/>',
+  search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/>',
   chevron: '<path d="M4.5 6.2L8 9.7l3.5-3.5"/>',
+  copy: '<rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 3.5V2.5h-8v8h1"/>',
+  user: '<circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 13.8c.6-2.6 2.7-4.1 5.2-4.1s4.6 1.5 5.2 4.1"/>',
+  lock: '<rect x="3" y="7" width="10" height="7"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/>',
+  arrow: '<path d="M3 8h10M9 4l4 4-4 4"/>',
+  dice: '<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle class="solid" cx="5.6" cy="5.6" r="1"/><circle class="solid" cx="10.4" cy="10.4" r="1"/><circle class="solid" cx="8" cy="8" r="1"/>',
+  sidebar: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/>',
+  dots: '<circle class="solid" cx="3.5" cy="8" r="1.2"/><circle class="solid" cx="8" cy="8" r="1.2"/><circle class="solid" cx="12.5" cy="8" r="1.2"/>',
+  eye: '<path d="M1.8 8S4 3.8 8 3.8 14.2 8 14.2 8 12 12.2 8 12.2 1.8 8 1.8 8z"/><circle cx="8" cy="8" r="2"/>',
+  reload: '<path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/>',
+  // categorías (web/js/patterns.js)
+  car: '<path d="M2.5 10.5V8.2l1.4-3.4h8.2l1.4 3.4v2.3zM2.5 8.2h11"/><circle cx="5" cy="11.5" r="1.3"/><circle cx="11" cy="11.5" r="1.3"/>',
+  paw: '<ellipse cx="8" cy="10.6" rx="2.6" ry="2.2"/><circle cx="4.2" cy="7.4" r="1.2"/><circle cx="6.6" cy="4.6" r="1.2"/><circle cx="9.4" cy="4.6" r="1.2"/><circle cx="11.8" cy="7.4" r="1.2"/>',
+  ball: '<circle cx="8" cy="8" r="5.5"/><path d="M8 5.3l2.4 1.8-.9 2.8h-3l-.9-2.8zM8 2.5v2.8M10.4 7.1l2.8-1M9.5 9.9l1.6 2.4M6.5 9.9l-1.6 2.4M5.6 7.1l-2.8-1"/>',
+  plane: '<path d="M2.5 9.2l11-5.7-3 10-2.6-3.4zM7.9 10.1L13.5 3.5"/>',
+  gamepad: '<path d="M5 4.5h6a3.5 3.5 0 0 1 3.3 4.7l-.6 1.8a1.8 1.8 0 0 1-3 .6L9.6 10H6.4l-1.1 1.6a1.8 1.8 0 0 1-3-.6l-.6-1.8A3.5 3.5 0 0 1 5 4.5z"/><path d="M5.2 6.5v2.2M4.1 7.6h2.2"/><circle class="solid" cx="10.8" cy="7.2" r=".7"/>',
+  chat: '<path d="M2.5 3.5h8v5.5H6.5l-2.5 2v-2H2.5z"/><path d="M10.5 6h3v5h-1.2v1.8L10 11H7.5"/>',
+  news: '<rect x="2.5" y="3" width="9" height="10"/><path d="M11.5 6h2v6.2a.8.8 0 0 1-1.6 0M4.5 5.5h5M4.5 8h5M4.5 10.5h3"/>',
+  brush: '<path d="M13.5 2.5L7.6 8.4M8.8 9.6L6.4 7.2c-1.6 0-2.7 1-2.7 2.6 0 1.3-.6 2.4-1.2 3.2 2.6.3 6.3-.4 6.3-3.4z"/>',
+  cap: '<path d="M1.5 6.5L8 3.5l6.5 3L8 9.5zM4.5 8v3c1 1 2.2 1.5 3.5 1.5s2.5-.5 3.5-1.5V8M14.5 6.5v3.5"/>',
+  atom: '<circle class="solid" cx="8" cy="8" r="1.1"/><ellipse cx="8" cy="8" rx="6" ry="2.4"/><ellipse cx="8" cy="8" rx="6" ry="2.4" transform="rotate(60 8 8)"/><ellipse cx="8" cy="8" rx="6" ry="2.4" transform="rotate(-60 8 8)"/>',
+  heart: '<path d="M8 13.2S2.3 9.8 2.3 6A2.9 2.9 0 0 1 8 4.8 2.9 2.9 0 0 1 13.7 6c0 3.8-5.7 7.2-5.7 7.2z"/>',
+  shuffle: '<path d="M2.5 4.5h2.2c3.6 0 3.4 7 7 7h1.8M2.5 11.5h2.2c1.2 0 2-.8 2.6-1.8M9.5 6.3c.6-1 1.4-1.8 2.6-1.8h1.4M12 2.5l2 2-2 2M12 9.5l2 2-2 2"/>',
 };
 
 function icon(name, cls = "") {
@@ -61,6 +87,9 @@ function icon(name, cls = "") {
   s.innerHTML = ICONS[name] || "";
   return s;
 }
+
+// primera letra en mayúscula (los estados se arman en minúscula para poder unirlos)
+const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
 
 /* ------------------------------------------------------------ elementos */
 function el(tag, attrs = {}, ...kids) {
@@ -100,6 +129,10 @@ function setBtn(b, text, ic) {
 function hydrateIcons(root = document) {
   for (const n of root.querySelectorAll("[data-icon]")) {
     if (n.querySelector(":scope > svg")) continue;
+    // el texto va en .btn-text (así el botón puede quedar solo con su ícono cuando falta espacio)
+    for (const t of [...n.childNodes]) {
+      if (t.nodeType === 3 && t.textContent.trim()) t.replaceWith(el("span", { class: "btn-text", text: t.textContent.trim() }));
+    }
     n.prepend(icon(n.dataset.icon));
   }
 }

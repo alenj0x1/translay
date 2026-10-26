@@ -9,19 +9,22 @@ import json
 import threading
 from pathlib import Path
 
-SECTIONS = [["bibliotecas", "Bibliotecas"], ["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["glosario", "Glosario"],
-            ["youtube", "YouTube"]]
+# [clave, título, descripción, ícono] — cada sección es una página de Preferencias
+SECTIONS = [
+    ["bibliotecas", "Bibliotecas", "Tus bibliotecas: cada una con sus videos, colecciones, glosario y forma de importar.", "library"],
+    ["apariencia", "Apariencia", "Cómo se ve Translay en esta biblioteca.", "sun"],
+    ["video", "Reproducción", "Qué pasa al abrir, terminar o agregar videos mientras miras.", "video"],
+    ["audio", "Audio y subtítulos", "Qué escuchas y qué textos aparecen sobre el video.", "speaker"],
+    ["biblioteca", "Importar y descargas", "Qué se hace con lo que importas y cómo se descarga.", "download"],
+    ["glosario", "Glosario", "Términos con traducción fija o que se dejan en inglés.", "book"],
+    ["youtube", "YouTube", "La sesión que se usa para descargar.", "play"],
+    ["acceso", "Acceso y API", "Quién entra desde otros equipos, claves de API y webhooks.", "lock"],
+]
 SCHEMA = [
-    # apariencia: modo (la base clara u oscura) · tema · tono; el bloque de colores es
-    # «tema-tono-modo» en web/css/tokens.css (ver web/js/theme.js)
+    # apariencia: claro u oscuro (web/css/tokens.css, web/js/theme.js)
     {"key": "theme_mode", "section": "apariencia", "label": "Modo", "type": "choice", "default": "sistema",
      "options": [["sistema", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"]]},
-    {"key": "theme_style", "section": "apariencia", "label": "Tema", "type": "choice", "default": "clasico",
-     "options": [["clasico", "Clásico"], ["claude", "Claude"], ["pastel", "Pastel"], ["pink", "Pink"],
-                 ["cyberpunk", "Cyberpunk"], ["matrix", "Matrix"], ["code", "Code"], ["contraste", "Alto contraste"]]},
-    {"key": "theme_tone", "section": "apariencia", "label": "Tono", "type": "choice", "default": "",
-     "options": [["", "—"], ["lavanda", "Lavanda"], ["menta", "Menta"], ["durazno", "Durazno"], ["cielo", "Cielo"],
-                 ["neon", "Neón"], ["electrico", "Eléctrico"], ["verde", "Verde"], ["ambar", "Ámbar"]]},
+    {"key": "accent_lib", "section": "apariencia", "label": "Color de cada biblioteca", "type": "bool", "default": False},
     {"key": "layout", "section": "video", "label": "Vista del video", "type": "choice", "default": "ampliada",
      "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
     {"key": "autoplay", "section": "video", "label": "Reproducir al abrir un video", "type": "bool", "default": True},
@@ -40,12 +43,14 @@ SCHEMA = [
      "options": [["es", "En español"], ["original", "Original"]]},
     {"key": "duck", "section": "audio", "label": "Original bajo la voz en español", "type": "choice",
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
-    {"key": "sub_es", "section": "subtitulos", "label": "Subtítulos en español", "type": "bool", "default": True},
-    {"key": "sub_en", "section": "subtitulos", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "sub_es", "section": "audio", "label": "Subtítulos en español", "type": "bool", "default": True},
+    {"key": "sub_en", "section": "audio", "label": "Subtítulos en inglés", "type": "bool", "default": True},
     {"key": "import_mode", "section": "biblioteca", "label": "Al importar", "type": "choice", "default": "traducir",
      "options": [["traducir", "Descargar y traducir"], ["descargar", "Solo descargar"]]},
     {"key": "download_what", "section": "biblioteca", "label": "Qué descargar", "type": "choice", "default": "video",
      "options": [["video", "Video y audio"], ["audio", "Solo el audio (más rápido)"]]},
+    {"key": "download_order", "section": "biblioteca", "label": "Orden de las descargas", "type": "choice",
+     "default": "orden", "options": [["orden", "En el orden de la cola"], ["aleatorio", "Aleatorio (variado)"]]},
     {"key": "notify", "section": "biblioteca", "label": "Avisos del navegador", "type": "bool", "default": False},
     {"key": "lib_channels", "section": "biblioteca", "label": "Canales en la barra lateral", "type": "bool",
      "default": True},
@@ -54,6 +59,29 @@ SCHEMA = [
      "options": [["ninguna", "No usar"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
                  ["edge", "Edge"], ["archivo", "Archivo cookies.txt"]]},
 ]
+# grupo (dentro de su página) y descripción de cada opción
+DETAILS = {
+    "theme_mode": ("Tema", "Claro, oscuro o el que use tu sistema. Cada biblioteca recuerda el suyo."),
+    "accent_lib": ("Tema", "Usar el color de la biblioteca abierta en botones, avance y reproducción, en vez del color del tema."),
+    "autoplay": ("Al abrir y terminar", "El video empieza solo cuando lo abres."),
+    "autoplay_next": ("Al abrir y terminar", "Al terminar, sigue con el próximo de la colección o playlist."),
+    "wait_ready": ("Al abrir y terminar", "Si llegas a una parte que aún no tiene voz en español, se pausa y sigue cuando esté lista."),
+    "add_while_watching": ("Mientras miras", "Qué hacer con un enlace que importas mientras ves otro video."),
+    "layout": ("Vista", "Ampliada: un solo video grande y la transcripción al lado. Dividida: original y traducido lado a lado."),
+    "ready_chip": ("Vista", "El aviso «listo para reproducir» sobre el video."),
+    "audio": ("Voz", "Con qué audio empieza cada video; se cambia en cualquier momento con ES / EN."),
+    "duck": ("Voz", "Qué tan fuerte queda el audio original debajo de la voz en español."),
+    "sub_es": ("Subtítulos", "La traducción, abajo del video."),
+    "sub_en": ("Subtítulos", "Lo que se dice en inglés, arriba del video."),
+    "import_mode": ("Al importar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
+    "download_what": ("Al importar", "Solo el audio es mucho más rápido y ocupa menos; el video se puede bajar después."),
+    "download_order": ("Descargas", "Aleatorio descarga variado de toda la cola; lo priorizado siempre va primero."),
+    "notify": ("Avisos y vista", "Un aviso del sistema cuando termina una descarga, un video o una exportación."),
+    "lib_channels": ("Avisos y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
+    "yt_session": ("Sesión", "Con tu sesión, YouTube deja bajar videos con restricción de edad y pide menos verificaciones."),
+}
+for _p in SCHEMA:
+    _p["group"], _p["desc"] = DETAILS.get(_p["key"], ("", ""))
 _BY_KEY = {p["key"]: p for p in SCHEMA}
 
 
@@ -71,21 +99,13 @@ class Prefs:
 
     @staticmethod
     def _migrate(saved: dict) -> dict:
-        """La preferencia vieja "theme" (un solo valor) pasa a modo · tema · tono."""
+        """La preferencia vieja "theme" (un solo valor) pasa al modo claro u oscuro."""
         old = saved.get("theme")
-        if not old or "theme_style" in saved:
+        if not old or "theme_mode" in saved:
             return {}
-        table = {"claro": ("claro", "clasico", ""), "oscuro": ("oscuro", "clasico", ""),
-                 "claude": ("claro", "claude", ""), "claude-oscuro": ("oscuro", "claude", ""),
-                 "pastel": ("claro", "pastel", "lavanda"), "pastel-menta": ("claro", "pastel", "menta"),
-                 "pastel-durazno": ("claro", "pastel", "durazno"), "pastel-cielo": ("claro", "pastel", "cielo"),
-                 "pink": ("claro", "pink", ""), "pink-noche": ("oscuro", "pink", ""),
-                 "cyberpunk": ("oscuro", "cyberpunk", "neon"), "cyberpunk-electrico": ("oscuro", "cyberpunk", "electrico"),
-                 "matrix": ("oscuro", "matrix", "verde"), "matrix-ambar": ("oscuro", "matrix", "ambar"),
-                 "code": ("oscuro", "code", ""), "code-claro": ("claro", "code", ""),
-                 "contraste": ("oscuro", "contraste", "")}
-        mode, style, tone = table.get(old, ("sistema", "clasico", ""))
-        return {"theme_mode": mode, "theme_style": style, "theme_tone": tone}
+        dark = old in ("oscuro", "claude-oscuro", "pink-noche", "cyberpunk", "cyberpunk-electrico", "matrix",
+                       "matrix-ambar", "code", "contraste")
+        return {"theme_mode": "oscuro" if dark else "claro"}
 
     @staticmethod
     def _valid(key, value) -> bool:

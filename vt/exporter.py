@@ -28,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import events
 from .audiofx import read_wav, resample
 
 SR = 48000
@@ -123,6 +124,7 @@ class Exporter:
 
                 traceback.print_exc()
                 self._set(job, state="error", error=str(e)[:200])
+                events.emit("exportacion.error", self._job_vault(job), job=job["id"], name=job["name"], error=job["error"])
 
     def _run(self, job):
         out_dir = self.dir / job["id"]
@@ -185,6 +187,12 @@ class Exporter:
         from urllib.parse import quote
 
         self._set(job, state="listo", pct=100, detail="", url=f"{url}?dl={quote(name)}")
+        events.emit("exportacion.lista", self._job_vault(job), job=job["id"], name=job["name"], url=job["url"],
+                    videos=job["videos"], kinds=job["kinds"])
+
+    def _job_vault(self, job):
+        v = self.vaults.of(job["videos"][0]) if self.vaults and job["videos"] else None
+        return v.id if v else None
 
     # ------------------------------------------------------------ insumos
     def _root(self, vid: str) -> Path:

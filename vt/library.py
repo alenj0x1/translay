@@ -169,6 +169,15 @@ class Library:
         return c
 
     def toggle(self, cid: str, vid: str, on: bool):
+        if cid.startswith("cat-"):  # categoría elegida a mano (al importar en ella)
+            names = set(CATEGORIES_ES.values()) | {n for v in self.data["videos"].values() for n in v.get("cats_extra") or []}
+            name = next((n for n in names if "cat-" + _slug(n) == cid), None)
+            v = self.data["videos"].get(vid)
+            if name and v is not None:
+                extra = [n for n in v.get("cats_extra") or [] if n != name]
+                v["cats_extra"] = extra + [name] if on else extra
+                self.save()
+            return
         for c in self.data["collections"]:
             if c["id"] == cid:
                 if on and vid not in c["items"]:
@@ -194,8 +203,8 @@ class Library:
             v = videos[vid]
             if v.get("channel"):
                 channels.setdefault(v["channel"], []).append(vid)
-            for cat in v.get("categories") or []:
-                cats.setdefault(CATEGORIES_ES.get(cat, cat), []).append(vid)
+            for cat in dict.fromkeys([CATEGORIES_ES.get(c, c) for c in v.get("categories") or []] + (v.get("cats_extra") or [])):
+                cats.setdefault(cat, []).append(vid)
         auto += [{"id": "ch-" + _slug(n), "name": n, "kind": "canal", "items": i} for n, i in sorted(channels.items())]
         auto += [{"id": "cat-" + _slug(n), "name": n, "kind": "categoría", "items": i} for n, i in sorted(cats.items())]
         own = [{**c, "kind": c.get("kind", "propia"), "items": [i for i in c["items"] if i in videos]}

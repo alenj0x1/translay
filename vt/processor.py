@@ -28,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import events
 from .streaming import Segment, StreamingTranscriber
 
 SR = 16000
@@ -60,9 +61,10 @@ def decode_audio(path: Path) -> np.ndarray:
 
 class Processor:
     def __init__(self, root: Path, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
-                 youtube=None, session=lambda: "ninguna", vaults=None):
+                 youtube=None, session=lambda: "ninguna", vaults=None, order=lambda: "orden"):
         self.root = root
         self.vaults = vaults  # bibliotecas (vt/vaults.py): cada video se ubica en la suya
+        self.order = order    # orden de descarga: "orden" (el de la cola) o "aleatorio"
         self.youtube, self.session = youtube, session
         self.path = root / "queue.json"
         self.store, self.library, self.asr = store, library, asr
@@ -105,7 +107,7 @@ class Processor:
                         job["audio_only"] = True  # se descarga solo el audio original
                     self.data["jobs"].append(job)
                 elif download_only:
-                    continue  # ya estaba: se deja como está
+                    pass  # ya estaba: se deja como está (con «front», solo pasa adelante para bajarse ya)
                 elif job["state"] in ("listo", "error", "descargado"):
                     job.update(state="en cola", error="")
                     job.pop("download_only", None)  # ahora sí se procesa
@@ -136,9 +138,35 @@ class Processor:
             self._cond.notify_all()
         self._broadcast()
 
+    def fetch_videos(self, vids) -> int:
+        """«Bajar video»: de lo que se descargó solo con el audio, se baja el video completo
+        (sin volver a traducir: la transcripción y las voces ya están)."""
+        n = 0
+        with self._cond:
+            for vid in vids:
+                v = self.library.data["videos"].get(vid) or {}
+                if v.get("source") != "youtube" or not v.get("audio_only"):
+                    continue
+                job = self._job(vid)
+                if job is None:
+                    done = self.progress(vid)["dub"] >= 0.99
+                    job = {"id": vid, "state": "listo" if done else "descargado", "added": time.time(), "error": ""}
+                    self.data["jobs"].append(job)
+                elif job["state"] == "error":
+                    job.update(state="descargado", error="")
+                job["fetch_video"] = True
+                job.pop("retry_at", None)
+                job.pop("attempts", None)
+                n += 1
+            self._save()
+            self._cond.notify_all()
+        self._broadcast()
+        return n
+
     def clear_done(self):
         with self._cond:
-            self.data["jobs"] = [j for j in self.data["jobs"] if j["state"] not in ("listo", "error", "descargado")]
+            self.data["jobs"] = [j for j in self.data["jobs"]
+                                 if j["state"] not in ("listo", "error", "descargado") or j.get("fetch_video")]
             self._save()
         self._broadcast()
 
@@ -147,7 +175,13 @@ class Processor:
             self.data["paused"] = paused
             self._save()
             self._cond.notify_all()
+        events.emit("cola.pausa", paused=paused)
         self._broadcast()
+
+    def _vid_event(self, name: str, vid: str, **extra):
+        v = self._vault(vid)
+        info = self.library.data["videos"].get(vid) or {}
+        events.emit(name, v.id if v else None, video=vid, title=info.get("title", ""), **extra)
 
     def watch(self, vid: str, t: float):
         """Alguien empezó a ver `vid` en el segundo `t`: pasa primero."""
@@ -245,8 +279,18 @@ class Processor:
         # pocas descargas por delante de lo procesado (con miles importados, el disco se
         # llenaría); lo priorizado o pedido para abrir se descarga enseguida
         waiting, capped = 0, None
+        shuffle = self.order() == "aleatorio"
+        pending = []
         for j in self.data["jobs"]:
-            if j["state"] != "en cola" or j.get("retry_at", 0) > now:
+            if j.get("retry_at", 0) > now:
+                continue
+            if j.get("fetch_video"):  # «Bajar video»: no cuenta para el límite (no espera a la GPU)
+                if shuffle:
+                    pending.append(j)
+                elif capped is None:
+                    capped = j
+                continue
+            if j["state"] != "en cola":
                 continue
             v = self.library.data["videos"].get(j["id"]) or {}
             if v.get("media"):
@@ -254,8 +298,14 @@ class Processor:
             elif v.get("source") == "youtube":
                 if j.get("prio"):
                     return j
-                if capped is None and (waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only")):
+                if shuffle:
+                    pending.append(j)
+                elif capped is None and (waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only")):
                     capped = j
+        if shuffle and pending:
+            # aleatorio: lo priorizado sigue primero; del resto, cualquiera (así se descarga variado)
+            ok = [j for j in pending if waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only") or j.get("fetch_video")]
+            return random.choice(ok) if ok else None
         return capped
 
     def _download_loop(self):
@@ -268,14 +318,16 @@ class Processor:
 
             def progress(stage, frac, title=None, stats=None, job=job):
                 job["dl"] = {"stage": stage, "pct": round(frac * 100), **(stats or {})}
+                v = self._vault(vid)
+                events.emit("descarga.progreso", v.id if v else None, video=vid, **job["dl"])
                 if time.time() - last[0] > 1 or stage == "listo":
                     last[0] = time.time()
                     self._broadcast()
 
             try:
                 yt = (self._vault(vid) or self).youtube  # se descarga en la carpeta de su biblioteca
-                info = yt.fetch(vid[3:], progress, self.session(), audio_only=bool(job.get("audio_only")),
-                                careful=self.careful)
+                info = yt.fetch(vid[3:], progress, self.session(),
+                                audio_only=bool(job.get("audio_only")) and not job.get("fetch_video"), careful=self.careful)
                 self.library.set_field(vid, media=info["video"] or info["audio"], audio=info["audio"],
                                        audio_only=bool(info.get("audio_only")),
                                        **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
@@ -283,8 +335,11 @@ class Processor:
                 job.pop("dl", None)
                 job.pop("attempts", None)
                 job.pop("retry_at", None)
-                if job.get("download_only"):  # «Solo descargar»: listo para ver o exportar el original
+                if job.pop("fetch_video", None):  # ya tiene el video: queda en el estado que tenía
+                    job.pop("audio_only", None)
+                elif job.get("download_only"):  # «Solo descargar»: listo para ver o exportar el original
                     job["state"] = "descargado"
+                self._vid_event("video.descargado", vid, audio_only=bool(info.get("audio_only")))
             except Exception as e:
                 from .youtube import friendly_error
 
@@ -297,10 +352,13 @@ class Processor:
                     self.careful = True
                     self.notify({"type": "yt_blocked", "until": self.blocked_until,
                                  "error": friendly_error(e, self.session())})
+                    events.emit("youtube.bloqueo", until=self.blocked_until)
                 else:
                     job["attempts"] = job.get("attempts", 0) + 1
                     if job["attempts"] >= MAX_ATTEMPTS:
+                        job.pop("fetch_video", None)
                         job.update(state="error", error=friendly_error(e, self.session()))
+                        self._vid_event("video.error", vid, error=job["error"])
                     else:
                         job["retry_at"] = time.time() + RETRY_AFTER_S
             with self._cond:
@@ -329,11 +387,15 @@ class Processor:
                     job["state"] = "listo" if done else "en cola"
                     if done:
                         job.pop("prio", None)
+                        self._vid_event("video.procesado", job["id"])
+                        if not any(j["state"] in ("en cola", "procesando") for j in self.data["jobs"]):
+                            events.emit("cola.terminada")
             except Exception as e:
                 import traceback
 
                 traceback.print_exc()
                 job.update(state="error", error=str(e)[:200])
+                self._vid_event("video.error", job["id"], error=job["error"])
             with self._cond:
                 self.current = None
                 self._save()
@@ -548,6 +610,14 @@ class Processor:
 
     def _broadcast(self):
         try:
-            self.notify(self.public())
+            msg = self.public()
+            self.notify(msg)
         except Exception:
-            pass
+            return
+        # resumen para los webhooks (se agrupa: llega cada pocos segundos)
+        counts: dict = {}
+        for j in msg["jobs"]:
+            k = "descargando" if j.get("dl") else j["state"]
+            counts[k] = counts.get(k, 0) + 1
+        events.emit("cola.cambio", paused=msg["paused"], current=msg["current"], counts=counts,
+                    total=len(msg["jobs"]), blocked_until=msg["blocked_until"])

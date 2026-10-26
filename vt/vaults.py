@@ -37,9 +37,11 @@ from .youtube import YouTube
 
 MAIN = "principal"
 # preferencias propias de cada biblioteca (las demás son generales)
-VAULT_PREFS = ("theme_mode", "theme_style", "theme_tone", "import_mode", "download_what")
+VAULT_PREFS = ("theme_mode", "import_mode", "download_what")
 COLORS = ["#e4572e", "#f3a712", "#29bf12", "#00a5cf", "#7d5ba6", "#e84f9b", "#2b2d42", "#8d6e63"]
-ICONS = ["library", "flask", "smile", "music", "book", "globe", "star", "film"]
+ICONS = ["library", "flask", "smile", "music", "book", "globe", "star", "film", "heart", "atom", "cap", "gamepad",
+         "ball", "plane", "chat", "brush", "news", "paw"]
+_PATTERN = re.compile(r"[a-z0-9]{0,12}")  # semilla del banner (web/js/patterns.js)
 # subcarpetas que son de la biblioteca (al eliminarla se borra solo esto, nunca la carpeta entera)
 OWN = ("vault.json", "library.json", "glossary.json", "transcripts", "youtube", "library", "audio", "voices",
        "people", "library.tmp", "glossary.tmp", "vault.tmp")
@@ -102,7 +104,11 @@ class Vault:
     def info(self) -> dict:
         vids = self.library.data["videos"]
         return {"id": self.id, "name": self.name, "color": self.meta.get("color"), "icon": self.meta.get("icon"),
+                "pattern": self.meta.get("pattern", ""),
                 "path": str(self.root), "main": self.main, "count": len(vids),
+                "access": {"mode": (self.meta.get("access") or {}).get("mode", "privada"),
+                           "perm": (self.meta.get("access") or {}).get("perm", "ver"),
+                           "has_pw": bool((self.meta.get("access") or {}).get("pw"))},
                 "downloaded": sum(1 for v in vids.values() if v.get("media"))}
 
     # ------------------------------------------------------- personas guardadas
@@ -207,7 +213,8 @@ class Vaults:
             self._save()
 
     # ---------------------------------------------------------- administrar
-    def create(self, name: str, folder: str = "", color: str = "", icon: str = "", prefs: dict | None = None) -> Vault:
+    def create(self, name: str, folder: str = "", color: str = "", icon: str = "", prefs: dict | None = None,
+               pattern: str = "") -> Vault:
         name = (name or "").strip()[:60] or "Biblioteca"
         with self._lock:
             vid = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:24] or "biblioteca"
@@ -224,7 +231,8 @@ class Vaults:
                 raise ValueError("esa carpeta ya tiene una biblioteca: usa «Abrir carpeta»")
             v = Vault(vid, root, self.cookies)
             v.meta.update(name=name, color=color if color in COLORS else COLORS[len(self._vaults) % len(COLORS)],
-                          icon=icon if icon in ICONS else "library", prefs=dict(prefs or {}))
+                          icon=icon if icon in ICONS else "library", prefs=dict(prefs or {}),
+                          pattern=pattern if _PATTERN.fullmatch(pattern or "") else "")
             v.save_meta()
             v.library.save()
             self._vaults[vid] = v
@@ -269,6 +277,8 @@ class Vaults:
             v.meta["color"] = kw["color"]
         if kw.get("icon") in ICONS:
             v.meta["icon"] = kw["icon"]
+        if kw.get("pattern") is not None and _PATTERN.fullmatch(kw["pattern"]):
+            v.meta["pattern"] = kw["pattern"]
         v.save_meta()
         return v
 

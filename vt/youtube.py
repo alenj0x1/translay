@@ -151,6 +151,41 @@ class YouTube:
                 "channel": info.get("channel") or info.get("uploader") or "",
                 "url": f"https://www.youtube.com/playlist?list={pid}", "entries": entries}
 
+    def channel_art(self, vid: str, out: Path, session: str = "ninguna") -> dict:
+        """Avatar y banner del canal de un video → out/<nombre>_avatar.jpg y _banner.jpg.
+
+        Dos consultas (el video, para saber su canal, y la página del canal); se llama
+        una sola vez por canal y queda en el equipo."""
+        import urllib.request
+        import yt_dlp
+
+        base = {"quiet": True, "no_warnings": True, "skip_download": True, "js_runtimes": {"node": {}},
+                **self._session_opts(session)}
+        with yt_dlp.YoutubeDL({**base, "noplaylist": True}) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=False, process=False)
+        url = info.get("channel_url") or (f"https://www.youtube.com/channel/{info['channel_id']}" if info.get("channel_id") else "")
+        if not url:
+            raise ValueError("el video no dice de qué canal es")
+        with yt_dlp.YoutubeDL({**base, "extract_flat": True, "playlist_items": "0"}) as ydl:
+            ch = ydl.extract_info(url, download=False)
+        thumbs = {t.get("id"): t.get("url") for t in ch.get("thumbnails") or [] if t.get("url")}
+        got = {}
+        for kind, keys in (("avatar", ("avatar_uncropped",)), ("banner", ("banner_uncropped",))):
+            src = next((thumbs[k] for k in keys if k in thumbs), None)
+            if not src:
+                continue
+            raw = out.with_name(f"{out.name}_{kind}.part")
+            with urllib.request.urlopen(src, timeout=15) as r:
+                raw.write_bytes(r.read(8 << 20))
+            dst = out.with_name(f"{out.name}_{kind}.jpg")
+            # a JPG y de tamaño razonable (el banner original llega a 2560 px; el avatar, a 900)
+            scale = "scale='min(1600,iw)':-2" if kind == "banner" else "scale='min(256,iw)':-2"
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-vf", scale, "-q:v", "3", str(dst)], check=False)
+            raw.unlink(missing_ok=True)
+            if dst.exists():
+                got[kind] = dst
+        return got
+
     def _session_opts(self, session: str) -> dict:
         """Sesión de YouTube de la persona, solo si la eligió en Preferencias: su
         navegador (Firefox se puede leer abierto; los de tipo Chrome bloquean sus

@@ -1,78 +1,99 @@
 /* =====================================================================
-   Tarjeta de video (biblioteca)
+   Tarjeta de video (biblioteca). Sin sombra, sin elevación ni zoom.
    .card(.picked .pending)
-     .thumb > img, .pick (casilla), .chip.dur, .chip.solid.num, .pending-dl, .prog > i
+     .thumb > img | .bau, .pick, .chip.dur, .chip.num, .chip.aud, .pending-dl, .prog > i, .ring, .play
      .meta > h3, p
-     .stage-bar(.done .run) > .meter, span      avance del doblaje
+     .stage-bar(.done .run) > .meter, span
      .actions > .btn
    ===================================================================== */
 
-.card { display: flex; flex-direction: column; min-width: 0; border: var(--line); background: var(--surface); }
-.card .thumb {
-  position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: var(--line);
-  background: var(--surface-2) radial-gradient(var(--dot) 1px, transparent 1.3px) 0 0 / 12px 12px;
+.card {
+  position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  border-radius: var(--r-md); background: var(--surface); container-type: inline-size;
 }
-.card .thumb img { width: 100%; height: 100%; object-fit: cover; transition: opacity .4s; }
-.card.pending .thumb img { opacity: .45; filter: grayscale(.35); }
-.card .dur { position: absolute; right: 8px; bottom: 10px; }
-.card .num { position: absolute; left: 8px; bottom: 10px; }
-.card .pending-dl {
-  position: absolute; left: 0; right: 0; top: 0; padding: 4px 8px 4px 38px;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  font: 500 10px/1.2 var(--font-mono); letter-spacing: .05em; text-transform: uppercase;
-}
-.card .prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, .6); }
-.card .prog i { display: block; height: 100%; background: var(--danger); }
+.card.picked { box-shadow: 0 0 0 1px var(--line-strong); }
 
-/* casilla para seleccionar varios: aparece al pasar el mouse o con selección activa */
+/* ------------------------------------------------------------ miniatura */
+.card .thumb { position: relative; flex: none; aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-2); }
+.card .thumb img { width: 100%; height: 100%; object-fit: cover; transition: opacity .3s; }
+.card .thumb.open { cursor: pointer; }
+.card.pending .thumb img { opacity: .5; }
+.card .thumb > :not(img):not(.bau) { position: absolute; z-index: 2; }
+
+/* lo que va sobre la imagen: fondo oscuro translúcido, siempre legible */
+.card .thumb .chip, .card .pending-dl { background: rgba(10, 11, 13, .72); color: #fff; }
+.card .dur { right: var(--s2); bottom: var(--s2); }
+.card .num { left: var(--s2); bottom: var(--s2); }
+.card .aud { left: var(--s2); bottom: var(--s2); }
+.card .num ~ .aud { left: 40px; }
+.card .pending-dl {
+  left: var(--s2); top: var(--s2); max-width: calc(100% - 52px); height: 22px; display: inline-flex; align-items: center;
+  padding: 0 8px; border-radius: var(--r-xs); font: 600 var(--fs-xs)/1 var(--font);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card .prog { left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .25); }
+.card .prog i { display: block; height: 100%; background: var(--accent); }
+
+/* anillo de avance (traducido / doblado), arriba a la izquierda */
+.card .ring { left: var(--s2); top: var(--s2); }
+.card .pending-dl ~ .ring { display: none; }
+
+/* casilla para elegir varios: arriba a la derecha, al pasar el mouse o con selección */
 .card .pick {
-  position: absolute; left: 8px; top: 8px; z-index: 1; width: 22px; height: 22px; margin: 0;
-  appearance: none; border: var(--line); border-radius: 4px; background: var(--surface); cursor: pointer;
-  opacity: 0; transition: opacity .12s;
+  right: var(--s2); top: var(--s2); width: 22px; height: 22px; margin: 0; appearance: none; -webkit-appearance: none;
+  border: 0; border-radius: var(--r-xs); background: rgba(10, 11, 13, .55); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8);
+  cursor: pointer; opacity: 0; transition: opacity .12s;
 }
 .card:hover .pick, .card .pick:checked, .picking .card .pick, .card .pick:focus-visible { opacity: 1; }
-.card .pick:checked { background: var(--fill); }
+.card .pick:checked { background: var(--accent); box-shadow: none; }
 .card .pick:checked::after {
-  content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px;
-  border: solid var(--on-fill); border-width: 0 2px 2px 0; transform: rotate(45deg);
+  content: ""; position: absolute; left: 8px; top: 4px; width: 5px; height: 10px;
+  border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 @media (hover: none) { .card .pick { opacity: 1; } }
-.card.picked { outline: 3px solid var(--fill); outline-offset: -1px; }
 
-.card .meta { flex: 1; padding: 10px 12px 4px; }
-.card h3 { margin: 0 0 4px; font: var(--t-strong); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.card p { margin: 0; font: var(--t-small); color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.card .stage-bar {
-  display: flex; gap: 8px; align-items: center; padding: 0 12px 6px;
-  font: 10.5px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted);
-}
-.card .stage-bar .meter { flex: 1; }
-.card .stage-bar span { white-space: nowrap; }
-.card .stage-bar.done span { color: var(--ok); }
-.card .stage-bar.run .meter > i { background: var(--ok); }
-
-.card .actions { display: flex; gap: 6px; padding: 8px 12px 12px; }
-
-/* abrir desde la miniatura: botón redondo al centro al pasar el mouse */
-.card .thumb.open, .card h3.open { cursor: pointer; }
-.card h3.open:hover { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+/* reproducir: al centro, al pasar el mouse */
 .card .play {
-  position: absolute; left: 50%; top: 50%; z-index: 1; display: grid; place-items: center;
-  width: 54px; height: 54px; border-radius: 50%; border: var(--line); background: var(--surface); color: var(--fg);
-  transform: translate(-50%, -50%) scale(.85); opacity: 0; transition: opacity .15s, transform .15s;
+  left: 50%; top: 50%; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent);
+  transform: translate(-50%, -50%); opacity: 0; transition: opacity .15s;
 }
 .card .play svg { width: 20px; height: 20px; margin-left: 3px; }
-.card .thumb.open:hover .play, .card .thumb.open:focus-visible .play { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-@media (hover: none) { .card .play { opacity: .9; transform: translate(-50%, -50%) scale(.9); } }
-/* descargando: anillo que se llena con el avance, siempre visible */
-.card .play.dl {
-  opacity: 1; transform: translate(-50%, -50%) scale(1);
-  background: conic-gradient(var(--ok) calc(var(--p) * 1%), var(--surface-2) 0);
-}
-.card .play.dl::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border-soft); }
-.card .play.dl b { position: relative; font: 500 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.card .thumb.open:hover .play, .card .thumb.open:focus-visible .play { opacity: 1; }
+@media (hover: none) { .card .play { opacity: .92; } }
+/* descargando: anillo que se llena, siempre visible */
+.card .play.dl { opacity: 1; background: conic-gradient(var(--accent) calc(var(--p) * 1%), rgba(10, 11, 13, .55) 0); color: #fff; }
+.card .play.dl::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: rgba(10, 11, 13, .8); }
+.card .play.dl b { position: relative; font: 700 var(--fs-xs)/1 var(--font); font-variant-numeric: tabular-nums; }
 
-/* solo se descargó el audio */
-.card .aud { position: absolute; right: 8px; top: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; }
-.card .aud svg { width: 11px; height: 11px; }
+/* ------------------------------------------------------------ texto */
+.card .meta { flex: 1; display: grid; align-content: start; gap: var(--s1); padding: var(--s3) var(--s4) 0; }
+.card h3 { margin: 0; font: 700 var(--fs-body)/1.35 var(--font);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card h3.open { cursor: pointer; }
+.card p { margin: 0; font: 500 var(--fs-sm)/1.4 var(--font); color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* estado: barra de avance o «Listo en español» */
+.card .stage-bar { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4) 0; font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-muted); }
+.card .stage-bar .meter { flex: 1; }
+.card .stage-bar span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.card .stage-bar svg { width: 14px; height: 14px; }
+.card .stage-bar.done { color: var(--ok); }
+
+/* ------------------------------------------------------------ acciones */
+.card .actions { display: flex; align-items: center; gap: var(--s1); margin-top: auto; padding: var(--s3) var(--s3) var(--s3) var(--s4); flex-wrap: nowrap; overflow: hidden; }
+.card .actions .grow { flex: 1; }
+@container (max-width: 300px) {
+  .card .actions .btn.ghost:not(.icon) { width: var(--h-sm); padding: 0; }
+  .card .actions .btn.ghost .btn-text { display: none; }
+}
+
+/* anillo */
+.ring { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(10, 11, 13, .6); color: #fff; }
+.ring svg { width: 28px; height: 28px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+.ring .r0 { stroke: rgba(255, 255, 255, .2); }
+.ring .r1 { stroke: rgba(255, 255, 255, .55); }
+.ring .r2 { stroke: var(--accent); }
+.ring.done { background: var(--ok); color: #fff; }
+.ring.done svg { width: 14px; height: 14px; transform: none; stroke-width: 2.4; }

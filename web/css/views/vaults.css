@@ -4,76 +4,134 @@
    ===================================================================== */
 
 .vbadge {
-  flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px;
-  border: var(--line); background: var(--vc, var(--fill)); color: #fff;
+  flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px;
+  background: var(--vc, var(--primary)); color: #fff;
 }
-.vbadge svg { width: 13px; height: 13px; }
-.vbadge.lg { width: 34px; height: 34px; }
-.vbadge.lg svg { width: 18px; height: 18px; }
-.vbadge.xs { width: 14px; height: 14px; border-width: 1px; margin-right: 6px; vertical-align: -3px; }
-.vbadge.xs svg { width: 9px; height: 9px; }
+.vbadge svg { width: 13px; height: 13px; stroke-width: 1.7; }
+.vbadge.lg { width: 40px; height: 40px; border-radius: 12px; }
+.vbadge.lg svg { width: 20px; height: 20px; }
+.vbadge.xs { width: 16px; height: 16px; border-radius: 5px; }
+.vbadge.xs svg { width: 10px; height: 10px; }
 
 /* ------------------------------------------------------------ encabezado */
-.vault-wrap { position: relative; flex: none; }
-.vault-btn { gap: 9px; padding-left: 10px; max-width: 240px; }
+.vault-wrap { position: relative; }
+.vault-btn { gap: var(--s2); padding-left: 6px; max-width: 240px; }
 .vault-btn .btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vault-btn .chev { width: 12px; height: 12px; margin-left: -2px; }
-.vault-pop { left: 0; right: auto; width: 280px; padding: 6px; }
+.vault-btn .vbadge { width: 26px; height: 26px; border-radius: var(--r-pill); }
+.vault-btn .chev { width: 14px; height: 14px; color: var(--fg-muted); }
+.vault-pop { left: 0; right: auto; width: 300px; }
 .vault-pop ul, .move-pop ul { margin: 0; max-height: 320px; }
+#vault-list li { display: flex; align-items: center; gap: 2px; padding-right: 4px; border-radius: var(--r-sm); }
+#vault-list li:hover { background: var(--surface-2); }
+#vault-list li.on { background: var(--surface-3); }
+#vault-list li .vitem, #vault-list li .vitem:hover { background: none; }
+#vault-list li.on .vname { font-weight: 800; }
+#vault-list li .vitem { flex: 1; min-width: 0; }
+#vault-list .vedit { flex: none; width: var(--h-sm); height: var(--h-sm); padding: 0; border-radius: var(--r-sm); background: transparent; color: var(--fg-faint); }
+#vault-list .vedit:hover { background: var(--sel); color: var(--fg); }
 .vitem {
-  display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 0; background: none;
-  color: var(--fg); cursor: pointer; text-align: left; font: 600 14px/1.2 var(--font-text);
+  display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--fg); cursor: pointer; text-align: left; font: 600 var(--fs-md)/1.2 var(--font); text-decoration: none;
 }
 .vitem:hover { background: var(--surface-2); }
-.vitem .vname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.vitem .vcount { font: 11px/1 var(--font-mono); color: var(--fg-muted); }
-.vitem .vcheck { width: 14px; height: 14px; }
-.vitem.on .vname { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
-.vault-foot { display: flex; gap: 6px; justify-content: space-between; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border-soft); }
+.vitem .vname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vitem .vcount { font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+.vitem .vcheck { width: 16px; height: 16px; color: var(--accent); }
+.vitem.on { background: var(--surface-2); }
+.vault-foot { display: flex; gap: var(--s2); justify-content: space-between; margin-top: 6px; padding: var(--s2) 4px 4px; border-top: 1px solid var(--line); }
 
-/* ------------------------------------------------------------- diálogo */
-.dlg-row { display: grid; gap: 6px; }
-.dlg-row > .label { font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
-.dlg-row .input { width: 100%; max-width: none; box-sizing: border-box; }
-.vcolors { display: flex; flex-wrap: wrap; gap: 8px; }
-.vcolor { width: 26px; height: 26px; padding: 0; border: var(--line); background: var(--vc); cursor: pointer; }
-.vcolor.on { outline: var(--line-w) solid var(--fg); outline-offset: 2px; }
-.vicon { padding: 6px 8px; }
-.vicon svg { width: 16px; height: 16px; }
-.vfolder { display: flex; gap: 8px; }
-.vfolder .input { flex: 1; min-width: 0; font: 12.5px/1.2 var(--font-mono); }
-.vpath, .vrow code { font: 11px/1.35 var(--font-mono); color: var(--fg-muted); overflow-wrap: anywhere; }
+/* ------------------------------------------------------------- diálogo de biblioteca */
+.vcolors { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.vcolor { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 9px; background: var(--vc); cursor: pointer; transition: transform .12s; }
+.vcolor:hover { transform: scale(1.08); }
+.vcolor.on { box-shadow: 0 0 0 2px var(--raised), 0 0 0 4px var(--fg); }
+.vicons { display: flex; flex-wrap: wrap; gap: 6px; }
+.vicon { width: var(--h-md); height: var(--h-md); padding: 0; justify-content: center; }
+.vicon svg { width: 18px; height: 18px; }
+.vicon.on { background: var(--sel); box-shadow: inset 0 0 0 1.5px var(--fg); }
+.vfolder { display: flex; gap: var(--s2); }
+.vfolder .input { flex: 1; min-width: 0; font-size: var(--fs-sm); }
+.vpath, .vrow code { font: 500 var(--fs-xs)/1.4 var(--font); color: var(--fg-faint); overflow-wrap: anywhere; }
 
-/* --------------------------------------------------------- Preferencias */
-.vaults-pref .pref-ctl { display: grid; gap: 12px; width: 100%; justify-items: stretch; }
-.vrows { display: grid; border: var(--line); }
-.vrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; }
-.vrow + .vrow { border-top: 1px solid var(--border-soft); }
-.vrow.on { background: var(--surface-2); }
-.vinfo { display: grid; gap: 2px; min-width: 0; }
-.vinfo strong { font: 600 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
-.vinfo small { font: 10.5px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted); }
-.vrow .vacts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-/* opción propia de la biblioteca abierta */
-.pref-label .vtag {
-  display: block; margin-top: 3px; font: 10px/1.2 var(--font-mono); letter-spacing: .05em; text-transform: uppercase;
-  color: var(--fg-muted);
-}
-.pref-label .vtag::before { content: "solo en "; }
+/* --------------------------------------------------------- filas (Preferencias) */
+.vaults-pref .pref-ctl { display: grid; gap: var(--s3); width: 100%; justify-items: stretch; }
+.vrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3); border-radius: var(--r-sm); }
+.vrow:hover { background: var(--surface-3); }
+.vrow.on { background: var(--surface); }
+.vinfo { display: grid; gap: 3px; min-width: 0; }
+.vinfo strong { display: flex; align-items: center; gap: var(--s2); font: 700 var(--fs-body)/1.25 var(--font); overflow-wrap: anywhere; }
+.vinfo small { font: 500 var(--fs-xs)/1.35 var(--font); color: var(--fg-muted); }
+.vrow .vacts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1); justify-content: flex-end; }
+.vacts-row, .vaults-pref .pref-ctl > div:last-child { display: flex; flex-wrap: wrap; gap: var(--s2); }
 
 /* ----------------------------------------------------------- mover a… */
 .menu-wrap { position: relative; }
-.move-pop { left: 0; right: auto; width: 240px; padding: 6px; }
+.move-pop { left: 0; right: auto; width: 260px; }
 
 /* ------------------------------------------------- personas guardadas */
-.person .pacts, .psaved .pacts { display: flex; gap: 4px; }
-.people-saved { padding: 10px 12px; }
-.people-saved h4 { margin: 4px 0 8px; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
-.psaved { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; font: 600 14px/1.2 var(--font-text); }
+.person .pacts, .psaved .pacts { display: flex; gap: var(--s1); }
+.people-saved { padding: var(--s3) var(--s4); }
+.people-saved h4 { margin: var(--s1) 0 var(--s2); font: 700 var(--fs-xs)/1.2 var(--font); color: var(--fg-faint); }
+.psaved { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding: var(--s1) 0; font: 600 var(--fs-md)/1.2 var(--font); }
 
-/* ---------------------------------------------------------------- celular */
 @media (max-width: 760px) {
   .vault-btn { max-width: 52vw; }
   .vrow { grid-template-columns: auto minmax(0, 1fr); }
   .vrow .vacts { grid-column: 1 / -1; justify-content: flex-start; }
 }
+
+/* ------------------------------------------------------------ tarjetas de biblioteca (con banner) */
+.vcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--s4); }
+.vcard {
+  position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  border: 0; border-radius: var(--r-md); background: var(--surface-2); color: var(--fg); text-align: left;
+}
+.vcard.on { box-shadow: 0 0 0 1px var(--line-strong); }
+.vcard.pick { cursor: pointer; transition: background-color .15s; }
+.vcard.pick:hover { background: var(--surface-3); }
+.vcard-top { position: relative; height: 96px; }
+.vcard-top .vbadge.lg { position: absolute; left: var(--s4); bottom: var(--s3); width: 44px; height: 44px; border-radius: 13px; box-shadow: 0 0 0 3px var(--surface-2); }
+.vcard-top .vbadge.lg svg { width: 22px; height: 22px; }
+.vcard .vcur { position: absolute; right: var(--s3); top: var(--s3); background: rgba(10, 11, 13, .72); color: #fff; }
+.vcard-body { display: grid; gap: 3px; padding: var(--s3) var(--s4) 0; min-width: 0; }
+.vcard-name { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.vcard-name strong { font: 800 var(--fs-lg)/1.25 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vcard-body small { font: 600 var(--fs-xs)/1.4 var(--font); color: var(--fg-muted); }
+.vcard .vpath { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vcard-acts { display: flex; align-items: center; gap: var(--s1); margin-top: auto; padding: var(--s3) var(--s3) var(--s3) var(--s4); }
+.vcard-acts .grow { flex: 1; }
+/* nueva biblioteca */
+.vcard.new { align-items: center; justify-content: center; gap: var(--s1); min-height: 200px; padding: var(--s5); cursor: pointer; text-align: center; background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong); font: inherit; }
+.vcard.new:hover { background: var(--surface-2); }
+.vnew-ic { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: var(--s2); border-radius: 13px; background: var(--surface-3); }
+.vnew-ic svg { width: 20px; height: 20px; }
+.vcard.new strong { font: 800 var(--fs-md)/1.3 var(--font); }
+.vcard.new small { font: 500 var(--fs-xs)/1.4 var(--font); color: var(--fg-muted); }
+
+/* pantalla para cambiar de biblioteca */
+.vault-screen { width: min(1080px, calc(100vw - 48px)); max-height: calc(100vh - 48px); }
+.vault-screen form { gap: var(--s5); padding: var(--s6) var(--s7) var(--s7); overflow-y: auto; max-height: calc(100vh - 48px); }
+.vs-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+.vs-head h3 { font: 800 var(--fs-2xl)/1.15 var(--font); }
+.vcards.big { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--s5); }
+.vcards.big .vcard { background: var(--surface); }
+.vcards.big .vcard.pick:hover { background: var(--surface-2); }
+.vcards.big .vcard-top { height: 132px; }
+.vcards.big .vcard-top .vbadge.lg { box-shadow: 0 0 0 3px var(--surface); }
+.vcards.big .vcard.new { min-height: 236px; }
+@media (max-width: 760px) {
+  .vault-screen form { padding: var(--s4); }
+  .vs-head { flex-wrap: wrap; }
+  .vs-head h3 { font-size: var(--fs-xl); }
+}
+
+/* diálogo de biblioteca: vista previa con su banner */
+.vpreview { position: relative; height: 120px; margin: calc(-1 * var(--s6)) calc(-1 * var(--s6)) 0; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.vpreview .vbadge.lg { position: absolute; left: var(--s6); bottom: var(--s4); width: 52px; height: 52px; border-radius: 15px; box-shadow: 0 0 0 3px var(--raised); }
+.vpreview .vbadge.lg svg { width: 26px; height: 26px; }
+.vpreview strong { position: absolute; left: calc(var(--s6) + 64px); bottom: var(--s5); max-width: calc(100% - 120px); padding: 4px 10px; border-radius: var(--r-xs);
+  background: rgba(10, 11, 13, .72); color: #fff; font: 800 var(--fs-lg)/1.2 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vdlg-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.vcolor.on { box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--fg-faint); }
+.vicon.on { background: var(--sel); box-shadow: inset 0 0 0 1.5px var(--fg-faint); }

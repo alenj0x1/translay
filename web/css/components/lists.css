@@ -1,27 +1,29 @@
 /* =====================================================================
-   Listas de navegación (colecciones, índice de Preferencias)
+   Listas de navegación (barra lateral, índice de Preferencias, Cola)
    .navlist > h4                encabezado de grupo
-   .navlist > .item(.active)    fila: nombre + número opcional
+   .navlist > .item(.active)    fila: ícono + nombre + número opcional
    .empty / .empty-row          estado vacío
    ===================================================================== */
 
-.navlist { padding: 12px; overflow-y: auto; min-height: 0; }
-.navlist h4 { margin: 14px 4px 6px; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
-.navlist h4:first-child { margin-top: 2px; }
+.navlist { min-height: 0; overflow-y: auto; }
+.navlist h4 { margin: var(--s5) 10px var(--s2); font: 700 var(--fs-xs)/1.2 var(--font); color: var(--fg-faint); }
+.navlist h4:first-child { margin-top: var(--s1); }
 .navlist .item {
-  display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left;
-  padding: 7px 8px; border: 0; background: none; cursor: pointer; color: var(--fg);
-  font: 600 14px/1.25 var(--font-text);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s2); width: 100%; min-height: 38px;
+  padding: 0 10px; border: 0; border-radius: var(--r-sm); background: none; color: var(--fg-muted); text-align: left; cursor: pointer;
+  font: 600 var(--fs-md)/1.25 var(--font); transition: background-color .15s, color .15s;
 }
-.navlist .item > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.navlist .item > span + span { font: 11px/1.6 var(--font-mono); color: var(--fg-muted); }
-.navlist .item:hover { background: var(--surface-2); }
-.navlist .item.active, .navlist .item.on { background: var(--fill); color: var(--on-fill); }
-.navlist .item.active > span + span { color: var(--on-fill); opacity: .7; }
-.navlist .inline-form { margin: 8px 0 2px; }
+.navlist .item > span:first-child { display: flex; align-items: center; gap: var(--s3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navlist .item > span:first-child > svg { flex: none; width: 18px; height: 18px; }
+.navlist .item > span + span { flex: none; font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+.navlist .item:hover { background: var(--surface-2); color: var(--fg); }
+.navlist .item.active, .navlist .item.on { background: var(--surface-2); color: var(--fg); }
+.navlist .item.active > span:first-child > svg { color: var(--accent); }
+.navlist .inline-form { margin: var(--s2) 0; }
 
-.empty {
-  grid-column: 1 / -1; padding: 40px; text-align: center; border: var(--line); background: var(--surface);
-  font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted);
+.empty, .empty-row {
+  padding: var(--s8) var(--s4); text-align: center; list-style: none;
+  font: 600 var(--fs-md)/1.4 var(--font); color: var(--fg-muted);
 }
-.empty-row { padding: 22px; text-align: center; list-style: none; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+.empty { grid-column: 1 / -1; border-radius: var(--r-lg); background: var(--surface); }
+.empty-row { padding: var(--s5) var(--s4); }

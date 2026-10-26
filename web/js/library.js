@@ -3,7 +3,7 @@
 // videos; "Siguientes" del video que se ve; cola y exportaciones. Usa lo global
 // de app.js ($, state, send, loadVideo, vEn, toast, setStatus…).
 
-const lib = { videos: {}, collections: [], sel: "recent", promptSave: false,
+const lib = { videos: {}, collections: [], sel: "home", promptSave: false,
   queue: { paused: false, current: null, jobs: [] },
   picked: new Set(),     // videos seleccionados en el estante
   ctx: null,             // colección del video que se ve: {name, coll?, items?, auto}
@@ -43,7 +43,7 @@ function setView(view) {
   }
   if (view === "prefs") markPrefsNav();
   if (view === "queue") { $("#qnav").dataset.sig = ""; $("#qhead").dataset.sig = ""; $("#qlist").dataset.sig = ""; renderQueueScreen(); }
-  closeSave();
+  closeSave();  if (typeof syncRoute === "function") syncRoute();  // la dirección (web/js/route.js)
 }
 function togglePrefs() {
   setView(currentView() === "prefs" ? (lib.lastView === "player" && state.videoId ? "player" : "library") : "prefs");
@@ -53,7 +53,8 @@ $("#view").addEventListener("click", () => setView(currentView() === "library" ?
 function libraryUpdate(m) {
   lib.videos = m.videos;
   lib.collections = m.collections;
-  if (!lib.collections.some((c) => c.id === lib.sel)) lib.sel = "recent";
+  lib.hero = m.hero || null;  // lo que se estaba viendo (portada)
+  if (lib.sel !== "home" && !lib.collections.some((c) => c.id === lib.sel)) lib.sel = "home";
   for (const id of [...lib.picked]) if (!lib.videos[id]) lib.picked.delete(id);
   softRenderLibrary();
   renderSaveList();
@@ -67,6 +68,7 @@ function libraryUpdate(m) {
     lib.openWhenReady = null;
     playFromLibrary(wait);
   }
+  if (typeof routeRestore === "function") routeRestore();  // al recargar: volver a donde se estaba
   renderUpNext();
   if (lib.promptSave && state.videoId && lib.videos[state.videoId]) {
     lib.promptSave = false;
@@ -137,13 +139,19 @@ function refreshCards() {
     const bar = progressBar(v);
     if (old && bar) { if (old.outerHTML !== bar.outerHTML) old.replaceWith(bar); }
     else if (old) old.remove();
-    else if (bar) art.querySelector(".actions").before(bar);
+    else if (bar) (art.querySelector(".actions") || art.lastChild).before(bar);
     const pend = art.querySelector(".pending-dl");
     const text = pendingText(v);
-    if (pend && text) { if (pend.textContent !== text) pend.textContent = text; }
+    if (pend && text) { if (pend.textContent !== cap(text)) pend.textContent = cap(text); }
     else if (pend) pend.remove();
-    else if (text) art.querySelector(".thumb").append(el("span", { class: "pending-dl", text }));
+    else if (text) art.querySelector(".thumb").append(el("span", { class: "pending-dl", text: cap(text) }));
     art.classList.toggle("pending", !!text);
+    const ring = art.querySelector(".thumb .ring");  // anillo de avance (web/js/home.js)
+    const j = jobOf(v.id);
+    const nr = v.media ? progressRing(j && j.state !== "listo" ? j : v.progress) : null;
+    if (ring && nr) { if (ring.outerHTML !== nr.outerHTML) ring.replaceWith(nr); }
+    else if (ring) ring.remove();
+    else if (nr) art.querySelector(".thumb").append(nr);
     const disc = art.querySelector(".thumb .play");
     if (disc) {  // solo cambia lo distinto (el anillo de descarga o el botón de reproducir)
       const dl = downloadPct(v);
@@ -158,34 +166,55 @@ function refreshCards() {
 
 function renderLibrary() {
   if (currentView() !== "library") return;
+  if (typeof syncRoute === "function") syncRoute();
   lib.shelfSig = shelfSignature();
   // columna de colecciones, agrupadas por tipo
+  // arriba, fijo: Inicio, Recientes y Todos; abajo, con su propio scroll: colecciones, playlists, canales…
+  const top = $("#side-main");
   const nav = $("#collections");
   nav.replaceChildren();
+  top.replaceChildren(el("button", { class: "item" + (lib.sel === "home" && !lib.search ? " active" : ""), type: "button",
+    on: { click: () => { lib.sel = "home"; lib.picked.clear(); closeSearch(); renderLibrary(); } } },
+    el("span", {}, icon("home"), "Inicio")));
+  top.firstChild.title = "Inicio";
+  const KIND_ICON = { recent: "clock", all: "grid", propia: "bookmark", playlist: "queue", canal: "user", "categoría": "tag" };
   const groups = [["auto", null], ["propia", "Colecciones"], ["playlist", "Playlists"], ["canal", "Canales"],
     ["categoría", "Categorías"]];
   for (const [kind, label] of groups) {
     if (kind === "canal" && prefs.lib_channels === false) continue;  // Preferencias → Biblioteca
     const items = lib.collections.filter((c) => c.kind === kind);
-    if (label && (items.length || kind === "propia")) nav.append(el("h4", { text: label }));
+    if (label && (items.length || kind === "propia")) {
+      nav.append(kind === "propia"
+        ? el("h4", { class: "with-add" }, label, btn("Nueva colección", { icon: "plus", size: "xs", variant: "ghost", cls: "icon owner-only",
+          title: "Nueva colección", onClick: () => { const f = nav.querySelector(".inline-form"); f.hidden = !f.hidden; if (!f.hidden) f.querySelector("input").focus(); } }))
+        : el("h4", { text: label }));
+    }
     for (const c of items) {
-      nav.append(el("button", {
-        class: "item" + (c.id === lib.sel ? " active" : ""), type: "button", title: c.name,
+      (kind === "auto" ? top : nav).append(el("button", {
+        class: "item" + (c.id === lib.sel ? " active" : ""), type: "button", title: c.name, "data-coll": c.id,
         on: { click: () => { lib.sel = c.id; lib.picked.clear(); closeSearch(); renderLibrary(); } },
-      }, el("span", { text: c.name }), el("span", { text: String(c.items.length) })));
+      }, el("span", {}, kind === "auto" ? icon(KIND_ICON[c.id] || "grid") : collBadge(c, "sm"), c.name),
+        el("span", { text: String(c.items.length) })));
     }
     if (kind === "propia") {
-      const input = el("input", { class: "input", type: "text", placeholder: "Nueva colección", maxlength: 80 });
-      nav.append(el("form", { class: "inline-form", on: { submit: (e) => {
+      const input = el("input", { class: "input sm", type: "text", placeholder: "Nombre de la colección", maxlength: 80,
+        on: { keydown: (e) => { if (e.key === "Escape") { input.value = ""; form.hidden = true; } } } });
+      const form = el("form", { class: "inline-form owner-only", hidden: true, on: { submit: (e) => {
         e.preventDefault();
         if (input.value.trim()) send({ type: "coll_create", name: input.value.trim() });
         input.value = "";
-      } } }, input, btn("Crear", { type: "submit" })));
+        form.hidden = true;
+      } } }, input, btn("Crear", { type: "submit", size: "sm" }));
+      nav.append(form);
     }
   }
 
+  $("#shelf-head").hidden = false;
+  $("#grid").classList.remove("home");
   if (lib.search) return renderSearch();
-  const c = lib.collections.find((x) => x.id === lib.sel) || { name: "Recientes", items: [], kind: "auto" };
+  if (lib.sel === "home" && Object.keys(lib.videos).length) return renderHome();  // portada (web/js/home.js)
+  const c = lib.collections.find((x) => x.id === lib.sel) || lib.collections.find((x) => x.id === "recent")
+    || { name: "Recientes", items: [], kind: "auto" };
   renderShelfHead(c);
   const grid = $("#grid");
   grid.classList.remove("results");
@@ -196,7 +225,11 @@ function renderLibrary() {
   }
   grid.classList.toggle("picking", lib.picked.size > 0);
   if (!c.items.length) {
-    grid.append(el("div", { class: "empty", text: c.kind === "propia" ? "colección vacía" : "sin videos" }));
+    grid.append(el("div", { class: "empty-state" }, patternEl(c.id, "", 3, 3),
+      el("h3", { text: c.kind === "propia" ? "Todavía no tiene videos" : "Sin videos" }),
+      el("p", { text: c.kind === "propia" ? "Importa enlaces de YouTube directo a esta colección, o guarda aquí un video desde el reproductor." : "Aquí aparecerán los videos que le correspondan." }),
+      c.kind === "propia" || c.kind === "categoría" ? el("div", { class: "acts" },
+        btn("Importar", { icon: "import", variant: "dark", cls: "import-only", onClick: () => openMulti("", c.id) })) : null));
     return;
   }
   // de a 200 tarjetas (con miles de videos, dibujarlas todas trabaría la página)
@@ -211,23 +244,29 @@ function renderLibrary() {
   }
 }
 
+const KIND_NAME = { propia: "Colección", playlist: "Playlist de YouTube", canal: "Canal", "categoría": "Categoría" };
 function renderShelfHead(c) {
   const head = $("#shelf-head");
+  head.classList.remove("has-banner", "picking");
   const n = lib.picked.size;
   if (n) {  // con selección: acciones sobre lo elegido
+    head.classList.add("picking");
     head.replaceChildren(
       el("h2", { text: c.name }),
       el("span", { class: "label", text: n === 1 ? "1 seleccionado" : `${n} seleccionados` }),
       el("div", { class: "acts" },
         btn("Abrir", { icon: "play", variant: "dark", onClick: () => openPicked(c) }),
-        btn("Procesar", { icon: "spark", onClick: () => {
+        btn("Procesar", { icon: "spark", cls: "import-only", onClick: () => {
           for (const id of pickedIn(c)) send({ type: "queue_add", video: id });
           lib.picked.clear();
           renderLibrary();
         } }),
         btn("Exportar", { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`) }),
+        audioOnly(pickedIn(c)).length ? btn(`Bajar video (${audioOnly(pickedIn(c)).length})`, { icon: "film", cls: "import-only",
+          title: "De los elegidos que solo tienen el audio, bajar el video completo",
+          onClick: () => { send({ type: "queue_video", videos: audioOnly(pickedIn(c)) }); lib.picked.clear(); renderLibrary(); } }) : null,
         moveMenu(() => pickedIn(c), () => { lib.picked.clear(); renderLibrary(); }),
-        btn("Eliminar", { icon: "trash", variant: "danger", onClick: async () => {
+        btn("Eliminar", { icon: "trash", variant: "danger", cls: "owner-only", onClick: async () => {
           const ids = pickedIn(c);
           const what = ids.length === 1 ? "este video" : `estos ${ids.length} videos`;
           if (await confirmDlg(`¿Eliminar ${what}?`,
@@ -240,6 +279,9 @@ function renderShelfHead(c) {
     return;
   }
   const acts = el("div", { class: "acts" });
+  if ((c.kind === "propia" || c.kind === "categoría" || c.kind === "playlist") && c.items.length) {  // importar directo aquí
+    acts.append(btn("Importar", { icon: "import", variant: c.kind === "playlist" ? "" : "dark", cls: "import-only", onClick: () => openMulti("", c.id) }));
+  }
   if (c.kind === "playlist") {
     acts.append(
       btn("Reproducir", { icon: "play", variant: "dark", disabled: !c.items.length,
@@ -248,35 +290,49 @@ function renderShelfHead(c) {
   }
   if (c.items.length) {
     acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name) }));
+    const ao = audioOnly(c.items);
+    if (ao.length) acts.append(btn(`Bajar video de ${ao.length === 1 ? "1 que" : `${ao.length} que`} solo ${ao.length === 1 ? "tiene" : "tienen"} audio`, {
+      icon: "film", cls: "import-only", onClick: async () => {
+        if (ao.length < 20 || await confirmDlg(`¿Bajar el video de ${ao.length} videos?`,
+          "Se descargan de a uno, con pausas, en la cola. No se vuelven a traducir.", "Bajar videos")) {
+          send({ type: "queue_video", videos: ao });
+        }
+      } }));
   }
   if (c.kind === "propia" || c.kind === "playlist") {
     const what = c.kind === "playlist" ? "la playlist" : "la colección";
-    acts.append(btn(c.kind === "playlist" ? "Eliminar playlist" : "Eliminar colección", { icon: "trash", variant: "ghost",
+    acts.append(btn(c.kind === "playlist" ? "Eliminar playlist" : "Eliminar colección", { icon: "trash", variant: "ghost", cls: "owner-only",
       onClick: async () => {
         const extra = c.kind === "playlist" ? "Los videos descargados se quedan; los pendientes salen de la cola." : "Los videos no se borran.";
         if (await confirmDlg(`¿Eliminar ${what} «${c.name}»?`, extra, "Eliminar")) send({ type: "coll_delete", coll: c.id });
       } }));
   }
   if (c.id === "all" && c.items.length) {
-    acts.append(btn("Vaciar biblioteca", { icon: "trash", variant: "ghost", onClick: async () => {
+    acts.append(btn("Vaciar biblioteca", { icon: "trash", variant: "ghost", cls: "owner-only", onClick: async () => {
       if (await confirmDlg("¿Vaciar la biblioteca?",
         "Se borran todos los videos, colecciones y playlists, con sus traducciones, voces y archivos descargados. No se puede deshacer.",
         "Vaciar biblioteca")) {
         send({ type: "lib_clear" });
         lib.picked.clear();
-        lib.sel = "recent";
+        lib.sel = "home";
       }
     } }));
   }
+  const own = c.kind !== "auto";  // colecciones, playlists, canales y categorías: con banner y distintivo
+  head.classList.toggle("has-banner", own);
   head.replaceChildren(...[
-    el("h2", { text: c.name, title: c.name }),
-    c.kind === "playlist" ? el("span", { class: "chip", text: "Playlist" }) : null,
-    c.kind === "playlist" && c.channel ? el("small", { text: c.channel }) : null,
-    c.kind !== "auto" && c.kind !== "playlist" ? el("small", { text: c.kind }) : null,
+    own ? collBanner(c, () => renderLibrary()) : null,
+    own ? collBadge(c, "lg") : null,
+    el("div", { class: "sh-title" },
+      el("h2", { text: c.name, title: c.name }),
+      own ? el("small", { text: [KIND_NAME[c.kind], c.kind === "playlist" ? c.channel : "",
+        c.items.length === 1 ? "1 video" : `${c.items.length} videos`].filter(Boolean).join(" · ") }) : null),
     acts].filter(Boolean));
 }
 
 const pickedIn = (c) => c.items.filter((id) => lib.picked.has(id));
+// los que se descargaron solo con el audio (y aún no se pidió su video)
+const audioOnly = (ids) => ids.filter((id) => lib.videos[id]?.audio_only && lib.videos[id]?.source === "youtube" && !jobOf(id)?.fetch_video);
 
 function openPicked(c) {
   const ids = pickedIn(c);
@@ -291,6 +347,7 @@ function welcome() {
   const file = el("input", { type: "file", accept: "video/*,audio/*", multiple: true, hidden: true,
     on: { change: (e) => { openFiles([...e.target.files]); e.target.value = ""; } } });
   return el("div", { class: "welcome" },
+    patternEl("translay", "welcome-band", 24, 2),
     el("h2", { text: "Traduce tu primer video" }),
     el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); openYouTube(input.value.trim()); } } },
       icon("link"), input, btn("Importar", { icon: "import", variant: "dark", type: "submit" })),
@@ -304,12 +361,12 @@ function progressBar(v) {
   const j = jobOf(v.id);
   const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
   const pct = Math.round(p.dub * 100);
-  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", { text: "traducido" }));
-  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: "descargado · sin traducir" }));
+  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), "Listo en español"));
+  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: "Descargado, sin traducir" }));
   const label = j?.state === "procesando" ? `procesando · ${pct} %`
     : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `doblado ${pct} %` : "";
   if (!label) return null;
-  return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") }, meter(pct), el("span", { text: label }));
+  return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") }, meter(pct), el("span", { text: cap(label) }));
 }
 
 function card(v, coll, i) {
@@ -329,31 +386,58 @@ function card(v, coll, i) {
   };
   const thumb = el("div", { class: "thumb" + (canOpen ? " open" : ""), title: canOpen ? "Ver" : "La copia del archivo aún no está en la biblioteca",
     on: { click: open } }, pick,
-    v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null,
+    v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : patternEl(v.id, "fill", 8, 4.5),
     coll.kind === "playlist" ? el("span", { class: "chip solid num", text: String(i + 1) }) : null,
-    pending ? el("span", { class: "pending-dl", text: pending }) : null,
+    pending ? el("span", { class: "pending-dl", text: cap(pending) }) : null,
     v.duration ? el("span", { class: "chip dur", text: fmtDur(v.duration) }) : null,
-    v.audio_only ? el("span", { class: "chip aud", title: "Solo se descargó el audio" }, icon("music"), " solo audio") : null,
+    v.audio_only ? el("span", { class: "chip aud", title: "Solo se descargó el audio" }, icon("music"), "Solo audio") : null,
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null,
+    v.media ? progressRing(jobOf(v.id) && jobOf(v.id).state !== "listo" ? jobOf(v.id) : v.progress) : null,
     canOpen ? playDisc(downloadPct(v)) : null);
   const sub = [v.channel, v.source === "youtube" ? "YouTube" : "archivo"].filter(Boolean).join(" · ");
   const job = jobOf(v.id);
   const acts = [
-    job && job.state === "en cola" && !job.prio ? btn("Priorizar", { icon: "up", variant: "ghost", title: "Procesar esto antes que lo demás",
+    // «Ver» primero; luego lo que se puede hacer según su estado; a la derecha, exportar
+    canOpen ? (canDownload(v) ? watchSplit(v, open) : btn(v.position > 5 ? "Continuar" : "Ver", { icon: "play", variant: "dark", onClick: open })) : null,
+    job && job.state === "en cola" && !job.prio ? btn("Priorizar", { icon: "up", variant: "ghost", cls: "import-only", title: "Procesar esto antes que lo demás",
       onClick: () => send({ type: "queue_add", video: v.id, front: true }) }) : null,
-    canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", title: "Traducir y doblar en segundo plano",
+    canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", cls: "import-only", title: "Traducir y doblar en segundo plano",
       onClick: () => send({ type: "queue_add", video: v.id }) }) : null,
-    coll.kind === "propia" ? btn("Quitar", { icon: "x", variant: "ghost",
-      onClick: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) }) : null,
+    v.audio_only && v.source === "youtube" && !job?.fetch_video ? btn("Bajar video", { icon: "film", variant: "ghost", cls: "import-only",
+      title: "Se descargó solo el audio: bajar el video completo (sin volver a traducir)",
+      onClick: () => send({ type: "queue_video", videos: [v.id] }) }) : null,
+    el("span", { class: "grow" }),
+    coll.kind === "propia" ? btn("Quitar de la colección", { icon: "x", variant: "ghost", cls: "owner-only icon",
+      title: "Quitar de la colección", onClick: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) }) : null,
+    btn("Exportar", { icon: "download", variant: "ghost", cls: "icon", title: "Exportar (video, audio, subtítulos…)", onClick: () => openExport([v.id]) }),
   ].filter(Boolean);
   return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") + (pending ? " pending" : ""),
-    "data-id": v.id }, thumb,
+    "data-id": v.id, "data-coll": coll.id }, thumb,
     el("div", { class: "meta" }, el("h3", { class: canOpen ? "open" : "", text: v.title || v.id, on: { click: open } }), el("p", { text: sub })),
     progressBar(v),
     acts.length ? el("div", { class: "actions" }, ...acts) : null);
 }
 
 // centro de la miniatura: reproducir, o un anillo con el avance mientras se descarga
+// aún sin descargar (YouTube) y sin bajarse ahora mismo: se puede descargar sin abrirlo
+const canDownload = (v) => !v.media && v.source === "youtube" && downloadPct(v) === null && document.body.classList.contains("can-import");
+function downloadOnly(v) {
+  send({ type: "queue_add", video: v.id, front: true, download_only: true });
+  toast("Se descarga primero; queda en la biblioteca sin abrirse.", "ok");
+}
+// «Ver ▾»: ver (se abre al terminar de bajarse) o solo descargarlo
+function watchSplit(v, open) {
+  const more = btn("Más opciones de Ver", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
+    onClick: (e) => {
+      e.stopPropagation();
+      openMenu([
+        { label: "Ver", icon: "play", onClick: open },
+        { label: "Descargar sin abrir", icon: "download", onClick: () => downloadOnly(v) },
+      ], more.getBoundingClientRect());
+    } });
+  return el("div", { class: "split" }, btn("Ver", { icon: "play", variant: "dark", onClick: open }), more);
+}
+
 function playDisc(dl) {
   return dl === null
     ? el("span", { class: "play" }, icon("play"))
@@ -418,7 +502,7 @@ function renderUpNext(scroll) {
   items.forEach((id, i) => {
     const v = lib.videos[id];
     const now = id === state.videoId;
-    const info = [fmtDur(v.duration), pendingText(v) || (v.progress && v.progress.dub >= 0.97 ? "traducido" : "")]
+    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? "Listo en español" : "")]
       .filter(Boolean).join(" · ");
     frag.append(el("li", { class: now ? "now" : "", "data-id": id, on: { click: () => { if (!now) playItem(id); } } },
       el("span", { class: "n", text: String(i + 1) }),
@@ -514,12 +598,12 @@ function renderQueuePanel() {
   const running = q.jobs.find((j) => j.state === "procesando");
   const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
   const downloading = q.jobs.find((j) => j.dl);
-  $("#queue-state").textContent = blocked ? `descargas en pausa · YouTube pidió verificación · ${blocked} min`
+  $("#queue-state").textContent = cap(blocked ? `descargas en pausa · YouTube pidió verificación · ${blocked} min`
     : q.paused
     ? (running && running.watching ? "procesamiento en pausa · sigue el video que ves"
       : downloading ? "procesamiento en pausa · descargando" : "procesamiento en pausa · reposo")
     : running ? "procesando" : downloading ? (q.careful ? "descargando · modo cuidadoso" : "descargando")
-    : active.length ? "en espera" : "sin trabajos · reposo";
+    : active.length ? "en espera" : "sin trabajos · reposo");
   setBtn($("#queue-toggle"), q.paused ? "Reanudar" : "Pausar", q.paused ? "play" : "pause");
   $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error" || j.state === "descargado")
     && !lib.exports.some((x) => x.state === "listo" || x.state === "error");
@@ -528,9 +612,9 @@ function renderQueuePanel() {
   // exportaciones
   if (lib.exports.length) ul.append(el("li", { class: "qsec", text: "Exportar" }));
   for (const x of lib.exports) {
-    const label = x.state === "listo" ? "listo"
+    const label = cap(x.state === "listo" ? "listo"
       : x.state === "error" ? (x.error || "error")
-      : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state;
+      : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state);
     ul.append(el("li", { class: "qitem" + (x.state === "exportando" ? " run" : "") },
       el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),
       el("div", { class: "qbody" },
@@ -559,11 +643,11 @@ function renderQueuePanel() {
         el("small", { text: downloadText(d) })),
       el("div", { class: "qactions" })));
   }
-  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola de esta biblioteca" }));
+  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "Nada en la cola de esta biblioteca" }));
   // los trabajos, en orden de estado (lo que se descarga, primero); el resto en la pantalla de la Cola
   const jobs = orderedJobs(null, mine);
   for (const j of jobs.slice(0, 50)) ul.append(jobItem(j));
-  if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: `y ${jobs.length - 50} más · «Ver toda la cola» arriba` }));
+  if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: `Y ${jobs.length - 50} más en «Ver todo»` }));
   const others = q.jobs.length - mine.length;
   if (others > 0) ul.append(el("li", { class: "empty-row" }, btn(`${others} en otras bibliotecas`, { size: "xs", variant: "ghost",
     icon: "queue", onClick: () => { closeQueue(); lib.qlib = "all"; setView("queue"); } })));
@@ -572,7 +656,7 @@ function renderQueuePanel() {
 
 /* ------------------------------------------------------------ cola: orden y elementos */
 const JOB_ORDER = { descargando: 0, procesando: 1, "en cola": 2, descargado: 3, error: 4, listo: 5 };
-const jobKind = (j) => (j.dl ? "descargando" : j.state);
+const jobKind = (j) => (j.dl ? "descargando" : j.fetch_video ? "en cola" : j.state);
 function orderedJobs(kind = null, base = null) {
   const q = base || queueJobs();
   const list = kind ? q.filter((j) => jobKind(j) === kind) : q.slice();
@@ -585,7 +669,8 @@ function jobLabel(j, v) {
   const q = lib.queue;
   const dl = !j.downloaded && j.state !== "listo" && j.state !== "error";
   const pct = dl ? (j.dl?.pct || 0) : Math.round(j.dub * 100);
-  const label = j.state === "listo" ? "listo"
+  const label = j.fetch_video && !j.dl ? (q.blocked_until ? "video en espera · descargas en pausa" : "en espera para bajar el video")
+    : j.state === "listo" ? "listo"
     : j.state === "error" ? "error"
     : j.state === "descargado" ? "descargado · sin traducir"
     : j.dl ? dlText(j.dl)
@@ -594,8 +679,7 @@ function jobLabel(j, v) {
     : dl ? pendingText(v) || "sin descargar"
     : j.state === "procesando" ? (j.watching ? `viendo · ${pct} %` : `procesando · ${pct} %`)
     : q.paused && !j.watching ? "en pausa" : j.prio ? "siguiente · con prioridad" : "en espera";
-  const pl = playlistOf(j.id);
-  return { pct, text: j.error || (pl ? `${label} · ${pl.name}` : label) };
+  return { pct, text: cap(j.error || label) };
 }
 
 function jobItem(j) {
@@ -611,18 +695,18 @@ function jobItem(j) {
       meter(pct),
       el("small", {}, away ? vaultBadge(away, "xs") : null, away ? `${away.name} · ${text}` : text)),
     el("div", { class: "qactions" },
-      btn("Ver", { icon: "play", size: "xs", disabled: !v.media && v.source !== "youtube",
+      btn("Ver", { icon: "play", size: "xs", title: "Ver", disabled: !v.media && v.source !== "youtube",
         onClick: () => {
           closeQueue();
           if (away) return playAcross(v.id, away.id);
           if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
           playItem(v.id);
         } }),
-      j.state === "descargado" ? btn("Procesar", { icon: "spark", size: "xs", title: "Traducir y doblar",
+      j.state === "descargado" ? btn("Procesar", { icon: "spark", size: "xs", cls: "import-only", title: "Traducir y doblar",
         onClick: () => send({ type: "queue_add", video: j.id }) }) : null,
-      j.state === "en cola" && !j.prio ? btn("Priorizar", { icon: "up", size: "xs", title: "Procesar esto antes que lo demás",
+      j.state === "en cola" && !j.prio ? btn("Priorizar", { icon: "up", size: "xs", cls: "import-only", title: "Procesar esto antes que lo demás",
         onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
-      btn("Quitar", { variant: "ghost", size: "xs", onClick: () => send({ type: "queue_remove", video: j.id }) })));
+      btn("Quitar de la cola", { icon: "x", variant: "ghost", size: "xs", cls: "owner-only", title: "Quitar de la cola", onClick: () => send({ type: "queue_remove", video: j.id }) })));
 }
 
 /* ------------------------------------------------------------ pantalla de la Cola */
@@ -674,7 +758,7 @@ function renderQueueScreen() {
     head.replaceChildren(
       el("h2", { text: title }),
       el("span", { class: "label", text: $("#queue-state").textContent }),
-      el("div", { class: "acts" },
+      el("div", { class: "acts owner-only" },
         btn(q.paused ? "Reanudar procesamiento" : "Pausar procesamiento", { icon: q.paused ? "play" : "pause",
           onClick: () => send({ type: q.paused ? "queue_resume" : "queue_pause" }) }),
         blocked ? btn("Reintentar descargas", { icon: "download", onClick: () => send({ type: "queue_unblock" }) }) : null,
@@ -705,7 +789,7 @@ function renderQueueScreen() {
   }
   ul.dataset.sig = sig;
   ul.replaceChildren(...shown.map(jobItem));
-  if (!shown.length) ul.append(el("li", { class: "empty-row", text: "nada aquí" }));
+  if (!shown.length) ul.append(el("li", { class: "empty-row", text: "Nada aquí" }));
   if (jobs.length > shown.length) {
     ul.append(el("li", { class: "empty-row" }, btn(`Mostrar más (${jobs.length - shown.length})`, {
       icon: "plus", onClick: () => { lib.qlimit += 100; renderQueueScreen(); } })));
@@ -928,6 +1012,7 @@ function openAt(v, t) {
 function renderSearch() {
   const m = lib.search;
   const head = $("#shelf-head");
+  head.classList.remove("has-banner");
   head.replaceChildren(
     el("h2", { text: `Resultados para «${m.q}»` }),
     el("span", { class: "label", text: m.total ? `${m.total} ${m.total === 1 ? "coincidencia" : "coincidencias"} en ${m.results.length} ${m.results.length === 1 ? "video" : "videos"}` : "sin coincidencias" }),

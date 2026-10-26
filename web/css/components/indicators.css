@@ -1,33 +1,34 @@
 /* =====================================================================
    Indicadores
    .status(data-state)  punto + texto (ok · busy · sleep · off)
-   .count               número junto a un botón (Cola 9), sin círculo
-   .chip                etiqueta con borde (Playlist, duración, estado)
-   .chip.solid          etiqueta rellena (número de orden)
-   .meter > i           barra de avance con borde
+   .chip                etiqueta pequeña (duración, número, estado)
+     .solid             rellena con el principal
+     .ok / .warn        de estado
+   .meter > i           barra de avance
    .steps > span        etapas (descarga): .done / .now
    ===================================================================== */
 
-.status { display: flex; align-items: center; gap: 7px; font: 11px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
-.status i { width: 8px; height: 8px; border-radius: 50%; border: var(--line); background: var(--danger); }
+.status { display: inline-flex; align-items: center; gap: var(--s2); font: 600 var(--fs-sm)/1 var(--font); color: var(--fg-muted); white-space: nowrap; }
+.status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .status[data-state="ok"] i { background: var(--ok); }
 .status[data-state="busy"] i { background: var(--warn); }
-.status[data-state="sleep"] i { background: var(--surface-2); }
-
-.count { font: 500 11.5px/1 var(--font-mono); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
-.btn:hover .count, .btn.on .count { color: inherit; opacity: .7; }
+.status[data-state="sleep"] i { background: var(--fg-faint); }
 
 .chip {
-  display: inline-block; padding: 3px 6px; border: 1px solid var(--border); background: var(--surface); color: var(--fg);
-  font: 500 10.5px/1 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border-radius: var(--r-xs);
+  background: var(--surface-2); color: var(--fg); font: 600 var(--fs-xs)/1 var(--font); white-space: nowrap;
 }
-.chip.solid { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
+.chip svg { width: 12px; height: 12px; }
+.chip.solid { background: var(--primary); color: var(--on-primary); }
+.chip.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.chip.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
 
-.meter { position: relative; height: 6px; border: 1px solid var(--border); }
-.meter > i { position: absolute; inset: 0 auto 0 0; background: var(--fill); transition: width .4s; }
+.meter { position: relative; height: 4px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.meter > i { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-pill); background: var(--accent); transition: width .4s; }
 .meter.ok > i { background: var(--ok); }
 
 .steps { display: flex; flex-wrap: wrap; gap: 4px; }
-.steps span { padding: 2px 6px; border: 1px solid var(--border-faint); font: 500 9.5px/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted); }
-.steps span.done { border-color: var(--border); color: var(--fg); }
-.steps span.now { background: var(--fill); border-color: var(--fill); color: var(--on-fill); }
+.steps span { height: 20px; display: inline-flex; align-items: center; padding: 0 6px; border-radius: var(--r-xs);
+  background: var(--surface-2); color: var(--fg-faint); font: 600 11px/1 var(--font); }
+.steps span.done { color: var(--fg-muted); }
+.steps span.now { background: var(--accent); color: var(--on-accent); }

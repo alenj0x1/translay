@@ -1,57 +1,78 @@
 /* =====================================================================
    Botón
-   .btn                 contorno, píldora (por defecto)
-     .sm / .xs          tamaños menores
-     .dark              principal (relleno)
-     .ghost             secundario sin borde
-     .danger            acción destructiva
+   .btn                 secundario: relleno suave, píldora (por defecto, alto --h-md)
+     .sm / .xs          alto --h-sm / --h-xs
+     .dark              principal (uno por zona)
+     .ghost             sin relleno
+     .danger            destructivo
+     .on                activo (conmutador)
+     .icon              solo ícono (cuadrado)
      .dl                se llena con --p (avance de descarga)
-     [disabled]         deshabilitado
-   .ic                  botón redondo con ícono (svg)
-     .sm                más chico
+   .ic                  botón redondo con ícono (reproductor)
    ===================================================================== */
 
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 9px 16px; border: var(--line); border-radius: var(--radius-pill);
-  background: var(--surface); color: var(--fg); font: var(--t-button);
-  white-space: nowrap; cursor: pointer; text-decoration: none;
-  transition: background-color .12s, color .12s, border-color .12s;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  height: var(--h-md); padding: 0 var(--s4); border: 0; border-radius: var(--r-pill);
+  background: var(--surface-2); color: var(--fg);
+  font: 600 var(--fs-md)/1 var(--font); white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: background-color .15s, color .15s;
 }
-.btn:hover { background: var(--fill); color: var(--on-fill); }
-.btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.btn:hover { background: var(--surface-3); }
+.btn svg { flex: none; width: 16px; height: 16px; }
 
-.btn.sm { padding: 7px 14px; font-size: 13px; }
-.btn.xs { padding: 5px 10px; font-size: 12px; }
+.btn.sm { height: var(--h-sm); padding: 0 var(--s3); gap: 6px; font-size: var(--fs-sm); }
+.btn.sm svg { width: 15px; height: 15px; }
+.btn.xs { height: var(--h-xs); padding: 0 10px; gap: 5px; font-size: var(--fs-xs); }
+.btn.xs svg { width: 14px; height: 14px; }
 
-.btn.dark { background: var(--fill); border-color: var(--fill); color: var(--on-fill); }
-.btn.dark:hover { background: var(--fill-hover); border-color: var(--fill-hover); color: var(--on-fill); }
+.btn.dark { background: var(--accent); color: var(--on-accent); }
+.btn.dark:hover { background: color-mix(in srgb, var(--accent) 84%, var(--bg)); }
 
-.btn.ghost { border-color: transparent; background: transparent; color: var(--fg-muted); }
-.btn.ghost:hover { background: var(--surface-2); color: var(--fg); border-color: transparent; }
+.btn.ghost { background: transparent; color: var(--fg-muted); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
 
-.btn.danger { border-color: var(--danger); color: var(--danger); }
-.btn.danger:hover { background: var(--danger); color: var(--on-fill); }
+.btn.danger { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: #fff; }
 
-.btn.dl {
-  background: linear-gradient(90deg, var(--dl-fill) var(--p), var(--surface) var(--p));
-  color: var(--fg); font-variant-numeric: tabular-nums;
-}
-.btn.dl:hover { background: linear-gradient(90deg, var(--dl-fill-hover) var(--p), var(--surface-2) var(--p)); color: var(--fg); }
+.btn.on, .btn.on:hover { background: var(--sel); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+.btn.icon { width: var(--h-md); padding: 0; }
+.btn.sm.icon { width: var(--h-sm); }
+.btn.xs.icon { width: var(--h-xs); }
+.btn.icon .btn-text { display: none; }
 
 .btn[disabled], .btn[disabled]:hover {
-  background: var(--surface); color: var(--fg-faint); border-color: var(--border-faint);
-  cursor: default; pointer-events: none;
+  background: var(--surface-2); color: var(--fg-faint); box-shadow: none; cursor: default; pointer-events: none;
 }
-.btn.dark[disabled] { background: var(--surface); }
-.btn.on { background: var(--fill); color: var(--on-fill); }
+.btn.ghost[disabled] { background: transparent; }
 
-/* --------------------------------------------------------- con ícono */
-.ic {
-  flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
-  border: var(--line); border-radius: 50%; background: var(--surface); color: var(--fg); cursor: pointer;
+.btn.dl {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ok) 30%, var(--surface-2)) var(--p), var(--surface-2) var(--p));
+  font-variant-numeric: tabular-nums;
 }
-.ic:hover { background: var(--surface-2); }
-.ic.sm { width: 28px; height: 28px; }
-.ic svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.ic svg .solid { fill: currentColor; stroke: none; }
+
+/* número junto al nombre (Cola 8): sin círculo */
+.btn .count { font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.btn.dark .count { color: inherit; opacity: .7; }
+
+/* --------------------------------------------------------- redondo con ícono */
+.ic {
+  flex: none; display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  border: 0; border-radius: 50%; background: var(--surface-2); color: var(--fg); cursor: pointer;
+  transition: background-color .15s;
+}
+.ic:hover { background: var(--surface-3); }
+.ic.sm { width: var(--h-xs); height: var(--h-xs); }
+.ic svg { width: 16px; height: 16px; }
+
+/* fila de acciones: botones separados, del ancho de su contenido */
+.acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.contents { display: contents; }
+
+/* botón dividido: acción principal + flecha con más opciones */
+.split { display: inline-flex; gap: 1px; }
+.split > .btn:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); padding-right: 10px; }
+.split > .split-more { width: 28px; border-radius: 0 var(--r-pill) var(--r-pill) 0; }
+.btn.sm + .split-more, .split > .btn.sm.split-more { width: 26px; }
+.split-more svg { width: 14px; height: 14px; }
