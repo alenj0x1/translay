@@ -204,7 +204,39 @@ def test_download_only_queue():
         Processor._loop = loop
 
 
+def test_vaults():
+    """Bibliotecas: cada una en su carpeta; un video vive en una sola y se puede mover con sus archivos."""
+    from vt.vaults import Vaults
+
+    with tempfile.TemporaryDirectory() as d:
+        data = Path(d) / "data"
+        vs = Vaults(data)
+        vs.main.library.add_pending([{"id": "abcdefghij1"}])
+        (data / "youtube").mkdir(exist_ok=True)
+        (data / "youtube" / "abcdefghij1.m4a").write_bytes(b"x")
+        vs.main.library.set_field("yt_abcdefghij1", media="/media/yt/abcdefghij1.m4a")
+        tr = vs.store.open("yt_abcdefghij1")
+        tr.save()
+        sci = vs.create("Ciencia", str(Path(d) / "otro disco" / "ciencia"), prefs={"theme_style": "pastel"})
+        assert vs.get("ciencia") is sci and sci.prefix == "/v/ciencia"
+        assert vs.of("yt_abcdefghij1") is vs.main
+        moved, skipped = vs.move(["yt_abcdefghij1"], "ciencia")
+        assert (moved, skipped) == (1, 0) and vs.of("yt_abcdefghij1") is sci
+        assert (sci.root / "youtube" / "abcdefghij1.m4a").exists() and not (data / "youtube" / "abcdefghij1.m4a").exists()
+        assert (sci.root / "transcripts" / "yt_abcdefghij1.json").exists()
+        assert sci.public_library()["videos"]["yt_abcdefghij1"]["media"] == "/v/ciencia/media/yt/abcdefghij1.m4a"
+        assert sci.file("/media/yt/../../x") is None                       # sin salirse de la carpeta
+        assert vs.library.data["videos"]["yt_abcdefghij1"]["id"] == "yt_abcdefghij1"  # la cola los ve a todos
+        again = Vaults(data)                                               # al reiniciar sigue ahí
+        assert again.get("ciencia").name == "Ciencia" and again.get("ciencia").meta["prefs"]["theme_style"] == "pastel"
+        (sci.root / "mio.txt").write_text("no es de la biblioteca")
+        vids = vs.remove("ciencia", delete_files=True)
+        assert vids == ["yt_abcdefghij1"] and (sci.root / "mio.txt").exists()  # solo se borra lo suyo
+        assert not (sci.root / "youtube").exists() and vs.get("ciencia") is None
+
+
 if __name__ == "__main__":
+    test_vaults()
     test_download_only_queue()
     test_playlist_library_and_srt()
     test_cookies_import()

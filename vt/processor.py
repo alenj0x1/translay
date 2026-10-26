@@ -23,6 +23,7 @@ import json
 import random
 import threading
 import time
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -59,8 +60,9 @@ def decode_audio(path: Path) -> np.ndarray:
 
 class Processor:
     def __init__(self, root: Path, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
-                 youtube=None, session=lambda: "ninguna"):
+                 youtube=None, session=lambda: "ninguna", vaults=None):
         self.root = root
+        self.vaults = vaults  # bibliotecas (vt/vaults.py): cada video se ubica en la suya
         self.youtube, self.session = youtube, session
         self.path = root / "queue.json"
         self.store, self.library, self.asr = store, library, asr
@@ -185,6 +187,18 @@ class Processor:
         dub = asr * (dubbed / len(segs)) if segs else 0.0
         return {"asr": round(asr, 3), "dub": round(dub if self.dubber else asr, 3)}
 
+    def _vault(self, vid: str):
+        return self.vaults.of(vid) if self.vaults else None
+
+    def _url(self, vid: str, u: str) -> str:
+        v = self._vault(vid)
+        return v.url(u) if v else u
+
+    def busy(self, vid: str) -> bool:
+        """¿Se está descargando o procesando? (para no moverlo a otra biblioteca a medias)"""
+        j = self._job(vid)
+        return self.current == vid or bool(j and j.get("dl"))
+
     def public(self) -> dict:
         jobs = []
         for j in self.data["jobs"]:
@@ -192,7 +206,9 @@ class Processor:
                 p = self.progress(j["id"])
             except Exception:
                 p = {"asr": 0, "dub": 0}
-            jobs.append({**j, **p, "watching": j["id"] == self.focus["vid"], "downloaded": self._has_media(j["id"])})
+            v = self._vault(j["id"])
+            jobs.append({**j, **p, "watching": j["id"] == self.focus["vid"], "downloaded": self._has_media(j["id"]),
+                         "lib": v.id if v else ""})
         return {"type": "queue", "paused": self.data["paused"], "current": self.current, "jobs": jobs, "careful": self.careful,
                 "blocked_until": self.blocked_until if self.blocked_until > time.time() else 0}
 
@@ -257,8 +273,9 @@ class Processor:
                     self._broadcast()
 
             try:
-                info = self.youtube.fetch(vid[3:], progress, self.session(), audio_only=bool(job.get("audio_only")),
-                                          careful=self.careful)
+                yt = (self._vault(vid) or self).youtube  # se descarga en la carpeta de su biblioteca
+                info = yt.fetch(vid[3:], progress, self.session(), audio_only=bool(job.get("audio_only")),
+                                careful=self.careful)
                 self.library.set_field(vid, media=info["video"] or info["audio"], audio=info["audio"],
                                        audio_only=bool(info.get("audio_only")),
                                        **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
@@ -361,6 +378,11 @@ class Processor:
     def _media(self, vid: str) -> Path:
         v = self.library.data["videos"].get(vid) or {}
         src = v.get("audio") or v.get("media") or ""
+        vault = self._vault(vid)
+        if vault:
+            f = vault.file(src)
+            if f:
+                return f
         if src.startswith("/media/yt/"):
             return self.root / "youtube" / src.rsplit("/", 1)[1].split("?")[0]
         if src.startswith("/media/lib/"):
@@ -380,6 +402,8 @@ class Processor:
         if dur and not (self.library.data["videos"].get(vid) or {}).get("duration"):
             self.library.set_field(vid, duration=round(dur, 2))
         tr = self.store.open(vid, title)
+        vault = self._vault(vid)
+        tx = partial(self.translator.translate, glossary=vault.glossary if vault else None)  # su glosario
         st = StreamingTranscriber(self.asr)
         dubs = []
         inflight: set[int] = set()  # frases con voz en camino
@@ -404,8 +428,7 @@ class Processor:
                 if self._interrupt(vid, lo, seg["start"]):
                     return False  # se saltó a otra parte: se retoma desde ahí
                 if not seg.get("translation"):
-                    seg["translation"] = self.gpu.submit(self.res.run, ("mt",), self.translator.translate,
-                                                         seg["text"]).result()
+                    seg["translation"] = self.gpu.submit(self.res.run, ("mt",), tx, seg["text"]).result()
                     seg["tr_model"] = self.translator.name
                     self._bg(vid, {"type": "translations", "items": [{"id": seg["id"], "translation": seg["translation"]}]})
                 if needs_dub(seg):
@@ -420,7 +443,7 @@ class Processor:
             for ev in events:
                 if not isinstance(ev, Segment):
                     continue
-                es = self.gpu.submit(self.res.run, ("mt",), self.translator.translate, ev.text).result()
+                es = self.gpu.submit(self.res.run, ("mt",), tx, ev.text).result()
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, es, self.translator.name)
                 fixed = []
                 if self.dubber:
@@ -510,7 +533,7 @@ class Processor:
                 if voice_end is not None:
                     voice_end[0] = max(voice_end[0], seg["end"])
                 self._bg(vid, {"type": "dub", "id": seg["id"], "speaker": seg.get("speaker"),
-                               "url": "/audio/" + info["file"] + f"?v={int(time.time() * 1000)}",
+                               "url": self._url(vid, "/audio/" + info["file"]) + f"?v={int(time.time() * 1000)}",
                                "dur": info["dur"], "live": False})
 
         return self.tts_exec.submit(job)

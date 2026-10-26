@@ -41,10 +41,10 @@ class NullTranslator:
     def unload(self):
         pass
 
-    def translate(self, text: str, context: str = "") -> str | None:
+    def translate(self, text: str, context: str = "", glossary=None) -> str | None:
         return None
 
-    def translate_many(self, texts: list[str]) -> list[str | None]:
+    def translate_many(self, texts: list[str], glossary=None) -> list[str | None]:
         return [None] * len(texts)
 
 
@@ -116,7 +116,7 @@ class CT2Translator:
             )
         return [self._decode(r.hypotheses[0]) for r in res]
 
-    def translate_many(self, texts: list[str], batch: int = 24) -> list[str | None]:
+    def translate_many(self, texts: list[str], batch: int = 24, glossary=None) -> list[str | None]:
         """Traduce varias frases; cada una se divide en oraciones y se re-arma."""
         sents, owner = [], []
         for i, t in enumerate(texts):
@@ -124,7 +124,8 @@ class CT2Translator:
                 sents.append(s)
                 owner.append(i)
         # glosario propio (vt/glossary.py): los términos pasan como marcadores intactos
-        gl = getattr(self, "glossary", None)
+        # el de la biblioteca del video (cada biblioteca tiene el suyo)
+        gl = glossary if glossary is not None else getattr(self, "glossary", None)
         guarded = [gl.protect(preedit(s)) if gl else (preedit(s), []) for s in sents]
         outs: list[str] = []
         for k in range(0, len(sents), batch):
@@ -134,8 +135,8 @@ class CT2Translator:
             pieces[i].append(match_shape(s, polish(Glossary.restore(es, repl))))
         return [" ".join(p) if p else None for p in pieces]
 
-    def translate(self, text: str, context: str = "") -> str | None:
-        return self.translate_many([text])[0]
+    def translate(self, text: str, context: str = "", glossary=None) -> str | None:
+        return self.translate_many([text], glossary=glossary)[0]
 
 
 def load_translator(name: str, device: str = "cuda") -> Translator:

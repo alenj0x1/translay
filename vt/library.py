@@ -149,7 +149,7 @@ class Library:
         self.save()
         return out
 
-    def import_playlist(self, info: dict) -> dict:
+    def import_playlist(self, info: dict, exclude: set | None = None) -> dict:
         """Playlist de YouTube como colección (si ya existe, se actualiza con su orden actual)."""
         c = next((x for x in self.data["collections"] if x.get("playlist") == info["id"]), None)
         if c is None:
@@ -160,7 +160,7 @@ class Library:
         now = time.time()
         for n, e in enumerate(info["entries"]):
             vid = "yt_" + e["id"]
-            if vid not in self.data["videos"]:
+            if vid not in self.data["videos"] and vid not in (exclude or ()):  # exclude: ya en otra biblioteca
                 self.data["videos"][vid] = {"id": vid, "source": "youtube", "title": e["title"],
                                             "duration": e["duration"], "channel": e["channel"],
                                             "thumb": e["thumb"], "added": now - n * 1e-3, "position": 0}

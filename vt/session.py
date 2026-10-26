@@ -16,6 +16,10 @@ Cliente → servidor
   lib_delete {videos:[ids]} · lib_clear              borra videos (y sus archivos) o toda la biblioteca
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
+  vault_open {id} · vault_create {name, folder, color, icon} · vault_open_folder {folder}
+  vault_update {id, name, color, icon} · vault_remove {id, delete_files} · vault_pick_folder
+  vault_move {videos, to}                            bibliotecas (vt/vaults.py; responde "vaults")
+  people_save {video, spk, name} · people_forget {id}  personas guardadas en la biblioteca
 
 Servidor → cliente
   ready · transcript · partial (+ "es" en vivo) · segment · translations · dub · covered · stats
@@ -34,8 +38,10 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from functools import partial
 
 from .store import Store, Transcript
+from .vaults import VAULT_PREFS, RoutedStore
 from .streaming import Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
@@ -43,10 +49,14 @@ from .translate import Translator
 class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
-                 youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None):
+                 youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
+                 vaults=None):
         self.ws = ws
         self.gpu = gpu
-        self.store = store
+        # bibliotecas: la que esta pestaña tiene abierta; cada video se abre en la suya
+        self.vaults = vaults
+        self.vault = vaults.get(vaults.last) or vaults.main
+        self._store = RoutedStore(vaults, lambda: self.vault)
         self.translator = translator
         self.info = info
         self.st = StreamingTranscriber(asr)
@@ -60,8 +70,6 @@ class Session:
         self.dub_pending: dict[int, tuple[int, Transcript, float | None]] = {}
         self.dub_event = asyncio.Event()
         self.playhead = 0.0
-        self.youtube = youtube
-        self.library = library
         self.res = res
         self.processor = processor
         self.watching: str | None = None
@@ -71,6 +79,49 @@ class Session:
         self._dub_seq = 0
         self._dub_task: asyncio.Task | None = None
 
+    # la biblioteca abierta en esta pestaña
+    @property
+    def store(self):
+        return self._store
+
+    @property
+    def library(self):
+        return self.vault.library
+
+    @property
+    def youtube(self):
+        return self.vault.youtube
+
+    @property
+    def glossary(self):
+        return self.vault.glossary
+
+    def _vault_of(self, vid: str):
+        """La biblioteca de un video (si aún no está en ninguna, la abierta)."""
+        return self.vaults.of(vid) or self.vault
+
+    def _gl(self, tr):
+        return self._vault_of(tr.data["id"]).glossary if tr is not None else self.vault.glossary
+
+    def _pref(self, key: str):
+        own = self.vault.meta.get("prefs") or {}
+        return own[key] if key in VAULT_PREFS and key in own else self.prefs.values.get(key)
+
+    def _prefs_msg(self) -> dict:
+        m = self.prefs.public()
+        own = self.vault.meta.get("prefs") or {}
+        m["values"].update({k: v for k, v in own.items() if k in VAULT_PREFS})
+        m["vault_keys"] = list(VAULT_PREFS)
+        return m
+
+    async def _send_vault_state(self):
+        """Todo lo que cambia con la biblioteca: lista, preferencias, glosario y videos."""
+        await self.ws.send_json({"type": "vaults", "current": self.vault.id, "items": self.vaults.public()})
+        await self.ws.send_json(self._prefs_msg())
+        await self.ws.send_json({"type": "glossary", "entries": self.glossary.entries, "vault": self.vault.id})
+        await self.ws.send_json({"type": "people_saved", "vault": self.vault.id, "items": self._people_saved()})
+        await self._library({"type": "library"})
+
     async def run(self):
         worker = asyncio.create_task(self._worker())
         if self.dubber:
@@ -78,7 +129,8 @@ class Session:
         await self.ws.send_json({"type": "ready", **self.info})
         await self.ws.send_json({"type": "power", "state": self.res.state})
         if self.prefs:
-            await self.ws.send_json(self.prefs.public())
+            await self.ws.send_json({"type": "vaults", "current": self.vault.id, "items": self.vaults.public()})
+            await self.ws.send_json(self._prefs_msg())
             await self._cookies_status()
         if self.processor:
             await self.ws.send_json(self.processor.public())
@@ -96,8 +148,8 @@ class Session:
                     m = json.loads(msg)
                     if m.get("type") == "pos":
                         self.playhead = float(m.get("t", 0))
-                        if self.library and self.tr is not None:
-                            self.library.position(self.tr.data["id"], self.playhead)
+                        if self.tr is not None:  # en su biblioteca (puede no ser la abierta)
+                            self.vaults.library.position(self.tr.data["id"], self.playhead)
                         if self.watching and self.processor:
                             self.processor.position(self.watching, self.playhead)
                     elif m.get("type") == "watch" and self.processor:
@@ -117,6 +169,13 @@ class Session:
                         asyncio.create_task(self._glossary(m))
                     elif m.get("type") == "people_set":
                         await self._people(m)
+                    elif m.get("type") in ("people_save", "people_forget"):
+                        await self._people_saved_op(m)
+                    elif m.get("type") == "people_get":
+                        v = self.vaults.get(str(m.get("vault", ""))) or self.vault
+                        await self.ws.send_json({"type": "people_saved", "vault": v.id, "items": self._people_saved(v)})
+                    elif m.get("type", "").startswith("vault_"):
+                        asyncio.create_task(self._vault(m))
                     elif self.library and m.get("type") in ("lib_delete", "lib_clear"):
                         asyncio.create_task(self._delete(m))
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
@@ -124,8 +183,13 @@ class Session:
                     elif m.get("type") in ("cookies_browsers", "cookies_import"):
                         asyncio.create_task(self._cookies(m))
                     elif m.get("type") == "prefs_set" and self.prefs:
-                        if self.prefs.set(str(m.get("key")), m.get("value")):
-                            self.notify(self.prefs.public())  # todas las pestañas
+                        key, value = str(m.get("key")), m.get("value")
+                        if key in VAULT_PREFS:  # propia de la biblioteca abierta
+                            if self.prefs._valid(key, value):
+                                self.vaults.set_pref(self.vault.id, key, value)
+                                self.notify({"type": "prefs"})  # cada pestaña, con los de su biblioteca
+                        elif self.prefs.set(key, value):
+                            self.notify({"type": "prefs"})  # todas las pestañas
                     elif m.get("type") == "power_info":
                         import sys as _sys
                         import threading as _th
@@ -181,8 +245,10 @@ class Session:
                 elif kind == "open":
                     await self._finish()
                     self.tr = self.store.open(str(op[1].get("id", "")), op[1].get("name", ""))
+                    vault = self._vault_of(self.tr.data["id"])
                     await self.ws.send_json({"type": "transcript", **self.tr.public(),
-                                             "voice_refs": self._voice_refs(self.tr.data["id"])})
+                                             "voice_refs": self._voice_refs(self.tr.data["id"]),
+                                             "prefix": vault.prefix, "vault": vault.id})
                     if self._backfill:
                         self._backfill.cancel()
                     self._backfill = asyncio.create_task(self._translate_stale(self.tr))
@@ -218,7 +284,8 @@ class Session:
         for ev in events:
             if isinstance(ev, Segment):
                 translation = await loop.run_in_executor(self.gpu, self.res.run, ("mt",),
-                                                         self.translator.translate, ev.text)
+                                                         partial(self.translator.translate, glossary=self._gl(tr)),
+                                                         ev.text)
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, translation,
                                               self.translator.name)
                 if self.dubber:
@@ -250,8 +317,9 @@ class Session:
             self._live_src = self._live_es = ""
         elif src != self._live_src:
             loop = asyncio.get_running_loop()
-            self._live_es = await loop.run_in_executor(self.gpu, self.res.run, ("mt",),
-                                                       self.translator.translate, src) or ""
+            self._live_es = await loop.run_in_executor(
+                self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(self.tr)),
+                src) or ""
             self._live_src = src
         return self._live_es
 
@@ -261,9 +329,9 @@ class Session:
         if name == "none":
             return
         loop = asyncio.get_running_loop()
+        tx = partial(self.translator.translate_many, glossary=self._gl(tr))
         while self.tr is tr and (todo := tr.stale(name)[:16]):
-            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), self.translator.translate_many,
-                                              [s["text"] for s in todo])
+            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), tx, [s["text"] for s in todo])
             for seg, es in zip(todo, outs):
                 tr.set_translation(seg["id"], es, name)
             tr.save()
@@ -353,7 +421,8 @@ class Session:
             seg["dub"] = info
             tr.save()
             await self.ws.send_json({"type": "dub", "id": seg_id, "speaker": seg.get("speaker"),
-                                     "url": "/audio/" + info["file"] + f"?v={self._dub_seq}",
+                                     "url": self._vault_of(tr.data["id"]).url("/audio/" + info["file"])
+                                     + f"?v={self._dub_seq}",
                                      "dur": info["dur"], "live": prio == 0})
 
     # ---------------------------------------------------------------- YouTube
@@ -379,11 +448,12 @@ class Session:
 
         try:
             session = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
-            info = await loop.run_in_executor(None, self.youtube.fetch, url, progress, session)
-            if self.library:
-                self.library.register("yt_" + info["id"], source="youtube", media=info["video"],
-                                      **{k: info.get(k) for k in ("title", "duration", "audio", "thumb",
-                                                                    "channel", "categories")})
+            vault = self._vault_of("yt_" + vid)  # si ya está en otra biblioteca, queda en esa
+            info = await loop.run_in_executor(None, vault.youtube.fetch, url, progress, session)
+            vault.library.register("yt_" + info["id"], source="youtube", media=info["video"],
+                                   **{k: info.get(k) for k in ("title", "duration", "audio", "thumb",
+                                                                 "channel", "categories")})
+            info = {**info, **{k: vault.url(info[k]) for k in ("video", "audio", "thumb") if info.get(k)}}
             if queue and self.processor:  # solo a la cola: no se abre para ver
                 self.processor.add("yt_" + info["id"])
                 await self.ws.send_json({"type": "yt_queued", **info})
@@ -398,10 +468,10 @@ class Session:
             await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
     def _audio_only(self) -> bool:
-        return bool(self.prefs) and self.prefs.values.get("download_what") == "audio"
+        return bool(self.prefs) and self._pref("download_what") == "audio"
 
     def _download_only(self) -> bool:
-        return bool(self.prefs) and self.prefs.values.get("import_mode") == "descargar"
+        return bool(self.prefs) and self._pref("import_mode") == "descargar"
 
     async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
@@ -418,26 +488,35 @@ class Session:
             elif playlist_id(u):
                 lists.append(u)
         vids = list(dict.fromkeys(vids))
+        lib = self.library  # la biblioteca abierta al importar (aunque luego se cambie)
+        # un video vive en una sola biblioteca: los que ya están en otra se quedan allá
+        elsewhere: dict[str, int] = {}
+        for v in list(vids):
+            o = self.vaults.of("yt_" + v)
+            if o is not None and o is not self.vault:
+                elsewhere[o.name] = elsewhere.get(o.name, 0) + 1
+                vids.remove(v)
         # aparecen al instante; los títulos llegan de a poco (miles de consultas juntas
         # son justo la ráfaga que YouTube marca)
-        ids = self.library.add_pending([{"id": v} for v in vids])
-        asyncio.create_task(self._fill_titles([i for i in ids if (self.library.data["videos"].get(i) or {}).get("title") == i[3:]]))
+        ids = lib.add_pending([{"id": v} for v in vids])
+        asyncio.create_task(self._fill_titles([i for i in ids if (lib.data["videos"].get(i) or {}).get("title") == i[3:]], lib))
         if coll:
             for vid in ids:
-                self.library.toggle(coll, vid, True)
+                lib.toggle(coll, vid, True)
         if self.processor and ids:
             # "abrirlo": se descarga primero; «Solo descargar» (Preferencias): sin traducir
             self.processor.add_many(ids, front=front, download_only=self._download_only() and not front,
                                     audio_only=self._audio_only())
         await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists),
-                                 "quiet": bool(quiet)})
+                                 "quiet": bool(quiet), "elsewhere": elsewhere})
         self.notify({"type": "library_changed"})
         for u in lists:
             await self._playlist(u)
 
-    async def _fill_titles(self, ids: list[str]):
+    async def _fill_titles(self, ids: list[str], lib=None):
         """Título y canal de los videos recién importados, 3 consultas a la vez y con pausas."""
         loop = asyncio.get_running_loop()
+        lib = lib or self.library
         sem = asyncio.Semaphore(3)
         done: dict[str, dict] = {}
 
@@ -451,8 +530,8 @@ class Session:
         for k in range(0, len(ids), 30):  # se guarda y se avisa cada 30
             await asyncio.gather(*(one(v) for v in ids[k:k + 30]))
             if done:
-                self.library.set_fields({v: f for v, f in done.items()
-                                         if (self.library.data["videos"].get(v) or {}).get("title") == v[3:]})
+                lib.set_fields({v: f for v, f in done.items()
+                                if (lib.data["videos"].get(v) or {}).get("title") == v[3:]})
                 done.clear()
                 self.notify({"type": "library_changed"})
 
@@ -467,9 +546,13 @@ class Session:
             print(f"[playlist] {e}", flush=True)
             await self.ws.send_json({"type": "yt_error", "error": friendly_error(e, sess)})
             return
-        c = self.library.import_playlist(info)
+        lib = self.library
+        other = {"yt_" + e["id"] for e in info["entries"]
+                 if (o := self.vaults.of("yt_" + e["id"])) is not None and o is not self.vault}
+        c = lib.import_playlist(info, exclude=other)  # los que ya están en otra biblioteca se quedan allá
         if self.processor:  # en orden: la cola descarga y procesa uno tras otro
-            self.processor.add_many(c["items"], download_only=self._download_only(), audio_only=self._audio_only())
+            self.processor.add_many([i for i in c["items"] if i in lib.data["videos"]],
+                                    download_only=self._download_only(), audio_only=self._audio_only())
         await self.ws.send_json({"type": "playlist_added", "coll": c["id"], "name": c["name"],
                                  "count": len(c["items"])})
         self.notify({"type": "library_changed"})
@@ -531,28 +614,29 @@ class Session:
             return
         if m["type"] == "glossary_set":
             old, new = gl.set(m.get("entries") or [])
-            self.notify({"type": "glossary", "entries": gl.entries})
+            self.notify({"type": "glossary", "entries": gl.entries, "vault": self.vault.id})
             # frases afectadas por lo que cambió: se vuelven a traducir (y su voz se rehace en la cola)
             changed = [e for e in new if e not in old] + [e for e in old if e not in new]
             if changed:
                 asyncio.create_task(self._retranslate(changed))
         else:
-            await self.ws.send_json({"type": "glossary", "entries": gl.entries})
+            await self.ws.send_json({"type": "glossary", "entries": gl.entries, "vault": self.vault.id})
 
     async def _retranslate(self, changed: list[dict]):
         loop = asyncio.get_running_loop()
-        gl = self.glossary
+        vault = self.vault
+        gl = vault.glossary
+        tx = partial(self.translator.translate_many, glossary=gl)
         n_segs = n_vids = 0
-        for f in sorted(self.store.root.glob("*.json")):
+        for f in sorted(vault.store.root.glob("*.json")):
             vid = f.stem
-            if vid not in self.library.data["videos"]:
+            if vid not in vault.library.data["videos"]:
                 continue
-            tr = self.store.open(vid)
+            tr = vault.store.open(vid)
             todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed)]
             if not todo:
                 continue
-            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), self.translator.translate_many,
-                                              [s["text"] for s in todo])
+            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), tx, [s["text"] for s in todo])
             for s, es in zip(todo, outs):
                 tr.set_translation(s["id"], es, self.translator.name)
             tr.save()
@@ -595,15 +679,35 @@ class Session:
         self.notify({"type": "bg", "video": vid, "msg": {"type": "people", "speaker_names": names,
                                                            "voice_map": vmap, "redub": redub}})
 
-    def _voice_refs(self, vid: str) -> dict:
-        meta = self.store.root.parent / "voices" / vid / "voices.json"
-        if not meta.exists():
-            return {}
+    def _voice_meta(self, vid: str) -> dict:
+        meta = self._vault_of(vid).root / "voices" / vid / "voices.json"
         try:
-            data = json.loads(meta.read_text(encoding="utf-8"))
+            return json.loads(meta.read_text(encoding="utf-8")) if meta.exists() else {}
         except ValueError:
             return {}
-        return {spk: f"/voices/{vid}/{m['file']}" for spk, m in data.items() if m.get("file")}
+
+    def _voice_refs(self, vid: str) -> dict:
+        vault = self._vault_of(vid)
+        return {spk: vault.url(f"/voices/{vid}/{m['file']}") for spk, m in self._voice_meta(vid).items() if m.get("file")}
+
+    def _people_saved(self, vault=None) -> list[dict]:
+        vault = vault or self.vault
+        return [{**p, "url": vault.url(f"/people/{p['file']}")} for p in vault.people()]
+
+    async def _people_saved_op(self, m: dict):
+        """Guardar a una persona de un video (nombre y voz) en su biblioteca, u olvidarla."""
+        if m["type"] == "people_save":
+            vid, spk = str(m.get("video", "")), str(m.get("spk", ""))
+            vault = self._vault_of(vid)
+            ref = self._voice_meta(vid).get(spk)
+            if not ref:
+                return await self.ws.send_json({"type": "yt_error", "error": "esa persona aún no tiene una voz de referencia"})
+            vault.save_person(str(m.get("name", "")), vault.root / "voices" / vid / ref["file"], ref.get("text", ""),
+                              str(m.get("id") or "") or None)
+        else:
+            vault = self.vaults.get(str(m.get("vault", ""))) or self.vault
+            vault.forget_person(str(m.get("id", "")))
+        self.notify({"type": "people_saved", "vault": vault.id, "items": self._people_saved(vault)})
 
     # ------------------------------------------------------------ comentarios
     def _comment(self, m: dict):
@@ -620,25 +724,27 @@ class Session:
 
     # ------------------------------------------------------- borrar videos
     async def _delete(self, m: dict):
-        vids = self.library.clear() if m["type"] == "lib_clear" else [str(v) for v in m.get("videos", [])]
+        vault = self.vault
+        vids = vault.library.clear() if m["type"] == "lib_clear" else [str(v) for v in m.get("videos", [])
+                                                                     if str(v) in vault.library.data["videos"]]
         if self.processor:
             self.processor.remove_many(vids)
         if m["type"] == "lib_delete":
-            self.library.remove_many(vids)
-        await asyncio.get_running_loop().run_in_executor(None, self._delete_files, vids)
+            vault.library.remove_many(vids)
+        await asyncio.get_running_loop().run_in_executor(None, self._delete_files, vids, vault)
         self.notify({"type": "deleted", "videos": vids})
         self.notify({"type": "library_changed"})
 
-    def _delete_files(self, vids):
+    def _delete_files(self, vids, vault):
         """Copias, transcripciones, voces y referencias de cada video."""
         import re
         import shutil
 
-        data = self.store.root.parent
+        data = vault.root
         for vid in vids:
             if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
                 continue
-            self.store.delete(vid)
+            vault.store.delete(vid)
             for d in (data / "audio" / vid, data / "voices" / vid):
                 shutil.rmtree(d, ignore_errors=True)
             folder, stem = (data / "youtube", vid[3:]) if vid.startswith("yt_") else (data / "library", vid)
@@ -650,11 +756,21 @@ class Session:
     async def _library(self, m: dict):
         lib, kind = self.library, m.get("type")
         vid = str(m.get("video", ""))
-        if kind == "lib_register":
-            lib.register(str(m["id"]), **{k: m.get(k) for k in ("title", "duration", "source", "media",
-                                                                  "audio", "thumb", "channel", "categories")})
+        if kind == "lib_meta":  # título y miniatura de videos de otras bibliotecas (para la cola)
+            out = {}
+            for i in [str(x) for x in m.get("ids", [])][:300]:
+                v = self.vaults.of(i)
+                e = v.library.data["videos"].get(i) if v else None
+                if e:
+                    out[i] = {"id": i, "lib": v.id, "title": e.get("title", i), "source": e.get("source"),
+                              **{f: v.url(e[f]) for f in ("thumb", "media") if e.get(f)}}
+            return await self.ws.send_json({"type": "lib_meta", "videos": out})
+        if kind == "lib_register":  # en su biblioteca (un archivo ya importado en otra queda allá)
+            self._vault_of(str(m["id"])).library.register(
+                str(m["id"]), **{k: m.get(k) for k in ("title", "duration", "source", "media",
+                                                        "audio", "thumb", "channel", "categories")})
         elif kind == "lib_remove":
-            lib.remove(vid)
+            self._vault_of(vid).library.remove(vid)
         elif kind == "coll_create":
             c = lib.create(m.get("name", ""))
             if vid:
@@ -667,7 +783,8 @@ class Session:
             orphans = lib.delete(m["coll"])  # lo pendiente de una playlist borrada sale de la cola
             if orphans and self.processor:
                 self.processor.remove_many(orphans)
-        data = lib.public()
+        data = self.vault.public_library()
+        data["vault"] = self.vault.id
         if self.processor:  # avance de cada video (para "Procesar" y las barras)
             for vid, v in data["videos"].items():
                 try:
@@ -706,13 +823,78 @@ class Session:
 
     def forward_bg(self, msg: dict) -> dict | None:
         """Avance en segundo plano del video que esta pestaña tiene abierto."""
-        if msg.get("type") == "bg":
+        t = msg.get("type")
+        if t == "bg":
             return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
+        if t == "prefs":  # con los valores propios de la biblioteca de esta pestaña
+            return self._prefs_msg()
+        if t in ("glossary", "people_saved") and msg.get("vault") not in (None, self.vault.id):
+            return None
+        if t == "vaults_changed":
+            if self.vaults.get(self.vault.id) is None:  # la quitaron desde otra pestaña
+                self.vault = self.vaults.main
+                asyncio.ensure_future(self._send_vault_state())
+                return None
+            return {"type": "vaults", "current": self.vault.id, "items": self.vaults.public()}
         return msg
+
+    # ------------------------------------------------------------ bibliotecas
+    async def _vault(self, m: dict):
+        t, loop = m["type"], asyncio.get_running_loop()
+        try:
+            if t == "vault_open":
+                v = self.vaults.get(str(m.get("id", "")))
+                if v is not None:
+                    self.vault = v
+                    self.vaults.set_last(v.id)
+                return await self._send_vault_state()
+            if t == "vault_pick_folder":  # el cuadro nativo de Windows, en este equipo
+                path = await loop.run_in_executor(None, pick_folder)
+                return await self.ws.send_json({"type": "vault_folder", "path": path, "for": m.get("for", "")})
+            if t == "vault_create":
+                # empieza con las preferencias propias de la biblioteca abierta (tema, modo de importar)
+                prefs = {k: self._pref(k) for k in VAULT_PREFS}
+                v = await loop.run_in_executor(None, lambda: self.vaults.create(
+                    str(m.get("name", "")), str(m.get("folder", "")).strip(), str(m.get("color", "")),
+                    str(m.get("icon", "")), prefs))
+                self.vault = v
+                self.vaults.set_last(v.id)
+            elif t == "vault_open_folder":
+                v = await loop.run_in_executor(None, self.vaults.open_folder, str(m.get("folder", "")).strip())
+                self.vault = v
+                self.vaults.set_last(v.id)
+            elif t == "vault_update":
+                self.vaults.update(str(m.get("id", "")), **{k: str(m.get(k, "")) for k in ("name", "color", "icon")})
+            elif t == "vault_remove":
+                vid = str(m.get("id", ""))
+                vids = await loop.run_in_executor(None, self.vaults.remove, vid, bool(m.get("delete_files")))
+                if self.processor:
+                    self.processor.remove_many(vids)
+                if self.vault.id == vid:
+                    self.vault = self.vaults.main
+            elif t == "vault_move":
+                to = str(m.get("to", ""))
+                busy = self.processor.busy if self.processor else (lambda v: False)
+                moved, skipped = await loop.run_in_executor(
+                    None, lambda: self.vaults.move([str(v) for v in m.get("videos", [])], to, busy))
+                if self.dubber:
+                    for v in m.get("videos", []):
+                        self.dubber.forget(str(v))
+                await self.ws.send_json({"type": "vault_moved", "moved": moved, "skipped": skipped,
+                                         "to": self.vaults.get(to).name})
+                self.notify({"type": "library_changed"})
+                if self.processor:
+                    self.processor._broadcast()
+            else:
+                return
+        except (ValueError, OSError, KeyError) as e:
+            return await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+        self.notify({"type": "vaults_changed"})
+        await self._send_vault_state()
 
     # ------------------------------------------------------- sesión de YouTube
     def _cookies_path(self):
-        return self.youtube.root.parent / "cookies.txt"
+        return self.vaults.cookies
 
     async def _cookies_status(self, extra: dict | None = None):
         from . import cookies
@@ -740,3 +922,19 @@ class Session:
             self.notify(self.prefs.public())
         if self.processor:
             self.processor.unblock()
+
+
+def pick_folder() -> str:
+    """Cuadro nativo para elegir una carpeta (el servidor corre en este mismo equipo)."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError:
+        return ""
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)  # delante del navegador
+    try:
+        return filedialog.askdirectory(parent=root, title="Carpeta de la biblioteca", mustexist=False) or ""
+    finally:
+        root.destroy()

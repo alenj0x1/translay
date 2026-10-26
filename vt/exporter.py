@@ -61,8 +61,9 @@ def srt(segments: list[dict], key: str) -> str:
 
 
 class Exporter:
-    def __init__(self, root: Path, store, library, processor, youtube, prefs, notify):
+    def __init__(self, root: Path, store, library, processor, youtube, prefs, notify, vaults=None):
         self.root = root
+        self.vaults = vaults
         self.dir = root / "exports"
         self.dir.mkdir(parents=True, exist_ok=True)
         for old in self.dir.iterdir():  # lo de sesiones anteriores ya se descargó
@@ -168,20 +169,33 @@ class Exporter:
                         arc, n = f"{stem} ({n}).{ext}", n + 1
                     used.add(arc)
                     z.write(f, arc)
-        rel = path.relative_to(self.root).as_posix()
-        if rel.startswith("youtube/"):
-            url = "/media/yt/" + rel[8:]
-        elif rel.startswith("library/"):
-            url = "/media/lib/" + rel[8:]
-        else:
-            url = "/exports/" + path.relative_to(self.dir).as_posix()
+        url = None
+        for vault in (self.vaults.all() if self.vaults else []):  # el original, directo de su biblioteca
+            for sub, pre in (("youtube", "/media/yt/"), ("library", "/media/lib/")):
+                if url is None and path.is_relative_to(vault.root / sub):
+                    url = vault.url(pre + path.relative_to(vault.root / sub).as_posix())
+        if url is None:
+            rel = path.relative_to(self.root).as_posix() if path.is_relative_to(self.root) else ""
+            if rel.startswith("youtube/"):
+                url = "/media/yt/" + rel[8:]
+            elif rel.startswith("library/"):
+                url = "/media/lib/" + rel[8:]
+            else:
+                url = "/exports/" + path.relative_to(self.dir).as_posix()
         from urllib.parse import quote
 
         self._set(job, state="listo", pct=100, detail="", url=f"{url}?dl={quote(name)}")
 
     # ------------------------------------------------------------ insumos
-    def _media_path(self, src: str) -> Path:
+    def _root(self, vid: str) -> Path:
+        v = self.vaults.of(vid) if self.vaults else None
+        return v.root if v else self.root
+
+    def _media_path(self, src: str, vid: str = "") -> Path:
         src = (src or "").split("?")[0]
+        v = self.vaults.of(vid) if self.vaults and vid else None
+        if v and v.file(src):
+            return v.file(src)
         if src.startswith("/media/yt/"):
             return self.root / "youtube" / src[10:]
         if src.startswith("/media/lib/"):
@@ -196,7 +210,9 @@ class Exporter:
         if v.get("source") != "youtube" or not self.youtube:
             raise FileNotFoundError(f"«{v.get('title', vid)}» no tiene copia en el equipo")
         self._set(job, state="exportando", detail=f"descargando {v.get('title', vid)}")
-        info = self.youtube.fetch(vid[3:], None, self.prefs.values.get("yt_session", "ninguna"), audio_only=False)
+        vault = self.vaults.of(vid) if self.vaults else None
+        info = (vault or self).youtube.fetch(vid[3:], None, self.prefs.values.get("yt_session", "ninguna"),
+                                             audio_only=False)
         self.library.set_field(vid, media=info["video"], audio=info["audio"], audio_only=False,
                                **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
                                   if info.get(k)})
@@ -221,8 +237,8 @@ class Exporter:
     def _make(self, kind, vid, v, out_dir: Path, prog) -> Path:
         if kind in TEXT_KINDS:
             return self._make_text(kind, vid, v, out_dir)
-        media = self._media_path(v["media"])
-        audio = self._media_path(v["audio"]) if v.get("audio") else media
+        media = self._media_path(v["media"], vid)
+        audio = self._media_path(v["audio"], vid) if v.get("audio") else media
         if kind == "orig_video":
             return media
         if kind == "orig_audio":
@@ -296,7 +312,7 @@ class Exporter:
         """Original (bajo la voz) + cada frase doblada en su momento → AAC."""
         tr = self.store.open(vid)
         duck = DUCK_LEVELS.get(self.prefs.values.get("duck", "bajo"), 0.14)
-        dub_dir = self.root / "audio"
+        dub_dir = self._root(vid) / "audio"
         clips, prev_end = [], 0
         for s in sorted(tr.segments, key=lambda x: x["start"]):
             d = s.get("dub")

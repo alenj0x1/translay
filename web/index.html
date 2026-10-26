@@ -31,12 +31,23 @@
 <link rel="stylesheet" href="css/views/library.css">
 <link rel="stylesheet" href="css/views/queue.css">
 <link rel="stylesheet" href="css/views/prefs.css">
+<link rel="stylesheet" href="css/views/vaults.css">
 </head>
 <body class="view-library layout-wide">
 
 <!-- encabezado: el mismo en todas las vistas -->
 <header class="bar">
   <div class="brand">Traductor <span>en → es</span></div>
+  <div class="vault-wrap">
+    <button class="btn vault-btn" id="vault-btn" type="button" aria-haspopup="true">Principal</button>
+    <div class="popover vault-pop" id="vault-pop" hidden>
+      <ul id="vault-list"></ul>
+      <div class="vault-foot">
+        <button class="btn xs dark" id="vault-new" type="button" data-icon="plus">Nueva biblioteca</button>
+        <button class="btn xs ghost" id="vault-manage" type="button" data-icon="sliders">Administrar</button>
+      </div>
+    </div>
+  </div>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
   <form class="field" id="yt">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
@@ -220,6 +231,31 @@
   </form>
 </dialog>
 
+<dialog class="dlg" id="vault-dlg">
+  <form method="dialog" id="vault-form">
+    <h3 id="vault-dlg-title">Nueva biblioteca</h3>
+    <label class="dlg-row"><span class="label">Nombre</span>
+      <input class="input" id="vault-name" type="text" maxlength="60" placeholder="Ciencia, Comedia…" autocomplete="off"></label>
+    <div class="dlg-row"><span class="label">Color</span><div class="vcolors" id="vault-colors"></div></div>
+    <div class="dlg-row"><span class="label">Ícono</span><div class="segs" id="vault-icons"></div></div>
+    <div class="dlg-row" id="vault-where"><span class="label">Dónde se guarda</span>
+      <div class="segs" id="vault-where-segs">
+        <button class="seg" type="button" data-where="app">En la carpeta de la app</button>
+        <button class="seg" type="button" data-where="folder">En otra carpeta</button>
+      </div>
+      <div class="vfolder" id="vault-folder-row" hidden>
+        <input class="input" id="vault-folder" type="text" spellcheck="false" placeholder="D:\Videos\Ciencia">
+        <button class="btn sm" id="vault-pick" type="button" data-icon="folder">Elegir</button>
+      </div>
+    </div>
+    <code class="vpath" id="vault-path" hidden></code>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel" type="submit" formnovalidate>Cancelar</button>
+      <button class="btn dark" value="ok" type="submit" id="vault-go">Crear</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog class="dlg" id="confirm-dlg">
   <form method="dialog">
     <h3 id="confirm-title"></h3>
@@ -238,6 +274,7 @@
 <script src="js/theme.js"></script>
 <script src="js/app.js"></script>
 <script src="js/library.js"></script>
+<script src="js/vaults.js"></script>
 <script>hydrateIcons();</script>
 </body>
 </html>

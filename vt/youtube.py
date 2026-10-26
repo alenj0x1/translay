@@ -31,8 +31,9 @@ def video_id(url: str) -> str | None:
 
 
 class YouTube:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, cookies: Path | None = None):
         self.root = root
+        self.cookies = cookies or root.parent / "cookies.txt"  # global (data/), no de cada biblioteca
         self.root.mkdir(parents=True, exist_ok=True)
         # un mismo video no se descarga dos veces a la vez (la cola y quien lo abre)
         self._locks: dict[str, threading.Lock] = defaultdict(threading.Lock)
@@ -155,7 +156,7 @@ class YouTube:
         navegador (Firefox se puede leer abierto; los de tipo Chrome bloquean sus
         cookies mientras están abiertos) o un cookies.txt exportado en data/."""
         if session == "archivo":
-            path = self.root.parent / "cookies.txt"
+            path = self.cookies
             if not path.exists():
                 raise FileNotFoundError("cookies.txt")
             return {"cookiefile": str(path)}

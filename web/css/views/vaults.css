@@ -1,0 +1,79 @@
+/* =====================================================================
+   Bibliotecas: selector del encabezado, diálogo, Preferencias y «Mover a…»
+   .vbadge        ícono de la biblioteca sobre su color (--vc)
+   ===================================================================== */
+
+.vbadge {
+  flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px;
+  border: var(--line); background: var(--vc, var(--fill)); color: #fff;
+}
+.vbadge svg { width: 13px; height: 13px; }
+.vbadge.lg { width: 34px; height: 34px; }
+.vbadge.lg svg { width: 18px; height: 18px; }
+.vbadge.xs { width: 14px; height: 14px; border-width: 1px; margin-right: 6px; vertical-align: -3px; }
+.vbadge.xs svg { width: 9px; height: 9px; }
+
+/* ------------------------------------------------------------ encabezado */
+.vault-wrap { position: relative; flex: none; }
+.vault-btn { gap: 9px; padding-left: 10px; max-width: 240px; }
+.vault-btn .btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vault-btn .chev { width: 12px; height: 12px; margin-left: -2px; }
+.vault-pop { left: 0; right: auto; width: 280px; padding: 6px; }
+.vault-pop ul, .move-pop ul { margin: 0; max-height: 320px; }
+.vitem {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 0; background: none;
+  color: var(--fg); cursor: pointer; text-align: left; font: 600 14px/1.2 var(--font-text);
+}
+.vitem:hover { background: var(--surface-2); }
+.vitem .vname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.vitem .vcount { font: 11px/1 var(--font-mono); color: var(--fg-muted); }
+.vitem .vcheck { width: 14px; height: 14px; }
+.vitem.on .vname { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+.vault-foot { display: flex; gap: 6px; justify-content: space-between; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border-soft); }
+
+/* ------------------------------------------------------------- diálogo */
+.dlg-row { display: grid; gap: 6px; }
+.dlg-row > .label { font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+.dlg-row .input { width: 100%; max-width: none; box-sizing: border-box; }
+.vcolors { display: flex; flex-wrap: wrap; gap: 8px; }
+.vcolor { width: 26px; height: 26px; padding: 0; border: var(--line); background: var(--vc); cursor: pointer; }
+.vcolor.on { outline: var(--line-w) solid var(--fg); outline-offset: 2px; }
+.vicon { padding: 6px 8px; }
+.vicon svg { width: 16px; height: 16px; }
+.vfolder { display: flex; gap: 8px; }
+.vfolder .input { flex: 1; min-width: 0; font: 12.5px/1.2 var(--font-mono); }
+.vpath, .vrow code { font: 11px/1.35 var(--font-mono); color: var(--fg-muted); overflow-wrap: anywhere; }
+
+/* --------------------------------------------------------- Preferencias */
+.vaults-pref .pref-ctl { display: grid; gap: 12px; width: 100%; justify-items: stretch; }
+.vrows { display: grid; border: var(--line); }
+.vrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; }
+.vrow + .vrow { border-top: 1px solid var(--border-soft); }
+.vrow.on { background: var(--surface-2); }
+.vinfo { display: grid; gap: 2px; min-width: 0; }
+.vinfo strong { font: 600 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.vinfo small { font: 10.5px/1.3 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-muted); }
+.vrow .vacts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+/* opción propia de la biblioteca abierta */
+.pref-label .vtag {
+  display: block; margin-top: 3px; font: 10px/1.2 var(--font-mono); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.pref-label .vtag::before { content: "solo en "; }
+
+/* ----------------------------------------------------------- mover a… */
+.menu-wrap { position: relative; }
+.move-pop { left: 0; right: auto; width: 240px; padding: 6px; }
+
+/* ------------------------------------------------- personas guardadas */
+.person .pacts, .psaved .pacts { display: flex; gap: 4px; }
+.people-saved { padding: 10px 12px; }
+.people-saved h4 { margin: 4px 0 8px; font: var(--t-label); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--fg-muted); }
+.psaved { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; font: 600 14px/1.2 var(--font-text); }
+
+/* ---------------------------------------------------------------- celular */
+@media (max-width: 760px) {
+  .vault-btn { max-width: 52vw; }
+  .vrow { grid-template-columns: auto minmax(0, 1fr); }
+  .vrow .vacts { grid-column: 1 / -1; justify-content: flex-start; }
+}

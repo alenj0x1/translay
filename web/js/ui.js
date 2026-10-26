@@ -43,6 +43,14 @@ const ICONS = {
   zip: '<rect x="3" y="2" width="10" height="12"/><path d="M8 2v2M8 5v1M8 7v1M7 9h2v2.5H7z"/>',
   film: '<rect x="2" y="3" width="12" height="10"/><path d="M5 3v10M11 3v10M2 6h3M2 10h3M11 6h3M11 10h3"/>',
   music: '<path d="M6 12V3.5l7-1.5V10"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="11.5" cy="10" r="1.5"/>',
+  library: '<path d="M2.5 2.5v11M5.5 2.5v11M8.5 3.5l3 10M2 13.5h12"/>',
+  flask: '<path d="M6 2.5h4M6.7 2.5v4L3 12.6a.6.6 0 0 0 .5.9h9a.6.6 0 0 0 .5-.9L9.3 6.5v-4M4.8 9.5h6.4"/>',
+  smile: '<circle cx="8" cy="8" r="5.5"/><path d="M5.6 9.4a3 3 0 0 0 4.8 0"/><path class="solid" d="M5.5 6.2h1.2v1.2H5.5zM9.3 6.2h1.2v1.2H9.3z"/>',
+  book: '<path d="M8 4.2C6.6 3 4.6 2.7 2.5 3v9.6c2.1-.3 4.1 0 5.5 1.2 1.4-1.2 3.4-1.5 5.5-1.2V3C11.4 2.7 9.4 3 8 4.2zM8 4.2v9.6"/>',
+  globe: '<circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.6 2.3 3.4 2.3 5.5S9.6 11.9 8 13.5C6.4 11.9 5.7 10.1 5.7 8S6.4 4.1 8 2.5z"/>',
+  star: '<path d="M8 2.3l1.7 3.6 3.9.5-2.9 2.7.8 3.9L8 11.1 4.5 13l.8-3.9-2.9-2.7 3.9-.5z"/>',
+  folder: '<path d="M2 4.5V12.5h12V5.5H7.5L6 3.5H2z"/>',
+  chevron: '<path d="M4.5 6.2L8 9.7l3.5-3.5"/>',
 };
 
 function icon(name, cls = "") {

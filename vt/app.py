@@ -11,14 +11,12 @@ from pathlib import Path
 from .asr import WhisperASR
 from .httpws import AppServer
 from .session import Session
-from .store import Store
 from .translate import MODELS as MT_MODELS, load_translator
-from .library import Library
 from .prefs import Prefs
 from .processor import Processor
 from .exporter import Exporter
 from .resources import Resources
-from .youtube import YouTube
+from .vaults import Vaults
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -42,16 +40,13 @@ def main():
     asr.warmup()
     print(f"Preparando traductor {a.translator}…", flush=True)
     translator = load_translator(a.translator, a.device)
-    from .glossary import Glossary
-
-    glossary = Glossary(ROOT / "data" / "glossary.json")
-    translator.glossary = glossary  # términos que no se traducen o con traducción fija
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
-    store = Store(ROOT / "data" / "transcripts")
-    youtube = YouTube(ROOT / "data" / "youtube")
-    library = Library(ROOT / "data" / "library.json")
-    library.import_youtube(ROOT / "data" / "youtube")
+    # bibliotecas (vt/vaults.py): Principal es data/; las demás, cada una en su carpeta
+    vaults = Vaults(ROOT / "data")
+    for vault in vaults.all():
+        vault.library.import_youtube(vault.root / "youtube")
+    store, library, youtube = vaults.store, vaults.library, vaults.main.youtube
 
     def backfill_youtube():
         """Miniatura, canal y categorías de videos YA descargados que no los tengan.
@@ -64,7 +59,8 @@ def main():
         for vid, v in list(library.data["videos"].items()):
             if v.get("source") == "youtube" and v.get("media") and (not v.get("thumb") or "categories" not in v):
                 try:
-                    info = youtube.fetch(vid[3:], audio_only=bool(v.get("audio_only")))  # ya descargado: no baja nada
+                    vault = vaults.of(vid) or vaults.main  # ya descargado: no baja nada
+                    info = vault.youtube.fetch(vid[3:], audio_only=bool(v.get("audio_only")))
                     library.set_field(vid, **{k: info[k] for k in ("thumb", "channel", "categories", "title")
                                               if info.get(k) is not None})
                 except Exception as e:
@@ -75,13 +71,20 @@ def main():
     lib_dir = ROOT / "data" / "library"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
+    def vault_dir(vid: str, query: dict) -> Path:
+        """Carpeta de archivos importados de la biblioteca del video (o de la indicada)."""
+        v = vaults.of(vid) or vaults.get(query.get("lib")) or vaults.main
+        d = v.root / "library"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
     async def put_media(rest, query, headers, body):
         """Copia de un archivo local, para volver a verlo desde la biblioteca."""
         vid = rest.strip("/")
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
             return 400, "id invalido"
         ext = re.sub(r"[^a-z0-9]", "", Path(query.get("name", "video.mp4")).suffix.lower())[:5] or "mp4"
-        out = lib_dir / f"{vid}.{ext}"
+        out = vault_dir(vid, query) / f"{vid}.{ext}"
         tmp = out.with_suffix(".part")
         with tmp.open("wb") as f:
             async for chunk in body:
@@ -94,7 +97,7 @@ def main():
         vid = rest.strip("/")
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", vid):
             return 400, "id invalido"
-        out = lib_dir / f"{vid}.jpg"
+        out = vault_dir(vid, query) / f"{vid}.jpg"
         data = b"".join([c async for c in body])
         out.write_bytes(data[: 2 << 20])
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
@@ -109,8 +112,8 @@ def main():
         vid = rest.removesuffix(".jpg")
         if not re.fullmatch(r"[A-Za-z0-9_-]{11}", vid):
             return None
-        for f in (ROOT / "data" / "youtube" / f"{vid}.jpg", thumbs_dir / f"{vid}.jpg"):  # la del video descargado vale
-            if f.exists():
+        for f in [v.root / "youtube" / f"{vid}.jpg" for v in vaults.all()] + [thumbs_dir / f"{vid}.jpg"]:
+            if f.exists():  # la del video descargado (en su biblioteca) vale
                 return f
         lock = thumb_locks.setdefault(vid, asyncio.Lock())
         async with lock:
@@ -130,6 +133,17 @@ def main():
                     return None
         thumb_locks.pop(vid, None)
         return out if out.exists() else None
+
+    async def get_vault_file(rest):
+        """Archivos de las demás bibliotecas: /v/<biblioteca>/media/yt/…, /audio/…, /voices/…, /people/…"""
+        vid, _, sub = rest.partition("/")
+        v = vaults.get(vid)
+        f = v.file("/" + sub) if v else None
+        return f if f and f.is_file() else None
+
+    async def get_main_people(rest):
+        f = vaults.main.file("/people/" + rest)
+        return f if f and f.is_file() else None
 
     async def put_cookies(rest, query, headers, body):
         """cookies.txt exportado desde el navegador: se valida y se guarda solo lo de YouTube."""
@@ -181,14 +195,13 @@ def main():
     translator.unload()
     prefs = Prefs(ROOT / "data" / "prefs.json")
     processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
-                          youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"))
-    exporter = Exporter(ROOT / "data", store, library, processor, youtube, prefs, notify)
+                          youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults)
+    exporter = Exporter(ROOT / "data", store, library, processor, youtube, prefs, notify, vaults=vaults)
 
     async def ws_handler(ws):
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                          processor, prefs, notify, exporter)
-        session.glossary = glossary
+                          processor, prefs, notify, exporter, vaults=vaults)
         sessions.add(session)
         try:
             await session.run()
@@ -202,7 +215,7 @@ def main():
                         "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
                                              "/api/cookies": put_cookies},
-                       {"/thumb/yt/": get_thumb})
+                       {"/thumb/yt/": get_thumb, "/v/": get_vault_file, "/people/": get_main_people})
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)
     if not a.no_browser:

@@ -31,6 +31,7 @@ let prefs = { theme_mode: "sistema", theme_style: "clasico", theme_tone: "", lay
   autoplay: true, autoplay_next: true };
 let prefsSchema = [];
 let prefsSections = [];
+let prefsVaultKeys = [];  // las que son de cada biblioteca (vt/vaults.py)
 
 /* ------------------------------------------------------------ conexión */
 function connect() {
@@ -57,6 +58,8 @@ function onMessage(m) {
       state.models = `${m.device} · ${m.model}${m.translator !== "none" ? " · " + m.translator : ""}`;
       renderPower();
       state.voice = m.voice;
+      // al reconectar, la pestaña sigue en su biblioteca (la responde con todo: lista, prefs, videos)
+      if (typeof vaults !== "undefined" && vaults.current) send({ type: "vault_open", id: vaults.current });
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
       send({ type: "library" });
       send({ type: "glossary_get" });
@@ -76,6 +79,26 @@ function onMessage(m) {
       break;
     case "glossary":
       glossaryUpdate(m.entries);
+      break;
+    case "vaults":
+      vaultsUpdate(m);
+      break;
+    case "vault_folder":
+      vaultFolder(m);
+      break;
+    case "vault_error":
+      toast(m.error, "warn");
+      break;
+    case "vault_moved":
+      toast(m.moved ? `${m.moved === 1 ? "1 video movido" : `${m.moved} videos movidos`} a «${m.to}».`
+        + (m.skipped ? ` ${m.skipped} se están descargando o procesando: muévelos al terminar.` : "")
+        : "Esos videos se están descargando o procesando: muévelos al terminar.", m.moved ? "ok" : "warn");
+      break;
+    case "lib_meta":
+      libMeta(m);
+      break;
+    case "people_saved":
+      if (m.vault === state.videoVault) { state.peopleSaved = m.items; renderPeople(); }
       break;
     case "glossary_applied":
       if (m.segments) toast(`Glosario aplicado: ${m.segments} ${m.segments === 1 ? "frase" : "frases"} en ${m.videos} `
@@ -105,9 +128,14 @@ function onMessage(m) {
       send({ type: "library" });
       send({ type: "glossary_get" });
       break;
-    case "batch_added":
+    case "batch_added": {
       if (m.videos && !m.quiet) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
+      // un video vive en una sola biblioteca: los que ya están en otra no se duplican
+      const away = Object.entries(m.elsewhere || {});
+      if (away.length) toast(away.map(([n, k]) => `${k === 1 ? "1 ya estaba" : `${k} ya estaban`} en «${n}»`).join(" · ")
+        + ": se quedan allá (puedes moverlos desde esa biblioteca).", "warn");
       break;
+    }
     case "playlist_added":
       setStatus(...baseStatus);
       $("#yt-url").value = ""; updateImportBtn();
@@ -129,6 +157,9 @@ function onMessage(m) {
       state.covered = m.covered;
       state.comments = m.comments || {};
       state.people = { names: m.speaker_names || {}, voices: m.voice_map || {}, refs: m.voice_refs || {} };
+      state.prefix = m.prefix || "";      // archivos de su biblioteca (/v/<id>/…; Principal sin prefijo)
+      state.videoVault = m.vault;
+      send({ type: "people_get", vault: m.vault });
       state.editing = null;
       // las voces se bajan a medida que se acercan (cada 80 ms se precargan los próximos 15 s):
       // bajarlas todas al abrir llenaba las conexiones y el video tardaba en cargar
@@ -860,7 +891,7 @@ async function dubFetch(url) {
 
 async function loadDub(seg) {
   if (!seg.dub) return;
-  const url = seg.dub.url || "/audio/" + seg.dub.file;
+  const url = seg.dub.url || (state.prefix || "") + "/audio/" + seg.dub.file;
   if (dubBuf.get(seg.id)?.url === url) return;
   dubBuf.set(seg.id, { url, buf: null });  // en curso
   try {
@@ -1323,6 +1354,7 @@ function setPref(key, value) {
 function applyPrefs(m) {
   prefsSchema = m.schema;
   prefsSections = m.sections || [];
+  prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
   setLayout(prefs.layout !== "dividida", false);
@@ -1340,7 +1372,9 @@ function renderPrefs() {
   const nav = $("#prefs-nav");
   const body = $("#prefs-body");
   const scroll = body.scrollTop;
-  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK);  // se vuelven a poner en su sección (no se pierden al redibujar)
+  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK);  // se vuelven a poner en su sección (no se pierden al redibujar)
+  const vaultKeys = new Set(prefsVaultKeys);
+  const vaultName = typeof currentVault === "function" && vaults.list.length > 1 ? currentVault().name : "";
   nav.replaceChildren();
   body.replaceChildren();
   for (const [sec, title] of prefsSections) {
@@ -1361,6 +1395,8 @@ function renderPrefs() {
       const label = document.createElement("span");
       label.className = "pref-label";
       label.textContent = p.label;
+      // propia de la biblioteca abierta (con varias, se aclara cuál)
+      if (vaultName && vaultKeys.has(p.key)) label.append(el("small", { class: "vtag", text: vaultName, title: `Solo en «${vaultName}»` }));
       const ctl = document.createElement("div");
       ctl.className = "pref-ctl";
       const group = document.createElement("div");
@@ -1402,6 +1438,14 @@ function renderPrefs() {
     if (sec === "glosario") {
       box.append(GLOSSARY_BLOCK);
       nav.append(navButton("Términos", GLOSSARY_BLOCK));
+      if (vaultName) GLOSSARY_BLOCK.querySelector(".pref-label").replaceChildren("Términos",
+        el("small", { class: "vtag", text: vaultName, title: `Solo en «${vaultName}»` }));
+      else GLOSSARY_BLOCK.querySelector(".pref-label").textContent = "Términos";
+    }
+    if (sec === "bibliotecas") {
+      renderVaultsPref();
+      box.append(VAULTS_BLOCK);
+      nav.append(navButton("Tus bibliotecas", VAULTS_BLOCK));
     }
     body.append(box);
   }
@@ -1658,26 +1702,53 @@ function renderPeople() {
   }
   if (box.contains(document.activeElement)) return;  // no redibujar mientras se escribe un nombre
   const refs = state.people.refs || {};
-  box.replaceChildren(...[...order].map(([spk, n]) => {
+  const saved = state.peopleSaved || [];
+  const savedUrl = (v) => v?.startsWith("p:") ? saved.find((p) => p.id === v.slice(2))?.url : null;
+  const names = el("datalist", { id: "people-names" }, ...saved.map((p) => el("option", { value: p.name })));
+  const vname = typeof currentVault === "function" ? (vaultById(state.videoVault) || currentVault()).name : "la biblioteca";
+  const rows = [...order].map(([spk, n]) => {
     const key = String(spk);
-    const name = el("input", { class: "input", type: "text", maxlength: 60, placeholder: `Persona ${n}`,
+    const name = el("input", { class: "input", type: "text", maxlength: 60, placeholder: `Persona ${n}`, list: "people-names",
       value: state.people.names[key] || "", "aria-label": `Nombre de la persona ${n}` });
     name.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, name: name.value }));
     name.addEventListener("keydown", (e) => { if (e.key === "Enter") name.blur(); });
     const voice = el("select", { class: "select", "aria-label": "Voz en español" },
       el("option", { value: "", text: refs[key] ? "Su propia voz" : "Su voz (aún sin referencia)" }),
       ...[...order].filter(([o]) => o !== spk && refs[String(o)])
-        .map(([o, m]) => el("option", { value: String(o), text: `Voz de ${personName(o, m)}` })));
+        .map(([o, m]) => el("option", { value: String(o), text: `Voz de ${personName(o, m)}` })),
+      saved.length ? el("optgroup", { label: `Guardadas en «${vname}»` },
+        ...saved.map((p) => el("option", { value: `p:${p.id}`, text: `Voz de ${p.name}` }))) : null);
     voice.value = state.people.voices[key] || "";
     voice.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, voice: voice.value }));
     const used = state.people.voices[key] || key;
-    const listen = refs[used] ? btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost",
-      title: "Escuchar la voz de referencia", onClick: () => new Audio(refs[used]).play().catch(() => {}) }) : null;
+    const usedUrl = savedUrl(used) || refs[used];
+    const listen = usedUrl ? btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost",
+      title: "Escuchar la voz de referencia", onClick: () => new Audio(usedUrl).play().catch(() => {}) }) : null;
+    // guardar a esta persona (nombre y su voz) para usarla en otros videos de la biblioteca
+    const nm = (state.people.names[key] || "").trim();
+    const same = saved.find((p) => p.name.toLowerCase() === nm.toLowerCase() && nm);
+    const keep = refs[key] ? btn(same ? "Actualizar voz" : "Guardar", { icon: "bookmark", size: "xs", variant: "ghost",
+      title: `Guardar su nombre y su voz en «${vname}»`,
+      onClick: () => send({ type: "people_save", video: state.videoId, spk: key, name: nm || `Persona ${n}`, id: same?.id || "" }) }) : null;
     return el("div", { class: "person" },
       el("span", { class: "chip solid", text: `P${n}` }),
       el("div", { class: "pfields" }, name, voice),
-      el("div", { class: "pmeta" }, el("small", { text: `${count.get(spk)} ${count.get(spk) === 1 ? "frase" : "frases"}` }), listen));
-  }));
+      el("div", { class: "pmeta" }, el("small", { text: `${count.get(spk)} ${count.get(spk) === 1 ? "frase" : "frases"}` }),
+        el("span", { class: "pacts" }, keep, listen)));
+  });
+  // las guardadas en la biblioteca (para escucharlas u olvidarlas)
+  const kept = saved.length ? el("div", { class: "people-saved" },
+    el("h4", { text: `Guardadas en «${vname}»` }),
+    ...saved.map((p) => el("div", { class: "psaved" },
+      el("span", { text: p.name }),
+      el("span", { class: "pacts" },
+        btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost", onClick: () => new Audio(p.url).play().catch(() => {}) }),
+        btn("Olvidar", { icon: "x", size: "xs", variant: "ghost", onClick: async () => {
+          if (await confirmDlg(`¿Olvidar a ${p.name}?`, "Los videos que usan su voz vuelven a la voz de cada persona al rehacerse.", "Olvidar")) {
+            send({ type: "people_forget", id: p.id, vault: state.videoVault });
+          }
+        } }))))) : null;
+  box.replaceChildren(names, ...rows, kept || "");
 }
 
 /* ------------------------------------------------------------ glosario */

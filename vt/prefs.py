@@ -9,7 +9,7 @@ import json
 import threading
 from pathlib import Path
 
-SECTIONS = [["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["glosario", "Glosario"],
+SECTIONS = [["bibliotecas", "Bibliotecas"], ["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["glosario", "Glosario"],
             ["youtube", "YouTube"]]
 SCHEMA = [
     # apariencia: modo (la base clara u oscura) · tema · tono; el bloque de colores es

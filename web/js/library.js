@@ -57,6 +57,11 @@ function libraryUpdate(m) {
   for (const id of [...lib.picked]) if (!lib.videos[id]) lib.picked.delete(id);
   softRenderLibrary();
   renderSaveList();
+  if (lib.openAfterSwitch && lib.videos[lib.openAfterSwitch]) {  // desde la cola: video de otra biblioteca
+    const id = lib.openAfterSwitch;
+    lib.openAfterSwitch = null;
+    playItem(id);
+  }
   const wait = lib.openWhenReady && lib.videos[lib.openWhenReady];
   if (wait?.media) {  // lo que se pidió abrir ya se descargó
     lib.openWhenReady = null;
@@ -221,6 +226,7 @@ function renderShelfHead(c) {
           renderLibrary();
         } }),
         btn("Exportar", { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`) }),
+        moveMenu(() => pickedIn(c), () => { lib.picked.clear(); renderLibrary(); }),
         btn("Eliminar", { icon: "trash", variant: "danger", onClick: async () => {
           const ids = pickedIn(c);
           const what = ids.length === 1 ? "este video" : `estos ${ids.length} videos`;
@@ -451,7 +457,7 @@ function importLocal(file, id) {
   probe.src = url;
   probe.addEventListener("loadedmetadata", () => {
     send({ type: "lib_register", id, title: file.name, duration: probe.duration, source: "file" });
-    fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}`, { method: "PUT", body: file })
+    fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}&lib=${vaults.current || ""}`, { method: "PUT", body: file })
       .then(() => {
         if (prefs.import_mode !== "descargar") send({ type: "queue_add", video: id });
         send({ type: "library" });
@@ -484,9 +490,21 @@ function queueUpdate(m) {
 
 // Panel de la cola (como las descargas del navegador): exportaciones, descargas,
 // lo que se procesa ahora, lo que espera y lo terminado.
+// La cola es una sola (una GPU, un orden), pero cada biblioteca ve lo suyo: el panel y el
+// número muestran la biblioteca abierta; la pantalla de la Cola permite ver otra o todas.
+lib.qlib = null;  // null: la abierta · "all": todas · id: una en particular
+function jobsOf(which) {
+  const jobs = lib.queue.jobs;
+  if (which === "all" || typeof vaults === "undefined" || vaults.list.length < 2) return jobs;
+  const id = which || vaults.current;
+  return jobs.filter((j) => (j.lib || "principal") === id);
+}
+const queueJobs = () => jobsOf(lib.qlib);
+
 function renderQueuePanel() {
   const q = lib.queue;
-  const active = q.jobs.filter((j) => j.state === "en cola" || j.state === "procesando");
+  const mine = jobsOf(null);
+  const active = mine.filter((j) => j.state === "en cola" || j.state === "procesando");
   const nDown = Object.keys(state.downloads).length;
   const nExp = lib.exports.filter((x) => x.state !== "listo" && x.state !== "error").length;
   const badge = $("#queue-badge");
@@ -541,19 +559,22 @@ function renderQueuePanel() {
         el("small", { text: downloadText(d) })),
       el("div", { class: "qactions" })));
   }
-  if (!q.jobs.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola" }));
+  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola de esta biblioteca" }));
   // los trabajos, en orden de estado (lo que se descarga, primero); el resto en la pantalla de la Cola
-  const jobs = orderedJobs();
+  const jobs = orderedJobs(null, mine);
   for (const j of jobs.slice(0, 50)) ul.append(jobItem(j));
   if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: `y ${jobs.length - 50} más · «Ver toda la cola» arriba` }));
+  const others = q.jobs.length - mine.length;
+  if (others > 0) ul.append(el("li", { class: "empty-row" }, btn(`${others} en otras bibliotecas`, { size: "xs", variant: "ghost",
+    icon: "queue", onClick: () => { closeQueue(); lib.qlib = "all"; setView("queue"); } })));
   if (currentView() === "queue") renderQueueScreen();
 }
 
 /* ------------------------------------------------------------ cola: orden y elementos */
 const JOB_ORDER = { descargando: 0, procesando: 1, "en cola": 2, descargado: 3, error: 4, listo: 5 };
 const jobKind = (j) => (j.dl ? "descargando" : j.state);
-function orderedJobs(kind = null) {
-  const q = lib.queue.jobs;
+function orderedJobs(kind = null, base = null) {
+  const q = base || queueJobs();
   const list = kind ? q.filter((j) => jobKind(j) === kind) : q.slice();
   // estable: dentro de cada estado se respeta el orden de la cola (lo priorizado ya va primero)
   return list.map((j, i) => [j, i]).sort((a, b) => (JOB_ORDER[jobKind(a[0])] ?? 9) - (JOB_ORDER[jobKind(b[0])] ?? 9) || a[1] - b[1])
@@ -578,19 +599,22 @@ function jobLabel(j, v) {
 }
 
 function jobItem(j) {
-  const v = lib.videos[j.id] || { id: j.id, title: j.id };
+  const v = videoInfo(j.id) || { id: j.id, title: j.id };
   const { pct, text } = jobLabel(j, v);
   const pl = playlistOf(j.id);
+  // de otra biblioteca: se nota con su insignia
+  const away = j.lib && j.lib !== vaults.current ? vaultById(j.lib) : null;
   return el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : ""), "data-id": j.id },
     el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
     el("div", { class: "qbody" },
       el("strong", { text: v.title || j.id }),
       meter(pct),
-      el("small", { text })),
+      el("small", {}, away ? vaultBadge(away, "xs") : null, away ? `${away.name} · ${text}` : text)),
     el("div", { class: "qactions" },
       btn("Ver", { icon: "play", size: "xs", disabled: !v.media && v.source !== "youtube",
         onClick: () => {
           closeQueue();
+          if (away) return playAcross(v.id, away.id);
           if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
           playItem(v.id);
         } }),
@@ -612,16 +636,28 @@ lib.qlimit = 100;
 function renderQueueScreen() {
   if (currentView() !== "queue") return;
   const q = lib.queue;
-  const counts = Object.fromEntries(QSECTIONS.map(([k]) => [k, k === "todo" ? q.jobs.length : q.jobs.filter((j) => jobKind(j) === k).length]));
+  const all = queueJobs();
+  const counts = Object.fromEntries(QSECTIONS.map(([k]) => [k, k === "todo" ? all.length : all.filter((j) => jobKind(j) === k).length]));
+  const multi = typeof vaults !== "undefined" && vaults.list.length > 1;
   // índice
   const nav = $("#qnav");
-  const navSig = JSON.stringify([lib.qsec, counts, lib.exports.length]);
+  const libCounts = multi ? vaults.list.map((v) => jobsOf(v.id).length) : [];
+  const navSig = JSON.stringify([lib.qsec, counts, lib.exports.length, lib.qlib, vaults.current, libCounts]);
   if (nav.dataset.sig !== navSig) {
     nav.dataset.sig = navSig;
     nav.replaceChildren(el("h4", { text: "Cola" }), ...QSECTIONS.filter(([k]) => k === "todo" || counts[k]).map(([k, t]) =>
       el("button", { type: "button", class: "item" + (lib.qsec === k ? " active" : ""),
         on: { click: () => { lib.qsec = k; lib.qlimit = 100; renderQueueScreen(); } } },
         el("span", { text: t }), el("span", { text: String(counts[k]) }))));
+    if (multi) {  // de qué biblioteca: la abierta (por defecto), otra o todas
+      const cur = lib.qlib || vaults.current;
+      const pick = (id) => { lib.qlib = id === vaults.current ? null : id; lib.qlimit = 100; $("#qlist").dataset.sig = ""; renderQueueScreen(); };
+      nav.append(el("h4", { text: "Bibliotecas" }),
+        ...vaults.list.map((v, i) => el("button", { type: "button", class: "item" + (cur === v.id ? " active" : ""), on: { click: () => pick(v.id) } },
+          el("span", {}, vaultBadge(v, "xs"), v.name), el("span", { text: String(libCounts[i]) }))),
+        el("button", { type: "button", class: "item" + (cur === "all" ? " active" : ""), on: { click: () => pick("all") } },
+          el("span", { text: "Todas" }), el("span", { text: String(q.jobs.length) })));
+    }
     if (lib.exports.length) {
       nav.append(el("h4", { text: "Exportar" }), el("button", { type: "button", class: "item" + (lib.qsec === "exportar" ? " active" : ""),
         on: { click: () => { lib.qsec = "exportar"; renderQueueScreen(); } } },
@@ -802,7 +838,7 @@ function libOnOpen({ id, name, file, fromLibrary, position, keepContext }) {
       source: file ? "file" : (id.startsWith("yt_") ? "youtube" : "file") });
     if (file) {
       if (!lib.videos[id]?.media) {
-        fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}`, { method: "PUT", body: file })
+        fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}&lib=${vaults.current || ""}`, { method: "PUT", body: file })
           .then(() => send({ type: "library" })).catch(() => {});
       }
       if (!lib.videos[id]?.thumb) makeThumb(URL.createObjectURL(file), id);
@@ -822,7 +858,7 @@ function makeThumb(src, id) {
     c.width = 480;
     c.height = Math.round(480 * (v.videoHeight / v.videoWidth || 9 / 16));
     c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
-    c.toBlob((b) => b && fetch(`/api/thumb/${id}`, { method: "PUT", body: b }).then(() => send({ type: "library" })),
+    c.toBlob((b) => b && fetch(`/api/thumb/${id}?lib=${vaults.current || ""}`, { method: "PUT", body: b }).then(() => send({ type: "library" })),
       "image/jpeg", 0.82);
   }, { once: true });
 }

@@ -7,8 +7,8 @@ Por frase:
   4. sonoridad igualada a la voz original
   5. WAV en data/audio/<video>/<frase>.wav — al repetir, suena sincronizado
 
-Las referencias se guardan en data/voices/<video>/ para reabrir el video y
-seguir con las mismas voces.
+Las referencias se guardan en <biblioteca>/voices/<video>/ para reabrir el video y
+seguir con las mismas voces (la carpeta sale de la transcripción: <biblioteca>/transcripts/).
 """
 
 import json
@@ -72,11 +72,31 @@ class Dubber:
         self._videos: dict[str, VideoVoices] = {}
         self._lock = threading.Lock()
 
+    @staticmethod
+    def _root(tr) -> Path:
+        """Carpeta de la biblioteca del video (la de su transcripción)."""
+        return Path(tr.path).parent.parent
+
     def voices(self, tr) -> VideoVoices:
         vid = tr.data["id"]
         if vid not in self._videos:
-            self._videos[vid] = VideoVoices(self.voice_root, vid, tr.data.get("speakers"))
+            self._videos[vid] = VideoVoices(self._root(tr) / "voices", vid, tr.data.get("speakers"))
         return self._videos[vid]
+
+    def forget(self, vid: str):
+        """El video cambió de biblioteca (sus voces están en otra carpeta)."""
+        self._videos.pop(vid, None)
+
+    def _person(self, tr, pid: str) -> tuple[str | None, str | None]:
+        """Voz de una persona guardada en la biblioteca (vt/vaults.py)."""
+        d = self._root(tr) / "people"
+        try:
+            items = json.loads((d / "people.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None, None
+        p = next((x for x in items if x.get("id") == pid), None)
+        f = d / p["file"] if p and p.get("file") else None
+        return (str(f), p.get("text", "")) if f and f.exists() else (None, None)
 
     def identify(self, tr, seg: dict, audio: np.ndarray | None) -> int | None:
         """Asigna persona a la frase (CPU, ~10 ms) y mejora su referencia."""
@@ -147,7 +167,11 @@ class Dubber:
         vv = self.voices(tr)
         spk = seg.get("speaker")
         chosen = (tr.data.get("voice_map") or {}).get(str(spk))  # «Personas»: usar la voz de otra persona
-        ref, ref_text = vv.ref_for(int(chosen) if chosen not in (None, "") else spk)
+        ref = None
+        if isinstance(chosen, str) and chosen.startswith("p:"):  # una persona guardada en la biblioteca
+            ref, ref_text = self._person(tr, chosen[2:])
+        if ref is None:
+            ref, ref_text = vv.ref_for(int(chosen) if chosen not in (None, "") and str(chosen).isdigit() else spk)
         slot = slot or self.slot(tr, seg)
         target = self.target_duration(seg, slot)
         y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target,
@@ -161,7 +185,7 @@ class Dubber:
             y = time_stretch(y, sr, rate)
         level = float(np.clip(orig_db if orig_db is not None else -20.0, -26.0, -14.0))
         y = fade(match_loudness(y, sr, level), sr)
-        out = self.audio_root / tr.data["id"]
+        out = self._root(tr) / "audio" / tr.data["id"]
         out.mkdir(parents=True, exist_ok=True)
         name = f"{seg['id']}.wav"
         write_wav(out / name, y, sr)
