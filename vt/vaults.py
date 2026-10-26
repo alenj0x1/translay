@@ -26,6 +26,7 @@ import re
 import shutil
 import threading
 import time
+import unicodedata
 import uuid
 from collections import ChainMap
 from pathlib import Path
@@ -217,7 +218,8 @@ class Vaults:
                pattern: str = "") -> Vault:
         name = (name or "").strip()[:60] or "Biblioteca"
         with self._lock:
-            vid = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:24] or "biblioteca"
+            plain = unicodedata.normalize("NFKD", name.lower()).encode("ascii", "ignore").decode()  # Océanos → oceanos
+            vid = re.sub(r"[^a-z0-9]+", "-", plain).strip("-")[:24] or "biblioteca"
             base, n = vid, 2
             while vid in self._vaults:
                 vid, n = f"{base}-{n}", n + 1

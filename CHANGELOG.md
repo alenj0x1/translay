@@ -6,6 +6,10 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar 
 
 ## Sin publicar
 
+### Corregido
+
+- El id (y el enlace `/b/<id>`) de una biblioteca con tildes o eñes ya no se rompe: «Océanos» es `oceanos`, no `oc-anos`.
+
 ### Seguridad
 
 - Otro sitio abierto en el navegador ya no puede usar Translay como el dueño: el WebSocket y los pedidos que cambian algo exigen que el `Origin` sea la propia app (`--allow-origin` / `TRANSLAY_ORIGINS` para proxies que cambian el Host).

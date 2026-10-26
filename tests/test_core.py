@@ -261,6 +261,7 @@ def test_access_and_webhooks():
         data = Path(d)
         vs = Vaults(data)
         sci = vs.create("Ciencia")
+        assert vs.create("Océanos").id == "oceanos"                         # el enlace /b/<id> sin tildes rotas
         auth = Auth(data / "auth.json", vs)
         req = lambda peer="127.0.0.1", **h: Request("GET", "/", {}, {k.replace("_", "-"): v for k, v in h.items()}, peer)
         assert auth.access(req()).owner                                    # este equipo: dueño
