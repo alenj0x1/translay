@@ -1,0 +1,45 @@
+---
+title: Inicio
+description: Traduce y dobla videos del inglés al español con la voz de cada persona, en tu propio equipo.
+template: splash
+editUrl: false
+lastUpdated: false
+hero:
+  title: Translay
+  tagline: Traduce y dobla videos del inglés al español con la voz de cada persona. Todo corre en tu equipo, con tu GPU.
+  actions:
+    - text: Instalar
+      link: empezar/instalacion/
+      icon: right-arrow
+      variant: primary
+    - text: Con Docker
+      link: empezar/docker/
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import Bauhaus from "../../components/Bauhaus.astro";
+
+<Bauhaus seed="translay" main="#e4572e" cols={24} />
+
+<CardGrid>
+  <Card title="Doblaje con su propia voz" icon="seti:audio">
+    Whisper reconoce, Opus-MT traduce y OmniVoice clona la voz de cada persona del video. La voz suena sincronizada con la imagen.
+  </Card>
+  <Card title="YouTube y archivos" icon="seti:video">
+    Pega un enlace, una playlist o un CSV con miles de enlaces; se descargan y procesan solos en una cola.
+  </Card>
+  <Card title="Bibliotecas" icon="open-book">
+    Colecciones, canales, categorías y búsqueda en todas las transcripciones. Cada biblioteca en su carpeta.
+  </Card>
+  <Card title="API y webhooks" icon="puzzle">
+    Todo lo que hace la app también por HTTP, con claves por biblioteca y avisos firmados.
+  </Card>
+</CardGrid>
+
+## Por dónde seguir
+
+- [Instalación](empezar/instalacion/) en Windows o Linux, o [con Docker](empezar/docker/).
+- [Tu primer video](empezar/primer-video/), de pegar el enlace a escucharlo en español.
+- [Cómo funciona](funcionamiento/arquitectura/) por dentro, si vas a modificarlo.
+- [Cambios](cambios/) de cada versión.

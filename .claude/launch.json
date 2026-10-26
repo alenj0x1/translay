@@ -13,6 +13,17 @@
         "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
         "PYTHONIOENCODING": "utf-8"
       }
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "docs",
+        "run",
+        "dev"
+      ],
+      "port": 4321
     }
   ]
 }

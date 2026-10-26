@@ -1,0 +1,88 @@
+---
+title: GPU y reposo
+description: Cómo comparten 8 GB de GPU Whisper, el traductor y la voz, cuándo se duermen los modelos y qué límites evitan que la memoria se desborde.
+sidebar:
+  order: 4
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Whisper y el traductor corren en el servidor sobre CTranslate2; la voz, en su propio proceso con torch. Los tres comparten la misma GPU. Translay se probó en una RTX 4060 de 8 GB: todas las cifras de esta página son de esa tarjeta.
+
+## Memoria medida
+
+| Situación | Memoria en la GPU |
+|---|---|
+| Procesando (reconocimiento, traducción y voz cargados) | ~5,6 GB |
+| Whisper + traductor activos | 2,7 GB |
+| Whisper + traductor en reposo (en la RAM) | 0,1 GB |
+| Voz activa | 2,1 GB |
+| Voz en reposo (modelo en la RAM, proceso vivo) | 0,85 GB |
+| Voz en reposo profundo (proceso cerrado) | 0 GB |
+| Servidor en reposo profundo | ~110 MB (contexto mínimo de CUDA) |
+
+## Turnos en la GPU
+
+Cada cálculo pasa por `Resources.run(partes, fn)` (`vt/resources.py`): primero se asegura de que esos modelos estén cargados y después espera su turno en un candado común, `FairLock`, que atiende por orden de llegada.
+
+```python
+with self.use(*parts):      # despierta los modelos y marca la GPU como ocupada
+    with self._compute:     # FairLock: un cálculo a la vez, por orden de llegada
+        return fn(*args)
+```
+
+Hay dos razones medidas:
+
+- **Picos de memoria.** En 8 GB, el pico del reconocimiento sumado al de la voz desbordaba la GPU a la memoria compartida de Windows, y cada paso pasaba de 0,3 s a decenas de segundos. La GPU ya trabaja cerca del 97 %: turnar no le resta velocidad.
+- **Orden de llegada.** El candado de Python no garantiza turnos: el reconocimiento volvía a pedir la GPU apenas la soltaba y la voz quedaba esperando. Una frase llegó a tardar 75 s.
+
+Además, en el servidor hay un solo hilo para reconocimiento y traducción (`gpu`) y uno para la voz (`tts`), así que como mucho dos cálculos compiten por el turno.
+
+## Modo reposo
+
+Los modelos ocupan la GPU solo mientras se procesa algo. `Resources` lleva la cuenta de los usos en curso y de la última actividad; un hilo la revisa cada 2 s.
+
+| Sin actividad | Qué pasa |
+|---|---|
+| 45 s (`idle_s`) | Whisper y el traductor pasan a la RAM (vuelven en ~1 s). El modelo de voz y DeepFilterNet también pasan a la RAM, con el proceso vivo. |
+| 120 s (`deep_s`) | Se cierra el proceso de voz. En la GPU queda solo el contexto mínimo del servidor. |
+
+Mientras haya un cálculo en curso no se duerme nada. El audio que llega del navegador cuenta como actividad (`Resources.touch`) aunque todavía no use un modelo.
+
+Hay tres atajos:
+
+- **Al arrancar.** El servidor carga Whisper y el traductor para verificarlos y los devuelve enseguida a la RAM. El proceso de voz no arranca hasta que se necesita.
+- **Al abrir un video.** Si al video le falta algo, la cola pide los tres modelos en cuanto llega `watch`, sin esperar la primera frase. Desde el reposo profundo, la voz tarda ~15 s en estar lista.
+- **Al pausar la cola sin nada a la vista.** Si no hay un video procesándose en la pestaña ni uno abierto en la cola, se espera hasta 30 s a que termine lo que estaba en curso y se pasa al reposo profundo de inmediato.
+
+El estado (`reposo`, `cargando` o `activo`) llega a todas las pestañas con el mensaje `power`, y el servidor lo anota en la consola como `[recursos] reposo → cargando`.
+
+### Despertar
+
+Cada modelo tiene su propio candado de carga: cargar la voz (unos 20 s la primera vez) no frena a Whisper. Al volver de la RAM, el proceso de voz repite su calentamiento (`OmniVoice.warm`): la primera clonación con Whisper ocupando la GPU tarda de 25 a 50 s, y conviene pagarla al cargar y no en la primera frase.
+
+## Límites de caché
+
+Sin límites, los cachés de memoria de CTranslate2 y de torch retenían memoria liberada, la GPU se llenaba, Windows desbordaba a la memoria compartida y una frase podía tardar 65 s en vez de 1 a 2 s.
+
+| Caché | Límite | Dónde |
+|---|---|---|
+| CTranslate2 (Whisper y traductor) | 400 MB | `vt/gpu.py`: `CT2_CUDA_CACHING_ALLOCATOR_CONFIG=4,3,12,419430400` (crecimiento de bins, bin mínimo, bin máximo, bytes en caché). |
+| torch (proceso de voz) | 2,5 GB | `vt/tts_worker.py`: tras cada frase, si la memoria reservada pasa de 2,5 GB, `torch.cuda.empty_cache()`. Tras el calentamiento se vacía siempre. |
+
+<Aside>
+`vt/gpu.py` define la variable con `os.environ.setdefault`: si ya existe en el entorno, se respeta la tuya.
+</Aside>
+
+En Windows, `vt/gpu.py` también registra las carpetas `bin` de los paquetes `nvidia-cublas-cu12` y `nvidia-cudnn-cu12`, que CTranslate2 no encuentra solo.
+
+## Lo que más pesa en el tiempo
+
+| Factor | Medido |
+|---|---|
+| Largo de la referencia de voz, con Whisper en la GPU | 15 s → 61 s por frase; 9 s → 4 s. Por eso el tope de 8 s por frase ([Voz y clonación](../voz/#por-qué-hasta-8-s-y-sin-recortar)). |
+| Primera clonación tras cargar | 25 a 50 s; las siguientes, ~2 s. |
+| Voz con OmniVoice, 16 pasos | 0,27 s de GPU por segundo de audio. |
+| Traducción con `opus-big` | 52 ms por frase (mediana). |
+
+Si una voz tarda más de 5 s, la cola lo anota en la consola (`[cola] voz 42s tardó 7.3s`): casi siempre es la GPU desbordada a la memoria compartida.

@@ -1,0 +1,86 @@
+---
+title: Estructura del repositorio
+description: Qué hay en cada carpeta y archivo del repositorio de Translay.
+sidebar:
+  order: 1
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+<FileTree>
+
+- vt/ el servidor: un módulo por responsabilidad (detalle en [Arquitectura](../../funcionamiento/arquitectura/#módulos-de-vt))
+  - app.py punto de entrada: argumentos, carga de modelos y rutas HTTP
+  - httpws.py servidor HTTP y WebSocket propio sobre asyncio
+  - session.py una sesión por pestaña: protocolo WebSocket y permisos
+  - processor.py cola de procesamiento y descargas
+  - vad.py detector de voz por energía
+  - asr.py Whisper sobre CTranslate2
+  - streaming.py reconocimiento en streaming con acuerdo local
+  - translate.py traductores sobre CTranslate2
+  - textproc.py texto antes y después de traducir
+  - glossary.py glosario de cada biblioteca
+  - speakers.py diarización y referencias de voz
+  - dub.py doblaje por frase
+  - audiofx.py audio propio en numpy (WSOLA, re-muestreo, sonoridad)
+  - tts.py cliente del proceso de voz
+  - tts_worker.py el proceso de voz
+  - ipc.py tramas por tuberías entre procesos
+  - enhance_df.py limpieza de referencias con DeepFilterNet
+  - resources.py modo reposo y turnos en la GPU
+  - gpu.py DLL de CUDA en Windows y caché de CTranslate2
+  - store.py transcripción de cada video
+  - library.py videos y colecciones
+  - vaults.py varias bibliotecas, cada una en su carpeta
+  - prefs.py esquema de las preferencias
+  - youtube.py descargas con yt-dlp
+  - cookies.py sesión de YouTube
+  - exporter.py exportaciones con ffmpeg
+  - auth.py acceso y claves de API
+  - api.py API HTTP v1 y guardián de archivos
+  - events.py catálogo de eventos
+  - webhooks.py envío de eventos a otras apps
+  - repair_refs.py reparación de referencias de voz antiguas
+  - \_\_init\_\_.py versión (`__version__`)
+- web/ la interfaz, sin framework ni compilación (detalle en [Interfaz](../../funcionamiento/interfaz/))
+  - index.html la página única
+  - api.html referencia de la API servida por la app
+  - css/ tokens, base, componentes, armazón, vistas y patrones
+  - js/ componentes, conexión, vistas, menús y rutas
+- tools/ herramientas de medición y prueba, sin navegador (ver [Pruebas y evaluación](../pruebas-y-evaluacion/))
+  - dub_file.py dobla un video completo y exporta `<nombre>.es.mp4`
+  - eval_tts.py compara motores de voz
+  - eval_pipeline.py mide reconocimiento y diarización
+  - eval_translation.py compara traductores
+  - transcribe_file.py simula la reproducción en vivo
+  - make_dialogue.py genera diálogos de prueba con Kokoro y ruido
+  - make_sample.ps1 genera un video de prueba con las voces de Windows
+  - samples/ guiones de los videos de prueba
+- tests/
+  - test_core.py pruebas sin GPU
+- docs/ esta documentación (Astro + Starlight; ver [Documentación](../documentacion/))
+  - astro.config.mjs configuración del sitio y de la barra lateral
+  - scripts/
+    - gen_reference.py lee `vt/` y genera las tablas de referencia
+    - sync.mjs corre `gen_reference.py` y arma la página de cambios antes de compilar
+  - src/
+    - content/docs/ las páginas
+    - data/ JSON generados por `gen_reference.py`
+- data/ todo lo que guarda la app; no va a git (ver [Datos en disco](../../funcionamiento/datos/))
+- samples/ videos de prueba y su verdad de referencia; no va a git
+- .venvs/ un entorno por motor de voz (`omnivoice`, `chatterbox`, `voxcpm`, `kokoro`); no va a git
+- run.py arranca el servidor (`python run.py`)
+- iniciar.bat lo mismo con doble clic en Windows; pasa los argumentos a `run.py`
+- requirements.txt dependencias del servidor
+- Dockerfile imagen con CUDA, el servidor y el motor de voz (ver [Docker](../../empezar/docker/))
+- docker-compose.yml servicio con GPU, `data/` y el volumen de modelos
+- .env.example plantilla de `.env` con la contraseña del dueño para Docker
+- .dockerignore lo que no entra a la imagen
+- .gitignore lo que no entra al repositorio
+- README.md presentación del proyecto
+
+</FileTree>
+
+<Aside>
+El motor de voz no se instala con `requirements.txt`: vive en `.venvs/<motor>/` con su propio Python y torch, y el servidor lo lanza como un proceso aparte. Ver [Instalación](../../empezar/instalacion/).
+</Aside>

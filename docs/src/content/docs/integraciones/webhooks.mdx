@@ -1,0 +1,160 @@
+---
+title: Webhooks
+description: Avisos HTTP firmados que Translay manda a otras apps cuando termina un video, una exportación o cambia la cola.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Un webhook es una URL tuya a la que Translay manda un `POST` con JSON cada vez que pasa algo: un video terminó de doblarse, una exportación está lista, YouTube pidió verificación. Sirve para encadenar Translay con n8n, Zapier, un bot o tu propio servidor sin preguntar a la [API](../api/) cada pocos segundos.
+
+## Crear un webhook
+
+<Steps>
+1. Abre **Preferencias → Acceso y API → Webhooks** y pulsa **Agregar webhook**.
+2. Escribe la URL (debe empezar por `http://` o `https://`) y, si quieres, un nombre; sin nombre, usa la URL.
+3. Elige de qué bibliotecas: **Todas las bibliotecas** o una.
+4. Marca los eventos que te interesan, o deja **Todos los eventos**.
+5. Pulsa **Guardar webhook**. Para dejar de recibir avisos sin borrarlo, desmarca **Activo**.
+</Steps>
+
+Cada webhook tiene un secreto (`whsec_…`) que se crea con él y no cambia al editarlo. Cópialo con el botón **Secreto**: lo necesitas para verificar la firma. Si se filtra, quita el webhook y crea otro.
+
+Un webhook de una sola biblioteca recibe los eventos de esa biblioteca y también los generales, que no pertenecen a ninguna (`cola.pausa`, `cola.terminada`, `youtube.bloqueo`, …).
+
+## Qué llega
+
+```http
+POST /tu-ruta HTTP/1.1
+Content-Type: application/json
+User-Agent: video-translator-webhooks/1
+X-VT-Event: video.procesado
+X-VT-Delivery: 3f9a1c2b4d5e
+X-VT-Signature: sha256=9c1e…
+
+{"event": "video.procesado", "time": 1730000000.0, "vault": "ciencia",
+ "data": {"video": "yt_dQw4w9WgXcQ", "title": "…"}}
+```
+
+| Campo | Qué es |
+| --- | --- |
+| `event` | El nombre del evento (igual que `X-VT-Event`). |
+| `time` | Cuándo se envió, en segundos desde 1970 (Unix). |
+| `vault` | El id de la biblioteca, o `null` si el evento es general. |
+| `data` | Los datos del evento; cambian según el evento. |
+
+`X-VT-Delivery` identifica cada envío. Cada reintento es un envío nuevo, con otro `X-VT-Delivery` y otro `time`.
+
+### Eventos más útiles
+
+| Evento | Cuándo | `data` |
+| --- | --- | --- |
+| `video.procesado` | Un video quedó traducido y doblado. | `video`, `title` |
+| `video.error` | Un video falló. | `video`, `title`, `error` |
+| `video.agregado` | Entraron videos a una biblioteca. | `videos`, `count` |
+| `exportacion.lista` | Una exportación se puede descargar. | `job`, `name`, `url`, `videos`, `kinds` |
+| `cola.terminada` | No queda nada por procesar. | (vacío) |
+| `youtube.bloqueo` | YouTube pidió verificación y las descargas se pausaron. | `until` |
+
+La lista completa, con todos los eventos, está en [Eventos](../../referencia/eventos/). La API también la da en `GET /api/v1/events`.
+
+`url` en `exportacion.lista` es una ruta del servidor (empieza por `/`); para bajar el archivo, pídela con una [clave de API](../api/#autenticación).
+
+### Eventos agrupados
+
+`cola.cambio` y `descarga.progreso` pueden ocurrir varias veces por segundo. En lugar de mandar cada uno, Translay junta los de cada webhook y cada **5 segundos** manda solo el último.
+
+## Verificar la firma
+
+`X-VT-Signature` es `sha256=` seguido del HMAC-SHA256, en hexadecimal, del **cuerpo tal como llegó** (los bytes, antes de interpretarlo como JSON), con el secreto del webhook como clave. Si la firma no coincide, descarta el aviso.
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```python
+import hashlib, hmac, json
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+SECRETO = b"whsec_…"
+
+def firma_valida(cuerpo: bytes, cabecera: str) -> bool:
+    esperada = "sha256=" + hmac.new(SECRETO, cuerpo, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(esperada, cabecera or "")
+
+class Hook(BaseHTTPRequestHandler):
+    def do_POST(self):
+        cuerpo = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        if not firma_valida(cuerpo, self.headers.get("X-VT-Signature")):
+            self.send_response(401)
+            self.end_headers()
+            return
+        aviso = json.loads(cuerpo)
+        print(aviso["event"], aviso["data"])
+        self.send_response(204)
+        self.end_headers()
+
+HTTPServer(("0.0.0.0", 9000), Hook).serve_forever()
+```
+</TabItem>
+<TabItem label="Node">
+```js
+// Node 18 o más nuevo; guárdalo como .mjs
+import { createServer } from "node:http";
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+const SECRETO = "whsec_…";
+
+function firmaValida(cuerpo, cabecera = "") {
+  const esperada = Buffer.from("sha256=" + createHmac("sha256", SECRETO).update(cuerpo).digest("hex"));
+  const recibida = Buffer.from(cabecera);
+  return esperada.length === recibida.length && timingSafeEqual(esperada, recibida);
+}
+
+createServer(async (req, res) => {
+  const partes = [];
+  for await (const parte of req) partes.push(parte);
+  const cuerpo = Buffer.concat(partes);
+  if (!firmaValida(cuerpo, req.headers["x-vt-signature"])) {
+    res.writeHead(401).end();
+    return;
+  }
+  const aviso = JSON.parse(cuerpo);
+  console.log(aviso.event, aviso.data);
+  res.writeHead(204).end();
+}).listen(9000);
+```
+</TabItem>
+</Tabs>
+
+<Aside type="caution">
+Calcula la firma sobre los bytes recibidos, no sobre el JSON vuelto a serializar: el cuerpo lleva tildes sin escapar (`ensure_ascii=False`) y cualquier cambio de espacios o de orden rompe la firma. En Express, usa `express.raw({ type: "application/json" })` en esa ruta.
+</Aside>
+
+La firma prueba que el aviso viene de tu Translay, pero no impide que alguien que lo intercepte lo reenvíe más tarde. Si eso importa, usa HTTPS y descarta los avisos con un `time` muy viejo.
+
+## Reintentos y tiempo de espera
+
+- Cada envío espera la respuesta como mucho **8 segundos**.
+- Cuenta como entregado si tu servidor responde `2xx`. Cualquier otro código, un error de conexión o pasarse del tiempo cuenta como fallo.
+- Tras un fallo se reintenta a los **10 s**, **1 min** y **5 min**: hasta 4 intentos en total. Después se descarta.
+- Si borras el webhook mientras espera un reintento, ese reintento no se manda.
+
+Los envíos van de a uno, en orden. Responde rápido (por ejemplo, `204` y procesa después) para no frenar los siguientes.
+
+Los reintentos y los avisos agrupados que aún no salieron viven en memoria: si el servidor se reinicia, se pierden.
+
+## Probar un webhook
+
+El botón **Probar** de cada webhook manda al momento un evento `prueba`, con `vault` en `null` y estos datos:
+
+```json
+{"event": "prueba", "time": 1730000000.0, "vault": null, "data": {"mensaje": "Webhook de prueba desde el traductor"}}
+```
+
+Llega firmado igual que los demás, aunque el webhook esté pausado o no tenga marcado ningún evento de esa clase: sirve para comprobar la URL y la verificación de la firma.
+
+## Registro de envíos
+
+Debajo de los webhooks, **Últimos envíos** muestra los 8 más recientes de todos los webhooks, con la hora, el evento y el código de respuesta. Los fallidos se marcan y dicen `sin respuesta` si no hubo ninguna; desde el segundo intento muestran el número de intento, y al pasar el mouse por encima, el error.
+
+El servidor guarda en memoria los últimos 60 envíos; el registro se vacía al reiniciar.

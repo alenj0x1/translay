@@ -1,0 +1,34 @@
+---
+title: Eventos
+description: Los eventos que puede recibir un webhook, generados desde vt/events.py.
+sidebar:
+  order: 3
+---
+
+import ev from "../../../data/events.json";
+
+Cada evento lleva el id de su biblioteca en `vault` (o `null` si es general, como la cola o YouTube). Cómo recibirlos: [Webhooks](../../integraciones/webhooks/).
+
+<table>
+  <thead><tr><th>Evento</th><th>Cuándo</th></tr></thead>
+  <tbody>
+    {ev.catalog.map((e) => (
+      <tr>
+        <td><code>{e.name}</code></td>
+        <td>{e.desc}{ev.coalesce.includes(e.name) ? ` · agrupado: llega el último cada ${ev.coalesce_s} s` : ""}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+Un envío que no recibe una respuesta 2xx se reintenta a los {ev.retries.map((s) => (s < 60 ? `${s} s` : `${s / 60} min`)).join(", ").replace(/, ([^,]*)$/, " y $1")}.
+
+## Emitir un evento nuevo
+
+```python
+from . import events
+
+events.emit("video.procesado", vault=vault.id, video=vid, title=title)
+```
+
+Agrégalo antes a `CATALOG` en `vt/events.py` con su descripción: así aparece para elegirlo en Preferencias → Acceso y API → Webhooks, en `GET /api/v1/events` y en esta página.

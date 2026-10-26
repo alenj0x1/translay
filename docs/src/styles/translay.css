@@ -1,0 +1,120 @@
+/* Translay en Starlight: los mismos tokens de la app (web/css/tokens.css).
+   Una sola fuente, oscuro «grafito» (no negro puro), claro como alternativa,
+   superficies separadas por tono, sin sombras ni bordes marcados. */
+
+:root {
+  --sl-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sl-font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --sl-text-h1: 2rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.2rem;
+  --sl-line-height: 1.65;
+  --sl-content-width: 46rem;
+
+  /* acento: el color de la biblioteca Principal */
+  --sl-color-accent-low: #3a2219;
+  --sl-color-accent: #e4572e;
+  --sl-color-accent-high: #f6b9a4;
+
+  /* oscuro «grafito» */
+  --sl-color-white: #f2f3f4;
+  --sl-color-gray-1: #e6e7e9;
+  --sl-color-gray-2: #c3c6cb;
+  --sl-color-gray-3: #9a9ea6;
+  --sl-color-gray-4: #62666d;
+  --sl-color-gray-5: #33363c;
+  --sl-color-gray-6: #202226;
+  --sl-color-black: #18191c;
+  --sl-color-bg-nav: #18191c;
+  --sl-color-bg-sidebar: #18191c;
+  --sl-color-hairline-light: rgba(255, 255, 255, .07);
+  --sl-color-hairline: rgba(255, 255, 255, .07);
+  --sl-color-hairline-shade: rgba(255, 255, 255, .05);
+
+  --t-surface: #202226;
+  --t-surface-2: #2a2d32;
+  --t-radius: 14px;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #fbe1d8;
+  --sl-color-accent: #c4441f;
+  --sl-color-accent-high: #6e2410;
+
+  --sl-color-white: #17181b;
+  --sl-color-gray-1: #2a2c31;
+  --sl-color-gray-2: #45484f;
+  --sl-color-gray-3: #5f636b;
+  --sl-color-gray-4: #9fa3aa;
+  --sl-color-gray-5: #e3e6ea;
+  --sl-color-gray-6: #eef0f3;
+  --sl-color-gray-7: #f6f7f9;
+  --sl-color-black: #ffffff;
+  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-sidebar: #ffffff;
+  --sl-color-hairline-light: rgba(17, 18, 22, .06);
+  --sl-color-hairline: rgba(17, 18, 22, .08);
+  --sl-color-hairline-shade: rgba(17, 18, 22, .1);
+
+  --t-surface: #f3f4f6;
+  --t-surface-2: #eef0f3;
+}
+
+body { background: var(--sl-color-black); }
+
+/* títulos con el peso de la app */
+.sl-markdown-content :is(h1, h2, h3, h4) { font-weight: 800; letter-spacing: -.01em; }
+h1#_top { font-weight: 800; letter-spacing: -.02em; }
+
+/* bloques de código y tablas: superficies por tono, sin bordes */
+.sl-markdown-content .expressive-code .frame,
+.sl-markdown-content .expressive-code pre { border-radius: 10px; }
+.sl-markdown-content :not(pre) > code {
+  border-radius: 6px;
+  padding: .1em .38em;
+  background: var(--t-surface-2);
+  border: 0;
+  overflow-wrap: anywhere;
+}
+
+.sl-markdown-content table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border-radius: 10px;
+  background: var(--t-surface);
+}
+.sl-markdown-content :is(th, td) { border: 0; border-top: 1px solid var(--sl-color-hairline); padding: .55rem .8rem; vertical-align: top; }
+.sl-markdown-content thead th { border-top: 0; font-weight: 700; background: transparent; }
+.sl-markdown-content tr:nth-child(2n) { background: transparent; }
+
+/* avisos (aside) sin borde lateral de color: solo el tono */
+.starlight-aside { border: 0; border-radius: var(--t-radius); }
+
+/* tarjetas del inicio: superficie, sin borde ni sombra */
+.card { border: 0 !important; border-radius: var(--t-radius); background: var(--t-surface); }
+.card .icon { border-radius: 10px; }
+
+/* botones del hero: el principal no encandila */
+.sl-link-button { border-radius: 999px; font-weight: 700; }
+.sl-link-button.primary { background: var(--sl-color-white); border-color: var(--sl-color-white); color: var(--sl-color-black); }
+.sl-link-button.primary:hover { background: var(--sl-color-gray-2); border-color: var(--sl-color-gray-2); }
+
+/* barra lateral: lo activo se marca con tono, no con color */
+.sidebar-content a[aria-current="page"] {
+  background: var(--t-surface-2);
+  color: var(--sl-color-white);
+  font-weight: 700;
+}
+.sidebar-content a { border-radius: 8px; }
+
+/* hero */
+.hero { padding-block: 3rem 1rem; }
+.hero h1 { font-weight: 800; letter-spacing: -.03em; }
+
+/* scroll sin barra visible en la barra lateral y el índice */
+.sidebar-pane, .right-sidebar { scrollbar-width: none; }
+.sidebar-pane::-webkit-scrollbar, .right-sidebar::-webkit-scrollbar { display: none; }
+
+/* el nombre del sitio con el color del texto, como en la app */
+.site-title { color: var(--sl-color-white); font-weight: 800; letter-spacing: -.01em; }

@@ -1,0 +1,22 @@
+name: Commits
+
+on:
+  pull_request:
+
+jobs:
+  convencion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Revisar los mensajes del PR
+        run: |
+          fail=0
+          for sha in $(git rev-list --no-merges ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}); do
+            git log -1 --format=%B "$sha" > /tmp/msg
+            if ! VT_SOLO_FORMATO=1 sh .githooks/commit-msg /tmp/msg; then
+              echo "::error::$(head -1 /tmp/msg)"; fail=1
+            fi
+          done
+          exit $fail

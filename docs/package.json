@@ -1,0 +1,20 @@
+{
+  "name": "translay-docs",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Documentación de Translay (Astro + Starlight)",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "predev": "npm run sync",
+    "dev": "astro dev",
+    "prebuild": "npm run sync",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.7",
+    "astro": "7.4.2",
+    "sharp": "0.35.5"
+  }
+}

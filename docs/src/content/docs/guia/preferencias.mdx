@@ -1,0 +1,50 @@
+---
+title: Preferencias
+description: Qué se configura en cada sección de Preferencias y dónde se guarda.
+sidebar:
+  order: 8
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+«Preferencias», en el encabezado, abre una pantalla propia: las secciones a la izquierda y, a la derecha, la página de la sección elegida, con sus opciones agrupadas y una descripción de cada una. Las de sí o no son interruptores; las demás, botones para elegir una opción. Los cambios se aplican al instante, sin botón de guardar. Al tocar «Preferencias» de nuevo vuelves al video o a la biblioteca.
+
+Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas y equipos. Algunas son propias de cada biblioteca y se guardan en ella (ver [Bibliotecas](../bibliotecas/#qué-guarda-cada-una)). Solo el dueño puede cambiarlas.
+
+La tabla completa, con cada opción y su valor por defecto, está en la [referencia de preferencias](../../referencia/preferencias/).
+
+## Bibliotecas
+
+Tus bibliotecas como tarjetas, con su carpeta: abrirlas, editarlas, cambiarles el patrón, quitarlas de la lista o eliminarlas. «Abrir carpeta» agrega una carpeta que ya es biblioteca. Todo esto se explica en [Bibliotecas](../bibliotecas/).
+
+## Apariencia
+
+El **Modo**: claro, oscuro o el que use tu sistema. Es propio de cada biblioteca, así que puedes tener una clara y otra oscura. Con **Color de cada biblioteca**, los botones, el avance y la reproducción toman el color de la biblioteca abierta.
+
+## Reproducción
+
+Qué pasa al abrir y al terminar un video: si empieza solo cuando está listo, si sigue con el próximo de «Siguientes» y si se pausa al llegar a una parte que aún no tiene voz en español. También la vista por defecto (ampliada o dividida), cuándo se muestra el indicador «Listo para reproducir» y qué hacer con un enlace que importas mientras ves otro video. Cómo se comporta cada una: [Reproductor](../reproductor/#reproducción-automática) e [Importar](../importar/#mientras-ves-un-video).
+
+## Audio y subtítulos
+
+Con qué audio empieza cada video (en español u original; luego se cambia con ES / EN), qué tan fuerte queda el original debajo de la voz en español (silencio, bajo o medio) y qué subtítulos se muestran: el español abajo, el inglés arriba, o ninguno. El nivel del original también se usa al [exportar](../exportar/).
+
+## Importar y descargas
+
+Qué se hace con lo que importas (descargar y traducir, o solo descargar), qué se descarga (video y audio, o solo el audio), en qué orden se bajan las descargas (el de la cola o aleatorio), los avisos del navegador y si los canales aparecen en la barra lateral de la biblioteca. «Al importar» y «Qué descargar» son propias de cada biblioteca. Detalle en [Importar](../importar/#solo-descargar-o-traducir) y [Cola](../cola/#descargas).
+
+## Glosario
+
+Términos que no se traducen o que siempre se traducen igual, propios de la biblioteca abierta. Ver [Glosario y búsqueda](../glosario-y-busqueda/).
+
+## YouTube
+
+La sesión que se usa para descargar: ninguna, la de un navegador o un archivo `cookies.txt`, y los botones para importarla. Ver [YouTube](../youtube/#sesión-de-youtube).
+
+## Acceso y API
+
+Quién entra desde otros equipos: la contraseña del dueño, el acceso desde la red local, el acceso de cada biblioteca (privada, con contraseña o pública), las claves de API y los webhooks. Ver [Acceso](../../integraciones/acceso/), [API](../../integraciones/api/) y [Webhooks](../../integraciones/webhooks/).
+
+<Aside>
+Cada sección tiene su propia dirección (`#/preferencias/<sección>`), así que recargar la página te deja en la misma. Las preferencias se definen en `vt/prefs.py`.
+</Aside>

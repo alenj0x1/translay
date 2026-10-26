@@ -1,0 +1,80 @@
+---
+title: Bibliotecas
+description: Varias bibliotecas independientes, cada una en su carpeta, con sus videos, glosario, personas y forma de importar.
+sidebar:
+  order: 2
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Una biblioteca es una carpeta con todo lo suyo, como las bóvedas de Obsidian. Puedes tener una para documentales y otra para charlas, cada una en otro disco si quieres, y pasar de una a otra desde el encabezado.
+
+## Qué guarda cada una
+
+Dentro de la carpeta de una biblioteca:
+
+| Archivo o carpeta | Contenido |
+|---|---|
+| `vault.json` | Nombre, color, ícono, patrón, acceso y preferencias propias. |
+| `library.json` | Videos, colecciones y playlists. |
+| `glossary.json` | Su [glosario](../glosario-y-busqueda/). |
+| `transcripts/` | Transcripciones, traducciones, personas y comentarios de cada video. |
+| `youtube/` y `library/` | Lo descargado de YouTube y los archivos importados. |
+| `audio/` y `voices/` | La voz en español de cada frase y las voces de referencia de cada persona. |
+| `people/` | Las personas guardadas para usar su voz en otros videos (ver [Personas](../transcripcion-y-personas/#personas-guardadas)). |
+
+Tres preferencias también son propias de cada biblioteca: **Modo** (claro, oscuro o según el sistema), **Al importar** y **Qué descargar**. Una biblioteca nueva empieza con los valores de la que estaba abierta. Cuando tienes más de una biblioteca, las secciones de Preferencias que las incluyen lo indican con «Se guarda en» y el nombre de la biblioteca abierta.
+
+Lo demás es común a todas y queda en `data/`: la cola, la sesión de YouTube (`cookies.txt`), las preferencias generales y la lista de bibliotecas (`data/libraries.json`). El detalle está en [Datos en disco](../../funcionamiento/datos/).
+
+## Principal
+
+La biblioteca **Principal** es la carpeta `data/` misma, donde estaba todo antes de que existieran las bibliotecas. No se puede quitar ni eliminar.
+
+## Cambiar y crear
+
+El botón con el nombre de la biblioteca, junto al logo, abre la lista con la cantidad de videos de cada una y un lápiz para editarla. Debajo están «Nueva biblioteca» y «Ver todas». Al cambiar de biblioteca, la vista vuelve a su inicio.
+
+El diálogo de nueva biblioteca pide:
+
+- **Nombre**.
+- **Color**, entre ocho.
+- **Ícono**, entre dieciocho (Ciencia, Humor, Música, Viajes…).
+- **Dónde se guarda**: «En la carpeta de la app» (`data/libraries/<id>`) o «En otra carpeta». Con «Elegir» se abre el cuadro de carpetas de Windows en el equipo donde corre el servidor; también puedes escribir la ruta completa (por ejemplo `D:\Videos\Ciencia`).
+
+Arriba se ve una vista previa del banner. «Al azar» elige color, ícono y patrón de una vez, y también un nombre si la biblioteca es nueva.
+
+## Color, ícono y patrón
+
+Cada biblioteca tiene un banner con su patrón geométrico, usando su color como principal, y un distintivo con su ícono. «Otro patrón», en el diálogo o en el menú de su tarjeta, cambia el patrón y lo guarda en el servidor, así que se ve igual en todos los navegadores.
+
+Con Preferencias › Apariencia › «Color de cada biblioteca», los botones, el avance y la reproducción usan el color de la biblioteca abierta en vez del color del tema.
+
+## Pantalla «Bibliotecas»
+
+«Ver todas» abre una pantalla con una tarjeta por biblioteca: banner, ícono, nombre, cantidad de videos («12 videos · 9 en el equipo») y si es pública o tiene contraseña. Un clic abre la biblioteca. El botón «Más» (o el clic derecho) ofrece:
+
+- **Abrir** y **Editar…**
+- **Otro patrón**.
+- **Quitar de la lista**: la biblioteca deja de aparecer, pero sus videos y archivos quedan en su carpeta. Puedes volver a abrirla con «Abrir carpeta».
+- **Eliminar**: borra sus videos con sus traducciones, voces y archivos descargados. Solo borra lo que es de la biblioteca (los archivos y carpetas de la tabla de arriba); si la carpeta queda vacía, también se quita.
+
+En la cabecera están «Abrir carpeta», para agregar una carpeta que ya es biblioteca (de un disco externo u otro equipo), y «Administrar», que lleva a Preferencias › Bibliotecas, donde se ve además la ruta de cada una.
+
+## Mover videos
+
+Un video vive en una sola biblioteca. Para pasarlo a otra, selecciónalo y usa «Mover a…», o elige «Mover a» en su menú contextual. Se mueven con él su transcripción, sus voces y sus archivos. Los que se están descargando o procesando en ese momento se saltan; muévelos al terminar.
+
+Si importas un enlace que ya está en otra biblioteca, no se duplica: se queda donde estaba y un aviso te dice en cuál. Lo mismo pasa al abrir con «Abrir carpeta» una biblioteca que trae videos ya presentes en otra.
+
+## Cola y bibliotecas
+
+La cola es una sola para todas (una GPU, un orden), pero el panel «Cola» y su número muestran solo lo de la biblioteca abierta. En la pantalla de la Cola puedes elegir otra biblioteca o «Todas»; al abrir un video de otra biblioteca desde ahí, Translay cambia primero a esa biblioteca. Ver [Cola](../cola/).
+
+## Enlace directo
+
+Cada biblioteca tiene su dirección: `http://127.0.0.1:8765/b/<id>` abre la app directo en ella. Para quien entra desde otro equipo como invitado, es la única biblioteca que ve. El enlace para compartir aparece en Preferencias › Acceso y API cuando la biblioteca es pública o tiene contraseña. Ver [Acceso](../../integraciones/acceso/).
+
+<Aside>
+El código de las bibliotecas está en `vt/vaults.py` (servidor) y `web/js/vaults.js` (interfaz).
+</Aside>

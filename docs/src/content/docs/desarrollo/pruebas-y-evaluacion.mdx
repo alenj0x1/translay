@@ -1,0 +1,167 @@
+---
+title: Pruebas y evaluación
+description: Las pruebas sin GPU de tests/ y las herramientas de tools/ que miden reconocimiento, diarización, traducción y voz.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Hay dos niveles: pruebas rápidas del núcleo, que corren en cualquier equipo, y herramientas de medición que usan los modelos reales y la GPU. Las decisiones de diseño (motor de voz, traductor, umbral de diarización, largo de las referencias) salieron de estas herramientas.
+
+## Pruebas sin GPU
+
+```sh
+python -m pytest tests
+```
+
+También corren sin pytest: `python tests/test_core.py` ejecuta todas e imprime `ok`. No cargan Whisper, el traductor ni el motor de voz (el reconocimiento se reemplaza por uno falso), así que bastan numpy y lo de `requirements.txt`, más `pytest` si lo usas.
+
+| Prueba | Qué comprueba |
+|---|---|
+| `test_streaming_commits_sentences` | Con un reconocedor falso que dice un guion, el streaming confirma y cierra exactamente «Hello world.» y «This is a test.», y avanza `final_t` hasta el final. |
+| `test_store_overlap_and_ranges` | Una frase que se solapa reemplaza a la anterior; los tramos cubiertos se unen; la transcripción se guarda y se vuelve a leer igual. |
+| `test_textproc` | División en oraciones con abreviaturas, montos y decimales; modismos; forma de los fragmentos; convenciones latinoamericanas. |
+| `test_audiofx` | WSOLA comprime 1,3 veces sin cambiar el tono (150 Hz ± 3) y el re-muestreo de 16 a 24 kHz conserva el tono. |
+| `test_speaker_tracker` | Agrupa dos personas; una frase corta no crea persona nueva; el estado se guarda en JSON y se restaura; las referencias nunca se recortan (más de 12 s nunca entran, una de 10 s solo a falta de otra, una normal la reemplaza). |
+| `test_cookies_import` | De un `cookies.txt` solo quedan las cookies de YouTube y Google, y se detecta la sesión iniciada. |
+| `test_playlist_library_and_srt` | Id de playlist (los mix `RD…` no cuentan), importación como colección, colecciones automáticas, reimportar sin duplicar, eliminar una playlist conservando lo descargado, formato SRT y nombres de archivo seguros. |
+| `test_download_only_queue` | «Solo descargar»: no se procesa solo, «Procesar» lo pone en cola, «Limpiar terminados» lo quita y «Bajar video» descarga el video completo sin volver a procesar. |
+| `test_vaults` | Crear una biblioteca, mover un video con sus archivos, rutas con prefijo `/v/<biblioteca>`, ninguna ruta sale de su carpeta, persistencia al reiniciar y eliminar solo lo propio de la carpeta. |
+| `test_access_and_webhooks` | Dueño desde este equipo pero no por un túnel; bibliotecas privadas, públicas y con contraseña; cambiar la contraseña invalida las sesiones; claves de API de lectura; webhooks filtrados por biblioteca y evento, firmados con HMAC-SHA256. |
+
+## Herramientas de medición
+
+Las herramientas de `tools/` usan el mismo código que el servidor (`vt/`), sin navegador. Se corren desde la raíz del repositorio con el Python del servidor, salvo `make_dialogue.py` (entorno de Kokoro) y `make_sample.ps1` (PowerShell). Leen el audio con PyAV; `dub_file.py`, `make_dialogue.py` y `make_sample.ps1` además escriben video con ffmpeg, que debe estar en el `PATH`.
+
+### Material de prueba
+
+Los diálogos de prueba tienen una **verdad de referencia** (`<nombre>.truth.json`: quién habla, cuándo y qué dice) contra la que se mide.
+
+<Steps>
+
+1. **`make_dialogue.py`** genera diálogos con varias voces de Kokoro y sus variantes con ruido. Corre con el entorno `.venvs/kokoro`:
+
+   ```sh
+   .venvs/kokoro/Scripts/python tools/make_dialogue.py tools/samples/podcast.txt --noise clean cafe:10 music:12 pink:5
+   ```
+
+   El guion tiene una línea `voz|texto` por intervención (voces de Kokoro como `af_heart`, `am_michael`, `bf_emma`, `bm_lewis`) y una línea vacía es una pausa larga. `--noise` acepta `clean` o `tipo:snr` con los ruidos de `vt/audiofx.py`: `white`, `pink`, `brown`, `hum`, `music`, `babble` y `cafe`. Escribe en `samples/` (o en `--out`) `<nombre>[_<ruido><snr>].mp4` y `<nombre>.truth.json`.
+
+2. **`make_sample.ps1`** genera un video simple con las voces en inglés de Windows, sobre un fondo con un reloj:
+
+   ```powershell
+   powershell -File tools/make_sample.ps1
+   powershell -File tools/make_sample.ps1 -Script tools/samples/dialogue.txt -Out samples/dialogue.mp4
+   ```
+
+   Cada línea es `Voz|texto`, donde `Voz` es parte del nombre de una voz instalada (Zira, George…); una línea vacía agrega una pausa. Por defecto lee `tools/samples/demo.txt` y escribe `samples/demo.mp4`. No genera verdad de referencia.
+
+</Steps>
+
+Guiones incluidos en `tools/samples/`: `demo`, `dialogue`, `friends`, `lecture`, `panel` y `podcast`.
+
+### `transcribe_file.py`
+
+Simula la reproducción de un video y corre el reconocimiento en streaming con la misma cadencia que en vivo: mientras la GPU trabaja, el video sigue avanzando y ese audio se acumula para la siguiente inferencia. Sirve para ajustar la política de `vt/streaming.py` de forma reproducible.
+
+```sh
+python tools/transcribe_file.py samples/demo.mp4 --srt out.srt
+```
+
+| Opción | Por defecto | |
+|---|---|---|
+| `media` | | Video o audio. |
+| `--model` | `large-v3-turbo` | Modelo de Whisper. |
+| `--beam` | `5` | Ancho de búsqueda. |
+| `--chunk` | `0.1` | Segundos por bloque de audio, como los que llegan del navegador. |
+| `--translator` | `opus-big` | Traductor (`none` para no traducir). |
+| `--srt` | | Escribe los subtítulos en ese archivo. |
+
+Imprime cada frase con sus tiempos, el retraso con que se habría mostrado y su traducción. Al final: duración del audio, segundos de GPU, factor de tiempo real (RTF), retraso medio y máximo, tiempo total y mediana de traducción por frase.
+
+### `eval_pipeline.py`
+
+Mide reconocimiento y diarización contra la verdad de referencia, con la misma cadencia que en vivo:
+
+```sh
+python tools/eval_pipeline.py samples/podcast.mp4 samples/podcast_cafe10.mp4 --threshold 0.25 0.30 0.35 --relabel
+```
+
+| Opción | Por defecto | |
+|---|---|---|
+| `media` | | Uno o más videos; la verdad se busca en `<nombre antes del primer _>.truth.json`. |
+| `--threshold` | `0.30` | Uno o varios umbrales de similitud para crear una persona nueva: los barre todos. |
+| `--relabel` | | Aplica la misma corrección de frases cortas que `Dubber.relabel`. |
+| `-v` | | Muestra cada frase con la persona detectada y la real. |
+
+Por archivo y umbral imprime el error de palabras (WER), el porcentaje de frases con la persona correcta (con el mejor mapeo uno a uno entre personas detectadas y reales: una persona de más cuenta como error), personas detectadas sobre reales y cantidad de frases; al final, el promedio. Con 12 videos dio 97,6 % de frases bien asignadas ([Diarización](../../funcionamiento/pipeline/#diarización)).
+
+### `eval_translation.py`
+
+Compara traductores en 39 frases típicas de video (tutoriales, vlogs, modismos y verbos frasales, salida tipo Whisper), una a la vez como en vivo:
+
+```sh
+python tools/eval_translation.py --models opus-base opus-big nllb-1.3b madlad-3b
+```
+
+| Opción | Por defecto | |
+|---|---|---|
+| `--models` | `opus-base opus-big nllb-1.3b madlad-3b` | Modelos de `vt/translate.py`. |
+| `--compute-type` | el de cada modelo | Precisión de CTranslate2 (por ejemplo `int8` para comparar cuantizaciones). |
+| `--beam` | `4` | Ancho de búsqueda. |
+| `--only` | `0` | Solo las últimas N frases. |
+
+Imprime la traducción de cada modelo lado a lado y una tabla con tiempo de carga, mediana y máximo por frase. La calidad se juzga leyendo. De aquí salió la [elección del traductor](../../funcionamiento/pipeline/#elección-del-traductor) y varias reglas de `vt/textproc.py`.
+
+### `eval_tts.py`
+
+Compara motores de voz con métricas objetivas. Para cada diálogo arma la referencia de cada persona con su voz original (según la verdad de referencia), traduce sus frases y las sintetiza con su voz clonada:
+
+```sh
+python tools/eval_tts.py --engines chatterbox omnivoice voxcpm --samples podcast panel friends --fit
+```
+
+| Métrica | Qué mide |
+|---|---|
+| `sim` | Parecido de voz: coseno entre la huella (WeSpeaker) del clon en español y la del original en inglés. |
+| `id` | % de frases en que el clon se parece más a su persona que a las demás del diálogo. |
+| `wer` | Inteligibilidad: Whisper en español transcribe el clon y se compara con el texto pedido. |
+| `f0` | Tono: mediana de F0 (YIN) del clon sobre la del original; 1,00 es igual. |
+| `rtf` | Segundos de GPU por segundo de audio generado. |
+| `dur` | Duración del clon sobre la de la frase original en inglés. |
+
+| Opción | Por defecto | |
+|---|---|---|
+| `--engines` | `chatterbox omnivoice voxcpm` | Motores (cada uno en `.venvs/<motor>`). |
+| `--samples` | `podcast panel friends` | Diálogos de `samples/` con su verdad de referencia. |
+| `--noise` | | Sufijo de la variante con ruido, p. ej. `_cafe10`. Las métricas se comparan siempre contra la voz limpia. |
+| `--ref-s` | `10.0` | Segundos máximos de referencia por persona. |
+| `--ref-sr` | `16000` | Frecuencia de la referencia. |
+| `--clean` | `none` | Limpieza de la referencia: `gate` (compuerta espectral si la SNR es menor que 25 dB) o `wiener` (realce de `vt/audiofx.py` con la misma condición). |
+| `--ref-wav` | | Otro audio para las referencias, p. ej. una versión limpia con DeepFilterNet: `samples/tts_eval/{s}_pink5_df.wav`. |
+| `--lines` | `6` | Frases por diálogo. |
+| `--fit` | | Le pide al motor la duración de la frase original + 10 %, si el motor lo permite. |
+| `--params` | `{}` | JSON con parámetros del motor. |
+
+Trabaja en tres fases para medir la velocidad real: primero prepara frases y referencias, después genera con cada motor solo en la GPU y al final carga Whisper para puntuar. Los audios quedan en `samples/tts_eval/<motor>/` para escucharlos. De aquí salió la [elección del motor](../../funcionamiento/voz/#elección-del-motor).
+
+### `dub_file.py`
+
+Dobla un video completo sin navegador, con el pipeline del servidor, y exporta `<nombre>.es.mp4`:
+
+```sh
+python tools/dub_file.py samples/podcast.mp4 --voice omnivoice
+```
+
+| Opción | Por defecto | |
+|---|---|---|
+| `media` | | Video a doblar. |
+| `--voice` | `omnivoice` | Motor de voz. |
+| `--data` | `data/offline` | Dónde guarda transcripción, voces y audio. La transcripción del video (`off_<nombre>`) se borra al empezar: cada corrida empieza de cero. |
+
+La pista doblada pone cada frase en su momento sobre el original atenuado (amplitud × 0,14, el nivel «Bajo»); si una frase pisa a la siguiente, la siguiente espera. Por frase imprime persona, compresión aplicada, segundos de GPU y traducción. Al final: frases, personas, segundos de GPU de la voz y su RTF, cuántas frases se comprimieron y cuánto como máximo, el mayor desfase, y cuánto después del final de cada frase original estaría lista su voz en vivo (mediana y máximo, suponiendo 1,5 s de reconocimiento). Si existe la verdad de referencia, también la diarización.
+
+<Aside>
+`samples/`, `data/` y `.venvs/` no van a git: los videos de prueba se generan con `make_dialogue.py` o `make_sample.ps1`, y los entornos de los motores se instalan aparte (ver [Instalación](../../empezar/instalacion/)).
+</Aside>

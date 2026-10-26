@@ -1,0 +1,27 @@
+---
+// Tabla de preferencias de una sección (datos generados desde vt/prefs.py).
+// Sin `section`: las secciones que la página aún no lista (una sección nueva aparece sola).
+import prefs from "../data/prefs.json";
+interface Props { section?: string; except?: string[] }
+const { section, except = [] } = Astro.props;
+const items = prefs.schema.filter((p) => (section ? p.section === section : !except.includes(p.section)));
+const label = (p) => (p.type === "bool" ? (p.default ? "Sí" : "No") : (p.options.find((o) => o[0] === p.default) || [p.default, p.default])[1]);
+---
+{items.length > 0 && (
+  <table>
+    <thead><tr><th>Preferencia</th><th>Opciones</th><th>Por defecto</th></tr></thead>
+    <tbody>
+      {items.map((p) => (
+        <tr>
+          <td>
+            <strong>{p.label}</strong>{prefs.per_library.includes(p.key) ? " · propia" : ""}<br />
+            <code>{p.key}</code><br />
+            {p.desc}
+          </td>
+          <td>{p.type === "bool" ? "Sí / No" : p.options.map((o, i) => <>{i ? <br /> : null}{o[1]}</>)}</td>
+          <td>{label(p)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+)}

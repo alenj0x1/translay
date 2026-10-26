@@ -1,0 +1,161 @@
+---
+title: Datos en disco
+description: Qué guarda Translay, dónde, en qué formato, por qué rutas HTTP se sirve y qué conviene respaldar.
+sidebar:
+  order: 5
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+Translay no usa base de datos: todo son archivos JSON, WAV y los medios descargados. Lo general vive en `data/` (en la raíz del repositorio); lo de cada biblioteca, en su carpeta. La biblioteca **Principal** es la propia `data/`.
+
+Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se reemplaza el original. Un corte a mitad de una escritura no deja un archivo a medias.
+
+<Aside type="caution">
+`data/` está en `.gitignore` y nunca va al repositorio: tiene tu sesión de YouTube, las credenciales del acceso y tus videos.
+</Aside>
+
+## `data/`
+
+<FileTree>
+
+- data/
+  - prefs.json preferencias generales (`vt/prefs.py`)
+  - queue.json cola de procesamiento: trabajos, estado, pausa (`vt/processor.py`)
+  - auth.json contraseña del dueño (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)
+  - webhooks.json webhooks con su URL, eventos, biblioteca y secreto de firma (`vt/webhooks.py`)
+  - cookies.txt sesión de YouTube en formato Netscape, solo cookies de YouTube y Google (`vt/cookies.py`)
+  - libraries.json lista de bibliotecas (id y ruta absoluta) y la última abierta (`vt/vaults.py`)
+  - exports/ exportaciones listas para descargar; al arrancar se borra lo que tenga más de 24 h
+  - libraries/ carpeta por defecto de las bibliotecas nuevas
+    - \<biblioteca\>/
+  - youtube/
+    - thumbs/ miniaturas de videos sin descargar, bajadas una sola vez
+    - channels/ avatar y banner de cada canal (o `.none` si no tiene)
+  - offline/ salida de `tools/dub_file.py`
+  - …
+
+</FileTree>
+
+Como `data/` es también la biblioteca Principal, tiene además todo lo de [una biblioteca](#una-biblioteca).
+
+## Una biblioteca
+
+Cada biblioteca es una carpeta autocontenida, como una bóveda de Obsidian: puede estar en otro disco y abrirse desde otro equipo con «Abrir carpeta». La estructura sale del docstring de `vt/vaults.py`:
+
+<FileTree>
+
+- \<biblioteca\>/
+  - vault.json nombre, color, ícono, patrón del banner, preferencias propias y acceso
+  - library.json videos y colecciones (`vt/library.py`)
+  - glossary.json glosario (`vt/glossary.py`)
+  - transcripts/
+    - \<video\>.json transcripción, traducción, personas y voz de cada frase (`vt/store.py`)
+  - youtube/
+    - \<id\>.mp4 video H.264 + AAC, hasta 720p
+    - \<id\>.m4a solo el audio (lo que procesa la cola)
+    - \<id\>.json datos de yt-dlp
+    - \<id\>.jpg miniatura
+  - library/
+    - \<video\>.mp4 copia de un archivo importado del equipo (con su extensión)
+    - \<video\>.jpg su miniatura, sacada en el navegador
+  - audio/
+    - \<video\>/
+      - \<frase\>.wav voz en español de cada frase
+  - voices/
+    - \<video\>/
+      - voices.json referencia de cada persona: archivo, versión, texto, puntaje
+      - spk0_v3.wav referencia de la persona 0, versión 3
+      - spk0_v3_df.wav la misma, limpia con DeepFilterNet (solo si era ruidosa)
+  - people/
+    - people.json personas guardadas para usar en cualquier video de la biblioteca
+    - \<id\>_\<fecha\>.wav su voz
+
+</FileTree>
+
+Un video vive en una sola biblioteca. Así la cola, las transcripciones y los archivos se ubican solo con su id. Moverlo a otra biblioteca mueve su transcripción, su audio, sus voces y su medio. Al quitar una biblioteca con sus archivos se borran solo los nombres de la lista de arriba, nunca la carpeta entera: puede tener otras cosas.
+
+### Identificadores
+
+| Origen | Id del video | Ejemplo |
+|---|---|---|
+| YouTube | `yt_` + el id de 11 caracteres | `yt_qVr_3bE1JwQ` |
+| Archivo del equipo | Huella del contenido: SHA-256 del tamaño, el primer MB y el último MB, en 32 caracteres hexadecimales | `5683f09bf1e1c4acc98b18ab3ee16f44` |
+
+La huella no cambia si renombras el archivo: al abrirlo otra vez, todo sale del disco. `vt/store.py` solo acepta ids de 8 a 128 caracteres con letras, números, `_` y `-`.
+
+### `vault.json`
+
+| Campo | Contenido |
+|---|---|
+| `id`, `name`, `color`, `icon`, `pattern` | Identidad de la biblioteca; `pattern` es la semilla del banner Bauhaus. |
+| `prefs` | Preferencias propias: `theme_mode`, `import_mode` y `download_what` (`VAULT_PREFS`). |
+| `access` | `mode` (`privada`, `clave`, `publica`), `perm` (`ver`, `importar`), contraseña con scrypt (`pw`) y su versión (`pv`): al cambiarla, quien entró con la anterior ya no entra. |
+
+### `library.json`
+
+`vt/library.py` guarda:
+
+- `videos`: id → `title`, `duration`, `source` (`file` o `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (en español), `added`, `opened`, `position` y `audio_only` si solo se bajó el audio. `media`, `audio` y `thumb` son rutas HTTP (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). Un video de playlist aún sin descargar no tiene `media`.
+- `collections`: las que crea la persona (`id`, `name`, `items`, `created`) y las playlists importadas (además `kind: "playlist"`, `playlist`, `url`, `channel`).
+
+Las colecciones automáticas (recientes, todos, canales, categorías) no se guardan: se calculan al pedir la biblioteca. El punto de reproducción se guarda como máximo cada 5 s.
+
+### Transcripción por video
+
+`transcripts/<video>.json` (`vt/store.py`) es el corazón de cada video. Al retroceder o reabrirlo, todo sale de aquí y solo se procesa lo nuevo.
+
+| Campo | Contenido |
+|---|---|
+| `id`, `name`, `created`, `updated`, `next_id` | Datos del video y contador de frases. |
+| `segments` | Frases en orden: `id`, `start`, `end`, `text` (inglés), `translation`, `tr_model`, `speaker`, `orig_db` (sonoridad del original) y `dub` (voz: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
+| `covered` | Rangos `[inicio, fin]` ya procesados, silencios incluidos; se unen si están a menos de 0,25 s. |
+| `speakers` | Estado de la diarización: centroides de cada persona, alias de las que se unieron y el siguiente id. |
+| `speaker_names` | Nombre de cada persona («Personas»). |
+| `voice_map` | Voz que usa cada persona si elegiste otra: el número de otra persona o `p:<id>` de una persona guardada. |
+| `comments` | Comentarios por frase: id de frase → lista de `{id, text, created, updated}`. |
+
+Una frase nueva reemplaza a las que se solapan con ella en más de la mitad de la más corta.
+
+## Rutas HTTP
+
+`AppServer` (`vt/httpws.py`) sirve archivos con soporte de `Range` (para saltar dentro del video). Las imágenes se guardan en caché una hora; lo demás, nunca. Con `?dl=<nombre>` el archivo se descarga con ese nombre en vez de abrirse. Ninguna ruta puede salir de su carpeta.
+
+Antes de servir un archivo o aceptar una subida, el guardián `make_guard` (`vt/api.py`) decide si quien pide puede verlo:
+
+| Ruta | Sirve | Quién puede |
+|---|---|---|
+| `/media/yt/…` | `data/youtube/` | Quien puede ver Principal. |
+| `/media/lib/…` | `data/library/` | Quien puede ver Principal. |
+| `/audio/…` | `data/audio/` | Quien puede ver Principal. |
+| `/voices/…` | `data/voices/` | Quien puede ver Principal. |
+| `/people/…` | `data/people/` | Quien puede ver Principal. |
+| `/v/<biblioteca>/media/yt/…`, `/media/lib/…`, `/audio/…`, `/voices/…`, `/people/…` | Las mismas carpetas de otra biblioteca | Quien puede ver esa biblioteca. |
+| `/thumb/yt/<id>.jpg` (y `<id>_hd.jpg`) | La miniatura del video descargado en su biblioteca o, si no, una copia en `data/youtube/thumbs/` bajada una sola vez de YouTube | Quien tenga acceso a alguna biblioteca. |
+| `/exports/…` | `data/exports/` | Quien tenga acceso a alguna biblioteca. |
+| `/chan/<avatar\|banner>/<canal>` | `data/youtube/channels/` | Público. |
+| `/samples/…` | `samples/` | Público. |
+| `/`, `/b/<biblioteca>` | `web/` (`/b/…` siempre da `index.html`) | Público: la página pide iniciar sesión si hace falta. |
+| `PUT /api/upload/<video>?name=&lib=` | Guarda la copia de un archivo del equipo en `<biblioteca>/library/` | Quien puede importar en esa biblioteca. |
+| `PUT /api/thumb/<video>?lib=` | Guarda su miniatura (hasta 2 MB) | Quien puede importar en esa biblioteca. |
+| `PUT /api/cookies` | Valida y guarda `data/cookies.txt` | El dueño. |
+
+`/api/v1` y `/api/auth/` hacen su propia autenticación (ver [API](../../integraciones/api/)) y aceptan cuerpos de hasta 2 MB. El WebSocket es `/ws`.
+
+## Qué respaldar
+
+| Qué | Por qué |
+|---|---|
+| `transcripts/`, `voices/`, `people/`, `library.json`, `glossary.json` y `vault.json` de cada biblioteca | Es tu trabajo: transcripciones, traducciones, personas, comentarios, colecciones y glosario. Sin esto hay que procesar todo de nuevo. |
+| `library/` de cada biblioteca | Las copias de tus archivos. Si ya no tienes los originales, no se pueden recuperar. |
+| `data/prefs.json`, `data/libraries.json`, `data/auth.json`, `data/webhooks.json` | Preferencias, lista de bibliotecas, acceso, claves de API y webhooks. |
+| `audio/` | Opcional: se puede rehacer, pero cuesta horas de GPU en una biblioteca grande. |
+| `youtube/` | Opcional: se vuelve a descargar. |
+
+No hace falta respaldar `data/exports/` (se borra solo), `data/youtube/thumbs/`, `data/youtube/channels/` ni `data/offline/`.
+
+<Aside type="caution">
+Las bibliotecas creadas en otra carpeta o disco **no** están dentro de `data/`: respáldalas aparte. `data/libraries.json` guarda rutas absolutas; si restauras en otro equipo, ábrelas con «Abrir carpeta».
+
+`cookies.txt` es tu sesión de YouTube y `webhooks.json` guarda en claro el secreto con que se firma cada webhook: trátalos como contraseñas.
+</Aside>

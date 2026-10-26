@@ -1,0 +1,132 @@
+---
+title: Pipeline
+description: Cómo pasa el audio por la detección de voz, el reconocimiento en streaming, la traducción, la diarización y la voz, y quién decide qué se procesa primero.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+```text
+audio mono 16 kHz
+  → VAD por energía (vad.py)                    ¿hay voz en cada trama de 30 ms?
+  → reconocimiento en streaming (streaming.py)  Whisper (asr.py) + acuerdo local → frases cerradas
+  → traducción (translate.py + textproc.py)     Opus-MT big con glosario
+  → diarización (speakers.py)                   huella de voz → persona → referencia
+  → voz (dub.py)                                OmniVoice clona la voz, ajuste de duración y sonoridad
+```
+
+Cada etapa es reemplazable por separado: el VAD expone `process(pcm) -> flags`, el reconocedor `transcribe(audio, prompt) -> [Word]` y los traductores `translate(text) -> str`.
+
+## Detección de voz
+
+`vt/vad.py` (`EnergyVAD`) marca cada trama de 30 ms (480 muestras a 16 kHz) como voz o silencio. Sirve para dos cosas: no gastar GPU en silencios (donde Whisper inventa texto) y detectar las pausas que cierran una frase.
+
+| Parámetro | Valor |
+|---|---|
+| Margen sobre el piso de ruido | 10 dB |
+| Mínimo absoluto para contar como voz | −48 dB |
+| Piso de ruido | arranca en −60 dB, nunca baja de −75 dB; baja rápido y sube lento (constante de ~10 s) |
+| Arrastre tras la voz | 8 tramas (240 ms) |
+
+Es deliberadamente simple: cambiarlo por un VAD neuronal no toca el resto.
+
+## Reconocimiento en streaming
+
+`vt/asr.py` envuelve faster-whisper (pesos en CTranslate2). Por defecto usa `large-v3-turbo` en `float16`, búsqueda de ancho 5, inglés, tiempos por palabra, temperatura 0, sin condicionar al texto anterior y sin el VAD propio de Whisper. Descarta los tramos típicos de alucinación: `no_speech_prob > 0.6` con `avg_logprob < -1.0`, o `compression_ratio > 2.4`. Otros modelos disponibles con `--model`: `large-v3`, `medium.en`, `small.en`, `small` y `base.en`.
+
+`vt/streaming.py` (`StreamingTranscriber`) convierte ese reconocedor por bloques en uno continuo, sincronizado con el tiempo del video:
+
+<Steps>
+
+1. El audio se acumula en un búfer con su tiempo de inicio en el video.
+2. Cada 0,5 s de audio nuevo (y con al menos 1 s en el búfer) se vuelve a transcribir el búfer completo, con los últimos 200 caracteres como contexto.
+3. Las palabras que coinciden entre dos hipótesis seguidas se **confirman**; el resto queda como **tentativo**. La última palabra siempre espera: todavía puede ganar puntuación.
+4. Una frase se **cierra** al confirmar un final de oración, tras 0,6 s de silencio después de la voz o al pasar 12 s sin puntuación (se corta en la última coma o punto y coma).
+5. Al cerrar, el búfer se recorta y avanza `final_t`: todo lo anterior es definitivo y queda registrado como tramo cubierto (`covered`), con silencios incluidos.
+
+</Steps>
+
+Reglas que evitan errores medidos:
+
+- **Sin voz nueva, sin consulta.** Si después de lo confirmado hay menos de 0,3 s de voz, no se llama a Whisper: tiende a repetir el contexto («episode.», «day.»). Un búfer de puro silencio cierra lo pendiente y no usa la GPU.
+- **Palabras fuera de la voz.** Se descarta cada palabra que cae donde el VAD no oyó voz (con 0,2 s de margen).
+- **Alucinaciones de borde.** Una frase que es solo «Thank you», «Thanks for watching», «Bye» o similar se descarta si la probabilidad media de sus palabras es menor que 0,9.
+- **Cortes sin punto.** Whisper suele omitir el punto en el borde del búfer: una pausa de 0,4 s, o de 0,2 s seguida de mayúscula, también cierra la oración (salvo tras palabras como «the», «to», «with», con las que una oración inglesa casi nunca termina).
+- **Búfer largo.** Whisper trabaja con ventanas de 30 s; el búfer se recorta a partir de 24 s, y si en ese tiempo no se confirmó nada, la frase se cierra a la fuerza.
+- **Saltos.** Un salto en el tiempo de más de 0,5 s descarta la frase abierta en vez de guardarla cortada; ese tramo se vuelve a transcribir completo la próxima vez.
+
+Cada frase cerrada (`Segment`) lleva su audio original (desde 0,05 s antes hasta 0,1 s después), que usan la diarización y la voz.
+
+## Traducción
+
+`vt/translate.py` corre los traductores sobre CTranslate2, en la misma GPU que Whisper. `CT2Translator.translate_many` hace, para cada frase:
+
+<Steps>
+
+1. **`split_sentences`** (`textproc.py`): separa las oraciones. Con dos oraciones juntas los modelos a veces omiten una («Are you ready? Because…» → solo la segunda).
+2. **`preedit`**: reescribe modismos ingleses a su sentido literal antes de traducir (37 reglas, p. ej. «call it a day» → «stop for today», «let me know» → «tell me»). Varias salieron de los errores que mostró `tools/eval_translation.py`.
+3. **Glosario** (`glossary.py`): cada término del glosario de la biblioteca se cambia por un marcador `ZQXJ1`, `ZQXJ2`… que el modelo deja intacto, y después se repone con su traducción fija o el término original.
+4. **Traducción** por lotes de 24 oraciones: búsqueda de ancho 4, hasta 256 tokens, `repetition_penalty` 1,1 y `no_repeat_ngram_size` 4.
+5. **`polish`**: espacios y signos, y convenciones latinoamericanas sobre salidas típicas de Opus-MT, entrenado con mucho español peninsular («vídeo» → «video», «ordenador» → «computadora», «móvil» → «celular», «coche» → «auto», «vosotros» → «ustedes»).
+6. **`match_shape`**: si el original es un fragmento (empieza en minúscula, no termina en punto o termina en coma), la traducción también.
+
+</Steps>
+
+Cada frase guarda el modelo con que se tradujo (`tr_model`). Al abrir un video, las frases sin traducir o traducidas con otro modelo se traducen de nuevo, de a 16. Al cambiar el glosario, se traducen otra vez las frases de la biblioteca que usan los términos cambiados y su voz se rehace en la cola.
+
+### Elección del traductor
+
+Medido con `tools/eval_translation.py` (39 frases típicas de video, una a la vez como en vivo):
+
+| Modelo (`--translator`) | Precisión | Mediana por frase | Notas |
+|---|---|---|---|
+| **`opus-big`** | `float16` | 52 ms | Elegido. Español latino natural. Cuantizado a `int8` empeora. |
+| `nllb-1.3b` | `int8_float16` | 347 ms | Natural en giros, con errores propios («darme un like», trato de usted). |
+| `madlad-3b` | `int8_float16` | 557 ms | Calidad similar, 10 veces más lento. |
+
+También existe `opus-base` (Marian más pequeño) y se acepta el repositorio de Hugging Face de cualquier Marian convertido a CTranslate2. Con `--translator none` no se traduce.
+
+## Diarización
+
+`vt/speakers.py` decide quién habla en cada frase, en línea y en la CPU:
+
+- **Huella de voz.** Banco de filtros mel propio, tipo Kaldi (80 bandas, ventanas de 25 ms cada 10 ms, normalizado por media), y WeSpeaker ResNet34 en ONNX: un vector de 256 dimensiones en unos 10 ms por frase, con 2 hilos. Una frase de menos de 0,6 s no da huella.
+- **Agrupamiento incremental.** Cada huella se compara (similitud coseno) con el centroide de cada persona. Con 0,30 o más se asigna a la más parecida; si no, es una persona nueva. Los centroides se ponderan por duración (hasta 6 s por frase), y dos personas cuyos centroides superan 0,5 se unen.
+- **Frases cortas** (menos de 1,6 s): sus huellas son poco fiables. Se asignan a la persona más parecida sin mover su centroide y solo crean una persona nueva si no se parecen a nadie (menos de 0,15). Una frase sin huella queda con la persona de la frase anterior.
+- **Corrección.** Las últimas 40 frases cortas se revisan cuando hay personas confirmadas (con al menos una frase larga): si otra persona se les parece más por un margen de 0,08, la frase cambia de persona y se vuelve a doblar con la voz correcta.
+
+Resultado medido con `tools/eval_pipeline.py` en 12 videos (2, 3 y 4 personas; limpio, cafetería, música y ruido rosa): 97,6 % de frases con la persona correcta y error de palabras del reconocimiento entre 0,6 % y 9,4 % según el ruido.
+
+Con la persona asignada, la frase pasa a la voz: [Voz y clonación](../voz/).
+
+## Dos formas de procesar
+
+El mismo pipeline se alimenta de dos maneras, según dónde esté el audio.
+
+### Cola del servidor
+
+Todo video con copia en el servidor (YouTube o un archivo ya copiado a la biblioteca) lo procesa `vt/processor.py`, un video a la vez:
+
+- **Foco.** Al abrir un video, el navegador manda `watch` con el punto de reproducción. Ese video pasa primero, empieza desde ese punto y los tres modelos empiezan a cargar enseguida. Después se procesa lo que quedó antes de ese punto.
+- **Saltos.** El navegador manda `pos` cada segundo. Si saltas a una parte sin terminar (más de 1 s antes del tramo actual o más de 2 s después de lo procesado), el trabajo se corta y se retoma desde ahí; las voces encargadas que aún no empezaron se cancelan.
+- **Voz detrás del reconocimiento.** El audio entra en bloques de 3 s. El reconocimiento espera si hay más de 3 voces pendientes o si se adelantó más de 30 s a la última frase con voz.
+- **Lo ya hecho se salta.** Los tramos cubiertos no se reconocen otra vez; solo se completan las frases a las que les falte traducción o voz (de un procesamiento que se cortó), empezando por lo que vas a escuchar.
+- **Prioridades.** «Priorizar» pone un video primero y corta el trabajo de fondo en curso, que se retoma después. Pausar la cola detiene el fondo, nunca el video que estás viendo.
+- **Fin.** Un video queda listo cuando lo cubierto llega a 2 s del final. El estado de la cola vive en `data/queue.json`; un trabajo que estaba `procesando` al cerrar el servidor vuelve a `en cola`.
+
+### Navegador por delante
+
+Un archivo recién abierto que todavía no tiene copia en el servidor lo procesa la sesión de esa pestaña (`vt/session.py`), con el audio que manda el navegador:
+
+- El navegador decodifica el archivo con `decodeAudioData` a 16 kHz mono y envía bloques de 3 s por delante de la reproducción. Cada bloque es binario: `float64` con su tiempo en el video y PCM `int16`.
+- Manda un bloque por cada confirmación del servidor (el mensaje `stats`) o tras 2,5 s sin respuesta, así va al ritmo de la GPU.
+- No se adelanta más de 25 s a lo que ya tiene voz (120 s si no hay motor de voz) y salta los tramos ya cubiertos.
+- Al saltar manda `seek` (se descarta la frase abierta); al terminar un tramo, `stop` o `end` (se confirma lo pendiente).
+- La voz de la pestaña se encarga en orden de escucha: primero lo que viene desde el punto de reproducción, de la más cercana a la más lejana; después lo que quedó atrás.
+
+Si el archivo no se puede decodificar, `web/js/capture-worklet.js` captura el audio mientras suena (bloques de 100 ms). En ese modo la voz llega unos segundos después de cada frase.
+
+<Aside>
+En ambos casos todo se guarda en la transcripción del video. Al retroceder o volver a abrirlo, lo cubierto sale del disco y solo se procesa lo nuevo.
+</Aside>
