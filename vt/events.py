@@ -1,7 +1,7 @@
 """Eventos de la app, para los webhooks (vt/webhooks.py) y quien quiera escucharlos.
 
     from . import events
-    events.emit("video.procesado", vault="ciencia", video="yt_…", title="…")
+    events.emit("video.procesado", "ciencia", video="yt_…", title="…")
 
 Cada evento lleva el id de su biblioteca (o None si es general: la cola, YouTube).
 """
@@ -46,9 +46,10 @@ def subscribe(fn):
         _sinks.append(fn)
 
 
-def emit(name: str, vault: str | None = None, **data):
+def emit(event: str, vault: str | None = None, /, **data):
+    """Solo posicionales: así los datos pueden llevar cualquier clave (p. ej. name=…)."""
     for fn in list(_sinks):
         try:
-            fn(name, vault, data)
+            fn(event, vault, data)
         except Exception as e:  # un oyente que falla no corta a quien emite
-            print(f"[eventos] {name}: {e}", flush=True)
+            print(f"[eventos] {event}: {e}", flush=True)

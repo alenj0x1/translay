@@ -8,6 +8,7 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar 
 
 ### Corregido
 
+- Crear, renombrar o eliminar una biblioteca fallaba al avisar a los webhooks y la pestaña no se actualizaba.
 - El id (y el enlace `/b/<id>`) de una biblioteca con tildes o eñes ya no se rompe: «Océanos» es `oceanos`, no `oc-anos`.
 
 ### Seguridad

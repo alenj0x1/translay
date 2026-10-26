@@ -310,6 +310,7 @@ def test_access_and_webhooks():
         events.emit("video.procesado", "principal", video="a")             # otra biblioteca: no
         events.emit("video.descargado", "ciencia", video="b")              # otro evento: no
         events.emit("video.procesado", "ciencia", video="c")
+        events.emit("biblioteca.creada", "ciencia", name="Ciencia")         # «name» en los datos no choca
         for _ in range(50):
             if got:
                 break
