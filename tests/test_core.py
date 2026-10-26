@@ -174,7 +174,38 @@ def test_playlist_library_and_srt():
     assert safe_name('a/b:c?"d') == "a b c d"
 
 
+def test_download_only_queue():
+    """«Solo descargar»: se descarga pero no se procesa hasta pedirlo."""
+    from vt.library import Library
+    from vt.processor import Processor
+
+    loop, Processor._loop = Processor._loop, lambda self: None  # sin hilo de procesamiento en la prueba
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            lib = Library(root / "library.json")
+            lib.add_pending([{"id": "abcdefghij1"}])
+            p = Processor(root, Store(root / "tr"), lib, None, None, None, None, None, None, lambda m: None)
+            p.add_many(["yt_abcdefghij1"], download_only=True)
+            job = p._job("yt_abcdefghij1")
+            assert job["download_only"] and p._next() is None
+            lib.set_field("yt_abcdefghij1", media="/media/yt/x.mp4")
+            job["state"] = "descargado"
+            assert p._next() is None                      # descargado: no se procesa solo
+            p.add_many(["yt_abcdefghij1"], download_only=True)
+            assert p._job("yt_abcdefghij1")["state"] == "descargado"  # reimportar no lo cambia
+            p.add("yt_abcdefghij1")                       # «Procesar»
+            job = p._job("yt_abcdefghij1")
+            assert job["state"] == "en cola" and "download_only" not in job and p._next() is job
+            job["state"] = "descargado"
+            p.clear_done()
+            assert p._job("yt_abcdefghij1") is None       # «Limpiar terminados» también lo quita
+    finally:
+        Processor._loop = loop
+
+
 if __name__ == "__main__":
+    test_download_only_queue()
     test_playlist_library_and_srt()
     test_cookies_import()
     test_audiofx()

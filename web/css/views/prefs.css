@@ -25,3 +25,10 @@
 }
 /* en el índice los nombres largos bajan de línea (nunca cortados) */
 .prefs-nav .item > span:first-child { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* glosario: filas «inglés → español» */
+.glossary .pref-ctl { width: 100%; justify-items: stretch; }
+.grows { display: grid; gap: 6px; }
+.grow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.grow .arrow { color: var(--fg-muted); font: 13px/1 var(--font-mono); }
+@media (max-width: 760px) { .grow { grid-template-columns: minmax(0, 1fr) auto; } .grow .arrow { display: none; } }

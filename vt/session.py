@@ -111,6 +111,12 @@ class Session:
                         self.watching = None
                     elif m.get("type", "").startswith("comment_"):
                         self._comment(m)
+                    elif m.get("type") == "search":
+                        asyncio.create_task(self._search(str(m.get("q", ""))))
+                    elif m.get("type") in ("glossary_get", "glossary_set"):
+                        asyncio.create_task(self._glossary(m))
+                    elif m.get("type") == "people_set":
+                        await self._people(m)
                     elif self.library and m.get("type") in ("lib_delete", "lib_clear"):
                         asyncio.create_task(self._delete(m))
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
@@ -133,7 +139,7 @@ class Session:
                     elif m.get("type") == "playlist":
                         asyncio.create_task(self._playlist(m.get("url", "")))
                     elif m.get("type") == "yt_batch":
-                        asyncio.create_task(self._batch(list(m.get("urls", []))[:200], str(m.get("coll") or ""),
+                        asyncio.create_task(self._batch(list(m.get("urls", [])), str(m.get("coll") or ""),
                                                         bool(m.get("quiet")), bool(m.get("front"))))
                     elif m.get("type") in ("export", "export_remove") and self.exporter:
                         await self._export(m)
@@ -175,7 +181,8 @@ class Session:
                 elif kind == "open":
                     await self._finish()
                     self.tr = self.store.open(str(op[1].get("id", "")), op[1].get("name", ""))
-                    await self.ws.send_json({"type": "transcript", **self.tr.public()})
+                    await self.ws.send_json({"type": "transcript", **self.tr.public(),
+                                             "voice_refs": self._voice_refs(self.tr.data["id"])})
                     if self._backfill:
                         self._backfill.cancel()
                     self._backfill = asyncio.create_task(self._translate_stale(self.tr))
@@ -360,7 +367,7 @@ class Session:
         vid = video_id(url) or ""
         last = {"stage": None, "frac": 0.0, "title": ""}
 
-        def progress(stage, frac, title=None):
+        def progress(stage, frac, title=None, stats=None):
             last["title"] = title or last["title"]
             # sin inundar el WebSocket: cada cambio de etapa y cada 2 %
             if stage == last["stage"] and frac - last["frac"] < 0.02 and frac < 1.0:
@@ -390,6 +397,12 @@ class Session:
             sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
             await self.ws.send_json({"type": "yt_error", "id": vid, "error": friendly_error(e, sess)})
 
+    def _audio_only(self) -> bool:
+        return bool(self.prefs) and self.prefs.values.get("download_what") == "audio"
+
+    def _download_only(self) -> bool:
+        return bool(self.prefs) and self.prefs.values.get("import_mode") == "descargar"
+
     async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
         orden) y cada playlist se importa como colección."""
@@ -405,18 +418,43 @@ class Session:
             elif playlist_id(u):
                 lists.append(u)
         vids = list(dict.fromkeys(vids))
-        infos = await asyncio.gather(*[loop.run_in_executor(None, self.youtube.quick_info, v) for v in vids])
-        ids = self.library.add_pending(list(infos))
+        # aparecen al instante; los títulos llegan de a poco (miles de consultas juntas
+        # son justo la ráfaga que YouTube marca)
+        ids = self.library.add_pending([{"id": v} for v in vids])
+        asyncio.create_task(self._fill_titles([i for i in ids if (self.library.data["videos"].get(i) or {}).get("title") == i[3:]]))
         if coll:
             for vid in ids:
                 self.library.toggle(coll, vid, True)
         if self.processor and ids:
-            self.processor.add_many(ids, front=front)  # "abrirlo": se descarga primero
+            # "abrirlo": se descarga primero; «Solo descargar» (Preferencias): sin traducir
+            self.processor.add_many(ids, front=front, download_only=self._download_only() and not front,
+                                    audio_only=self._audio_only())
         await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists),
                                  "quiet": bool(quiet)})
         self.notify({"type": "library_changed"})
         for u in lists:
             await self._playlist(u)
+
+    async def _fill_titles(self, ids: list[str]):
+        """Título y canal de los videos recién importados, 3 consultas a la vez y con pausas."""
+        loop = asyncio.get_running_loop()
+        sem = asyncio.Semaphore(3)
+        done: dict[str, dict] = {}
+
+        async def one(vid):
+            async with sem:
+                info = await loop.run_in_executor(None, self.youtube.quick_info, vid[3:])
+                await asyncio.sleep(0.3)
+            if info.get("title") and info["title"] != vid[3:]:
+                done[vid] = {"title": info["title"], "channel": info.get("channel", "")}
+
+        for k in range(0, len(ids), 30):  # se guarda y se avisa cada 30
+            await asyncio.gather(*(one(v) for v in ids[k:k + 30]))
+            if done:
+                self.library.set_fields({v: f for v, f in done.items()
+                                         if (self.library.data["videos"].get(v) or {}).get("title") == v[3:]})
+                done.clear()
+                self.notify({"type": "library_changed"})
 
     async def _playlist(self, url: str):
         loop = asyncio.get_running_loop()
@@ -431,7 +469,7 @@ class Session:
             return
         c = self.library.import_playlist(info)
         if self.processor:  # en orden: la cola descarga y procesa uno tras otro
-            self.processor.add_many(c["items"])
+            self.processor.add_many(c["items"], download_only=self._download_only(), audio_only=self._audio_only())
         await self.ws.send_json({"type": "playlist_added", "coll": c["id"], "name": c["name"],
                                  "count": len(c["items"])})
         self.notify({"type": "library_changed"})
@@ -446,6 +484,126 @@ class Session:
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
             await self.ws.send_json({"type": "yt_error", "error": str(e)})
+
+    # ------------------------------------------------------------ búsqueda
+    async def _search(self, q: str):
+        """Busca en todas las transcripciones (inglés, español y comentarios), sin tildes ni mayúsculas."""
+        import unicodedata
+
+        def norm(t: str) -> str:
+            return "".join(c for c in unicodedata.normalize("NFD", (t or "").lower()) if unicodedata.category(c) != "Mn")
+
+        needle = norm(q.strip())
+        if len(needle) < 2:
+            return await self.ws.send_json({"type": "search_results", "q": q, "results": [], "total": 0})
+
+        def run():
+            results, total = [], 0
+            for f in sorted(self.store.root.glob("*.json")):
+                vid = f.stem
+                if vid not in self.library.data["videos"]:
+                    continue
+                tr = self.store._cache.get(vid)
+                data = tr.data if tr else json.loads(f.read_text(encoding="utf-8"))
+                comments = data.get("comments") or {}
+                hits = []
+                for s in data.get("segments", []):
+                    notes = " ".join(c["text"] for c in comments.get(str(s["id"]), []))
+                    field = ("en" if needle in norm(s.get("text")) else "es" if needle in norm(s.get("translation"))
+                             else "nota" if notes and needle in norm(notes) else None)
+                    if field:
+                        total += 1
+                        if len(hits) < 20:
+                            hits.append({"seg": s["id"], "t": s["start"], "field": field, "text": s.get("text", ""),
+                                         "translation": s.get("translation") or "", "note": notes if field == "nota" else ""})
+                if hits:
+                    results.append({"video": vid, "hits": hits})
+            results.sort(key=lambda r: -len(r["hits"]))
+            return results[:100], total
+
+        results, total = await asyncio.get_running_loop().run_in_executor(None, run)
+        await self.ws.send_json({"type": "search_results", "q": q, "results": results, "total": total})
+
+    # ------------------------------------------------------------- glosario
+    async def _glossary(self, m: dict):
+        gl = getattr(self, "glossary", None)
+        if gl is None:
+            return
+        if m["type"] == "glossary_set":
+            old, new = gl.set(m.get("entries") or [])
+            self.notify({"type": "glossary", "entries": gl.entries})
+            # frases afectadas por lo que cambió: se vuelven a traducir (y su voz se rehace en la cola)
+            changed = [e for e in new if e not in old] + [e for e in old if e not in new]
+            if changed:
+                asyncio.create_task(self._retranslate(changed))
+        else:
+            await self.ws.send_json({"type": "glossary", "entries": gl.entries})
+
+    async def _retranslate(self, changed: list[dict]):
+        loop = asyncio.get_running_loop()
+        gl = self.glossary
+        n_segs = n_vids = 0
+        for f in sorted(self.store.root.glob("*.json")):
+            vid = f.stem
+            if vid not in self.library.data["videos"]:
+                continue
+            tr = self.store.open(vid)
+            todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed)]
+            if not todo:
+                continue
+            outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), self.translator.translate_many,
+                                              [s["text"] for s in todo])
+            for s, es in zip(todo, outs):
+                tr.set_translation(s["id"], es, self.translator.name)
+            tr.save()
+            n_segs += len(todo)
+            n_vids += 1
+            if self.processor and any(s.get("dub") for s in tr.segments):
+                self.processor.add(vid)  # la voz de esas frases se rehace
+            self.notify({"type": "bg", "video": vid, "msg": {"type": "translations",
+                         "items": [{"id": s["id"], "translation": s.get("translation")} for s in todo]}})
+        self.notify({"type": "glossary_applied", "segments": n_segs, "videos": n_vids})
+
+    # ------------------------------------------------------------- personas
+    async def _people(self, m: dict):
+        """Nombre de una persona del video y la voz que usa (la suya o la de otra persona)."""
+        vid, spk = str(m.get("video", "")), str(m.get("spk", ""))
+        tr = self.store.open(vid)
+        names = tr.data.setdefault("speaker_names", {})
+        vmap = tr.data.setdefault("voice_map", {})
+        if "name" in m:
+            name = str(m["name"]).strip()[:60]
+            if name:
+                names[spk] = name
+            else:
+                names.pop(spk, None)
+        redub = 0
+        if "voice" in m:
+            voice = str(m["voice"] or "")
+            if voice in ("", spk):
+                changed = vmap.pop(spk, None) is not None
+            else:
+                changed = vmap.get(spk) != voice
+                vmap[spk] = voice
+            if changed:  # su voz se rehace en la cola
+                for s in tr.segments:
+                    if str(s.get("speaker")) == spk and s.pop("dub", None) is not None:
+                        redub += 1
+                if redub and self.processor:
+                    self.processor.add(vid)
+        tr.save()
+        self.notify({"type": "bg", "video": vid, "msg": {"type": "people", "speaker_names": names,
+                                                           "voice_map": vmap, "redub": redub}})
+
+    def _voice_refs(self, vid: str) -> dict:
+        meta = self.store.root.parent / "voices" / vid / "voices.json"
+        if not meta.exists():
+            return {}
+        try:
+            data = json.loads(meta.read_text(encoding="utf-8"))
+        except ValueError:
+            return {}
+        return {spk: f"/voices/{vid}/{m['file']}" for spk, m in data.items() if m.get("file")}
 
     # ------------------------------------------------------------ comentarios
     def _comment(self, m: dict):
@@ -535,6 +693,8 @@ class Session:
             self.processor.set_paused(False)
         elif kind == "queue_clear":
             self.processor.clear_done()
+        elif kind == "queue_unblock":
+            self.processor.unblock()
 
     def _sleep_when_idle(self):
         # lo que estaba en curso (una traducción o una voz) termina primero
@@ -575,6 +735,8 @@ class Session:
         await self._cookies_status({"imported": info})
 
     def cookies_imported(self, info: dict):
-        """Tras importar una sesión, las descargas pasan a usarla."""
+        """Tras importar una sesión, las descargas pasan a usarla (y siguen si estaban en pausa)."""
         if self.prefs and self.prefs.set("yt_session", "archivo"):
             self.notify(self.prefs.public())
+        if self.processor:
+            self.processor.unblock()

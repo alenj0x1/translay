@@ -100,13 +100,16 @@ class WebSocket:
 
 
 class AppServer:
-    def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None):
+    def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None,
+                 get_routes: dict | None = None):
         """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
+        get_routes: prefijo → async fn(resto_de_ruta) → archivo a servir (o None: 404).
         put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
         `cuerpo` es un iterador asíncrono de bloques (el archivo no pasa entero por memoria)."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self.ws_routes = ws_routes
         self.put_routes = put_routes or {}
+        self.get_routes = get_routes or {}
 
     async def serve(self, host: str, port: int):
         server = await asyncio.start_server(self._handle, host, port)
@@ -177,7 +180,8 @@ class AppServer:
         return None
 
     async def _static(self, writer, method, path, rng, query=""):
-        f = self._resolve(path)
+        prefix = next((p for p in self.get_routes if path.startswith(p)), None)
+        f = await self.get_routes[prefix](path[len(prefix):]) if prefix else self._resolve(path)
         if f is None:
             return await self._simple(writer, 404, "Not Found")
         size = f.stat().st_size

@@ -34,3 +34,28 @@
   .welcome { padding: 32px 16px; }
   .welcome h2 { font-size: 22px; }
 }
+
+.grid .more { grid-column: 1 / -1; display: flex; justify-content: center; padding: 4px 0 12px; }
+
+/* barra lateral: búsqueda arriba, colecciones debajo */
+.libside { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; min-height: 0; }
+.libside .search { padding-left: 12px; }
+.libside .search input { font: 13px/1 var(--font-text); }
+.libside .search input::-webkit-search-cancel-button { filter: grayscale(1); }
+/* resultados de búsqueda: una columna, cada video con sus frases */
+.grid.results { grid-template-columns: minmax(0, 1fr); }
+.hitcard { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 14px; padding: 12px; border: var(--line); background: var(--surface); }
+.hitcard .qthumb { cursor: pointer; align-self: start; }
+.hitbody h3 { margin: 0 0 6px; font: var(--t-strong); }
+.hitbody ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.hitbody li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 6px; cursor: pointer; }
+.hitbody li:hover { background: var(--surface-2); }
+.hitbody p { margin: 0; font: 14px/1.4 var(--font-text); }
+.hitbody p.es, .hitbody p.note { color: var(--fg-muted); font-size: 13px; }
+.hitbody p.note svg { width: 12px; height: 12px; vertical-align: -1px; }
+.hl { font-weight: 800; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 2px; color: var(--fg); }
+@media (max-width: 760px) {
+  .libside .collections { max-height: 220px; }
+  .hitcard { grid-template-columns: 1fr; }
+  .hitcard .qthumb { max-width: 220px; }
+}

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .gpu import enable_cuda_dlls
+from .glossary import Glossary
 from .textproc import match_shape, polish, preedit, split_sentences
 
 # nombre → (familia, repo, precisión). La precisión se eligió midiendo con
@@ -122,12 +123,15 @@ class CT2Translator:
             for s in split_sentences(t or ""):
                 sents.append(s)
                 owner.append(i)
+        # glosario propio (vt/glossary.py): los términos pasan como marcadores intactos
+        gl = getattr(self, "glossary", None)
+        guarded = [gl.protect(preedit(s)) if gl else (preedit(s), []) for s in sents]
         outs: list[str] = []
         for k in range(0, len(sents), batch):
-            outs += self.translate_batch([preedit(s) for s in sents[k:k + batch]])
+            outs += self.translate_batch([g[0] for g in guarded[k:k + batch]])
         pieces: list[list[str]] = [[] for _ in texts]
-        for i, s, es in zip(owner, sents, outs):
-            pieces[i].append(match_shape(s, polish(es)))
+        for i, s, es, (_, repl) in zip(owner, sents, outs, guarded):
+            pieces[i].append(match_shape(s, polish(Glossary.restore(es, repl))))
         return [" ".join(p) if p else None for p in pieces]
 
     def translate(self, text: str, context: str = "") -> str | None:

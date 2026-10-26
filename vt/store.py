@@ -89,7 +89,8 @@ class Transcript:
 
     def public(self) -> dict:
         return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
-                "comments": self.comments}
+                "comments": self.comments, "speaker_names": self.data.get("speaker_names") or {},
+                "voice_map": self.data.get("voice_map") or {}}
 
     # ------------------------------------------------- comentarios por frase
     @property

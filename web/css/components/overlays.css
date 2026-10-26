@@ -39,3 +39,6 @@
 }
 .toast[data-kind="ok"] { border-left-color: var(--ok); }
 .toast[data-kind="warn"] { border-left-color: var(--warn); }
+
+.dlg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dlg-row .dlg-sub:empty { display: block; }

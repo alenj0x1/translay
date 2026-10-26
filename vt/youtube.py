@@ -40,7 +40,8 @@ class YouTube:
     def paths(self, vid: str) -> tuple[Path, Path]:
         return self.root / f"{vid}.mp4", self.root / f"{vid}.m4a"
 
-    def fetch(self, url: str, progress=None, session: str = "ninguna") -> dict:
+    def fetch(self, url: str, progress=None, session: str = "ninguna", audio_only: bool = False,
+              careful: bool = False) -> dict:
         """Descarga (si hace falta) y devuelve {id, title, duration, video, audio}.
 
         `progress(etapa, fracción)` se llama desde este hilo durante la descarga."""
@@ -49,19 +50,24 @@ class YouTube:
         vid = video_id(url)
         if not vid:
             raise ValueError("no es un enlace de YouTube")
+        self.careful = careful  # pausas entre peticiones solo en modo cuidadoso (8 s vs 3 s por video)
         with self._locks[vid]:
-            return self._fetch(vid, progress, session)
+            return self._fetch(vid, progress, session, audio_only)
 
-    def _fetch(self, vid: str, progress, session: str) -> dict:
+    def _fetch(self, vid: str, progress, session: str, audio_only: bool = False) -> dict:
+        """audio_only: solo la pista de audio original (.m4a): mucho más rápido; el video
+        completo se baja después si hace falta (al exportarlo)."""
         import json
 
         mp4, m4a = self.paths(vid)
         meta = self.root / f"{vid}.json"
-        if mp4.exists() and m4a.exists() and meta.exists():
+        if m4a.exists() and meta.exists() and (mp4.exists() or audio_only):
             data = json.loads(meta.read_text(encoding="utf-8"))
             if "categories" not in data or not (self.root / f"{vid}.jpg").exists():
                 data.update(self._extras(vid, download=False))  # descargado antes de tener miniaturas
                 meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            if not mp4.exists():
+                data.update(video="", audio_only=True)
             return data
 
         # etapas visibles: buscando → video → audio → uniendo → preparando → listo
@@ -73,13 +79,22 @@ class YouTube:
             kind = "audio" if str(d.get("filename", "")).endswith((".m4a", ".webm.part", ".m4a.part")) else "video"
             if d.get("status") == "downloading":
                 total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
-                progress(kind, d.get("downloaded_bytes", 0) / total if total else 0.0, title)
+                progress(kind, d.get("downloaded_bytes", 0) / total if total else 0.0, title,
+                         {"speed": d.get("speed") or 0, "eta": d.get("eta"), "done": d.get("downloaded_bytes", 0), "total": total})
             elif d.get("status") == "finished":
                 progress(kind, 1.0, title)
 
         def pp_hook(d):
             if progress and d.get("postprocessor") == "Merger":
                 progress("uniendo", 0.0 if d.get("status") == "started" else 1.0, None)
+
+        if audio_only:
+            info = self._extras(vid, download=True, hook=hook, session=session, audio_only=True)
+            data = {"id": vid, "video": "", "audio": f"/media/yt/{vid}.m4a", "audio_only": True, **info}
+            meta.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            if progress:
+                progress("listo", 1.0, info["title"])
+            return data
 
         info = self._extras(vid, download=True, hook=hook, pp_hook=pp_hook, session=session)
         if progress:
@@ -128,7 +143,7 @@ class YouTube:
             seen.add(vid)
             entries.append({"id": vid, "title": e.get("title") or vid, "duration": e.get("duration") or 0,
                             "channel": e.get("channel") or e.get("uploader") or "",
-                            "thumb": f"https://i.ytimg.com/vi/{vid}/mqdefault.jpg"})
+                            "thumb": f"/thumb/yt/{vid}.jpg"})
         if not entries:
             raise ValueError("la playlist está vacía o es privada")
         return {"id": pid, "title": info.get("title") or "Playlist",
@@ -148,24 +163,28 @@ class YouTube:
             return {"cookiesfrombrowser": (session,)}
         return {}
 
-    def _extras(self, vid: str, download: bool, hook=None, pp_hook=None, session: str = "ninguna") -> dict:
+    def _extras(self, vid: str, download: bool, hook=None, pp_hook=None, session: str = "ninguna",
+                audio_only: bool = False) -> dict:
         """Título, canal, categorías, duración y miniatura (JPG) del video."""
         import yt_dlp
 
         opts = {
             # H.264 + AAC: se reproduce en el navegador sin recodificar
-            "format": "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/b",
-            "merge_output_format": "mp4",
+            # video: H.264 + AAC hasta 720p · solo audio: la pista original (m4a; si no, se convierte)
+            "format": "ba[ext=m4a]/ba" if audio_only else "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/b",
+            **({} if audio_only else {"merge_output_format": "mp4"}),
             "outtmpl": str(self.root / "%(id)s.%(ext)s"),
             "js_runtimes": {"node": {}},
             "progress_hooks": [hook] if hook else [],
             "postprocessor_hooks": [pp_hook] if pp_hook else [],
             "writethumbnail": True,
-            "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg"}],
+            "postprocessors": [{"key": "FFmpegThumbnailsConvertor", "format": "jpg"}]
+            + ([{"key": "FFmpegExtractAudio", "preferredcodec": "m4a"}] if audio_only else []),
             "skip_download": not download,
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
+            "sleep_interval_requests": 1 if getattr(self, "careful", False) else 0,  # cuidadoso: sin ráfagas
             **self._session_opts(session),
         }
         with yt_dlp.YoutubeDL(opts) as ydl:

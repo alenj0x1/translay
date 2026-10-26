@@ -9,7 +9,8 @@ import json
 import threading
 from pathlib import Path
 
-SECTIONS = [["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["youtube", "YouTube"]]
+SECTIONS = [["apariencia", "Apariencia"], ["video", "Video"], ["audio", "Audio"], ["subtitulos", "Subtítulos"], ["biblioteca", "Biblioteca"], ["glosario", "Glosario"],
+            ["youtube", "YouTube"]]
 SCHEMA = [
     # apariencia: modo (la base clara u oscura) · tema · tono; el bloque de colores es
     # «tema-tono-modo» en web/css/tokens.css (ver web/js/theme.js)
@@ -41,6 +42,11 @@ SCHEMA = [
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
     {"key": "sub_es", "section": "subtitulos", "label": "Subtítulos en español", "type": "bool", "default": True},
     {"key": "sub_en", "section": "subtitulos", "label": "Subtítulos en inglés", "type": "bool", "default": True},
+    {"key": "import_mode", "section": "biblioteca", "label": "Al importar", "type": "choice", "default": "traducir",
+     "options": [["traducir", "Descargar y traducir"], ["descargar", "Solo descargar"]]},
+    {"key": "download_what", "section": "biblioteca", "label": "Qué descargar", "type": "choice", "default": "video",
+     "options": [["video", "Video y audio"], ["audio", "Solo el audio (más rápido)"]]},
+    {"key": "notify", "section": "biblioteca", "label": "Avisos del navegador", "type": "bool", "default": False},
     {"key": "lib_channels", "section": "biblioteca", "label": "Canales en la barra lateral", "type": "bool",
      "default": True},
     {"key": "yt_session", "section": "youtube", "label": "Sesión para descargar", "type": "choice",

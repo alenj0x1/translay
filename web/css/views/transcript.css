@@ -87,3 +87,12 @@ body.layout-wide .transcript .cell + .cell time { visibility: hidden; }
   .transcript .notes { padding-left: 14px; }
   .transcript .cbtn { display: grid; place-items: center; }
 }
+
+/* ---------------------------------------------------------------- personas */
+.people { overflow-y: auto; min-height: 0; padding: 6px 0; }
+.person { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: start; padding: 10px 12px; border-bottom: 1px solid var(--border-soft); }
+.person .chip { margin-top: 7px; }
+.person .pfields { display: grid; gap: 6px; }
+.person .pfields .input, .person .pfields .select { width: 100%; }
+.person .pmeta { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.person .pmeta small { font: 10.5px/1 var(--font-mono); color: var(--fg-muted); letter-spacing: .04em; text-transform: uppercase; }

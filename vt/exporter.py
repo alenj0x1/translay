@@ -33,7 +33,11 @@ from .audiofx import read_wav, resample
 SR = 48000
 BLOCK = SR * 10
 DUCK_LEVELS = {"silencio": 0.0, "bajo": 0.14, "medio": 0.3}
+# texto: subtítulos (SRT) y transcripción bilingüe con comentarios (TXT); no necesitan el doblaje
+TEXT_KINDS = ("srt_es", "srt_en", "txt")
 KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
+         "srt_es": ("subtítulos español", "srt"), "srt_en": ("subtítulos inglés", "srt"),
+         "txt": ("transcripción", "txt"),
          "orig_video": ("original", "mp4"), "orig_audio": ("audio original", "m4a")}
 
 
@@ -130,10 +134,13 @@ class Exporter:
                 return
             v = self.library.data["videos"][vid]
             title = safe_name(v.get("title") or vid)
-            self._ensure_media(job, vid)
+            if any(k not in TEXT_KINDS for k in job["kinds"]):  # solo texto: no hace falta el archivo
+                self._ensure_media(job, vid, video=any(k in ("es_video", "orig_video") for k in job["kinds"]))
             v = self.library.data["videos"][vid]
             if any(k.startswith("es_") for k in job["kinds"]):
                 self._wait_dub(job, vid, title)
+            elif any(k in TEXT_KINDS for k in job["kinds"]):
+                self._wait_dub(job, vid, title, key="asr")  # el texto necesita la transcripción completa
             for kind in job["kinds"]:
                 label, ext = KINDS[kind]
 
@@ -181,34 +188,39 @@ class Exporter:
             return self.root / "library" / src[11:]
         raise FileNotFoundError("el video no tiene copia en el equipo")
 
-    def _ensure_media(self, job, vid):
+    def _ensure_media(self, job, vid, video: bool = False):
+        """Copia en el equipo; si solo se bajó el audio y se pide un video, se baja el video completo."""
         v = self.library.data["videos"][vid]
-        if v.get("media"):
+        if v.get("media") and not (video and v.get("audio_only")):
             return
         if v.get("source") != "youtube" or not self.youtube:
             raise FileNotFoundError(f"«{v.get('title', vid)}» no tiene copia en el equipo")
         self._set(job, state="exportando", detail=f"descargando {v.get('title', vid)}")
-        info = self.youtube.fetch(vid[3:], None, self.prefs.values.get("yt_session", "ninguna"))
-        self.library.set_field(vid, media=info["video"], audio=info["audio"],
+        info = self.youtube.fetch(vid[3:], None, self.prefs.values.get("yt_session", "ninguna"), audio_only=False)
+        self.library.set_field(vid, media=info["video"], audio=info["audio"], audio_only=False,
                                **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
                                   if info.get(k)})
 
-    def _wait_dub(self, job, vid, title):
-        """Lo traducido necesita el doblaje completo: si falta, el video entra a la cola."""
+    def _wait_dub(self, job, vid, title, key: str = "dub"):
+        """Lo traducido necesita el doblaje completo (key="dub") o al menos la transcripción
+        (key="asr", para subtítulos y texto): si falta, el video entra a la cola."""
         queued = False
+        what = "doblaje" if key == "dub" else "transcripción"
         while job in self.jobs:
             p = self.processor.progress(vid)
             pj = self.processor._job(vid)
-            if p["dub"] >= 0.99 or (queued and pj and pj["state"] in ("listo", "error")):
+            if p[key] >= 0.99 or (queued and pj and pj["state"] in ("listo", "error")):
                 return
-            if pj is None or pj["state"] in ("listo", "error"):
+            if pj is None or pj["state"] in ("listo", "error", "descargado"):
                 self.processor.add(vid)
             queued = True
-            self._set(job, state="esperando doblaje", detail=f"{title} · doblaje {round(p['dub'] * 100)} %")
+            self._set(job, state=f"esperando {what}", detail=f"{title} · {what} {round(p[key] * 100)} %")
             time.sleep(3)
 
     # ------------------------------------------------------------ salida
     def _make(self, kind, vid, v, out_dir: Path, prog) -> Path:
+        if kind in TEXT_KINDS:
+            return self._make_text(kind, vid, v, out_dir)
         media = self._media_path(v["media"])
         audio = self._media_path(v["audio"]) if v.get("audio") else media
         if kind == "orig_video":
@@ -249,6 +261,35 @@ class Exporter:
             cmd[i + 2:i + 2] = ["-preset", "veryfast", "-crf", "21"]
             subprocess.run(cmd, check=True, capture_output=True)
         prog(1.0)
+        return out
+
+    def _make_text(self, kind, vid, v, out_dir: Path) -> Path:
+        tr = self.store.open(vid)
+        if kind in ("srt_es", "srt_en"):
+            out = out_dir / f"{vid}.{kind}.srt"
+            out.write_text(srt(tr.segments, "translation" if kind == "srt_es" else "text"), encoding="utf-8")
+            return out
+        # transcripción bilingüe: hora · persona · inglés / español, y los comentarios de cada frase
+        names = tr.data.get("speaker_names") or {}
+        order: dict = {}
+        for s in tr.segments:
+            if s.get("speaker") is not None and s["speaker"] not in order:
+                order[s["speaker"]] = len(order) + 1
+        lines = [v.get("title") or vid, ""]
+        for s in tr.segments:
+            t = int(s["start"])
+            stamp = f"{t // 3600}:{t // 60 % 60:02}:{t % 60:02}" if t >= 3600 else f"{t // 60}:{t % 60:02}"
+            who = ""
+            if len(order) > 1 and s.get("speaker") is not None:
+                who = " " + (names.get(str(s["speaker"])) or f"P{order[s['speaker']]}") + ":"
+            lines.append(f"[{stamp}]{who} {s.get('text', '').strip()}")
+            if s.get("translation"):
+                lines.append(f"    {s['translation'].strip()}")
+            for c in (tr.data.get("comments") or {}).get(str(s["id"]), []):
+                lines.append(f"    » Comentario: {c['text']}")
+            lines.append("")
+        out = out_dir / f"{vid}.txt"
+        out.write_text("\n".join(lines), encoding="utf-8")
         return out
 
     def _mix(self, vid, src: Path, out: Path, prog):

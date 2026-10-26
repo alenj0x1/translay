@@ -14,13 +14,14 @@ const lib = { videos: {}, collections: [], sel: "recent", promptSave: false,
 /* ------------------------------------------------------------ vistas */
 function currentView() {
   const b = document.body.classList;
-  return b.contains("view-prefs") ? "prefs" : b.contains("view-library") ? "library" : "player";
+  return b.contains("view-prefs") ? "prefs" : b.contains("view-queue") ? "queue" : b.contains("view-library") ? "library" : "player";
 }
 function setView(view) {
   const before = currentView();
-  if (before !== "prefs" && view === "prefs") lib.lastView = before;
+  if (before !== "prefs" && before !== "queue" && (view === "prefs" || view === "queue")) lib.lastView = before;
   document.body.classList.toggle("view-library", view === "library");
   document.body.classList.toggle("view-prefs", view === "prefs");
+  document.body.classList.toggle("view-queue", view === "queue");
   $("#prefs-btn").classList.toggle("on", view === "prefs");
   setBtn($("#view"), view === "library" ? "Volver al video" : "Biblioteca", view === "library" ? "video" : "grid");
   $("#view").hidden = view === "library" && !state.videoId;
@@ -41,6 +42,7 @@ function setView(view) {
     renderLibrary();
   }
   if (view === "prefs") markPrefsNav();
+  if (view === "queue") { $("#qnav").dataset.sig = ""; $("#qhead").dataset.sig = ""; $("#qlist").dataset.sig = ""; renderQueueScreen(); }
   closeSave();
 }
 function togglePrefs() {
@@ -78,13 +80,29 @@ const jobOf = (id) => lib.queue.jobs.find((j) => j.id === id);
 const playlistOf = (id) => lib.collections.find((c) => c.kind === "playlist" && c.items.includes(id));
 
 // estado de un video aún sin descargar (playlist)
+// «descargando 40 % · 2,3 MB/s · quedan 0:12»
+function fmtBytes(b) {
+  if (!b) return "";
+  const u = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return `${b.toFixed(b < 10 && i ? 1 : 0).replace(".", ",")} ${u[i]}`;
+}
+function dlText(d) {
+  if (d.stage !== "video" && d.stage !== "audio") return `${d.stage}…`;
+  const parts = [`descargando ${d.pct} %`];
+  if (d.speed) parts.push(`${fmtBytes(d.speed)}/s`);
+  if (d.eta != null && d.eta > 0) parts.push(`quedan ${fmtDur(d.eta)}`);
+  return parts.join(" · ");
+}
+
 function pendingText(v) {
   const j = jobOf(v.id);
   if (v.media) {  // descargado: en cola o procesándose hasta tener la voz
-    if (!j || j.state === "listo" || j.state === "error" || (v.progress && v.progress.dub >= 0.97)) return "";
+    if (!j || ["listo", "error", "descargado"].includes(j.state) || (v.progress && v.progress.dub >= 0.97)) return "";
     return j.state === "procesando" ? "procesando" : "en cola";  // el % va en la barra de la tarjeta
   }
-  if (j?.dl) return j.dl.stage === "video" || j.dl.stage === "audio" ? `descargando ${j.dl.pct} %` : `${j.dl.stage}…`;
+  if (j?.dl) return dlText(j.dl);
   if (j?.state === "error") return "error al descargar";
   return j ? "en cola · sin descargar" : "sin descargar";
 }
@@ -148,7 +166,7 @@ function renderLibrary() {
     for (const c of items) {
       nav.append(el("button", {
         class: "item" + (c.id === lib.sel ? " active" : ""), type: "button", title: c.name,
-        on: { click: () => { lib.sel = c.id; lib.picked.clear(); renderLibrary(); } },
+        on: { click: () => { lib.sel = c.id; lib.picked.clear(); closeSearch(); renderLibrary(); } },
       }, el("span", { text: c.name }), el("span", { text: String(c.items.length) })));
     }
     if (kind === "propia") {
@@ -161,9 +179,11 @@ function renderLibrary() {
     }
   }
 
+  if (lib.search) return renderSearch();
   const c = lib.collections.find((x) => x.id === lib.sel) || { name: "Recientes", items: [], kind: "auto" };
   renderShelfHead(c);
   const grid = $("#grid");
+  grid.classList.remove("results");
   grid.replaceChildren();
   if (!Object.keys(lib.videos).length) {  // biblioteca vacía: empezar aquí mismo
     grid.append(welcome());
@@ -174,10 +194,16 @@ function renderLibrary() {
     grid.append(el("div", { class: "empty", text: c.kind === "propia" ? "colección vacía" : "sin videos" }));
     return;
   }
-  c.items.forEach((id, i) => {
+  // de a 200 tarjetas (con miles de videos, dibujarlas todas trabaría la página)
+  if (lib.limitFor !== c.id) { lib.limitFor = c.id; lib.limit = 200; }
+  c.items.slice(0, lib.limit).forEach((id, i) => {
     const v = lib.videos[id];
     if (v) grid.append(card(v, c, i));
   });
+  if (c.items.length > lib.limit) {
+    grid.append(el("div", { class: "more" }, btn(`Mostrar más (${c.items.length - lib.limit})`, {
+      icon: "plus", onClick: () => { lib.limit += 200; renderLibrary(); } })));
+  }
 }
 
 function renderShelfHead(c) {
@@ -273,6 +299,7 @@ function progressBar(v) {
   const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
   const pct = Math.round(p.dub * 100);
   if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", { text: "traducido" }));
+  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: "descargado · sin traducir" }));
   const label = j?.state === "procesando" ? `procesando · ${pct} %`
     : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `doblado ${pct} %` : "";
   if (!label) return null;
@@ -300,6 +327,7 @@ function card(v, coll, i) {
     coll.kind === "playlist" ? el("span", { class: "chip solid num", text: String(i + 1) }) : null,
     pending ? el("span", { class: "pending-dl", text: pending }) : null,
     v.duration ? el("span", { class: "chip dur", text: fmtDur(v.duration) }) : null,
+    v.audio_only ? el("span", { class: "chip aud", title: "Solo se descargó el audio" }, icon("music"), " solo audio") : null,
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null,
     canOpen ? playDisc(downloadPct(v)) : null);
   const sub = [v.channel, v.source === "youtube" ? "YouTube" : "archivo"].filter(Boolean).join(" · ");
@@ -374,11 +402,8 @@ function contextItems() {
 function renderUpNext(scroll) {
   const items = contextItems().filter((id) => lib.videos[id]);
   const has = items.length > 1;
-  $("#side-tabs").hidden = !has;
-  if (!has) {
-    if (!$("#upnext").hidden) setSideTab("transcript");
-    return;
-  }
+  updateSideTabs();
+  if (!has) return;
   if (lib.showUpNext) { lib.showUpNext = false; setSideTab("upnext"); return; }
   const ol = $("#upnext");
   const pl = lib.ctx.coll && lib.collections.find((x) => x.id === lib.ctx.coll)?.kind === "playlist";
@@ -427,7 +452,10 @@ function importLocal(file, id) {
   probe.addEventListener("loadedmetadata", () => {
     send({ type: "lib_register", id, title: file.name, duration: probe.duration, source: "file" });
     fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}`, { method: "PUT", body: file })
-      .then(() => { send({ type: "queue_add", video: id }); send({ type: "library" }); })
+      .then(() => {
+        if (prefs.import_mode !== "descargar") send({ type: "queue_add", video: id });
+        send({ type: "library" });
+      })
       .catch(() => {});
     makeThumb(url, id);
   }, { once: true });
@@ -435,6 +463,16 @@ function importLocal(file, id) {
 
 /* ------------------------------------------------------------ cola en segundo plano */
 function queueUpdate(m) {
+  const prev = new Map(lib.queue.jobs.map((j) => [j.id, j]));
+  for (const j of m.jobs) {
+    const p = prev.get(j.id);
+    if (!p) continue;
+    const title = lib.videos[j.id]?.title || j.id;
+    if (p.state !== "listo" && j.state === "listo") notifyLater("traducidos", title);
+    else if (!p.downloaded && j.downloaded) notifyLater("descargados", title);
+  }
+  const busy = (jobs) => jobs.some((j) => j.state === "en cola" || j.state === "procesando");
+  if (busy(lib.queue.jobs) && !busy(m.jobs) && m.jobs.length) notifyUser("Cola terminada", "Todo lo pendiente se procesó.");
   const before = lib.queue.jobs.map((j) => j.id + j.state + j.downloaded).join();
   lib.queue = m;
   // al terminar o cambiar un trabajo, refrescar el avance de las tarjetas
@@ -456,11 +494,16 @@ function renderQueuePanel() {
   badge.hidden = !(active.length + nDown + nExp);
   $("#queue-btn").classList.toggle("busy", nDown > 0 || nExp > 0 || q.jobs.some((j) => j.state === "procesando" || j.dl));
   const running = q.jobs.find((j) => j.state === "procesando");
-  $("#queue-state").textContent = q.paused
-    ? (running && running.watching ? "en pausa · sigue el video que ves" : "en pausa · reposo")
-    : running ? "procesando" : active.length ? "en espera" : "sin trabajos · reposo";
+  const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
+  const downloading = q.jobs.find((j) => j.dl);
+  $("#queue-state").textContent = blocked ? `descargas en pausa · YouTube pidió verificación · ${blocked} min`
+    : q.paused
+    ? (running && running.watching ? "procesamiento en pausa · sigue el video que ves"
+      : downloading ? "procesamiento en pausa · descargando" : "procesamiento en pausa · reposo")
+    : running ? "procesando" : downloading ? (q.careful ? "descargando · modo cuidadoso" : "descargando")
+    : active.length ? "en espera" : "sin trabajos · reposo";
   setBtn($("#queue-toggle"), q.paused ? "Reanudar" : "Pausar", q.paused ? "play" : "pause");
-  $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error")
+  $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error" || j.state === "descargado")
     && !lib.exports.some((x) => x.state === "listo" || x.state === "error");
   const ul = $("#queue-list");
   ul.replaceChildren();
@@ -499,39 +542,146 @@ function renderQueuePanel() {
       el("div", { class: "qactions" })));
   }
   if (!q.jobs.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "nada en la cola" }));
-  for (const j of q.jobs) {
-    const v = lib.videos[j.id] || { id: j.id, title: j.id };
-    const dl = !j.downloaded && j.state !== "listo" && j.state !== "error";
-    const pct = dl ? (j.dl?.pct || 0) : Math.round(j.dub * 100);
-    const label = j.state === "listo" ? "listo"
-      : j.state === "error" ? "error"
-      : dl ? pendingText(v) || "sin descargar"
-      : j.state === "procesando" ? (j.watching ? `viendo · ${pct} %` : `${pct} %`)
-      : q.paused && !j.watching ? "en pausa" : j.prio ? "siguiente · con prioridad" : "en espera";
-    const pl = playlistOf(j.id);
-    ul.append(el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : "") },
-      el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "" }) : null),
-      el("div", { class: "qbody" },
-        el("strong", { text: v.title || j.id }),
-        meter(pct),
-        el("small", { text: j.error || (pl ? `${label} · ${pl.name}` : label) })),
-      el("div", { class: "qactions" },
-        btn("Ver", { icon: "play", size: "xs", disabled: !v.media && v.source !== "youtube",
-          onClick: () => {
-            closeQueue();
-            if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
-            playItem(v.id);
-          } }),
-        j.state === "en cola" && !j.prio ? btn("Priorizar", { icon: "up", size: "xs", title: "Procesar esto antes que lo demás",
-          onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
-        btn("Quitar", { variant: "ghost", size: "xs", onClick: () => send({ type: "queue_remove", video: j.id }) }))));
+  // los trabajos, en orden de estado (lo que se descarga, primero); el resto en la pantalla de la Cola
+  const jobs = orderedJobs();
+  for (const j of jobs.slice(0, 50)) ul.append(jobItem(j));
+  if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: `y ${jobs.length - 50} más · «Ver toda la cola» arriba` }));
+  if (currentView() === "queue") renderQueueScreen();
+}
+
+/* ------------------------------------------------------------ cola: orden y elementos */
+const JOB_ORDER = { descargando: 0, procesando: 1, "en cola": 2, descargado: 3, error: 4, listo: 5 };
+const jobKind = (j) => (j.dl ? "descargando" : j.state);
+function orderedJobs(kind = null) {
+  const q = lib.queue.jobs;
+  const list = kind ? q.filter((j) => jobKind(j) === kind) : q.slice();
+  // estable: dentro de cada estado se respeta el orden de la cola (lo priorizado ya va primero)
+  return list.map((j, i) => [j, i]).sort((a, b) => (JOB_ORDER[jobKind(a[0])] ?? 9) - (JOB_ORDER[jobKind(b[0])] ?? 9) || a[1] - b[1])
+    .map(([j]) => j);
+}
+
+function jobLabel(j, v) {
+  const q = lib.queue;
+  const dl = !j.downloaded && j.state !== "listo" && j.state !== "error";
+  const pct = dl ? (j.dl?.pct || 0) : Math.round(j.dub * 100);
+  const label = j.state === "listo" ? "listo"
+    : j.state === "error" ? "error"
+    : j.state === "descargado" ? "descargado · sin traducir"
+    : j.dl ? dlText(j.dl)
+    : dl && j.retry_at ? "falló la descarga · se reintenta en unos minutos"
+    : dl && q.blocked_until ? "esperando · descargas en pausa"
+    : dl ? pendingText(v) || "sin descargar"
+    : j.state === "procesando" ? (j.watching ? `viendo · ${pct} %` : `procesando · ${pct} %`)
+    : q.paused && !j.watching ? "en pausa" : j.prio ? "siguiente · con prioridad" : "en espera";
+  const pl = playlistOf(j.id);
+  return { pct, text: j.error || (pl ? `${label} · ${pl.name}` : label) };
+}
+
+function jobItem(j) {
+  const v = lib.videos[j.id] || { id: j.id, title: j.id };
+  const { pct, text } = jobLabel(j, v);
+  const pl = playlistOf(j.id);
+  return el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : ""), "data-id": j.id },
+    el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
+    el("div", { class: "qbody" },
+      el("strong", { text: v.title || j.id }),
+      meter(pct),
+      el("small", { text })),
+    el("div", { class: "qactions" },
+      btn("Ver", { icon: "play", size: "xs", disabled: !v.media && v.source !== "youtube",
+        onClick: () => {
+          closeQueue();
+          if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
+          playItem(v.id);
+        } }),
+      j.state === "descargado" ? btn("Procesar", { icon: "spark", size: "xs", title: "Traducir y doblar",
+        onClick: () => send({ type: "queue_add", video: j.id }) }) : null,
+      j.state === "en cola" && !j.prio ? btn("Priorizar", { icon: "up", size: "xs", title: "Procesar esto antes que lo demás",
+        onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
+      btn("Quitar", { variant: "ghost", size: "xs", onClick: () => send({ type: "queue_remove", video: j.id }) })));
+}
+
+/* ------------------------------------------------------------ pantalla de la Cola */
+// Como la página de descargas del navegador: estados a la izquierda (con su cantidad)
+// y la lista a la derecha, de a 100. El avance se actualiza en su lugar (sin perder clics).
+const QSECTIONS = [["todo", "Todo"], ["descargando", "Descargando"], ["procesando", "Procesando"],
+  ["en cola", "En cola"], ["descargado", "Descargados sin traducir"], ["error", "Con error"], ["listo", "Listos"]];
+lib.qsec = "todo";
+lib.qlimit = 100;
+
+function renderQueueScreen() {
+  if (currentView() !== "queue") return;
+  const q = lib.queue;
+  const counts = Object.fromEntries(QSECTIONS.map(([k]) => [k, k === "todo" ? q.jobs.length : q.jobs.filter((j) => jobKind(j) === k).length]));
+  // índice
+  const nav = $("#qnav");
+  const navSig = JSON.stringify([lib.qsec, counts, lib.exports.length]);
+  if (nav.dataset.sig !== navSig) {
+    nav.dataset.sig = navSig;
+    nav.replaceChildren(el("h4", { text: "Cola" }), ...QSECTIONS.filter(([k]) => k === "todo" || counts[k]).map(([k, t]) =>
+      el("button", { type: "button", class: "item" + (lib.qsec === k ? " active" : ""),
+        on: { click: () => { lib.qsec = k; lib.qlimit = 100; renderQueueScreen(); } } },
+        el("span", { text: t }), el("span", { text: String(counts[k]) }))));
+    if (lib.exports.length) {
+      nav.append(el("h4", { text: "Exportar" }), el("button", { type: "button", class: "item" + (lib.qsec === "exportar" ? " active" : ""),
+        on: { click: () => { lib.qsec = "exportar"; renderQueueScreen(); } } },
+        el("span", { text: "Exportaciones" }), el("span", { text: String(lib.exports.length) })));
+    }
+  }
+  // encabezado: estado y acciones generales
+  const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
+  const head = $("#qhead");
+  const title = (QSECTIONS.find(([k]) => k === lib.qsec) || [, "Exportaciones"])[1];
+  const headSig = JSON.stringify([title, q.paused, blocked, $("#queue-state").textContent, counts.listo + counts.error + counts.descargado]);
+  if (head.dataset.sig !== headSig) {
+    head.dataset.sig = headSig;
+    head.replaceChildren(
+      el("h2", { text: title }),
+      el("span", { class: "label", text: $("#queue-state").textContent }),
+      el("div", { class: "acts" },
+        btn(q.paused ? "Reanudar procesamiento" : "Pausar procesamiento", { icon: q.paused ? "play" : "pause",
+          onClick: () => send({ type: q.paused ? "queue_resume" : "queue_pause" }) }),
+        blocked ? btn("Reintentar descargas", { icon: "download", onClick: () => send({ type: "queue_unblock" }) }) : null,
+        counts.listo + counts.error + counts.descargado ? btn("Limpiar terminados", { icon: "check", variant: "ghost",
+          onClick: () => $("#queue-clear").click() }) : null));
+  }
+  // lista
+  const ul = $("#qlist");
+  if (lib.qsec === "exportar") {
+    ul.dataset.sig = "";
+    ul.replaceChildren(...$("#queue-list").querySelectorAll(":scope > .qitem:not([data-id])").length
+      ? [...$("#queue-list").querySelectorAll(":scope > .qitem:not([data-id])")].map((n) => n.cloneNode(true)) : []);
+    return;
+  }
+  const jobs = orderedJobs(lib.qsec === "todo" ? null : lib.qsec);
+  const shown = jobs.slice(0, lib.qlimit);
+  const sig = shown.map((j) => j.id + jobKind(j) + (j.prio ? "p" : "")).join("|");
+  if (ul.dataset.sig === sig) {  // misma lista: solo el avance y el texto, en su lugar
+    for (const li of ul.querySelectorAll(".qitem[data-id]")) {
+      const j = lib.queue.jobs.find((x) => x.id === li.dataset.id);
+      if (!j) continue;
+      const { pct, text } = jobLabel(j, lib.videos[j.id] || { id: j.id });
+      li.querySelector(".meter > i").style.width = `${pct}%`;
+      const small = li.querySelector("small");
+      if (small.textContent !== text) small.textContent = text;
+    }
+    return;
+  }
+  ul.dataset.sig = sig;
+  ul.replaceChildren(...shown.map(jobItem));
+  if (!shown.length) ul.append(el("li", { class: "empty-row", text: "nada aquí" }));
+  if (jobs.length > shown.length) {
+    ul.append(el("li", { class: "empty-row" }, btn(`Mostrar más (${jobs.length - shown.length})`, {
+      icon: "plus", onClick: () => { lib.qlimit += 100; renderQueueScreen(); } })));
   }
 }
+
 function openQueue() { renderQueuePanel(); $("#queue-pop").hidden = false; }
 function closeQueue() { $("#queue-pop").hidden = true; }
 $("#queue-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#queue-pop").hidden ? openQueue() : closeQueue(); });
 $("#queue-pop").addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("click", closeQueue);
+$("#queue-full").addEventListener("click", () => { closeQueue(); setView("queue"); });
 $("#queue-toggle").addEventListener("click", () => send({ type: lib.queue.paused ? "queue_resume" : "queue_pause" }));
 $("#queue-clear").addEventListener("click", () => {
   send({ type: "queue_clear" });
@@ -557,9 +707,17 @@ function updateExportNote() {
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
     ? vs.filter((v) => !(v.progress && v.progress.dub >= 0.99)).length : 0;
-  const needDl = vs.filter((v) => !v.media).length;
+  const onlyText = kinds.every((k) => ["srt_es", "srt_en", "txt"].includes(k));
+  const needDl = onlyText ? 0 : vs.filter((v) => !v.media).length;
+  const needText = !needDub && kinds.some((k) => ["srt_es", "srt_en", "txt"].includes(k))
+    ? vs.filter((v) => !(v.progress && v.progress.asr >= 0.99)).length : 0;
   const parts = [];
   if (needDl) parts.push(exportVideos.length === 1 ? "se descarga primero" : `${needDl} se descargan primero`);
+  const audioOnly = kinds.some((k) => k.endsWith("_video")) ? vs.filter((v) => v.audio_only).length : 0;
+  if (audioOnly) parts.push(exportVideos.length === 1 ? "solo tiene el audio: el video se descarga primero"
+    : `${audioOnly} solo tienen el audio: su video se descarga primero`);
+  if (needText) parts.push(exportVideos.length === 1 ? "la transcripción aún no termina: se exporta al terminar"
+    : `${needText} aún sin transcripción completa: se exportan al terminar`);
   if (needDub) parts.push(exportVideos.length === 1 ? "el doblaje aún no termina: se exporta al terminar"
     : `${needDub} aún sin doblaje completo: se exportan al terminar`);
   $("#export-note").textContent = parts.join(" · ");
@@ -584,10 +742,12 @@ function exportsUpdate(m) {
       lib.delivered.add(x.id);
       download(x);
       toast(`Exportación lista: ${x.name}`, "ok");
+      notifyUser("Exportación lista", x.name);
     }
     if (x.state === "error" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
       lib.delivered.add(x.id);
       toast(`No se pudo exportar «${x.name}»: ${x.error}`);
+      notifyUser("No se pudo exportar", x.name);
     }
   }
   renderQueuePanel();
@@ -679,3 +839,82 @@ $("#mini-close").addEventListener("click", (e) => {
   lib.mini = false;
   document.body.classList.remove("mini");
 });
+
+
+/* ------------------------------------------------------------ búsqueda en las transcripciones */
+let searchTimer = null;
+$("#lib-q").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const q = $("#lib-q").value.trim();
+  if (q.length < 2) { if (!q) closeSearch(true); return; }
+  searchTimer = setTimeout(() => send({ type: "search", q }), 350);
+});
+$("#lib-search").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("#lib-q").value.trim();
+  if (q.length >= 2) send({ type: "search", q });
+});
+$("#lib-q").addEventListener("keydown", (e) => { if (e.key === "Escape") closeSearch(true); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && currentView() === "library" && !e.target.closest("input, textarea, dialog")) {
+    e.preventDefault();
+    $("#lib-q").focus();
+  }
+});
+
+function searchResults(m) {
+  if (m.q.trim() !== $("#lib-q").value.trim()) return;  // llegó tarde: ya se escribió otra cosa
+  lib.search = m;
+  lib.sel = lib.sel || "recent";
+  renderLibrary();
+}
+function closeSearch(render = false) {
+  if (!lib.search && !render) return;
+  lib.search = null;
+  if (render) { $("#lib-q").value = ""; lib.shelfSig = ""; renderLibrary(); }
+}
+
+// texto con la coincidencia marcada (subrayada, sin resaltado tipo marcador)
+function highlight(text, q) {
+  const norm = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const i = norm(text).indexOf(norm(q));
+  if (i < 0) return document.createTextNode(text);
+  return el("span", {}, text.slice(0, i), el("b", { class: "hl", text: text.slice(i, i + q.length) }), text.slice(i + q.length));
+}
+
+function openAt(v, t) {
+  if (!v?.media) return playItem(v.id);
+  setContext(null);
+  loadVideo(v.media, v.id, v.title, v.audio, { fromLibrary: true, position: Math.max(0, t - 1), keepContext: true });
+  setView("player");
+}
+
+function renderSearch() {
+  const m = lib.search;
+  const head = $("#shelf-head");
+  head.replaceChildren(
+    el("h2", { text: `Resultados para «${m.q}»` }),
+    el("span", { class: "label", text: m.total ? `${m.total} ${m.total === 1 ? "coincidencia" : "coincidencias"} en ${m.results.length} ${m.results.length === 1 ? "video" : "videos"}` : "sin coincidencias" }),
+    el("div", { class: "acts" }, btn("Cerrar búsqueda", { icon: "x", variant: "ghost", onClick: () => closeSearch(true) })));
+  const grid = $("#grid");
+  grid.classList.add("results");
+  grid.replaceChildren();
+  if (!m.results.length) {
+    grid.append(el("div", { class: "empty", text: "nada encontrado en las transcripciones" }));
+    return;
+  }
+  for (const r of m.results) {
+    const v = lib.videos[r.video];
+    if (!v) continue;
+    grid.append(el("article", { class: "hitcard" },
+      el("div", { class: "qthumb", on: { click: () => openAt(v, r.hits[0].t) } }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
+      el("div", { class: "hitbody" },
+        el("h3", { text: v.title || v.id }),
+        el("ul", {}, ...r.hits.map((h) => el("li", { on: { click: () => openAt(v, h.t) }, title: "Ver desde aquí" },
+          el("span", { class: "chip", text: fmtDur(h.t) }),
+          el("div", {},
+            el("p", {}, h.field === "en" ? highlight(h.text, m.q) : document.createTextNode(h.text)),
+            h.translation ? el("p", { class: "es" }, h.field === "es" ? highlight(h.translation, m.q) : document.createTextNode(h.translation)) : null,
+            h.note ? el("p", { class: "note" }, icon("comment"), " ", highlight(h.note, m.q)) : null)))))));
+  }
+}

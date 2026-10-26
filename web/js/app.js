@@ -22,6 +22,7 @@ const state = {
   ahead: false,        // audio del archivo procesado por delante de la reproducción
   downloads: {},       // descargas de YouTube en curso: id → {title, stage, pct}
   comments: {},        // id de frase → [{id, text, created, updated}]
+  people: { names: {}, voices: {}, refs: {} },  // «Personas»: nombre, voz elegida y voz de referencia
   editing: null,       // comentario en edición: {seg, id (null = nuevo), draft}
 };
 
@@ -58,6 +59,7 @@ function onMessage(m) {
       state.voice = m.voice;
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
       send({ type: "library" });
+      send({ type: "glossary_get" });
       break;
     case "library":
       libraryUpdate(m);
@@ -69,6 +71,23 @@ function onMessage(m) {
       state.power = m.state;
       renderPower();
       break;
+    case "search_results":
+      searchResults(m);
+      break;
+    case "glossary":
+      glossaryUpdate(m.entries);
+      break;
+    case "glossary_applied":
+      if (m.segments) toast(`Glosario aplicado: ${m.segments} ${m.segments === 1 ? "frase" : "frases"} en ${m.videos} `
+        + `${m.videos === 1 ? "video" : "videos"} se tradujeron de nuevo; su voz se rehace en la cola.`, "ok");
+      break;
+    case "people":
+      state.people.names = m.speaker_names || {};
+      state.people.voices = m.voice_map || {};
+      renderTranscript();
+      renderPeople();
+      if (m.redub) toast(`Se rehace la voz de ${m.redub} ${m.redub === 1 ? "frase" : "frases"} en la cola.`, "ok");
+      break;
     case "comments":
       if (m.video !== state.videoId) break;
       state.comments = m.comments;
@@ -78,8 +97,13 @@ function onMessage(m) {
     case "deleted":
       if (m.videos.includes(state.videoId)) closeVideo();
       break;
+    case "yt_blocked":
+      toast("YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min. "
+        + "Si sigue, renueva las cookies en Preferencias → YouTube.", "warn");
+      break;
     case "library_changed":
       send({ type: "library" });
+      send({ type: "glossary_get" });
       break;
     case "batch_added":
       if (m.videos && !m.quiet) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
@@ -104,6 +128,7 @@ function onMessage(m) {
       state.segments = m.segments;
       state.covered = m.covered;
       state.comments = m.comments || {};
+      state.people = { names: m.speaker_names || {}, voices: m.voice_map || {}, refs: m.voice_refs || {} };
       state.editing = null;
       // las voces se bajan a medida que se acercan (cada 80 ms se precargan los próximos 15 s):
       // bajarlas todas al abrir llenaba las conexiones y el video tardaba en cargar
@@ -219,6 +244,9 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   state.sending = false;
   vEn.src = src;
   vEs.src = src;
+  // solo audio descargado: se ve su miniatura en lugar del video
+  const lv = typeof lib !== "undefined" ? lib.videos[id] : null;
+  vEn.poster = vEs.poster = lv?.audio_only ? lv.thumb || "" : "";
   stopDub();
   dubBuf.clear();
   // videos guardados en el servidor (YouTube o copia en la biblioteca): los procesa
@@ -255,6 +283,8 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
 // uno o varios archivos: se abre el primero; los demás quedan en "Siguientes"
 // (se copian a la biblioteca y la cola los procesa mientras tanto)
 async function openFiles(files) {
+  // un .csv trae enlaces de YouTube: se revisan en el cuadro de varios enlaces
+  for (const f of files.filter(isCsv)) importCsvFile(f);
   files = files.filter((x) => /^(video|audio)\//.test(x.type));
   if (!files.length) return;
   const ids = [];
@@ -325,7 +355,9 @@ function importVideos(urls) {
   } else if (mode === "siguiente") {
     addedWhileWatching(ids);
   } else {
-    toast(ids.length === 1 ? "Importado: ya está en la cola." : `${ids.length} videos importados a la cola.`, "ok");
+    const only = prefs.import_mode === "descargar";
+    toast(ids.length === 1 ? (only ? "Importado: se descarga sin traducir." : "Importado: ya está en la cola.")
+      : `${ids.length} videos importados${only ? ": se descargan sin traducir" : " a la cola"}.`, "ok");
     if (currentView() === "library") { lib.sel = "recent"; renderLibrary(); }
   }
 }
@@ -393,6 +425,60 @@ function classify(url) {
   if (list && !/^(RD|UL)/.test(list)) return { kind: "playlist", key: list };
   return null;
 }
+/* ------------------------------------------------------------ importar desde .csv */
+const isCsv = (f) => /\.csv$/i.test(f.name) || f.type === "text/csv";
+
+// CSV con comillas y separador , ; o tabulación (el que más aparezca en la primera línea)
+function parseCsv(text) {
+  const first = text.split(/\r?\n/, 1)[0] || "";
+  const sep = [",", ";", "\t"].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === sep) { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// enlaces de cualquier celda; IDs sueltos solo si una columna se llama id / video_id / youtube_id
+function linksFromCsv(text) {
+  const rows = parseCsv(text.replace(/^﻿/, ""));
+  const links = new Set(ytLinks(text));
+  const header = (rows[0] || []).map((h) => h.trim().toLowerCase().replace(/[\s-]+/g, "_"));
+  const idCols = header.map((h, i) => (/^(id|video_?id|youtube_?id|yt_?id)$/.test(h) ? i : -1)).filter((i) => i >= 0);
+  for (const r of rows.slice(1)) {
+    for (const i of idCols) {
+      const v = (r[i] || "").trim();
+      // un id real mezcla letras, números o guiones; una palabra común («Engineering») no cuenta
+      if (/^[\w-]{11}$/.test(v) && !/^[A-Za-z][a-z]+$/.test(v)) links.add(`https://youtu.be/${v}`);
+    }
+  }
+  return [...links];
+}
+
+async function importCsvFile(file, append = false) {
+  const links = linksFromCsv(await file.text());
+  if (!links.length) { toast(`«${file.name}» no tiene enlaces de YouTube.`, "warn"); return; }
+  if (append && $("#multi-dlg").open) {
+    const prev = $("#multi-text").value.trim();
+    $("#multi-text").value = (prev ? prev + "\n" : "") + links.join("\n");
+    updateMulti();
+  } else {
+    openMulti(links.join("\n"));
+  }
+}
+
 function multiParsed() {
   const seen = new Set();
   const out = [];
@@ -425,6 +511,10 @@ function openMulti(text = "") {
   $("#multi-text").focus();
 }
 $("#multi-text").addEventListener("input", updateMulti);
+$("#multi-csv").addEventListener("change", (e) => {
+  for (const f of e.target.files) importCsvFile(f, true);
+  e.target.value = "";
+});
 $("#multi-dlg").addEventListener("close", () => {
   if ($("#multi-dlg").returnValue !== "ok") return;
   const items = multiParsed();
@@ -730,7 +820,11 @@ vEn.addEventListener("seeking", () => {
   endLive("seek");
   feederSeek(vEn.currentTime);
 });
-vEn.addEventListener("ratechange", () => { vEs.playbackRate = vEn.playbackRate; });
+vEn.addEventListener("ratechange", () => {
+  vEs.playbackRate = vEn.playbackRate;
+  stopDub();  // la frase en curso se retoma a la nueva velocidad
+  setBtn($("#c-speed"), fmtRate(vEn.playbackRate));
+});
 vEn.addEventListener("timeupdate", () => {
   if (!vEn.paused && Math.abs(vEs.currentTime - vEn.currentTime) > 0.2) vEs.currentTime = vEn.currentTime;
   renderCaptions();
@@ -790,6 +884,7 @@ function stopDub() {
 function playDub(seg, offset = 0, rate = 1) {
   const item = dubBuf.get(seg.id);
   if (!item?.buf || !state.audio) return;
+  if (vEn.playbackRate !== 1) return playDubStretched(seg, item, offset, rate * vEn.playbackRate);
   const src = state.audio.ctx.createBufferSource();
   src.buffer = item.buf;
   src.playbackRate.value = rate;
@@ -802,6 +897,24 @@ function playDub(seg, offset = 0, rate = 1) {
       liveNext();
     }
   };
+}
+
+// otra velocidad: la voz va por un <audio> que acelera sin cambiar el tono (preservesPitch)
+function playDubStretched(seg, item, offset, rate) {
+  const a = new Audio(item.url);
+  a.preservesPitch = true;
+  a.playbackRate = rate;
+  a.currentTime = offset;
+  state.audio.ctx.createMediaElementSource(a).connect(state.audio.dub);
+  const handle = { stop: () => a.pause() };
+  player.cur = { src: handle, id: seg.id };
+  a.addEventListener("ended", () => {
+    if (player.cur?.src === handle) {
+      player.cur = null;
+      liveNext();
+    }
+  });
+  a.play().catch(() => {});
 }
 
 function liveEnqueue(seg) {
@@ -958,7 +1071,8 @@ function renderTranscript() {
     const li = document.createElement("li");
     li.dataset.start = s.start;
     li.dataset.id = s.id;
-    const who = s.speaker != null && speakers.size > 1 ? `<span class="spk">P${speakers.get(s.speaker)}</span>` : "";
+    const who = s.speaker != null && speakers.size > 1
+      ? `<span class="spk">${escapeHtml(personName(s.speaker, speakers.get(s.speaker)))}</span>` : "";
     const time = `<time>${fmt(s.start)}${who}</time>`;
     const n = (state.comments[String(s.id)] || []).length;
     const time1 = time;
@@ -986,6 +1100,7 @@ function renderTranscript() {
     ta?.setSelectionRange(ta.value.length, ta.value.length);
   }
   renderActive(true);
+  if (typeof lib !== "undefined") updateSideTabs();  // aparece «Personas» cuando hay personas
 }
 
 /* ------------------------------------------------------------ comentarios por frase */
@@ -1183,7 +1298,7 @@ function renderPower() {
   const run = q?.jobs.find((j) => j.state === "procesando");
   const dl = q?.jobs.find((j) => j.dl);
   if (run) setStatus("ok", `procesando · ${Math.round(run.dub * 100)} %`);
-  else if (dl) setStatus("busy", "descargando");
+  else if (dl) setStatus("busy", dl.dl.speed ? `descargando · ${fmtBytes(dl.dl.speed)}/s` : "descargando");
   else if (p === "cargando") setStatus("busy", "cargando modelos");
   else if (p === "reposo") setStatus("sleep", "en reposo");
   else setStatus("ok", "listo");
@@ -1225,7 +1340,7 @@ function renderPrefs() {
   const nav = $("#prefs-nav");
   const body = $("#prefs-body");
   const scroll = body.scrollTop;
-  $("#stash").append(YT_IMPORT);  // se vuelve a poner en su sección (no se pierde al redibujar)
+  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK);  // se vuelven a poner en su sección (no se pierden al redibujar)
   nav.replaceChildren();
   body.replaceChildren();
   for (const [sec, title] of prefsSections) {
@@ -1270,7 +1385,7 @@ function renderPrefs() {
         b.append(text);
         b.addEventListener("click", () => {
           setPref(p.key, value);
-          if (p.key === "theme") applyTheme(value);
+          if (p.key === "notify" && value === true) requestNotify();
           renderPrefs();
         });
         group.append(b);
@@ -1283,6 +1398,10 @@ function renderPrefs() {
     if (sec === "youtube") {
       box.append(YT_IMPORT);
       nav.append(navButton("Importar sesión", YT_IMPORT));
+    }
+    if (sec === "glosario") {
+      box.append(GLOSSARY_BLOCK);
+      nav.append(navButton("Términos", GLOSSARY_BLOCK));
     }
     body.append(box);
   }
@@ -1340,8 +1459,22 @@ function setSideTab(tab) {
   for (const b of $("#side-tabs").querySelectorAll("button")) b.classList.toggle("on", b.dataset.tab === tab);
   $("#transcript").hidden = tab !== "transcript";
   $("#upnext").hidden = tab !== "upnext";
+  $("#people").hidden = tab !== "people";
   if (tab === "transcript") renderActive(true);
+  else if (tab === "people") renderPeople();
   else renderUpNext(true);
+}
+
+// la barra de pestañas solo aparece si hay algo más que la transcripción
+function updateSideTabs() {
+  const up = $('#side-tabs [data-tab="upnext"]');
+  const pe = $('#side-tabs [data-tab="people"]');
+  const items = typeof contextItems === "function" ? contextItems().filter((id) => lib.videos[id]) : [];
+  up.hidden = items.length < 2;
+  pe.hidden = !state.segments.some((s) => s.speaker != null);
+  $("#side-tabs").hidden = up.hidden && pe.hidden;
+  const on = $("#side-tabs button.on");
+  if (!on || on.hidden) setSideTab("transcript");
 }
 $("#side-tabs").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -1464,6 +1597,20 @@ function setVolume(v, muted = player.muted) {
 $("#c-vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value), false));
 $("#c-mute").addEventListener("click", () => setVolume(player.volume || 1, !player.muted));
 
+// velocidad: cada clic pasa a la siguiente; Shift + < / > también
+const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
+const fmtRate = (r) => `${String(r).replace(".", ",")}×`;
+function setRate(r) {
+  vEn.playbackRate = r;
+  try { localStorage.setItem("vt-rate", String(r)); } catch (e) { /* sin almacenamiento */ }
+}
+$("#c-speed").addEventListener("click", () => {
+  const i = RATES.indexOf(vEn.playbackRate);
+  setRate(RATES[(i + 1) % RATES.length]);
+});
+try { const r = parseFloat(localStorage.getItem("vt-rate")); if (RATES.includes(r)) vEn.defaultPlaybackRate = vEn.playbackRate = r; } catch (e) { /* nada */ }
+setBtn($("#c-speed"), fmtRate(vEn.playbackRate));
+
 function toggleFull() {
   if (document.fullscreenElement) document.exitFullscreen();
   else $("#pane-en").requestFullscreen?.().catch(() => {});
@@ -1479,6 +1626,10 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "ArrowRight") { e.preventDefault(); vEn.currentTime = Math.min(vEn.duration || 0, vEn.currentTime + 5); }
   else if (e.key === "f") toggleFull();
   else if (e.key === "m") setVolume(player.volume || 1, !player.muted);
+  else if (e.key === ">" || e.key === "<") {
+    const i = RATES.indexOf(vEn.playbackRate);
+    setRate(RATES[Math.max(0, Math.min(RATES.length - 1, (i < 0 ? 1 : i) + (e.key === ">" ? 1 : -1)))]);
+  }
 });
 
 // texto del campo de enlaces según el ancho: nunca cortado
@@ -1488,3 +1639,120 @@ function fitLinkHint() {
 }
 narrowMQ.addEventListener("change", fitLinkHint);
 fitLinkHint();
+
+
+/* ------------------------------------------------------------ personas del video */
+const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function personName(spk, n) { return state.people.names[String(spk)] || `P${n}`; }
+
+// Nombre de cada persona y la voz que usa en español (la suya clonada o la de otra persona)
+function renderPeople() {
+  updateSideTabs();
+  const box = $("#people");
+  if (box.hidden) return;
+  const order = new Map(), count = new Map();
+  for (const s of state.segments) {
+    if (s.speaker == null) continue;
+    if (!order.has(s.speaker)) order.set(s.speaker, order.size + 1);
+    count.set(s.speaker, (count.get(s.speaker) || 0) + 1);
+  }
+  if (box.contains(document.activeElement)) return;  // no redibujar mientras se escribe un nombre
+  const refs = state.people.refs || {};
+  box.replaceChildren(...[...order].map(([spk, n]) => {
+    const key = String(spk);
+    const name = el("input", { class: "input", type: "text", maxlength: 60, placeholder: `Persona ${n}`,
+      value: state.people.names[key] || "", "aria-label": `Nombre de la persona ${n}` });
+    name.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, name: name.value }));
+    name.addEventListener("keydown", (e) => { if (e.key === "Enter") name.blur(); });
+    const voice = el("select", { class: "select", "aria-label": "Voz en español" },
+      el("option", { value: "", text: refs[key] ? "Su propia voz" : "Su voz (aún sin referencia)" }),
+      ...[...order].filter(([o]) => o !== spk && refs[String(o)])
+        .map(([o, m]) => el("option", { value: String(o), text: `Voz de ${personName(o, m)}` })));
+    voice.value = state.people.voices[key] || "";
+    voice.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, voice: voice.value }));
+    const used = state.people.voices[key] || key;
+    const listen = refs[used] ? btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost",
+      title: "Escuchar la voz de referencia", onClick: () => new Audio(refs[used]).play().catch(() => {}) }) : null;
+    return el("div", { class: "person" },
+      el("span", { class: "chip solid", text: `P${n}` }),
+      el("div", { class: "pfields" }, name, voice),
+      el("div", { class: "pmeta" }, el("small", { text: `${count.get(spk)} ${count.get(spk) === 1 ? "frase" : "frases"}` }), listen));
+  }));
+}
+
+/* ------------------------------------------------------------ glosario */
+const GLOSSARY_BLOCK = el("div", { class: "pref glossary", id: "pref-glossary" },
+  el("span", { class: "pref-label", text: "Términos" }), el("div", { class: "pref-ctl" }));
+const glossary = { entries: [], dirty: false };
+
+function glossaryUpdate(entries) {
+  glossary.entries = entries || [];
+  if (!glossary.dirty) renderGlossary(glossary.entries);
+}
+function renderGlossary(entries) {
+  const ctl = GLOSSARY_BLOCK.querySelector(".pref-ctl");
+  const rows = el("div", { class: "grows" });
+  const addRow = (e = { src: "", dst: "" }) => {
+    const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "En inglés", value: e.src });
+    const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Igual (no traducir)", value: e.dst });
+    const row = el("div", { class: "grow" }, src, el("span", { class: "arrow", text: "→" }), dst,
+      btn("Quitar", { icon: "x", size: "xs", variant: "ghost", onClick: () => { row.remove(); glossary.dirty = true; } }));
+    for (const i of [src, dst]) i.addEventListener("input", () => { glossary.dirty = true; });
+    rows.append(row);
+    return src;
+  };
+  for (const e of entries) addRow(e);
+  if (!entries.length) addRow();
+  const save = btn("Guardar glosario", { icon: "check", variant: "dark", onClick: () => {
+    const items = [...rows.querySelectorAll(".grow")].map((r) => {
+      const [a, b] = r.querySelectorAll("input");
+      return { src: a.value.trim(), dst: b.value.trim() };
+    }).filter((x) => x.src);
+    glossary.dirty = false;
+    send({ type: "glossary_set", entries: items });
+    toast("Glosario guardado. Las frases que lo usan se traducen de nuevo.", "ok");
+  } });
+  ctl.replaceChildren(rows, el("div", { class: "segs" },
+    btn("Agregar término", { icon: "plus", onClick: () => addRow().focus() }), save),
+    el("small", { class: "label", text: "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas)." }));
+}
+renderGlossary([]);
+
+/* ------------------------------------------------------------ avisos del navegador */
+function requestNotify() {
+  if (!("Notification" in window)) {
+    toast("Este navegador no permite avisos.", "warn");
+    setPref("notify", false);
+    renderPrefs();
+    return;
+  }
+  Notification.requestPermission().then((p) => {
+    if (p !== "granted") {
+      toast("El navegador no dio permiso para mostrar avisos.", "warn");
+      setPref("notify", false);
+      renderPrefs();
+    } else {
+      notifyUser("Avisos activados", "Te avisaré cuando termine una descarga, un video o una exportación.", true);
+    }
+  });
+}
+// solo con la pestaña en segundo plano (si se está mirando, basta el aviso de la página)
+function notifyUser(title, body, force = false) {
+  if (!prefs.notify || !("Notification" in window) || Notification.permission !== "granted") return;
+  if (!force && !document.hidden) return;
+  const n = new Notification(title, { body, tag: `vt-${title}` });
+  n.onclick = () => { window.focus(); n.close(); };
+}
+// varios eventos seguidos se juntan en un solo aviso (con miles en la cola serían demasiados)
+const notifyBuf = {};
+function notifyLater(kind, name) {
+  const b = (notifyBuf[kind] ||= { names: [], timer: null });
+  b.names.push(name);
+  clearTimeout(b.timer);
+  b.timer = setTimeout(() => {
+    const n = b.names.length;
+    notifyUser(n === 1 ? `${kind[0].toUpperCase() + kind.slice(1)}: ${b.names[0]}` : `${n} videos ${kind}`,
+      n === 1 ? "" : b.names.slice(0, 3).join(" · ") + (n > 3 ? "…" : ""));
+    b.names = [];
+  }, 4000);
+}

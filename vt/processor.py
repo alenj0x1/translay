@@ -20,6 +20,7 @@ de lo procesado para no llenar el disco; la cola procesa solo lo descargado.
 """
 
 import json
+import random
 import threading
 import time
 from pathlib import Path
@@ -32,7 +33,14 @@ SR = 16000
 CHUNK_S = 3.0
 MAX_PENDING_DUBS = 3
 MAX_AHEAD_OF_VOICE_S = 30  # el reconocimiento no se aleja más de esto de la última frase con voz
-MAX_DOWNLOADED_AHEAD = 2   # videos descargados que esperan su turno
+MAX_DOWNLOADED_AHEAD = 3   # videos descargados que esperan su turno (no llenar el disco)
+# YouTube marca las ráfagas de descargas de una misma sesión: se espacian, y si pide
+# verificar que no eres un bot, las descargas se pausan un rato en vez de reintentar
+DOWNLOAD_GAP_S = (1, 3)       # pausa al azar entre descargas (modo normal: ~5 s por video)
+CAREFUL_GAP_S = (8, 15)       # modo cuidadoso: tras una verificación de YouTube, hasta renovar cookies
+BLOCK_PAUSE_S = 20 * 60       # pausa tras la verificación de YouTube
+RETRY_AFTER_S = 10 * 60       # un video que falla espera antes de reintentar…
+MAX_ATTEMPTS = 3              # …y tras 3 intentos queda en error
 
 
 def decode_audio(path: Path) -> np.ndarray:
@@ -65,6 +73,8 @@ class Processor:
                 if j["state"] == "procesando":
                     j["state"] = "en cola"  # se cortó al cerrar el servidor: se retoma
         self.current: str | None = None
+        self.blocked_until = 0.0  # YouTube pidió verificación: sin descargas hasta entonces
+        self.careful = False      # y desde entonces, descargas más espaciadas
         self.focus = {"vid": None, "t": 0.0}
         self._audio = (None, None)  # último audio decodificado (para saltos sin redecodificar)
         self._cond = threading.Condition()
@@ -80,15 +90,25 @@ class Processor:
     def add(self, vid: str, front: bool = False):
         self.add_many([vid], front)
 
-    def add_many(self, vids: list[str], front: bool = False):
+    def add_many(self, vids: list[str], front: bool = False, download_only: bool = False, audio_only: bool = False):
+        """download_only: solo se descarga (sin GPU); queda "descargado" hasta que se pida procesarlo."""
         with self._cond:
             for vid in vids:
                 job = self._job(vid)
                 if job is None:
                     job = {"id": vid, "state": "en cola", "added": time.time(), "error": ""}
+                    if download_only:
+                        job["download_only"] = True
+                    if audio_only:
+                        job["audio_only"] = True  # se descarga solo el audio original
                     self.data["jobs"].append(job)
-                elif job["state"] in ("listo", "error"):
+                elif download_only:
+                    continue  # ya estaba: se deja como está
+                elif job["state"] in ("listo", "error", "descargado"):
                     job.update(state="en cola", error="")
+                    job.pop("download_only", None)  # ahora sí se procesa
+                elif job.get("download_only"):
+                    job.pop("download_only", None)
                 if front:  # prioridad: primero en la cola y deja atrás al trabajo de fondo en curso
                     self.data["jobs"].remove(job)
                     self.data["jobs"].insert(0, job)
@@ -116,7 +136,7 @@ class Processor:
 
     def clear_done(self):
         with self._cond:
-            self.data["jobs"] = [j for j in self.data["jobs"] if j["state"] not in ("listo", "error")]
+            self.data["jobs"] = [j for j in self.data["jobs"] if j["state"] not in ("listo", "error", "descargado")]
             self._save()
         self._broadcast()
 
@@ -154,6 +174,8 @@ class Processor:
     def progress(self, vid: str) -> dict:
         """Fracción reconocida (tiempo cubierto) y doblada, sobre el video completo."""
         v = self.library.data["videos"].get(vid, {})
+        if not v.get("media"):  # sin descargar: nada procesado (y sin abrir su transcripción)
+            return {"asr": 0.0, "dub": 0.0}
         dur = v.get("duration") or 0
         tr = self.store.open(vid, v.get("title", ""))
         covered = sum(b - a for a, b in tr.covered)
@@ -171,7 +193,8 @@ class Processor:
             except Exception:
                 p = {"asr": 0, "dub": 0}
             jobs.append({**j, **p, "watching": j["id"] == self.focus["vid"], "downloaded": self._has_media(j["id"])})
-        return {"type": "queue", "paused": self.data["paused"], "current": self.current, "jobs": jobs}
+        return {"type": "queue", "paused": self.data["paused"], "current": self.current, "jobs": jobs, "careful": self.careful,
+                "blocked_until": self.blocked_until if self.blocked_until > time.time() else 0}
 
     # ---------------------------------------------------------------- bucle
     def _next(self):
@@ -181,29 +204,41 @@ class Processor:
             return job
         if self.data["paused"]:
             return None
-        return next((j for j in self.data["jobs"] if j["state"] == "en cola" and self._has_media(j["id"])), None)
+        return next((j for j in self.data["jobs"]
+                     if j["state"] == "en cola" and not j.get("download_only") and self._has_media(j["id"])), None)
 
     def _has_media(self, vid: str) -> bool:
         return bool((self.library.data["videos"].get(vid) or {}).get("media"))
 
     # ------------------------------------------------------------- descargas
+    def unblock(self):
+        """Cookies nuevas: las descargas siguen sin esperar el fin de la pausa."""
+        with self._cond:
+            self.blocked_until = 0.0
+            self.careful = False  # sesión nueva: vuelve el modo normal
+            for j in self.data["jobs"]:
+                j.pop("retry_at", None)
+            self._cond.notify_all()
+        self._broadcast()
+
     def _next_download(self):
-        if self.data["paused"]:
+        # la pausa de la cola es del procesamiento (GPU); las descargas no la usan y siguen
+        if time.time() < self.blocked_until:
             return None
-        # el límite de descargas por delante es para las playlists (no llenar el disco);
-        # lo que se importa suelto se descarga enseguida
-        in_lists = {i for c in self.library.data["collections"] if c.get("kind") == "playlist" for i in c["items"]}
+        now = time.time()
+        # pocas descargas por delante de lo procesado (con miles importados, el disco se
+        # llenaría); lo priorizado o pedido para abrir se descarga enseguida
         waiting, capped = 0, None
         for j in self.data["jobs"]:
-            if j["state"] != "en cola":
+            if j["state"] != "en cola" or j.get("retry_at", 0) > now:
                 continue
             v = self.library.data["videos"].get(j["id"]) or {}
             if v.get("media"):
-                waiting += 1
+                waiting += 0 if j.get("download_only") else 1
             elif v.get("source") == "youtube":
-                if j["id"] not in in_lists:
+                if j.get("prio"):
                     return j
-                if capped is None and waiting < MAX_DOWNLOADED_AHEAD:
+                if capped is None and (waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only")):
                     capped = j
         return capped
 
@@ -215,29 +250,50 @@ class Processor:
             vid = job["id"]
             last = [0.0]
 
-            def progress(stage, frac, title=None, job=job):
-                job["dl"] = {"stage": stage, "pct": round(frac * 100)}
+            def progress(stage, frac, title=None, stats=None, job=job):
+                job["dl"] = {"stage": stage, "pct": round(frac * 100), **(stats or {})}
                 if time.time() - last[0] > 1 or stage == "listo":
                     last[0] = time.time()
                     self._broadcast()
 
             try:
-                info = self.youtube.fetch(vid[3:], progress, self.session())
-                self.library.set_field(vid, media=info["video"], audio=info["audio"],
+                info = self.youtube.fetch(vid[3:], progress, self.session(), audio_only=bool(job.get("audio_only")),
+                                          careful=self.careful)
+                self.library.set_field(vid, media=info["video"] or info["audio"], audio=info["audio"],
+                                       audio_only=bool(info.get("audio_only")),
                                        **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
                                           if info.get(k)})
                 job.pop("dl", None)
+                job.pop("attempts", None)
+                job.pop("retry_at", None)
+                if job.get("download_only"):  # «Solo descargar»: listo para ver o exportar el original
+                    job["state"] = "descargado"
             except Exception as e:
                 from .youtube import friendly_error
 
                 print(f"[descarga] {vid}: {e}", flush=True)
                 job.pop("dl", None)
-                job.update(state="error", error=friendly_error(e, self.session()))
+                msg = str(e)
+                if "confirm you" in msg and "bot" in msg:
+                    # verificación de YouTube: todas las descargas esperan; el video no queda en error
+                    self.blocked_until = time.time() + BLOCK_PAUSE_S
+                    self.careful = True
+                    self.notify({"type": "yt_blocked", "until": self.blocked_until,
+                                 "error": friendly_error(e, self.session())})
+                else:
+                    job["attempts"] = job.get("attempts", 0) + 1
+                    if job["attempts"] >= MAX_ATTEMPTS:
+                        job.update(state="error", error=friendly_error(e, self.session()))
+                    else:
+                        job["retry_at"] = time.time() + RETRY_AFTER_S
             with self._cond:
                 self._save()
                 self._cond.notify_all()
             self._broadcast()
             self.notify({"type": "library_changed"})
+            # espacio entre descargas (se interrumpe si hay que parar)
+            with self._cond:
+                self._cond.wait(timeout=random.uniform(*(CAREFUL_GAP_S if self.careful else DOWNLOAD_GAP_S)))
 
     def _loop(self):
         while True:

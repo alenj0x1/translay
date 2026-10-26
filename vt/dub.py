@@ -145,7 +145,9 @@ class Dubber:
         if not text:
             return None
         vv = self.voices(tr)
-        ref, ref_text = vv.ref_for(seg.get("speaker"))
+        spk = seg.get("speaker")
+        chosen = (tr.data.get("voice_map") or {}).get(str(spk))  # «Personas»: usar la voz de otra persona
+        ref, ref_text = vv.ref_for(int(chosen) if chosen not in (None, "") else spk)
         slot = slot or self.slot(tr, seg)
         target = self.target_duration(seg, slot)
         y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target,

@@ -22,3 +22,16 @@
 #queue-clear { margin: 8px 12px 10px; }
 
 @media (max-width: 760px) { .queue-pop { width: auto; } }
+
+/* ---------- pantalla de la Cola ---------- */
+.qmain { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--gap); min-width: 0; min-height: 0; }
+.qlist { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; }
+.qlist .qitem { grid-template-columns: 120px minmax(0, 1fr) auto; padding: 12px 14px; }
+.qlist .qactions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+.qlist .qbody strong { font-size: 14px; }
+@media (max-width: 760px) {
+  .qnav { max-height: 200px; }
+  .qlist .qitem { grid-template-columns: 72px minmax(0, 1fr); }
+  .qlist .qactions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+.qhead-acts { display: flex; gap: 6px; flex: none; }

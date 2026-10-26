@@ -125,3 +125,7 @@ body.mini .ctrl .ic { width: 28px; height: 28px; }
   .ready b { width: 36px; }
   body.mini .stage { width: 62vw; right: 12px; bottom: 12px; }
 }
+
+/* velocidad: texto corto que cambia con cada clic */
+.ctrl .speed { min-width: 52px; font: 500 11.5px/1 var(--font-mono); color: var(--fg); border-color: var(--border-faint); }
+body.mini .ctrl .speed { display: none; }

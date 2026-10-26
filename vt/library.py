@@ -44,6 +44,11 @@ class Library:
         self.data = {"videos": {}, "collections": []}
         if path.exists():
             self.data = json.loads(path.read_text(encoding="utf-8"))
+            # miniaturas remotas de versiones anteriores → la copia local (se baja una sola vez)
+            for vid, v in self.data["videos"].items():
+                t = v.get("thumb") or ""
+                if t.startswith("https://i.ytimg.com/vi/"):
+                    v["thumb"] = f"/thumb/yt/{vid[3:]}.jpg"
         self._dirty_at = 0.0
 
     def save(self):
@@ -66,6 +71,14 @@ class Library:
         v = self.data["videos"].get(vid)
         if v:
             v.update(kw)
+            self.save()
+
+    def set_fields(self, changes: dict[str, dict]):
+        """Varios videos de una vez (un solo guardado)."""
+        for vid, kw in changes.items():
+            if vid in self.data["videos"]:
+                self.data["videos"][vid].update(kw)
+        if changes:
             self.save()
 
     def position(self, vid: str, t: float):
@@ -130,7 +143,7 @@ class Library:
             if vid not in self.data["videos"]:
                 self.data["videos"][vid] = {"id": vid, "source": "youtube", "title": e.get("title") or e["id"],
                                             "duration": e.get("duration") or 0, "channel": e.get("channel", ""),
-                                            "thumb": f"https://i.ytimg.com/vi/{e['id']}/mqdefault.jpg",
+                                            "thumb": f"/thumb/yt/{e['id']}.jpg",  # se guarda al mostrarla
                                             "added": now - n * 1e-3, "position": 0}
             out.append(vid)
         self.save()

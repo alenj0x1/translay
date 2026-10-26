@@ -72,3 +72,7 @@
 }
 .card .play.dl::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border-soft); }
 .card .play.dl b { position: relative; font: 500 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* solo se descargó el audio */
+.card .aud { position: absolute; right: 8px; top: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; }
+.card .aud svg { width: 11px; height: 11px; }
