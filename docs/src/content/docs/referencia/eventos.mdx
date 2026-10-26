@@ -28,7 +28,7 @@ Un envío que no recibe una respuesta 2xx se reintenta a los {ev.retries.map((s)
 ```python
 from . import events
 
-events.emit("video.procesado", vault=vault.id, video=vid, title=title)
+events.emit("video.procesado", vault.id, video=vid, title=title)  # nombre y biblioteca van por posición
 ```
 
 Agrégalo antes a `CATALOG` en `vt/events.py` con su descripción: así aparece para elegirlo en Preferencias → Acceso y API → Webhooks, en `GET /api/v1/events` y en esta página.
