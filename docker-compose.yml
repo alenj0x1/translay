@@ -1,0 +1,26 @@
+# docker compose up -d   →   http://localhost:8765
+# La primera vez descarga los modelos (~6 GB) en el volumen «modelos»; tarda varios minutos.
+services:
+  translay:
+    build: .
+    image: translay:1.0.0
+    container_name: translay
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      # en Docker nadie entra desde 127.0.0.1: esta es la contraseña del dueño
+      TRANSLAY_OWNER_PASSWORD: ${TRANSLAY_OWNER_PASSWORD:?define TRANSLAY_OWNER_PASSWORD en .env}
+    volumes:
+      - ./data:/app/data
+      - modelos:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  modelos:

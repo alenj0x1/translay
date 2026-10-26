@@ -4,6 +4,7 @@ av
 sentencepiece
 tokenizers
 huggingface_hub
+onnxruntime       # huella de voz de cada persona (WeSpeaker en ONNX, CPU)
 yt-dlp[default]   # videos de YouTube (usa Node para el desafío JS)
 # CUDA 12 en Windows/Linux (GPU NVIDIA)
 nvidia-cublas-cu12

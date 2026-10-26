@@ -1111,7 +1111,10 @@ def pick_folder() -> str:
         from tkinter import filedialog
     except ImportError:
         return ""
-    root = tk.Tk()
+    try:
+        root = tk.Tk()
+    except Exception:  # sin pantalla (Docker, servidor remoto): la carpeta se escribe a mano
+        return ""
     root.withdraw()
     root.attributes("-topmost", True)  # delante del navegador
     try:

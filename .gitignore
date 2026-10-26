@@ -1,5 +1,8 @@
 __pycache__/
 *.pyc
 data/
-samples/
+/samples/
 .venvs/
+.pytest_cache/
+.env
+node_modules/

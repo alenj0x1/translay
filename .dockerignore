@@ -1,0 +1,14 @@
+# solo entra lo que copia el Dockerfile
+.git
+.venvs
+.pytest_cache
+.claude
+**/__pycache__
+**/*.pyc
+data
+samples
+tools
+tests
+docs
+*.md
+iniciar.bat

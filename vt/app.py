@@ -2,12 +2,14 @@
 
 import argparse
 import asyncio
+import os
 import re
 import threading
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from . import __version__
 from .asr import WhisperASR
 from .httpws import AppServer
 from .session import Session
@@ -22,17 +24,22 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def main():
-    p = argparse.ArgumentParser(description="Traductor de video EN→ES en tiempo real")
-    p.add_argument("--host", default="127.0.0.1")
-    p.add_argument("--port", type=int, default=8765)
-    p.add_argument("--model", default="large-v3-turbo")
-    p.add_argument("--device", default="cuda")
-    p.add_argument("--compute-type", default="float16")
-    p.add_argument("--beam", type=int, default=5)
+    p = argparse.ArgumentParser(description="Translay: traduce y dobla videos del inglés al español")
+    p.add_argument("--version", action="version", version=f"Translay {__version__}")
+    p.add_argument("--host", default="127.0.0.1",
+                   help="Dirección donde escucha el servidor (0.0.0.0 para todas, p. ej. en Docker)")
+    p.add_argument("--port", type=int, default=8765, help="Puerto HTTP y WebSocket")
+    p.add_argument("--model", default="large-v3-turbo", help="Modelo de Whisper para el reconocimiento")
+    p.add_argument("--device", default="cuda", help="cuda (GPU NVIDIA) o cpu")
+    p.add_argument("--compute-type", default="float16", help="Precisión de CTranslate2: float16, int8_float16, int8…")
+    p.add_argument("--beam", type=int, default=5, help="Ancho de búsqueda de Whisper (5 segmenta mejor que 1)")
     p.add_argument("--translator", default="opus-big",
                    help="none | " + " | ".join(MT_MODELS) + " | repo de HF (Marian CT2)")
     p.add_argument("--voice", default="omnivoice", help="none | omnivoice | chatterbox")
-    p.add_argument("--no-browser", action="store_true")
+    p.add_argument("--owner-password", default=os.environ.get("TRANSLAY_OWNER_PASSWORD", ""),
+                   help="Contraseña del dueño al arrancar (o TRANSLAY_OWNER_PASSWORD); hace falta cuando "
+                        "nadie entra desde 127.0.0.1, como en Docker")
+    p.add_argument("--no-browser", action="store_true", help="No abrir el navegador al arrancar")
     a = p.parse_args()
 
     print(f"Preparando {a.model} en {a.device} ({a.compute_type})…", flush=True)
@@ -244,10 +251,12 @@ def main():
 
     # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)
     from .api import Admin, Api, CollectorWS, make_guard
-    from .auth import Auth
+    from .auth import Auth, check_pw
     from .webhooks import Webhooks
 
     auth = Auth(ROOT / "data" / "auth.json", vaults)
+    if a.owner_password and not check_pw(a.owner_password, auth.data.get("owner")):
+        auth.set_owner_password(a.owner_password)  # Docker: desde el contenedor nadie llega por 127.0.0.1
     hooks = Webhooks(ROOT / "data" / "webhooks.json", notify)
     admin = Admin(auth, hooks, a.port)
 
