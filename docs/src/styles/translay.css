@@ -60,7 +60,14 @@
   --t-surface-2: #eef0f3;
 }
 
+/* sin parpadeo al cambiar de página: el lienzo ya tiene el color del tema antes de pintar,
+   y el navegador funde una página con la siguiente en vez de mostrarla en blanco */
+:root { color-scheme: dark; background-color: var(--sl-color-black); }
+:root[data-theme="light"] { color-scheme: light; }
 body { background: var(--sl-color-black); }
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .12s; }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 
 /* títulos con el peso de la app */
 .sl-markdown-content :is(h1, h2, h3, h4) { font-weight: 800; letter-spacing: -.01em; }

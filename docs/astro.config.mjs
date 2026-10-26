@@ -6,6 +6,7 @@ import starlight from "@astrojs/starlight";
 export default defineConfig({
   site: process.env.SITE || "http://localhost:4321",
   base: process.env.BASE || "/",
+  devToolbar: { enabled: false }, // la barra de Astro aparecía con un destello en cada página
   integrations: [
     starlight({
       title: "Translay",
