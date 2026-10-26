@@ -28,7 +28,7 @@ La referencia de una persona son sus mejores frases originales, completas, unida
 - Cada frase se puntúa por largo y limpieza: `min(duración, 6) × (SNR / 30)`, con el factor de limpieza entre 0,2 y 1. Se guardan las mejores hasta sumar 9 s.
 - Con la referencia ya al 75 %, una frase nueva solo entra si es 1,3 veces mejor que la peor: cada cambio obliga al motor a recalcular la voz (1 a 2 s de GPU).
 
-Las referencias se guardan en `<biblioteca>/voices/<video>/spk<persona>_v<versión>.wav`, con `voices.json` (archivo, versión, texto y puntaje). Cada versión lleva un nombre nuevo y la anterior se borra: el motor guarda en caché la voz calculada por ruta y fecha del archivo, y así nunca reutiliza una vieja.
+Las referencias se guardan en `<biblioteca>/voices/<video>/spk<persona>_v<versión>.wav`, con `voices.json` (archivo, versión, texto y puntaje). Cada versión lleva un nombre nuevo (el motor guarda en caché la voz calculada por ruta y fecha del archivo, y así nunca reutiliza una vieja). Se conservan la actual y la anterior, que el proceso de voz puede estar leyendo en ese momento; las más viejas se borran.
 
 ### Por qué hasta 8 s y sin recortar
 
