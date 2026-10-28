@@ -22,7 +22,9 @@ const pages = [
   { src: "CHANGELOG.es.md", out: "es/changelog.mdx", title: "Cambios", description: "Todo lo que cambió en cada versión de Translay." },
 ];
 for (const p of pages) {
-  const md = readFileSync(join(root, p.src), "utf8").replace(/^# .*\n+/, ""); // el título lo pone la página
+  const md = readFileSync(join(root, p.src), "utf8").replace(/\r\n/g, "\n")
+    .replace(/^# .*\n+/, "") // el título lo pone la página
+    .replace(/^## (Unreleased|Sin publicar)\n[\s\S]*?(?=^## )/m, ""); // solo versiones publicadas
   const page = `---
 title: ${p.title}
 description: ${p.description}

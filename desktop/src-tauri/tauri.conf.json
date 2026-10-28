@@ -26,7 +26,8 @@
     "resources": {
       "../.stage/translay/": "translay/",
       "../locks/": "locks/",
-      "tools/": "tools/"
+      "tools/": "tools/",
+      "../../LICENSE": "LICENSE"
     },
     "windows": {
       "nsis": {
@@ -42,6 +43,8 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico"
-    ]
+    ],
+    "copyright": "Copyright (c) 2026 alenj0x1 · MIT License",
+    "license": "MIT"
   }
 }

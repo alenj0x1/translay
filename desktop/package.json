@@ -2,6 +2,7 @@
   "name": "translay-desktop",
   "private": true,
   "version": "1.3.0",
+  "license": "MIT",
   "type": "module",
   "description": "Translay desktop app (Tauri 2): installs its own runtime and runs the local server in a native window",
   "scripts": {

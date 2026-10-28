@@ -1,11 +1,12 @@
-# tipo(alcance): descripción en minúscula, sin punto final (máx. 100)
+# type(scope): imperative summary in English, lowercase, no trailing period (max. 72)
 #
-# Tipos: feat fix perf refactor style docs test build ci chore revert
-# Alcances: biblioteca bibliotecas importar cola reproductor voz traducción
-#           reconocimiento exportar acceso api webhooks youtube interfaz docker docs
+# Types: feat fix perf refactor style docs test build ci chore revert
+# Scopes: library libraries import queue player voice translation recognition
+#         export access api webhooks youtube ui desktop docker docs
 #
-# Cuerpo opcional: qué cambia y por qué (no cómo).
+# Body: one bullet per change, grouped by area (app, server, desktop, docs…),
+# saying what changed and why.
 #
-# Pies opcionales:
-#   BREAKING CHANGE: qué deja de funcionar y cómo migrar
-#   Docs: no aplica
+# Optional footers:
+#   BREAKING CHANGE: what stops working and how to migrate
+#   Docs: n/a

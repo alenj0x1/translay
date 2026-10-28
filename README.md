@@ -12,6 +12,7 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 [![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
 [![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f9e6a)](LICENSE)
 
 **[Download for Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentation](https://alenj0x1.github.io/translay/) · [Changelog](CHANGELOG.md)
 
@@ -238,7 +239,7 @@ python -m pytest tests                  # tests without a GPU
 npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js + Rust)
 ```
 
-- Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) with the description in Spanish: `feat(cola): priorizar desde la tarjeta`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) in English, with a body that details every change: `feat(queue): prioritize from the card`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Every change updates its documentation page (in English and Spanish) and "Unreleased" / «Sin publicar» in both changelogs.
 - Versions with `python scripts/release.py X.Y.Z` ([Releases](https://alenj0x1.github.io/translay/development/releases/)).
 - Measurement: `tools/eval_pipeline.py` (recognition and who speaks), `tools/eval_translation.py`, `tools/eval_tts.py` and the hardware labs in `tools/lab/` (`TRANSLAY_EMULATE` emulates a smaller machine). See [Testing and evaluation](https://alenj0x1.github.io/translay/development/testing/).
@@ -259,3 +260,7 @@ npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js
 ## Credits
 
 Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).
+
+## License
+
+[MIT](LICENSE). Third-party models and tools keep their own licenses.

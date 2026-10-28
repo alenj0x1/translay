@@ -7,12 +7,12 @@
    git config commit.template .gitmessage
    ```
 
-2. Mensajes con [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) en español:
+2. Mensajes con [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) en inglés, con un cuerpo que detalle cada cambio:
 
    ```
-   feat(cola): priorizar desde la tarjeta
-   fix(voz): referencias sin recortar
-   docs(api): ejemplo de exportación
+   feat(queue): prioritize from the card
+   fix(voice): stop trimming reference clips
+   docs(api): add an export example
    ```
 
    Tipos: `feat` `fix` `perf` `refactor` `style` `docs` `test` `build` `ci` `chore` `revert`. Detalle en [docs/…/development/commits.mdx](docs/src/content/docs/development/commits.mdx).

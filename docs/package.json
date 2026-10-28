@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "version": "1.3.0",
+  "license": "MIT",
   "description": "Documentación de Translay en inglés y español (Astro + Starlight)",
   "scripts": {
     "sync": "node scripts/sync.mjs",

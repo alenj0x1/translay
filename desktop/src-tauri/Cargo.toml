@@ -3,6 +3,7 @@ name = "translay"
 version = "1.3.0"
 description = "Translay: translate and dub videos from English to Spanish with each speaker's voice"
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "translay_lib"

@@ -7,15 +7,18 @@ sidebar:
 
 import { Aside } from "@astrojs/starlight/components";
 
-Commits follow [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/), with the description written in Spanish. That way the history reads itself and the next version is calculated from it ([Releases](../releases/)).
+Commits follow [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/) **in English**: an imperative summary and a body with every change. That way the history reads itself and the next version is calculated from it ([Releases](../releases/)). Up to version 1.3.0 the messages were in Spanish.
 
 ```
-type(scope): description in lowercase, no trailing period
+type(scope): imperative summary in lowercase, no trailing period
 
-Optional body: what changes and why.
+- area: what changed and why, one bullet per change
+- area: …
 
 BREAKING CHANGE: what stops working and how to migrate
 ```
+
+The first line is at most 72 characters. The body details every change grouped by area (server, interface, desktop, docs…): what changed and why, never "various fixes".
 
 ## Types
 
@@ -37,24 +40,24 @@ A `!` before the colon (`feat(api)!: …`) or a `BREAKING CHANGE:` footer marks 
 
 ## Scopes
 
-Optional, lowercase and written in Spanish with accents: the area of the app that changes.
+Optional, in English and lowercase: the area of the app that changes.
 
-`biblioteca` · `bibliotecas` · `importar` · `cola` · `reproductor` · `voz` · `traducción` · `reconocimiento` · `exportar` · `acceso` · `api` · `webhooks` · `youtube` · `interfaz` · `docker` · `docs`
+`library` · `libraries` · `import` · `queue` · `player` · `voice` · `translation` · `recognition` · `export` · `access` · `api` · `webhooks` · `youtube` · `ui` · `desktop` · `docker` · `docs`
 
 ## Examples
 
 ```
-feat(cola): priorizar desde la tarjeta
-fix(voz): las referencias ya no se recortan adivinando el texto
-perf(reconocimiento): limitar el caché de CTranslate2 a 400 MB
-docs(api): ejemplo de exportación con curl
-build(docker): imagen con CUDA 12.8
-feat(api)!: las rutas de videos pasan a /api/v2
+feat(queue): prioritize from the card
+fix(voice): stop trimming reference clips by guessing the text
+perf(recognition): cap the CTranslate2 cache at 400 MB
+docs(api): add a curl export example
+build(docker): use the CUDA 12.8 image
+feat(api)!: move the video routes to /api/v2
 ```
 
 ## Validation
 
-`.githooks/commit-msg` rejects a message that does not follow the format, and a `feat`, `fix` or `perf` that changes the app (`vt/`, `web/`, `Dockerfile`, `requirements.txt`…) without touching the documentation or `CHANGELOG.md` (see [Documentation](../docs/)). Enable it once per clone:
+`.githooks/commit-msg` rejects a message that does not follow the format, and a `feat`, `fix` or `perf` that changes the app (`vt/`, `web/`, `Dockerfile`, `requirements.txt`…) without touching the documentation or the changelogs (see [Documentation](../docs/)). Enable it once per clone:
 
 ```sh
 git config core.hooksPath .githooks
@@ -64,5 +67,5 @@ git config commit.template .gitmessage
 The second line sets up a template with the types and scopes when the commit editor opens.
 
 <Aside>
-If a change really does not need documentation (an invisible internal fix), add `Docs: no aplica` as the last line of the message.
+If a change really does not need documentation (an invisible internal fix), add `Docs: n/a` as the last line of the message.
 </Aside>

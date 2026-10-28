@@ -2,9 +2,18 @@
 
 All notable changes to Translay. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
-Every change that lands on `main` is first recorded under **Unreleased** (and under «Sin publicar» in [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md), in Spanish); when a version is released, `scripts/release.py` moves that section to the new version.
+The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
 ## Unreleased
+
+### Changed
+
+- Translay is now licensed under MIT (`LICENSE`); the installer ships it.
+- Commit messages follow Conventional Commits in English, with a body that details every change.
+
+### Fixed
+
+- The docs changelog no longer shows an empty "Unreleased" section above the latest version, which made it look unreleased: the site only lists released versions.
 
 ## 1.3.0 · 2026-10-27
 

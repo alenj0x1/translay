@@ -2,9 +2,18 @@
 
 Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [Versionado semántico](https://semver.org/lang/es/).
 
-Cada cambio que llega a `main` se anota primero en **Sin publicar** (y en «Unreleased» de [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md), en inglés); al liberar una versión, `scripts/release.py` mueve esa sección a la versión nueva.
+Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
 ## Sin publicar
+
+### Cambiado
+
+- Translay ahora tiene licencia MIT (`LICENSE`); el instalador la incluye.
+- Los mensajes de commit siguen Conventional Commits en inglés, con un cuerpo que detalla cada cambio.
+
+### Corregido
+
+- La página de cambios de la documentación ya no muestra una sección «Sin publicar» vacía encima de la última versión (parecía no lanzada): solo lista versiones publicadas.
 
 ## 1.3.0 · 2026-10-27
 

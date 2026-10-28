@@ -9,7 +9,7 @@ Pasos:
      (CHANGELOG.es.md) tengan algo.
   2. Cambia la versión en vt/__init__.py, docs/package.json y la app de escritorio
      (desktop/package.json, Cargo.toml, Cargo.lock y tauri.conf.json).
-  3. Mueve esas secciones a «## <versión> · <fecha>» y deja una sección vacía nueva en cada changelog.
+  3. Convierte esas secciones en «## <versión> · <fecha>» (sin dejar una sección vacía encima).
   4. Commit «chore(release): v<versión>» y etiqueta anotada v<versión> con las notas.
 
 No hace push: revisa y luego `git push --follow-tags`.
@@ -83,7 +83,8 @@ def main() -> int:
         notes = m[1].strip()
         if not notes:
             sys.exit(f"«{heading[3:]}» está vacía: anota los cambios en {path.name} antes de liberar.")
-        updated.append((path, text[:m.start()] + f"{heading}\n\n## {a.version} · {today}\n\n{notes}\n\n" + text[m.end():], notes))
+        # la sección se convierte en la versión: no queda un «Sin publicar» vacío encima de lo publicado
+        updated.append((path, text[:m.start()] + f"## {a.version} · {today}\n\n{notes}\n\n" + text[m.end():], notes))
     notes = updated[0][2]  # la etiqueta lleva las notas en inglés
     print(f"{current()} → {a.version} ({today})\n\n{notes}\n")
     if a.dry_run:

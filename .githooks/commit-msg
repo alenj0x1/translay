@@ -1,65 +1,64 @@
 #!/bin/sh
-# Valida el mensaje de commit: Conventional Commits + documentación al día.
-# Se activa una vez por clon:  git config core.hooksPath .githooks
+# Validates the commit message: Conventional Commits in English + docs kept up to date.
+# Enable once per clone:  git config core.hooksPath .githooks
 #
-#   tipo(alcance opcional)!: descripción en minúscula, sin punto final
+#   type(optional scope)!: imperative summary in lowercase, no trailing period (max. 72)
 #
-# Tipos: feat fix perf refactor style docs test build ci chore revert
-# Un feat/fix/perf que toca vt/, web/, desktop/, Dockerfile o requirements.txt debe incluir
-# cambios en docs/ o en los changelogs. Si de verdad no hace falta, agrega la línea
-#   Docs: no aplica
-# al final del mensaje.
+# Types: feat fix perf refactor style docs test build ci chore revert
+# A feat/fix/perf that touches vt/, web/, desktop/, Dockerfile or requirements.txt must also
+# change docs/ or the changelogs. If it really doesn't need it, end the message with the line
+#   Docs: n/a
 
 msg_file="$1"
 header=$(grep -v '^#' "$msg_file" | sed -n '/./{p;q;}')
 
-# commits que arma git solo
+# commits git writes by itself
 case "$header" in
   Merge\ *|Revert\ \"*|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
 esac
 
 types='feat|fix|perf|refactor|style|docs|test|build|ci|chore|revert'
-if ! printf '%s' "$header" | grep -Eq "^($types)(\([a-z0-9áéíóúñü/._-]+\))?!?: [^ ].*[^.]$"; then
+if ! printf '%s' "$header" | grep -Eq "^($types)(\([a-z0-9/._-]+\))?!?: [a-z0-9].*[^.]$"; then
   cat >&2 <<MSG
 
-  ✗ El mensaje no sigue la convención de commits.
+  ✗ The message does not follow the commit convention.
 
-    tipo(alcance): descripción
-    ej.  feat(cola): priorizar desde la tarjeta
-         fix(voz): referencias sin recortar
-         docs: guía de exportar
+    type(scope): imperative summary
+    e.g. feat(queue): prioritize from the card
+         fix(voice): stop trimming reference clips
+         docs: export guide
 
-    Tipos: feat fix perf refactor style docs test build ci chore revert
-    «!» antes de «:» marca un cambio incompatible. Sin punto final.
-    Detalle: docs/src/content/docs/development/commits.mdx
+    Types: feat fix perf refactor style docs test build ci chore revert
+    English, lowercase, no trailing period. "!" before ":" marks a breaking change.
+    Details: docs/src/content/docs/development/commits.mdx
 
-  Recibido: $header
+  Got: $header
 MSG
   exit 1
 fi
 
-if [ ${#header} -gt 100 ]; then
-  echo "  ✗ La primera línea tiene ${#header} caracteres (máximo 100)." >&2
+if [ ${#header} -gt 72 ]; then
+  echo "  ✗ The first line has ${#header} characters (max. 72)." >&2
   exit 1
 fi
 
-# documentación al día (en CI solo se revisa el formato: VT_SOLO_FORMATO=1)
+# docs up to date (CI only checks the format: VT_SOLO_FORMATO=1)
 [ -n "$VT_SOLO_FORMATO" ] && exit 0
 type=$(printf '%s' "$header" | sed -E 's/^([a-z]+).*/\1/')
 case "$type" in
   feat|fix|perf)
-    if grep -qi '^Docs: no aplica' "$msg_file"; then exit 0; fi
+    if grep -qiE '^Docs: (n/a|no aplica)' "$msg_file"; then exit 0; fi
     staged=$(git diff --cached --name-only)
     code=$(printf '%s\n' "$staged" | grep -E '^(vt/|web/|desktop/|Dockerfile|docker-compose.yml|requirements.txt|run.py)' | head -1)
     docs=$(printf '%s\n' "$staged" | grep -E '^(docs/src/content/|CHANGELOG(\.es)?\.md|README(\.es)?\.md)' | head -1)
     if [ -n "$code" ] && [ -z "$docs" ]; then
       cat >&2 <<MSG
 
-  ✗ Este $type cambia la app pero no la documentación.
+  ✗ This $type changes the app but not the documentation.
 
-    Actualiza la página que corresponda en docs/src/content/docs/ (inglés y es/)
-    y anota el cambio en CHANGELOG.md («Unreleased») y CHANGELOG.es.md («Sin publicar»). Si de verdad no hace falta,
-    agrega al mensaje la línea:  Docs: no aplica
+    Update the matching page in docs/src/content/docs/ (English and es/) and add the
+    change to CHANGELOG.md ("Unreleased") and CHANGELOG.es.md ("Sin publicar").
+    If it really isn't needed, end the message with the line:  Docs: n/a
 MSG
       exit 1
     fi

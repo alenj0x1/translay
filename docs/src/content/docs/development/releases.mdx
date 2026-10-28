@@ -34,7 +34,7 @@ Translay uses [semantic versioning](https://semver.org/): `major.minor.patch`. T
    python scripts/release.py 1.1.0
    ```
 
-   It changes the version, moves "Unreleased" and "Sin publicar" to `## 1.1.0 · <date>` in both changelogs, makes the `chore(release): v1.1.0` commit and the annotated `v1.1.0` tag with the notes.
+   It changes the version, turns "Unreleased" and "Sin publicar" into `## 1.1.0 · <date>` in both changelogs (no empty section is left above it; the docs site only shows released versions), makes the `chore(release): v1.1.0` commit and the annotated `v1.1.0` tag with the notes.
 
 4. Publish:
 

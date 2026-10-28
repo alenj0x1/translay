@@ -11,7 +11,7 @@ Esta documentación vive en el mismo repositorio que el código (`docs/`, Astro 
 
 1. **Referencia generada desde el código.** Las tablas de [línea de comandos](../../reference/cli/), [preferencias](../../reference/preferences/), [eventos](../../reference/events/) y [rutas de la API](../../reference/api/) no se escriben a mano: `docs/scripts/gen_reference.py` las lee de `vt/` en cada compilación. Al agregar una preferencia, un evento o una ruta, la documentación ya la muestra.
 2. **Changelog en el repositorio.** La página [Cambios](../../changelog/) se arma desde `CHANGELOG.es.md` (y la inglesa desde `CHANGELOG.md`).
-3. **El commit lo exige.** Un `feat`, `fix` o `perf` que toca la app sin tocar `docs/` ni `CHANGELOG.md` no pasa el hook ([Convención de commits](../commits/)).
+3. **El commit lo exige.** Un `feat`, `fix` o `perf` que toca la app sin tocar `docs/` ni los changelogs no pasa el hook ([Convención de commits](../commits/)).
 
 ## Qué actualizar en cada cambio
 
