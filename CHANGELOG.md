@@ -6,6 +6,8 @@ Every change that lands on `main` is first recorded under **Unreleased** (and un
 
 ## Unreleased
 
+## 1.3.0 · 2026-10-27
+
 ### Added
 
 - Desktop app for Windows with an installer (`Translay_<version>_x64-setup.exe`): it installs without administrator rights, sets up the server and the voice engine by itself, and opens Translay in its own window.

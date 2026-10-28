@@ -6,6 +6,8 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar** (y en «Unre
 
 ## Sin publicar
 
+## 1.3.0 · 2026-10-27
+
 ### Agregado
 
 - App de escritorio para Windows con instalador (`Translay_<versión>_x64-setup.exe`): se instala sin ser administrador, prepara sola el servidor y el motor de voz y abre Translay en su propia ventana.
