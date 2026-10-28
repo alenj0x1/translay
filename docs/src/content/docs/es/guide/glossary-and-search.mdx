@@ -1,0 +1,42 @@
+---
+title: Glosario y búsqueda
+description: Términos con traducción fija o que se dejan en inglés, y la búsqueda en todas las transcripciones de una biblioteca.
+sidebar:
+  order: 9
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+## Glosario
+
+El glosario está en Preferencias › Glosario. Cada fila es un término en inglés y, a la derecha, cómo se traduce siempre:
+
+| En inglés | Traducción | Resultado |
+|---|---|---|
+| `Jupyter Notebook` | (vacío) | Queda en inglés. Sirve para nombres, marcas y siglas. |
+| `prompt` | `instrucción` | Siempre se traduce como «instrucción». |
+
+«Agregar término» suma una fila, «Quitar» la borra y «Guardar glosario» lo aplica. Cada biblioteca tiene su propio glosario.
+
+Los términos se reconocen como palabras completas y sin importar mayúsculas: `prompt` no cambia dentro de «prompts» ni de «prompt-based». Si un término está dentro de otro más largo («Notebook» y «Jupyter Notebook»), se usa el más largo. Antes de traducir, cada término se cambia por un marcador que el traductor deja intacto y después se repone con su traducción fija (`vt/glossary.py`).
+
+### Qué pasa al guardarlo
+
+El glosario se aplica a lo ya traducido, no solo a lo nuevo. Al guardarlo, las frases de la biblioteca que contienen un término agregado, cambiado o quitado se traducen de nuevo, y la voz de esas frases se rehace en la cola. Al terminar, un aviso dice cuántas frases y videos cambiaron.
+
+## Búsqueda en las transcripciones
+
+![Resultados de buscar «solar» en las transcripciones, con la frase y el momento exacto](../../../../assets/capturas/busqueda.webp)
+
+El campo «Buscar en las transcripciones» del encabezado busca en todos los videos de la biblioteca abierta: en el inglés, en el español y en los [comentarios](../transcript-and-people/#comentarios). En la biblioteca, la tecla <kbd>/</kbd> lleva directo al campo; desde otra pantalla, al tocarlo vuelves a la biblioteca.
+
+- No importan las tildes ni las mayúsculas: «cancion» encuentra «canción».
+- Busca mientras escribes, a partir de dos letras.
+- Los resultados se agrupan por video, con el que tiene más coincidencias primero, y la coincidencia aparece subrayada.
+- Cada resultado muestra la hora de la frase; un clic abre el video justo antes de ese momento.
+
+<kbd>Esc</kbd> o «Cerrar búsqueda» vuelve a la colección donde estabas.
+
+<Aside>
+Se muestran hasta 20 coincidencias por video y hasta 100 videos; el total de coincidencias aparece arriba de los resultados.
+</Aside>

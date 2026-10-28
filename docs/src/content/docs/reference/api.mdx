@@ -1,0 +1,47 @@
+---
+title: API routes
+description: All REST API routes, generated from vt/api.py.
+sidebar:
+  order: 4
+---
+
+import api from "../../../data/api.json";
+import exp from "../../../data/exports.json";
+
+Base: `http://<host>:8765`. Authentication, permissions and examples: [REST API](../../integrations/api/).
+
+<table>
+  <thead><tr><th>Method</th><th>Route</th><th>Notes</th></tr></thead>
+  <tbody>
+    {api.map((r) => (
+      <tr>
+        <td><code>{r.method}</code></td>
+        <td><code>{r.path}</code></td>
+        <td>{r.notes}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+## Export types
+
+Values for `kinds` in `POST /api/v1/exports`:
+
+<table>
+  <thead><tr><th>Value</th><th>File</th></tr></thead>
+  <tbody>
+    {exp.map((k) => (
+      <tr><td><code>{k.kind}</code></td><td>{k.name} (.{k.ext})</td></tr>
+    ))}
+  </tbody>
+</table>
+
+## UI sign-in
+
+| Method | Route | Body |
+|---|---|---|
+| `POST` | `/api/auth/login` | `{"password": "…", "vault": "<id>"}` (without `vault`: the owner password) |
+| `POST` | `/api/auth/logout` | — |
+| `GET` | `/api/auth/me` | — returns `{owner, perms, local}` |
+
+The route table comes from the docstring of `vt/api.py`: when you add a route, document it there.

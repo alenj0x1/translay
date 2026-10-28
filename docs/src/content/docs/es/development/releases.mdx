@@ -1,0 +1,78 @@
+---
+title: Versiones
+description: Cómo se numera y se libera una versión de Translay.
+sidebar:
+  order: 5
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Translay usa [versionado semántico](https://semver.org/lang/es/): `mayor.menor.parche`. La versión vive en `vt/__init__.py` (`python run.py --version`), `docs/package.json` y la app de escritorio (`desktop/package.json`, `desktop/src-tauri/Cargo.toml` y `tauri.conf.json`); `scripts/release.py` los cambia todos juntos. Cada versión es una etiqueta `vX.Y.Z`.
+
+| Sube | Cuando desde la última versión hay… |
+|---|---|
+| Mayor | un cambio incompatible (`!` o `BREAKING CHANGE:`): datos que hay que migrar, rutas de la API que cambian |
+| Menor | al menos un `feat` |
+| Parche | solo `fix` o `perf` |
+
+## Liberar
+
+<Steps>
+
+1. Revisa que «Unreleased» en `CHANGELOG.md` y «Sin publicar» en `CHANGELOG.es.md` cuenten todo lo que cambió, agrupado como en las versiones anteriores.
+
+2. Consulta qué número toca según los commits:
+
+   ```sh
+   python scripts/release.py --next
+   ```
+
+3. Prueba y libera:
+
+   ```sh
+   python scripts/release.py 1.1.0 --dry-run
+   python scripts/release.py 1.1.0
+   ```
+
+   Cambia la versión, mueve «Unreleased» y «Sin publicar» a `## 1.1.0 · <fecha>` en los dos changelogs, hace el commit `chore(release): v1.1.0` y la etiqueta anotada `v1.1.0` con las notas.
+
+4. Publica:
+
+   ```sh
+   git push --follow-tags
+   ```
+
+   Al llegar la etiqueta, `.github/workflows/release.yml` compila el instalador en Windows (`npm --prefix desktop run build`) y crea la versión en [Releases](https://github.com/alenj0x1/translay/releases) con las notas de los dos changelogs (inglés, y español debajo) y `Translay_<versión>_x64-setup.exe` adjunto.
+
+</Steps>
+
+## Compilar el instalador a mano
+
+```sh
+cd desktop
+npm ci
+npm run build
+```
+
+Necesita Node.js y Rust (`rustup`). `scripts/prepare.mjs` baja las herramientas de `desktop/tools.json` (una vez, quedan en `desktop/.cache/`) y comprueba su SHA-256 antes de empaquetarlas. El instalador queda en `desktop/src-tauri/target/release/bundle/nsis/`. Para probar la app sin instalarla: `npm run dev` (usa el código del repositorio).
+
+Si cambias `requirements.txt`, regenera el lock del servidor (la próxima apertura de la app lo instala):
+
+```sh
+uv pip compile requirements.txt --python-version 3.12 --python-platform x86_64-pc-windows-msvc --generate-hashes --no-header -o desktop/locks/server.txt
+```
+
+## Repositorio
+
+[github.com/alenj0x1/translay](https://github.com/alenj0x1/translay), rama `main`. Los commits van a nombre de `alenj0x1` con el correo privado de GitHub (`140274341+alenj0x1@users.noreply.github.com`), configurado en el repositorio:
+
+```sh
+git config user.name alenj0x1
+git config user.email 140274341+alenj0x1@users.noreply.github.com
+```
+
+| Flujo | Cuándo | Qué hace |
+|---|---|---|
+| `docs.yml` | push a `main` con cambios en `docs/`, `vt/` o los changelogs | Compila y publica la documentación |
+| `release.yml` | etiqueta `vX.Y.Z` | Compila el instalador y crea la versión con las notas y el instalador |
+| `commits.yml` | pull request | Revisa que los commits sigan la convención |

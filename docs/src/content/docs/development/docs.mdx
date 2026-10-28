@@ -1,0 +1,74 @@
+---
+title: Maintaining the documentation
+description: How this site is kept up to date as the app changes.
+sidebar:
+  order: 4
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+This documentation lives in the same repository as the code (`docs/`, Astro + Starlight), in English (the root) and Spanish (`es/`, with the language selector), and it changes in the same commit as the feature it describes. Three mechanisms keep it from falling behind:
+
+1. **Reference generated from the code.** The tables for the [command line](../../reference/cli/), [preferences](../../reference/preferences/), [events](../../reference/events/) and [API routes](../../reference/api/) are not written by hand: `docs/scripts/gen_reference.py` reads them from `vt/` on every build. When you add a preference, an event or a route, the documentation already shows it.
+2. **Changelog in the repository.** The [Changes](../../changelog/) page is built from `CHANGELOG.es.md` (and the English one from `CHANGELOG.md`).
+3. **The commit enforces it.** A `feat`, `fix` or `perf` that touches the app without touching `docs/` or `CHANGELOG.md` does not pass the hook ([Commit convention](../commits/)).
+
+## What to update on each change
+
+| If you change… | Update |
+|---|---|
+| Something people see or use | The matching [User guide](../../guide/library/) page |
+| How it works inside (pipeline, GPU, data) | [How it works](../../how-it-works/architecture/) |
+| Access, API or webhooks | [Access and integrations](../../integrations/access/) (the tables generate themselves) |
+| Installation, dependencies, the desktop app or Docker | [Getting started](../../getting-started/install/), `README.md` and `README.es.md` |
+| Any `feat`, `fix` or `perf` | One line under "Unreleased" in `CHANGELOG.md` and under "Sin publicar" in `CHANGELOG.es.md` |
+
+Every page exists in both languages with the same path (`guide/queue.mdx` and `es/guide/queue.mdx`): a change goes in both.
+
+## Structure
+
+<FileTree>
+- docs/
+  - astro.config.mjs sidebar, theme and language
+  - scripts/
+    - gen_reference.py reads vt/ and writes src/data/*.json
+    - sync.mjs runs the above and copies the two changelogs
+  - src/
+    - content/docs/ one page per .mdx file, in English
+      - es/ the same pages in Spanish
+    - components/Bauhaus.astro the app's pattern
+    - components/Diagram.astro draw.io-style diagrams
+    - diagrams.ts the data for each diagram, with its text in both languages
+    - styles/translay.css the app's tokens in Starlight
+    - data/ generated, not in git
+</FileTree>
+
+## Work locally
+
+```sh
+cd docs
+npm install
+npm run dev      # http://localhost:4321, reloads on save
+npm run build    # static site in docs/dist
+```
+
+`npm run dev` and `npm run build` run `npm run sync` first (it needs Python 3.10+; with another name, `PYTHON=python3.12 npm run dev`).
+
+## Write a page
+
+- One `.mdx` file in the folder of its section, with `title`, `description` and `sidebar.order` in the frontmatter.
+- English at the root and Latin American Spanish in `es/` (informal "tú"), sentence-case headings. No filler: if a sentence repeats the title, cut it. Button and option names are written as in the interface (in Spanish).
+- Only facts that are in the code; cite the file (`vt/processor.py`) when it helps to dig deeper.
+- Relative internal links with a trailing slash (`../queue/`, `../../reference/api/`): the site may be published under a subpath. `npm run build` fails if a link or its anchor (`#…`) does not exist (`scripts/check-links.mjs`; `starlight-links-validator` checks the absolute ones).
+- Diagrams: never plain text. Add them in `src/diagrams.ts` and show them with `<Diagram {...name("en")} />` (`("es")` in the Spanish pages); if they do not fit horizontally, make them vertical so the text is readable on a phone.
+- Starlight components (`Aside`, `Steps`, `Tabs`, `FileTree`) when they clarify, not as decoration.
+
+<Aside>
+If you work with Claude Code, `CLAUDE.md` at the root asks it to update the documentation and the changelog on every change.
+</Aside>
+
+## Publish
+
+`.github/workflows/docs.yml` builds the site with Node 24 and publishes it to [GitHub Pages](https://alenj0x1.github.io/translay/) on every push to `main` that touches `docs/`, `vt/` or the changelogs (it can also be launched by hand from the Actions tab). Every page has an "Edit page" link that opens its file on GitHub.
+
+In a fork, enable Pages under Settings → Pages → Source: **GitHub Actions**; the address is built from the username and the repository name.

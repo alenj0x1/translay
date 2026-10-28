@@ -5,8 +5,8 @@
 #   tipo(alcance opcional)!: descripción en minúscula, sin punto final
 #
 # Tipos: feat fix perf refactor style docs test build ci chore revert
-# Un feat/fix/perf que toca vt/, web/, Dockerfile o requirements.txt debe incluir
-# cambios en docs/ o CHANGELOG.md. Si de verdad no hace falta, agrega la línea
+# Un feat/fix/perf que toca vt/, web/, desktop/, Dockerfile o requirements.txt debe incluir
+# cambios en docs/ o en los changelogs. Si de verdad no hace falta, agrega la línea
 #   Docs: no aplica
 # al final del mensaje.
 
@@ -31,7 +31,7 @@ if ! printf '%s' "$header" | grep -Eq "^($types)(\([a-z0-9áéíóúñü/._-]+\)
 
     Tipos: feat fix perf refactor style docs test build ci chore revert
     «!» antes de «:» marca un cambio incompatible. Sin punto final.
-    Detalle: docs/src/content/docs/desarrollo/commits.mdx
+    Detalle: docs/src/content/docs/development/commits.mdx
 
   Recibido: $header
 MSG
@@ -50,15 +50,15 @@ case "$type" in
   feat|fix|perf)
     if grep -qi '^Docs: no aplica' "$msg_file"; then exit 0; fi
     staged=$(git diff --cached --name-only)
-    code=$(printf '%s\n' "$staged" | grep -E '^(vt/|web/|Dockerfile|docker-compose.yml|requirements.txt|run.py)' | head -1)
-    docs=$(printf '%s\n' "$staged" | grep -E '^(docs/src/content/|CHANGELOG.md|README.md)' | head -1)
+    code=$(printf '%s\n' "$staged" | grep -E '^(vt/|web/|desktop/|Dockerfile|docker-compose.yml|requirements.txt|run.py)' | head -1)
+    docs=$(printf '%s\n' "$staged" | grep -E '^(docs/src/content/|CHANGELOG(\.es)?\.md|README(\.es)?\.md)' | head -1)
     if [ -n "$code" ] && [ -z "$docs" ]; then
       cat >&2 <<MSG
 
   ✗ Este $type cambia la app pero no la documentación.
 
-    Actualiza la página que corresponda en docs/src/content/docs/ y anota el
-    cambio en CHANGELOG.md («Sin publicar»). Si de verdad no hace falta,
+    Actualiza la página que corresponda en docs/src/content/docs/ (inglés y es/)
+    y anota el cambio en CHANGELOG.md («Unreleased») y CHANGELOG.es.md («Sin publicar»). Si de verdad no hace falta,
     agrega al mensaje la línea:  Docs: no aplica
 MSG
       exit 1

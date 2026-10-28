@@ -1,0 +1,103 @@
+---
+title: Estructura del repositorio
+description: Qué hay en cada carpeta y archivo del repositorio de Translay.
+sidebar:
+  order: 1
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+<FileTree>
+
+- vt/ el servidor: un módulo por responsabilidad (detalle en [Arquitectura](../../how-it-works/architecture/#módulos-de-vt))
+  - app.py punto de entrada: argumentos, carga de modelos y rutas HTTP
+  - httpws.py servidor HTTP y WebSocket propio sobre asyncio
+  - session.py una sesión por pestaña: protocolo WebSocket y permisos
+  - processor.py cola de procesamiento y descargas
+  - vad.py detector de voz por energía
+  - asr.py Whisper sobre CTranslate2
+  - streaming.py reconocimiento en streaming con acuerdo local
+  - translate.py traductores sobre CTranslate2
+  - textproc.py texto antes y después de traducir
+  - glossary.py glosario de cada biblioteca
+  - speakers.py diarización y referencias de voz
+  - dub.py doblaje por frase
+  - audiofx.py audio propio en numpy (WSOLA, re-muestreo, sonoridad)
+  - tts.py cliente del proceso de voz
+  - tts_worker.py el proceso de voz
+  - ipc.py tramas por tuberías entre procesos
+  - enhance_df.py limpieza de referencias con DeepFilterNet
+  - resources.py modo reposo y turnos en la GPU (y tiempos recientes de cada cálculo)
+  - hardware.py qué equipo hay: GPU, VRAM, RAM, CPU (y el de un lab con TRANSLAY_EMULATE)
+  - profiles.py perfiles de rendimiento con las velocidades medidas en los labs
+  - perf.py Preferencias › Rendimiento: perfil, límites, avisos y reinicio
+  - limits.py límites de RAM y CPU con un Job Object de Windows
+  - trash.py papelera de 30 días (videos y bibliotecas borrados)
+  - jsonio.py JSON que no queda a medias (temporal + reemplazo, copia .bak)
+  - gpu.py DLL de CUDA en Windows y caché de CTranslate2
+  - store.py transcripción de cada video
+  - library.py videos y colecciones
+  - vaults.py varias bibliotecas, cada una en su carpeta
+  - prefs.py esquema de las preferencias
+  - youtube.py descargas con yt-dlp
+  - cookies.py sesión de YouTube
+  - exporter.py exportaciones con ffmpeg
+  - auth.py acceso y claves de API
+  - api.py API HTTP v1 y guardián de archivos
+  - events.py catálogo de eventos
+  - webhooks.py envío de eventos a otras apps
+  - repair_refs.py reparación de referencias de voz antiguas
+  - \_\_init\_\_.py versión (`__version__`)
+- desktop/ la app de escritorio para Windows (Tauri 2; ver [App de escritorio](../../guide/desktop-app/))
+  - src-tauri/ la parte en Rust: ventana, instalación de los entornos (`runtime.rs`), servidor oculto (`server.rs`), bandeja
+  - ui/ pantallas de inicio: preparar, abriendo y error (usa la fuente, los colores y los botones de `web/`)
+  - locks/ paquetes fijados con su huella: `server.txt` (servidor) y `voice.txt` (motor de voz)
+  - tools.json herramientas incluidas en el instalador (uv, Python, ffmpeg, Node.js) con su SHA-256
+  - scripts/prepare.mjs copia lo compartido de `web/` y baja y verifica las herramientas antes de compilar
+- web/ la interfaz, sin framework ni compilación (detalle en [Interfaz](../../how-it-works/interface/))
+  - index.html la página única
+  - api.html referencia de la API servida por la app
+  - css/ tokens, base, componentes, armazón, vistas y patrones
+  - js/ componentes, conexión, vistas, menús y rutas (`desktop.js`: la barra de título en la app de escritorio)
+  - fonts/ Plus Jakarta Sans (OFL), servida por el propio Translay
+- tools/ herramientas de medición y prueba, sin navegador (ver [Pruebas y evaluación](../testing/))
+  - lab/ labs de hardware: lastre de VRAM, banco de pruebas y corridas por equipo
+  - dub_file.py dobla un video completo y exporta `<nombre>.es.mp4`
+  - eval_tts.py compara motores de voz
+  - eval_pipeline.py mide reconocimiento y diarización
+  - eval_translation.py compara traductores
+  - transcribe_file.py simula la reproducción en vivo
+  - make_dialogue.py genera diálogos de prueba con Kokoro y ruido
+  - make_sample.ps1 genera un video de prueba con las voces de Windows
+  - samples/ guiones de los videos de prueba
+- tests/
+  - test_core.py pruebas sin GPU
+- docs/ esta documentación (Astro + Starlight; ver [Documentación](../docs/))
+  - astro.config.mjs configuración del sitio y de la barra lateral
+  - scripts/
+    - gen_reference.py lee `vt/` y genera las tablas de referencia
+    - sync.mjs corre `gen_reference.py` y arma las páginas de cambios antes de compilar
+    - check-links.mjs después de compilar, revisa cada enlace relativo y su ancla en los dos idiomas
+  - src/
+    - content/docs/ las páginas en inglés; `es/` las mismas en español
+    - components/Diagram.astro diagramas estilo draw.io (datos en `src/diagrams.ts`, compartidos por los dos idiomas)
+    - data/ JSON generados por `gen_reference.py`
+- data/ todo lo que guarda la app; no va a git (ver [Datos en disco](../../how-it-works/data/))
+- samples/ videos de prueba y su verdad de referencia; no va a git
+- .venvs/ un entorno por motor de voz (`omnivoice`, `chatterbox`, `voxcpm`, `kokoro`); no va a git
+- run.py arranca el servidor (`python run.py`)
+- iniciar.bat lo mismo con doble clic en Windows; pasa los argumentos a `run.py`
+- requirements.txt dependencias del servidor
+- Dockerfile imagen con CUDA, el servidor y el motor de voz (ver [Docker](../../getting-started/docker/))
+- docker-compose.yml servicio con GPU, `data/` y el volumen de modelos
+- .env.example plantilla de `.env` con la contraseña del dueño para Docker
+- .dockerignore lo que no entra a la imagen
+- .gitignore lo que no entra al repositorio
+- README.md presentación del proyecto en inglés (README.es.md en español)
+- CHANGELOG.md cambios de cada versión en inglés (CHANGELOG.es.md en español)
+
+</FileTree>
+
+<Aside>
+El motor de voz no se instala con `requirements.txt`: vive en `.venvs/<motor>/` con su propio Python y torch, y el servidor lo lanza como un proceso aparte. Ver [Desde el código](../../getting-started/from-source/); la app de escritorio los crea sola.
+</Aside>

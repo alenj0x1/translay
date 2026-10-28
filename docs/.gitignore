@@ -3,4 +3,5 @@ dist/
 .astro/
 # generados por scripts/sync.mjs desde el código y CHANGELOG.md
 src/data/
-src/content/docs/cambios.mdx
+src/content/docs/changelog.mdx
+src/content/docs/es/changelog.mdx

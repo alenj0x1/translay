@@ -1,0 +1,86 @@
+---
+title: Docker
+description: Correr Translay en un contenedor con GPU NVIDIA.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+La imagen trae todo: CUDA 12.8 y cuDNN 9, el servidor (Python 3.12), el motor de voz OmniVoice en su propio entorno (Python 3.11 + torch), ffmpeg y Node.
+
+## Requisitos
+
+- GPU NVIDIA y su controlador al día.
+- Linux: Docker con [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+- Windows: Docker Desktop con WSL 2 (la GPU pasa al contenedor sin instalar nada más).
+
+## Con Docker Compose
+
+<Steps>
+
+1. Clona el repositorio:
+
+   ```sh
+   git clone https://github.com/alenj0x1/translay.git
+   cd translay
+   ```
+
+1. Define la contraseña del dueño:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   y cambia `TRANSLAY_OWNER_PASSWORD` en `.env`.
+
+2. Construye y arranca:
+
+   ```sh
+   docker compose up -d --build
+   ```
+
+3. Abre `http://localhost:8765` e inicia sesión con esa contraseña.
+
+</Steps>
+
+La primera vez descarga los modelos (~6 GB) al volumen `modelos`; el contenedor aparece como *healthy* cuando el servidor responde. Para ver el avance:
+
+```sh
+docker compose logs -f
+```
+
+## Por qué hace falta la contraseña
+
+Fuera de Docker, quien entra desde el mismo equipo (`127.0.0.1`) es el dueño sin iniciar sesión. Dentro del contenedor las conexiones llegan desde la red de Docker, así que nadie cuenta como local: sin contraseña nadie podría administrar la app. `TRANSLAY_OWNER_PASSWORD` (o `--owner-password`) la fija al arrancar. Más en [Acceso](../../integrations/access/).
+
+## Volúmenes
+
+| Ruta en el contenedor | Qué guarda |
+|---|---|
+| `/app/data` | Tu biblioteca, transcripciones, voces, cola, preferencias y claves (en el compose, `./data`). |
+| `/models` | Modelos de Hugging Face (`HF_HOME`). Conservarlo evita volver a descargarlos. |
+
+Puedes montar la misma carpeta `data/` que usa la instalación local: el formato es el mismo.
+
+## Sin Compose
+
+```sh
+docker build -t translay .
+docker run -d --gpus all -p 8765:8765 \
+  -e TRANSLAY_OWNER_PASSWORD=tu-contraseña \
+  -v "$PWD/data:/app/data" -v translay-modelos:/models \
+  --name translay translay
+```
+
+Las [opciones de arranque](../../reference/cli/) van después del nombre de la imagen; reemplazan las de por defecto (`--host 0.0.0.0 --no-browser`), así que inclúyelas:
+
+```sh
+docker run … translay --host 0.0.0.0 --no-browser --translator nllb-1.3b
+```
+
+<Aside type="caution" title="Lo que no funciona en el contenedor">
+- **Elegir carpeta** al crear una biblioteca: no hay ventana del sistema; escribe la ruta (dentro del contenedor, p. ej. en un volumen montado).
+- **Importar la sesión de un navegador**: el contenedor no ve tus navegadores; usa **Subir cookies.txt** ([YouTube](../../guide/youtube/)).
+- **Acceso desde otros equipos** no aplica: lo decide el `-p` de Docker. Con `-p 127.0.0.1:8765:8765` solo entra este equipo.
+</Aside>

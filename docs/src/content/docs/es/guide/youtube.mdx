@@ -1,0 +1,77 @@
+---
+title: YouTube
+description: Qué se descarga de YouTube, cómo usar tu sesión para descargar y qué hacer si YouTube pide verificar que no eres un bot.
+sidebar:
+  order: 10
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Translay descarga los videos de YouTube con yt-dlp a la carpeta `youtube/` de su biblioteca y los procesa igual que un archivo de tu equipo. Lo ya descargado no se vuelve a bajar. El código está en `vt/youtube.py`.
+
+## Qué se descarga
+
+- **Video y audio**: un MP4 en H.264 y AAC de hasta 720p, que cualquier navegador reproduce sin convertir, y aparte la pista de audio en M4A, que es lo que se procesa.
+- **Solo el audio**, si lo elegiste en Preferencias › Importar y descargas › «Qué descargar»: solo el M4A. El video se puede bajar después (ver [Importar](../import/#solo-el-audio)).
+
+Con cada video se guardan su título, canal, duración, categorías y miniatura. Al importar muchos enlaces, el título y el canal llegan antes de descargar, por una consulta pública a YouTube.
+
+## Etapas de una descarga
+
+Cada descarga pasa por estas etapas, que se ven en la tarjeta y en la [Cola](../queue/#descargas):
+
+1. **Video**, con porcentaje, velocidad y tiempo restante.
+2. **Audio**, igual.
+3. **Uniendo**: se juntan las dos pistas en el MP4.
+4. **Preparando**: se separa la pista de audio que se va a procesar.
+
+En la tarjeta, el botón de reproducir se cambia por un anillo con el porcentaje mientras se descarga.
+
+## Miniaturas, avatares y banners
+
+- **Miniaturas**: la de un video descargado queda junto al video. La de uno que aún no se descarga (por ejemplo, de una playlist) se pide a YouTube la primera vez que se muestra y queda guardada en `data/youtube/thumbs/`; la portada usa una versión más grande.
+- **Avatar y banner de cada canal**: se piden una sola vez por canal, la primera vez que se muestra, y quedan en `data/youtube/channels/`. Si el canal no tiene, se recuerda y la colección usa su patrón.
+
+## Sesión de YouTube
+
+Sin sesión, YouTube deja descargar la mayoría de los videos, pero no los que tienen restricción de edad, y pide verificaciones más seguido. En Preferencias › YouTube › «Sesión para descargar» eliges cuál usar:
+
+| Opción | Qué hace |
+|---|---|
+| No usar (por defecto) | Descarga sin sesión. |
+| Firefox, Brave, Chrome o Edge | Lee la sesión de ese navegador en cada descarga. |
+| Archivo cookies.txt | Usa la sesión importada en `data/cookies.txt`. |
+
+**Recomendado: el archivo `cookies.txt`.** Los navegadores tipo Chrome (Brave, Chrome, Edge) bloquean sus cookies mientras están abiertos y las versiones recientes las cifran, así que leerlas en cada descarga suele fallar.
+
+### Importar la sesión
+
+En la misma página, «Importar sesión» ofrece dos caminos:
+
+<Steps>
+
+1. **«Subir cookies.txt»** (recomendado en Windows). Con la sesión de YouTube iniciada en tu navegador, exporta las cookies de youtube.com con una extensión de exportación de `cookies.txt` (por ejemplo «Get cookies.txt LOCALLY») y súbelas con este botón. Funciona con el navegador abierto.
+
+2. **«Importar de»** y el nombre del navegador: aparece un botón por cada navegador instalado que Translay encuentra (Brave, Chrome, Edge, Firefox, Opera, Vivaldi o Chromium). Lee la sesión una vez. Firefox se puede leer abierto; los demás hay que cerrarlos antes, y si cifran sus cookies el mensaje te pedirá usar «Subir cookies.txt».
+
+</Steps>
+
+Debajo se ve el estado: cuántas cookies hay, si tienen la sesión iniciada y cuándo se importaron. Si se importan cookies sin sesión iniciada, un aviso lo dice: inicia sesión en YouTube en ese navegador y vuelve a importar.
+
+Al importar, «Sesión para descargar» pasa sola a «Archivo cookies.txt» y, si las descargas estaban en pausa por una verificación, siguen enseguida. Si las cookies vencen, vuelve a exportarlas y subirlas.
+
+Solo se guardan las cookies de YouTube y Google, en `data/cookies.txt`, que es común a todas las bibliotecas y no sale de tu equipo (`data/` no entra en git). El código está en `vt/cookies.py`.
+
+## Si YouTube pide verificar que no eres un bot
+
+Tras muchas descargas seguidas, YouTube puede bloquear tu conexión por unas horas. Cuando pasa:
+
+- Aparece el aviso «YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min».
+- Las descargas se pausan 20 minutos sin marcar ningún video con error, y después siguen en modo cuidadoso, más espaciadas.
+- Lo ya descargado se sigue procesando normalmente.
+
+Para seguir antes, importa una sesión nueva o usa «Reintentar descargas» en la pantalla de la Cola. Si el aviso vuelve con la sesión puesta, revisa que hayas iniciado sesión en YouTube en ese navegador. Más detalle en [Cola](../queue/#si-youtube-pide-verificar-que-no-eres-un-bot).
+
+<Aside type="caution">
+yt-dlp necesita Node.js en el `PATH` para resolver el desafío de JavaScript de YouTube. Ver [Instalación](../../getting-started/install/).
+</Aside>

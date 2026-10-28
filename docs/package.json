@@ -3,21 +3,26 @@
   "private": true,
   "type": "module",
   "version": "1.2.0",
-  "description": "Documentación de Translay (Astro + Starlight)",
+  "description": "Documentación de Translay en inglés y español (Astro + Starlight)",
   "scripts": {
     "sync": "node scripts/sync.mjs",
     "predev": "npm run sync",
     "dev": "astro dev",
     "prebuild": "npm run sync",
-    "build": "astro build",
+    "build": "astro build && node scripts/check-links.mjs",
     "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/starlight": "0.42.7",
+    "@fontsource/plus-jakarta-sans": "5.3.0",
     "astro": "7.4.2",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "starlight-links-validator": "0.27.0"
   },
   "engines": {
     "node": ">=22.23.4"
+  },
+  "devDependencies": {
+    "@tabler/icons": "3.49.0"
   }
 }

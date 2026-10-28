@@ -1,0 +1,65 @@
+---
+title: Instalación
+description: Instala Translay en Windows con el instalador; la app prepara sola todo lo que necesita.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import Diagram from "../../../../components/Diagram.astro";
+import { desktop } from "../../../../diagrams";
+
+Translay es una app de escritorio para Windows. El instalador trae lo que no cambia (la app, Python, ffmpeg, Node.js y uv); al abrirla por primera vez, la propia app instala el servidor y el motor de voz y te deja listo para traducir. No hay que abrir una terminal ni instalar nada a mano.
+
+## Requisitos
+
+| | |
+|---|---|
+| Sistema | Windows 10 u 11 de 64 bits. |
+| GPU | NVIDIA. Con 4 GB o más, voz clonada en español; con menos o sin GPU, solo subtítulos. Translay elige solo según tu equipo (ver [Rendimiento](../../guide/performance/)). |
+| Disco | Unos 15 GB: 7,5 GB del servidor y el motor de voz, 6 GB de modelos y lo que ocupen tus videos. |
+| Internet | La primera vez, para bajar los paquetes y los modelos; luego, solo para YouTube. |
+
+No hace falta ser administrador: se instala para tu usuario.
+
+## Pasos
+
+<Steps>
+
+1. Descarga `Translay_<versión>_x64-setup.exe` de la última versión en [Releases](https://github.com/alenj0x1/translay/releases/latest) y ábrelo.
+
+2. Abre **Translay** desde el menú Inicio. La pantalla **Preparar Translay** muestra tu GPU, si tendrás voz en español o solo subtítulos, y dónde se guarda tu biblioteca (por defecto `Videos\Translay`; **Cambiar…** elige otra carpeta, por ejemplo otro disco).
+
+3. Pulsa **Instalar**. El botón muestra el avance (`Instalando 42 %`) y debajo, cuánto va de la descarga. Tarda según tu conexión: son unos 4 GB comprimidos.
+
+4. Al terminar se abre **Abriendo Translay** mientras se cargan los modelos. La primera vez se bajan de Hugging Face (Whisper large-v3-turbo, Opus-MT, OmniVoice y WeSpeaker, unos 6 GB) y se ve su porcentaje. Después arranca en segundos.
+
+</Steps>
+
+Listo: sigue con [Tu primer video](../first-video/).
+
+<Diagram {...desktop("es")} />
+
+## Qué se instala y dónde
+
+| Qué | Dónde |
+|---|---|
+| La app, Python 3.12 y 3.11, ffmpeg, Node.js y uv | `%LOCALAPPDATA%\Translay` |
+| Entornos del servidor y del motor de voz, caché de paquetes | `%LOCALAPPDATA%\dev.alejandro.translay\runtime` |
+| Registros (`setup.log`, `server.log`) y ajustes de la ventana | `%LOCALAPPDATA%\dev.alejandro.translay` |
+| Modelos de Hugging Face | La caché de tu usuario (`%USERPROFILE%\.cache\huggingface`) |
+| Tu biblioteca: videos, transcripciones, voces y preferencias | La carpeta que elegiste (por defecto `Videos\Translay`) |
+
+Los paquetes de Python vienen fijados con su versión exacta y su huella SHA-256 (`desktop/locks/`), y las herramientas incluidas en el instalador se verifican al compilarlo (`desktop/tools.json`). El motor de voz es una copia exacta del entorno que se midió en los labs.
+
+## Actualizar
+
+Instala la versión nueva encima de la anterior. Al abrir, si cambiaron los paquetes de Python, la app los actualiza sola (con el mismo botón de avance); si no, abre directo. Tu biblioteca no se toca.
+
+## Desinstalar
+
+Desde **Configuración › Aplicaciones** de Windows. Si marcas la casilla para borrar los datos de la app, también se borran los entornos y los registros (`dev.alejandro.translay`). Tu biblioteca queda en su carpeta; bórrala a mano si ya no la quieres.
+
+<Aside>
+¿Linux, otro equipo de la red o desarrollo? Usa [Desde el código](../from-source/) o [Docker](../docker/).
+</Aside>

@@ -1,0 +1,192 @@
+---
+title: Testing and evaluation
+description: The GPU-free tests in tests/ and the tools in tools/ that measure recognition, diarization, translation and voice.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+There are two levels: fast core tests that run on any machine, and measurement tools that use the real models and the GPU. The design decisions (voice engine, translator, diarization threshold, reference length) came out of these tools.
+
+## Tests without a GPU
+
+```sh
+python -m pytest tests
+```
+
+They also run without pytest: `python tests/test_core.py` runs them all and prints `ok`. They do not load Whisper, the translator or the voice engine (recognition is replaced by a fake one), so numpy and what is in `requirements.txt` are enough, plus `pytest` if you use it.
+
+| Test | What it checks |
+|---|---|
+| `test_streaming_commits_sentences` | With a fake recognizer that speaks a script, streaming commits and closes exactly "Hello world." and "This is a test.", and advances `final_t` to the end. |
+| `test_store_overlap_and_ranges` | An overlapping sentence replaces the previous one; covered ranges are merged; the transcript is saved and read back identical. |
+| `test_textproc` | Sentence splitting with abbreviations, amounts and decimals; idioms; shape of the fragments; Latin American conventions. |
+| `test_audiofx` | WSOLA compresses by 1.3x without changing the pitch (150 Hz ± 3) and resampling from 16 to 24 kHz keeps the pitch. |
+| `test_speaker_tracker` | Clusters two people; a short sentence does not create a new person; the state is saved to JSON and restored; references are never trimmed (more than 12 s never gets in, a 10 s one only if there is no other, a normal one replaces it). |
+| `test_cookies_import` | Only YouTube and Google cookies remain from a `cookies.txt`, and a signed-in session is detected. |
+| `test_playlist_library_and_srt` | Playlist id (`RD…` mixes do not count), import as a collection, automatic collections, re-importing without duplicates, deleting a playlist while keeping what was downloaded, SRT format and safe file names. |
+| `test_download_only_queue` | **Solo descargar** (Download only): it is not processed on its own, **Procesar** (Process) queues it, **Limpiar terminados** (Clear finished) removes it and **Bajar video** (Download video) downloads the full video without processing again. |
+| `test_vaults` | Create a library, move a video with its files, routes with the `/v/<library>` prefix, no route leaves its folder, persistence across restarts and deleting only what is inside the folder. |
+| `test_access_and_webhooks` | Owner from this machine but not through a tunnel; private, public and password-protected libraries; changing the password invalidates sessions; read-only API keys; webhooks filtered by library and event, signed with HMAC-SHA256. |
+| `test_hardware` (`tests/test_hardware.py`) | Shape of what is detected (GPU, RAM, CPU), no GPU, reading `nvidia-smi`, and a lab's machine with `TRANSLAY_EMULATE` (VRAM, RAM, threads, no GPU). |
+| `test_trash` (`tests/test_trash.py`) | Emptying and deleting videos moves them to the trash and restoring brings back videos, files and collections (with their videos); a deleted library comes back with `open_folder`; items older than 30 days and everything are purged. |
+| `test_security` (`tests/test_security.py`) | Saved JSON leaves a copy and recovers if damaged; signing in always gives a new token; an odd id never points outside the library; the WebSocket rejects unmasked frames, stray continuations, long control frames and unknown opcodes. |
+
+## Measurement tools
+
+The tools in `tools/` use the same code as the server (`vt/`), without a browser. Run them from the repository root with the server's Python, except `make_dialogue.py` (Kokoro environment) and `make_sample.ps1` (PowerShell). They read audio with PyAV; `dub_file.py`, `make_dialogue.py` and `make_sample.ps1` also write video with ffmpeg, which must be in the `PATH`.
+
+### Test material
+
+The test dialogues have a **ground truth** (`<name>.truth.json`: who speaks, when and what they say) that results are measured against.
+
+<Steps>
+
+1. **`make_dialogue.py`** generates dialogues with several Kokoro voices and their noisy variants. It runs in the `.venvs/kokoro` environment:
+
+   ```sh
+   .venvs/kokoro/Scripts/python tools/make_dialogue.py tools/samples/podcast.txt --noise clean cafe:10 music:12 pink:5
+   ```
+
+   The script has one `voice|text` line per turn (Kokoro voices such as `af_heart`, `am_michael`, `bf_emma`, `bm_lewis`) and an empty line is a long pause. `--noise` accepts `clean` or `type:snr` with the noises from `vt/audiofx.py`: `white`, `pink`, `brown`, `hum`, `music`, `babble` and `cafe`. It writes `<name>[_<noise><snr>].mp4` and `<name>.truth.json` to `samples/` (or to `--out`).
+
+2. **`make_sample.ps1`** generates a simple video with the English Windows voices over a background with a clock:
+
+   ```powershell
+   powershell -File tools/make_sample.ps1
+   powershell -File tools/make_sample.ps1 -Script tools/samples/dialogue.txt -Out samples/dialogue.mp4
+   ```
+
+   Each line is `Voice|text`, where `Voice` is part of the name of an installed voice (Zira, George…); an empty line adds a pause. By default it reads `tools/samples/demo.txt` and writes `samples/demo.mp4`. It does not generate a ground truth.
+
+</Steps>
+
+Scripts included in `tools/samples/`: `demo`, `dialogue`, `friends`, `lecture`, `panel` and `podcast`.
+
+### `transcribe_file.py`
+
+Simulates playing a video and runs streaming recognition at the same cadence as live: while the GPU works, the video keeps advancing and that audio piles up for the next inference. It is useful for tuning the policy in `vt/streaming.py` reproducibly.
+
+```sh
+python tools/transcribe_file.py samples/demo.mp4 --srt out.srt
+```
+
+| Option | Default | |
+|---|---|---|
+| `media` | | Video or audio. |
+| `--model` | `large-v3-turbo` | Whisper model. |
+| `--beam` | `5` | Search width. |
+| `--chunk` | `0.1` | Seconds per audio block, like the ones that arrive from the browser. |
+| `--translator` | `opus-big` | Translator (`none` to skip translation). |
+| `--srt` | | Writes the subtitles to that file. |
+
+It prints each sentence with its timing, the delay with which it would have been shown, and its translation. At the end: audio duration, GPU seconds, real-time factor (RTF), mean and maximum delay, total time and median translation time per sentence.
+
+### `eval_pipeline.py`
+
+Measures recognition and diarization against the ground truth, at the same cadence as live:
+
+```sh
+python tools/eval_pipeline.py samples/podcast.mp4 samples/podcast_cafe10.mp4 --threshold 0.25 0.30 0.35 --relabel
+```
+
+| Option | Default | |
+|---|---|---|
+| `media` | | One or more videos; the truth is looked up at `<name before the first _>.truth.json`. |
+| `--threshold` | `0.30` | One or more similarity thresholds for creating a new person: it sweeps them all. |
+| `--relabel` | | Applies the same short-sentence correction as `Dubber.relabel`. |
+| `-v` | | Shows each sentence with the detected and the actual person. |
+
+Per file and threshold it prints the word error rate (WER), the percentage of sentences with the right person (using the best one-to-one mapping between detected and actual people: an extra person counts as an error), detected over actual people, and the number of sentences; at the end, the average. With 12 videos it gave 97.6% of sentences correctly assigned ([Diarization](../../how-it-works/pipeline/#diarization)).
+
+### `eval_translation.py`
+
+Compares translators on 39 typical video sentences (tutorials, vlogs, idioms and phrasal verbs, Whisper-style output), one at a time like live:
+
+```sh
+python tools/eval_translation.py --models opus-base opus-big nllb-1.3b madlad-3b
+```
+
+| Option | Default | |
+|---|---|---|
+| `--models` | `opus-base opus-big nllb-1.3b madlad-3b` | Models from `vt/translate.py`. |
+| `--compute-type` | each model's own | CTranslate2 precision (for example `int8` to compare quantizations). |
+| `--beam` | `4` | Search width. |
+| `--only` | `0` | Only the last N sentences. |
+
+It prints each model's translation side by side and a table with load time, and median and maximum per sentence. Quality is judged by reading. The [translator choice](../../how-it-works/pipeline/#choosing-the-translator) and several rules in `vt/textproc.py` came out of this.
+
+### `eval_tts.py`
+
+Compares voice engines with objective metrics. For each dialogue it builds each person's reference from their original voice (according to the ground truth), translates their sentences and synthesizes them with their cloned voice:
+
+```sh
+python tools/eval_tts.py --engines chatterbox omnivoice voxcpm --samples podcast panel friends --fit
+```
+
+| Metric | What it measures |
+|---|---|
+| `sim` | Voice similarity: cosine between the (WeSpeaker) embedding of the Spanish clone and that of the English original. |
+| `id` | % of sentences where the clone resembles its own person more than the others in the dialogue. |
+| `wer` | Intelligibility: Spanish Whisper transcribes the clone and the result is compared with the requested text. |
+| `f0` | Pitch: median F0 (YIN) of the clone over that of the original; 1.00 is equal. |
+| `rtf` | GPU seconds per second of generated audio. |
+| `dur` | Duration of the clone over that of the original English sentence. |
+
+| Option | Default | |
+|---|---|---|
+| `--engines` | `chatterbox omnivoice voxcpm` | Engines (each in `.venvs/<engine>`). |
+| `--samples` | `podcast panel friends` | Dialogues from `samples/` with their ground truth. |
+| `--noise` | | Suffix of the noisy variant, e.g. `_cafe10`. Metrics are always compared against the clean voice. |
+| `--ref-s` | `10.0` | Maximum reference seconds per person. |
+| `--ref-sr` | `16000` | Reference sample rate. |
+| `--clean` | `none` | Reference cleanup: `gate` (spectral gate if the SNR is below 25 dB) or `wiener` (enhancement from `vt/audiofx.py` with the same condition). |
+| `--ref-wav` | | Another audio for the references, e.g. a clean version made with DeepFilterNet: `samples/tts_eval/{s}_pink5_df.wav`. |
+| `--lines` | `6` | Sentences per dialogue. |
+| `--fit` | | Asks the engine for the original sentence's duration + 10%, if the engine supports it. |
+| `--params` | `{}` | JSON with engine parameters. |
+
+It works in three phases to measure real speed: first it prepares sentences and references, then it generates with each engine alone on the GPU, and finally it loads Whisper to score. The audio is left in `samples/tts_eval/<engine>/` for listening. The [engine choice](../../how-it-works/voice/#choosing-the-engine) came out of this.
+
+### `dub_file.py`
+
+Dubs a whole video without a browser, using the server's pipeline, and exports `<name>.es.mp4`:
+
+```sh
+python tools/dub_file.py samples/podcast.mp4 --voice omnivoice
+```
+
+| Option | Default | |
+|---|---|---|
+| `media` | | Video to dub. |
+| `--voice` | `omnivoice` | Voice engine. |
+| `--data` | `data/offline` | Where it stores the transcript, voices and audio. The video's transcript (`off_<name>`) is deleted at the start: every run starts from scratch. |
+
+The dubbed track places each sentence at its moment over the attenuated original (amplitude × 0.14, the "Bajo" (Low) level); if a sentence overlaps the next one, the next one waits. For each sentence it prints person, compression applied, GPU seconds and translation. At the end: sentences, people, GPU seconds of the voice and its RTF, how many sentences were compressed and by how much at most, the largest offset, and how long after the end of each original sentence its voice would be ready live (median and maximum, assuming 1.5 s of recognition). If the ground truth exists, it also reports diarization.
+
+### Hardware labs
+
+`tools/lab/` runs the queue pipeline **as if it were another machine**, with real limits on this one (not estimates). The profiles and speeds in [Performance](../../guide/performance/) come from it.
+
+| Tool | What it does |
+|---|---|
+| `ballast.py` | Occupies VRAM through the CUDA driver API (ctypes, no torch) so that only the lab's amount is left, with the same desktop on top. If the lab is not enough, the driver spills into shared memory, just like on that card. |
+| `vt/limits.py` | Windows *Job Object*: hard cap on resident memory per process (no administrator rights) and affinity to N threads; the voice process inherits it. |
+| `bench.py` | The queue's path with one configuration (model, precision, beam, translator, voice, steps, device). Measures speed (seconds of video per second of wall clock), wait to watch live, compute and turn wait per stage, voice p50/p95, load of each model, VRAM peak, word error rate and people correctly identified. |
+| `run.py` | Runs each configuration in each lab and leaves one JSON per test and `resumen.md` in `data/labs/<run>/`. |
+
+```sh
+python tools/lab/run.py --list
+python tools/lab/run.py --labs gpu-4g gpu-6g --configs calidad ligero --media samples/podcast_cafe10.mp4 --limit-s 90
+```
+
+Labs: `rtx4060-8g` (this machine, no limits), `gpu-6g`, `gpu-4g`, `gpu-2g` (ballasted VRAM and the RAM left for Translay on a 16 or 8 GB machine) and `cpu-8`, `cpu-4` (no GPU). Configurations: `calidad`, `equilibrado`, `ligero`, `texto` and `texto-ligero` (the profiles in `vt/profiles.py`).
+
+<Aside type="caution">
+The labs need the GPU to themselves: with another Translay instance processing in parallel, the first run gave 0.33× on `calidad` where a clean run gives 2.2×. Close Translay and anything else that uses the GPU before running them.
+</Aside>
+
+<Aside>
+`samples/`, `data/` and `.venvs/` are not in git: the test videos are generated with `make_dialogue.py` or `make_sample.ps1`, and the engine environments are installed separately (see [Installation](../../getting-started/install/)).
+</Aside>

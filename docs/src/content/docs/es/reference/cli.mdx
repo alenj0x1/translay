@@ -1,0 +1,52 @@
+---
+title: Línea de comandos
+description: Opciones de run.py, generadas desde vt/app.py.
+sidebar:
+  order: 1
+---
+
+import cli from "../../../../data/cli.json";
+import version from "../../../../data/version.json";
+
+```sh
+python run.py [opciones]
+```
+
+<table>
+  <thead><tr><th>Opción</th><th>Por defecto</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    {cli.map((o) => (
+      <tr>
+        <td><code>{o.flag}</code></td>
+        <td>{o.switch ? "—" : o.default === "" ? "vacío" : <code>{String(o.default)}</code>}</td>
+        <td>{o.help}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+`python run.py --version` muestra la versión instalada (<code>Translay {version.version}</code>).
+
+## Variables de entorno
+
+| Variable | Para qué |
+|---|---|
+| `TRANSLAY_OWNER_PASSWORD` | Contraseña del dueño al arrancar; equivale a `--owner-password`. Ver [Acceso](../../integrations/access/). |
+| `TRANSLAY_ORIGINS` | Otros orígenes permitidos, separados por comas; equivale a `--allow-origin`. Ver [Otros sitios web](../../integrations/access/#otros-sitios-web). |
+| `HF_HOME` | Dónde se guardan los modelos descargados de Hugging Face (en Docker, `/models`). |
+| `CT2_CUDA_CACHING_ALLOCATOR_CONFIG` | Caché de memoria de CTranslate2; `vt/gpu.py` lo limita a 400 MB si no está definido. |
+
+## Ejemplos
+
+```sh
+# sin GPU (lento, útil para probar la interfaz)
+python run.py --device cpu --compute-type int8 --voice none
+
+# otro traductor y otro puerto
+python run.py --translator nllb-1.3b --port 9000
+
+# escuchar en toda la red (además de «Acceso desde otros equipos» en Preferencias)
+python run.py --host 0.0.0.0
+```
+
+{/* Tabla generada por docs/scripts/gen_reference.py: se actualiza sola al cambiar vt/app.py. */}

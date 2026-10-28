@@ -1,0 +1,76 @@
+---
+title: Performance
+description: Your machine, the model profile Translay uses, VRAM, RAM and CPU limits, how long a video takes and why something is slow.
+sidebar:
+  order: 11
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Translay adapts to your machine. On startup it detects the GPU, RAM and CPU, and picks a **profile**: which recognition model, which translator and how the voice is generated. In **Preferencias › Rendimiento** (Preferences › Performance) you see all of that, change the profile, set limits and read the warnings.
+
+## Your machine
+
+It shows the NVIDIA GPU (with total VRAM and what is free now), RAM (total and free) and the CPU (cores and threads). If there is no NVIDIA GPU, Translay runs on the CPU.
+
+On machines with **unified memory**, such as NVIDIA DGX Spark, the GPU uses system RAM: it is shown as "memoria unificada" (unified memory) and profiles are computed with that memory. See [GPU and idle](../../how-it-works/gpu-and-idle/#unified-memory-dgx-spark).
+
+## Profiles
+
+| Profile | Recognition | Translator | Voice | For |
+|---|---|---|---|---|
+| **Máxima calidad** (Maximum quality) | large-v3-turbo, fp16 | opus-big | Cloned, 16 steps | GPU with 8 GB or more |
+| **Equilibrado** (Balanced) | large-v3-turbo, int8 | opus-big, int8 | Cloned, 8 steps | GPU with 6 GB |
+| **Ligero** (Light) | small, int8 | opus-base | Cloned, 8 steps | GPU with 4 GB |
+| **Solo subtítulos** (Subtitles only) | large-v3-turbo, int8 | opus-big | No voice | GPU with 2 GB |
+| **Subtítulos ligeros** (Light subtitles) | small, int8 | opus-base | No voice | No GPU |
+
+**Automático** (Automatic; the default) picks the most complete profile that can be watched live on your machine. Each card says how that profile performs here:
+
+- **Va bien** (Runs well): processes 1.5 times faster than the video or more.
+- **Al límite** (At the limit): enough to watch live, with a few seconds of waiting at the start.
+- **Forzado** (Strained) and **Muy forzado** (Very strained): doesn't keep up; good for leaving it processing in the queue, not for watching live.
+
+Each card also says how long a video of the length you choose takes ("10 min de video → ~5 min", meaning 10 min of video takes about 5 min), whether it can be watched live and how long you need to wait so the voice doesn't fall behind, and whether it has voice or only subtitles.
+
+Changing profile loads other models: **Reiniciar ahora** (Restart now) appears and Translay comes back on its own in a few seconds. What was being processed resumes.
+
+<Aside>
+If you start Translay with `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` or `--device`, that takes precedence over the profile (see [Command line](../../reference/cli/)).
+</Aside>
+
+### Where the numbers come from
+
+They are not estimates: they were measured through the same path as the queue, on emulated machines with real VRAM, RAM and CPU limits (see [Hardware labs](../../development/testing/#hardware-labs)). With 90 s of a podcast with coffee-shop noise:
+
+| Machine | Quality | Balanced | Light | Subtitles | Light subtitles |
+|---|---|---|---|---|---|
+| 8 GB GPU | **2.2×** | 2.7× | 2.5× | 7.3× | 6.7× |
+| 6 GB GPU | 0.94× | **2.5×** | 2.3× | 7.2× | 6.2× |
+| 4 GB GPU | 0.54× | 0.89× | **1.3×** | 7.2× | 6.1× |
+| 2 GB GPU | 0.25× | 0.46× | 0.47× | **3.4×** | 5.2× |
+| No GPU, 8 threads | 0.02× | 0.03× | 0.04× | 0.3× | **1.2×** |
+
+"2.2×" means it processes 2.2 seconds of video per second of wall-clock time. In bold, what automatic mode picks.
+
+## Limits
+
+How much of the machine Translay may use. They are useful for leaving room for other programs.
+
+- **VRAM**: the automatic profile picks models that fit within that limit.
+- **RAM**: memory cap for Translay and its voice process combined. What doesn't fit is moved to disk (slower, but it doesn't crash).
+- **CPU threads**: how many it can use.
+
+RAM and threads apply immediately, without restarting. On Windows they use a *Job Object* (the same mechanism containers use) and don't require administrator permissions. In Docker, the container's `--memory` and `--cpus` are used.
+
+## Warnings
+
+They explain why something is slow and what to do:
+
+- The chosen profile is strained on this machine (and which one is a better fit).
+- It doesn't fit entirely in VRAM: the driver spills into shared memory and some sentences take much longer.
+- More RAM is needed than Translay has.
+- A limit that is too low (under 2 GB of VRAM or 3 GB of RAM).
+- **Live**: voice sentences that take much longer than normal, low free RAM on the system, or another program using almost all the VRAM.
+- There is a new profile that applies on restart.
+- The machine has unified memory.

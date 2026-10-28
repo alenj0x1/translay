@@ -1,0 +1,42 @@
+---
+title: Glossary and search
+description: Terms with a fixed translation or left in English, and searching all the transcripts in a library.
+sidebar:
+  order: 9
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+## Glossary
+
+The glossary is in Preferences › **Glosario** (Glossary). Each row is a term in English and, on the right, how it is always translated:
+
+| In English | Translation | Result |
+|---|---|---|
+| `Jupyter Notebook` | (empty) | Stays in English. Useful for names, brands and acronyms. |
+| `prompt` | `instrucción` | Always translated as "instrucción". |
+
+**Agregar término** (Add term) adds a row, **Quitar** (Remove) deletes it and **Guardar glosario** (Save glossary) applies it. Each library has its own glossary.
+
+Terms are matched as whole words and ignoring case: `prompt` does not change inside "prompts" or "prompt-based". If a term is inside a longer one ("Notebook" and "Jupyter Notebook"), the longer one is used. Before translating, each term is swapped for a placeholder that the translator leaves untouched and then restored with its fixed translation (`vt/glossary.py`).
+
+### What happens when you save it
+
+The glossary is applied to what is already translated, not only to new content. When you save it, the sentences in the library that contain an added, changed or removed term are translated again, and the voice for those sentences is redone in the queue. When it finishes, a notice says how many sentences and videos changed.
+
+## Searching transcripts
+
+![Results for searching "solar" in the transcripts, with the sentence and the exact moment](../../../assets/capturas/busqueda.webp)
+
+The **Buscar en las transcripciones** (Search transcripts) field in the header searches all the videos in the open library: in the English, in the Spanish and in the [comments](../transcript-and-people/#comments). In the library, the <kbd>/</kbd> key takes you straight to the field; from another screen, tapping it takes you back to the library.
+
+- Accents and case don't matter: "cancion" finds "canción".
+- It searches as you type, from two letters on.
+- Results are grouped by video, with the one that has the most matches first, and the match is underlined.
+- Each result shows the time of the sentence; one click opens the video just before that moment.
+
+<kbd>Esc</kbd> or **Cerrar búsqueda** (Close search) goes back to the collection you were in.
+
+<Aside>
+Up to 20 matches per video and up to 100 videos are shown; the total number of matches appears above the results.
+</Aside>

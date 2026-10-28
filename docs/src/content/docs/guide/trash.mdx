@@ -1,0 +1,36 @@
+---
+title: Trash
+description: What you delete is kept for 30 days and can be restored exactly as it was, with its translations, voices, downloads and collections.
+sidebar:
+  order: 12
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Nothing is deleted right away. Deleting a video, emptying a library or deleting it moves everything to the **papelera** (trash), where it stays for 30 days.
+
+## What goes to the trash
+
+- **Videos** (**Eliminar** (Delete) on the selection or **Eliminar video** (Delete video) in the context menu): their data, the translation, the voices, what was downloaded and which collections they were in.
+- **An emptied library** (**Vaciar…** (Empty…) in the library's "⋯" menu): all its videos and its collections.
+- **A deleted library** (**Eliminar**): the whole library, with its settings and its own trash.
+
+Files are moved, not copied: it is instant and takes no extra space.
+
+## Undo
+
+When you delete, a notice appears with **Deshacer** (Undo): one click and everything is back as it was.
+
+## Restore or delete forever
+
+In **Preferencias › Papelera** (Preferences › Trash) is the list, with when it was deleted and how many days it has left. Each entry has **Restaurar** (Restore; it returns to its library, with its collections) and **Borrar para siempre** (Delete forever). **Vaciar la papelera** (Empty trash) deletes everything forever.
+
+On startup, Translay deletes whatever is older than 30 days.
+
+## Confirm by typing the name
+
+**Vaciar…** and **Eliminar** on a library ask you to type its name to confirm, so it can't be triggered by a stray click. **Vaciar…** is in each library's "⋯" menu (Preferences › Bibliotecas or the **Bibliotecas** screen), no longer in the **Todos** header.
+
+<Aside>
+Each library keeps its trash in `<library folder>/papelera/`; deleted libraries go to the Main library's (`data/papelera/`). An entry is a folder with `entry.json` (what it was and what it contained) and `files/` (the files, with their path).
+</Aside>

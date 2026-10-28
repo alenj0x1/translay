@@ -1,0 +1,37 @@
+---
+title: Your first video
+description: From opening Translay to watching a YouTube video dubbed into Spanish, step by step.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+<Steps>
+
+1. **Open Translay.** With the server running (`python run.py`), the browser opens by itself at `http://127.0.0.1:8765`. If it doesn't, go to that address. The status in the header changes from «Conectando» (Connecting) to «En reposo» (Idle).
+
+2. **Paste a link.** With an empty library, «Traduce tu primer video» (Translate your first video) appears: paste a YouTube video link into the field and tap «Importar» (Import). Later you will do it with the «Importar» button in the header, or by pasting the link anywhere on the page.
+
+3. **Watch it enter the queue.** The video appears on the home page, dimmed and with its status: «En cola · sin descargar» (Queued · not downloaded), then the download percentage, and then «Procesando» (Processing). The queue keeps working even if you close the tab.
+
+4. **Open it.** Tap the thumbnail or «Ver» (Watch). If it is still downloading, it opens by itself when it finishes. When you open it, it moves to the front of the queue and is processed from where you are watching.
+
+5. **Wait until it's ready.** Over the video, «Preparando NN %» (Preparing NN%) shows how much is left before you can listen without interruptions. The first time, or after a while without use, it first says «Cargando modelos» (Loading models). When it reaches «Listo para reproducir» (Ready to play), the video starts by itself.
+
+6. **Listen to it in Spanish.** It plays with each person's voice in Spanish and the original in the background. **ES / EN** switches between the dub and the original, and the transcript on the side shows each sentence in both languages; clicking a sentence jumps to that moment.
+
+</Steps>
+
+<Aside>
+If you jump to a part that doesn't have Spanish voice yet, the video pauses and resumes by itself when it is ready. Everything processed is saved: next time the video opens instantly.
+</Aside>
+
+![A NASA Science video dubbed into Spanish, with its transcript](../../../assets/capturas/reproductor.webp)
+
+## Where to go next
+
+- [Import](../../guide/import/): playlists, several links, a CSV or files from your machine.
+- [Player](../../guide/player/): controls, shortcuts and views.
+- [Transcript and people](../../guide/transcript-and-people/): comments and each person's voice.
+- [Export](../../guide/export/): the dubbed video, the audio or the subtitles.

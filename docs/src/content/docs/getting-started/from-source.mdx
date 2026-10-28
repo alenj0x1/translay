@@ -1,0 +1,74 @@
+---
+title: From source
+description: Run Translay from the repository, without the desktop app (Windows or Linux).
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+## Requirements
+
+| | |
+|---|---|
+| GPU | NVIDIA. With 8 GB, everything at maximum quality; with 6 or 4 GB, cloned voice with lighter models; with 2 GB or no GPU, subtitles only. Translay chooses automatically based on your machine (see [Performance](../../guide/performance/)). |
+| Python | 3.11 or newer for the server; the voice engine uses its own environment with Python 3.11. |
+| [uv](https://docs.astral.sh/uv/) | To create the voice engine environment. |
+| ffmpeg | On the `PATH`: downloads, thumbnails and export. |
+| Node.js 20+ | On the `PATH`: yt-dlp uses it for YouTube's JavaScript challenge. |
+| Disk | ~15 GB for models and environments, plus whatever your videos take up. |
+
+<Aside>Would you rather not install any of this? Use [Docker](../docker/).</Aside>
+
+On Windows the simplest option is the [desktop app](../install/), which installs all of this by itself. Running from source is useful for development, for Linux, or to use Translay from another machine's browser.
+
+## Steps
+
+Every published version is on [Releases](https://github.com/alenj0x1/translay/releases), with its notes; the code is always on [GitHub](https://github.com/alenj0x1/translay).
+
+<Steps>
+
+1. Clone the repository and install the server dependencies:
+
+   ```sh
+   git clone https://github.com/alenj0x1/translay.git
+   cd translay
+   pip install -r requirements.txt
+   ```
+
+   On Linux, if your system already has CUDA 12 and cuDNN 9, you can remove the `nvidia-*` lines from `requirements.txt`.
+
+2. Create the voice engine environment (OmniVoice with torch for CUDA 12.8):
+
+   <Tabs syncKey="os">
+   <TabItem label="Windows">
+   ```powershell
+   uv venv -p 3.11 .venvs/omnivoice
+   uv pip install -p .venvs/omnivoice/Scripts/python.exe --torch-backend=cu128 omnivoice deepfilternet soundfile
+   ```
+   </TabItem>
+   <TabItem label="Linux">
+   ```sh
+   uv venv -p 3.11 .venvs/omnivoice
+   uv pip install -p .venvs/omnivoice/bin/python --torch-backend=cu128 omnivoice deepfilternet soundfile
+   ```
+   </TabItem>
+   </Tabs>
+
+3. Start it:
+
+   ```sh
+   python run.py
+   ```
+
+   On Windows, `iniciar.bat` also works. `http://127.0.0.1:8765` opens.
+
+</Steps>
+
+The first time, the models are downloaded from Hugging Face (Whisper large-v3-turbo, Opus-MT, OmniVoice and WeSpeaker, about 6 GB) into the user cache. After that it starts in seconds and stays in [idle mode](../../how-it-works/gpu-and-idle/) until there is something to process.
+
+All startup options: [Command line](../../reference/cli/).
+
+## What gets stored
+
+Everything that is yours (library, transcripts, voices, preferences, hashed passwords) lives in `data/`, which is not tracked by git. With `--data-dir` (or `TRANSLAY_DATA`) you can use another folder, for example the same one the desktop app uses. Details in [Data on disk](../../how-it-works/data/).

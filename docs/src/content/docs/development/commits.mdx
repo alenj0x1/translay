@@ -1,0 +1,68 @@
+---
+title: Commit convention
+description: How commit messages are written and how they are validated.
+sidebar:
+  order: 3
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Commits follow [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/), with the description written in Spanish. That way the history reads itself and the next version is calculated from it ([Releases](../releases/)).
+
+```
+type(scope): description in lowercase, no trailing period
+
+Optional body: what changes and why.
+
+BREAKING CHANGE: what stops working and how to migrate
+```
+
+## Types
+
+| Type | For | Version |
+|---|---|---|
+| `feat` | Something new that people can use | minor (1.**1**.0) |
+| `fix` | A bug fix | patch (1.0.**1**) |
+| `perf` | Faster or less memory, without changing what it does | patch |
+| `refactor` | Code reorganized without changing behavior | — |
+| `style` | Code formatting (not interface design: that is `feat` or `fix`) | — |
+| `docs` | Documentation only | — |
+| `test` | Tests | — |
+| `build` | Dependencies, Dockerfile, packaging | — |
+| `ci` | GitHub Actions workflows | — |
+| `chore` | Maintenance (includes `chore(release)`) | — |
+| `revert` | Undoes a previous commit | — |
+
+A `!` before the colon (`feat(api)!: …`) or a `BREAKING CHANGE:` footer marks an incompatible change: it bumps the major version (**2**.0.0).
+
+## Scopes
+
+Optional, lowercase and written in Spanish with accents: the area of the app that changes.
+
+`biblioteca` · `bibliotecas` · `importar` · `cola` · `reproductor` · `voz` · `traducción` · `reconocimiento` · `exportar` · `acceso` · `api` · `webhooks` · `youtube` · `interfaz` · `docker` · `docs`
+
+## Examples
+
+```
+feat(cola): priorizar desde la tarjeta
+fix(voz): las referencias ya no se recortan adivinando el texto
+perf(reconocimiento): limitar el caché de CTranslate2 a 400 MB
+docs(api): ejemplo de exportación con curl
+build(docker): imagen con CUDA 12.8
+feat(api)!: las rutas de videos pasan a /api/v2
+```
+
+## Validation
+
+`.githooks/commit-msg` rejects a message that does not follow the format, and a `feat`, `fix` or `perf` that changes the app (`vt/`, `web/`, `Dockerfile`, `requirements.txt`…) without touching the documentation or `CHANGELOG.md` (see [Documentation](../docs/)). Enable it once per clone:
+
+```sh
+git config core.hooksPath .githooks
+git config commit.template .gitmessage
+```
+
+The second line sets up a template with the types and scopes when the commit editor opens.
+
+<Aside>
+If a change really does not need documentation (an invisible internal fix), add `Docs: no aplica` as the last line of the message.
+</Aside>

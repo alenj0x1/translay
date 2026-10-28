@@ -16,21 +16,26 @@ if (r.status !== 0) {
   process.exit(1);
 }
 
-// 2. CHANGELOG.md (raíz del repo) → página «Cambios»
-const md = readFileSync(join(root, "CHANGELOG.md"), "utf8")
-  .replace(/^# .*\n+/, ""); // el título lo pone la página
-const page = `---
-title: Cambios
-description: Todo lo que cambió en cada versión de Translay.
+// 2. CHANGELOG.md (inglés) y CHANGELOG.es.md (español) → página «Changelog» / «Cambios»
+const pages = [
+  { src: "CHANGELOG.md", out: "changelog.mdx", title: "Changelog", description: "Everything that changed in each Translay version." },
+  { src: "CHANGELOG.es.md", out: "es/changelog.mdx", title: "Cambios", description: "Todo lo que cambió en cada versión de Translay." },
+];
+for (const p of pages) {
+  const md = readFileSync(join(root, p.src), "utf8").replace(/^# .*\n+/, ""); // el título lo pone la página
+  const page = `---
+title: ${p.title}
+description: ${p.description}
 tableOfContents:
   maxHeadingLevel: 2
 editUrl: false
 ---
 
-{/* Generado desde CHANGELOG.md por scripts/sync.mjs: edita CHANGELOG.md, no este archivo. */}
+{/* Generado desde ${p.src} por scripts/sync.mjs: edita ${p.src}, no este archivo. */}
 
 ${md}`;
-const out = join(docs, "src", "content", "docs", "cambios.mdx");
-mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, page);
-console.log("changelog sincronizado en src/content/docs/cambios.mdx");
+  const out = join(docs, "src", "content", "docs", p.out);
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, page);
+  console.log(`changelog sincronizado en src/content/docs/${p.out}`);
+}

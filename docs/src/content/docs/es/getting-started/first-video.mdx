@@ -1,0 +1,37 @@
+---
+title: Tu primer video
+description: De abrir Translay a ver un video de YouTube doblado al español, paso a paso.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+<Steps>
+
+1. **Abre Translay.** Con el servidor corriendo (`python run.py`), el navegador se abre solo en `http://127.0.0.1:8765`. Si no, entra a esa dirección. El estado del encabezado pasa de «Conectando» a «En reposo».
+
+2. **Pega un enlace.** Con la biblioteca vacía aparece «Traduce tu primer video»: pega el enlace de un video de YouTube en el campo y toca «Importar». Más adelante lo harás con el botón «Importar» del encabezado, o pegando el enlace en cualquier parte de la página.
+
+3. **Mira cómo entra a la cola.** El video aparece en la portada, atenuado y con su estado: «En cola · sin descargar», luego el porcentaje de descarga y después «Procesando». La cola sigue trabajando aunque cierres la pestaña.
+
+4. **Ábrelo.** Toca la miniatura o «Ver». Si aún se está descargando, se abre solo al terminar. Al abrirlo pasa primero en la cola y se procesa desde donde estás mirando.
+
+5. **Espera a que esté listo.** Sobre el video, «Preparando NN %» muestra cuánto falta para escuchar sin cortes. La primera vez, o después de un rato sin uso, dice antes «Cargando modelos». Cuando llega a «Listo para reproducir», el video empieza solo.
+
+6. **Escúchalo en español.** Suena con la voz de cada persona en español y el original de fondo. **ES / EN** cambia entre el doblaje y el original, y la transcripción al costado muestra cada frase en los dos idiomas; un clic en una frase salta a ese momento.
+
+</Steps>
+
+<Aside>
+Si saltas a una parte que aún no tiene voz en español, el video se pausa y sigue solo cuando está lista. Todo lo procesado queda guardado: la próxima vez el video abre al instante.
+</Aside>
+
+![Un video de NASA Science doblado al español, con su transcripción](../../../../assets/capturas/reproductor.webp)
+
+## Por dónde seguir
+
+- [Importar](../../guide/import/): playlists, varios enlaces, un CSV o archivos de tu equipo.
+- [Reproductor](../../guide/player/): controles, atajos y vistas.
+- [Transcripción y personas](../../guide/transcript-and-people/): comentarios y la voz de cada persona.
+- [Exportar](../../guide/export/): el video doblado, el audio o los subtítulos.

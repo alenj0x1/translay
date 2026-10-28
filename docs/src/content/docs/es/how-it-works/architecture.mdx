@@ -1,0 +1,138 @@
+---
+title: Arquitectura
+description: Los tres procesos de Translay, los módulos de vt/ y el recorrido de un video desde el enlace hasta la voz en español.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import Diagram from "../../../../components/Diagram.astro";
+import { architecture, desktop } from "../../../../diagrams";
+
+Translay son tres procesos en el mismo equipo: el servidor en Python (`vt/`), el proceso de voz con su propio entorno y la interfaz (`web/`), dentro de la ventana de la app de escritorio (`desktop/`) o en un navegador. No hay base de datos ni servicios externos: todo vive en archivos JSON y WAV dentro de `data/` y de cada biblioteca (ver [Datos en disco](../data/)).
+
+## Procesos
+
+<Diagram {...architecture("es")} />
+
+### App de escritorio
+
+`desktop/` es una app de [Tauri 2](https://tauri.app/) (Rust) que muestra la misma interfaz web en una ventana propia:
+
+<Steps>
+
+1. Al abrir, carga su página de inicio (`desktop/ui/`), que usa la fuente, los colores y los botones de `web/` (los copia `desktop/scripts/prepare.mjs`).
+2. La primera vez, o si una versión nueva cambia los paquetes, instala los entornos con el `uv` incluido: `uv pip sync --require-hashes` de `desktop/locks/server.txt` sobre el Python 3.12 incluido, y de `desktop/locks/voice.txt` (torch para CUDA 12.8) sobre el Python 3.11, si la GPU tiene al menos ~4 GB. `sync` instala exactamente el lock, sin resolver dependencias en tu equipo. El avance sale de lo que crece la caché de paquetes.
+3. Arranca `run.py` sin ventana con `--data-dir` (la carpeta elegida), `--port` (8765 o el siguiente libre) y `TRANSLAY_VENVS` apuntando a sus entornos, con ffmpeg y Node.js incluidos al frente del `PATH`. El proceso va dentro de un *job object* de Windows que cierra todo el árbol (voz, yt-dlp, ffmpeg) cuando la app sale, aunque se cierre de golpe.
+4. Cuando el servidor escribe `Listo: http://127.0.0.1:<puerto>`, le da a ese origen exacto permiso para los controles de la ventana y los comandos de la app, y navega a la página. `web/js/desktop.js` convierte el encabezado en barra de título y agrega **Preferencias › App de escritorio**.
+5. Si la salida del servidor se cierra (todos sus procesos terminaron) sin que la app lo pidiera, vuelve a su página con las últimas líneas. «Reiniciar ahora» de Rendimiento no cuenta: el servidor nuevo hereda la salida y sigue en el mismo *job*.
+
+</Steps>
+
+<Diagram {...desktop("es")} />
+
+### Servidor
+
+`python run.py` llama a `vt.app.main()`, que:
+
+<Steps>
+
+1. Carga Whisper (`large-v3-turbo` por defecto) y lo calienta con un segundo de silencio; luego el traductor (`opus-big`) con una frase de prueba.
+2. Abre las bibliotecas (`vt/vaults.py`) y registra en cada una los videos de YouTube que ya estén en su carpeta `youtube/`.
+3. Crea el cliente de voz en modo perezoso: el proceso de voz arranca la primera vez que se necesita.
+4. Devuelve Whisper y el traductor a la RAM: el servidor arranca en reposo (ver [GPU y reposo](../gpu-and-idle/)).
+5. Levanta la cola (`Processor`), las exportaciones (`Exporter`), el acceso (`Auth`), los webhooks y la API, y sirve todo con `AppServer` en `127.0.0.1:8765`.
+
+</Steps>
+
+Todo corre en un solo bucle `asyncio`. El trabajo pesado va a hilos:
+
+| Hilo | Qué hace |
+|---|---|
+| `gpu` (`ThreadPoolExecutor`, 1 hilo) | Reconocimiento y traducción. |
+| `tts` (`ThreadPoolExecutor`, 1 hilo) | Pedidos de voz al proceso de voz. |
+| Cola (`Processor._loop`) | Procesa los videos guardados, uno a la vez. |
+| Descargas (`Processor._download_loop`) | Baja videos de YouTube con yt-dlp, sin GPU. |
+| Exportaciones (`Exporter._loop`) | Mezcla y empaqueta con ffmpeg, en la CPU. |
+| Reposo (`Resources._watch`) | Revisa cada 2 s la inactividad y duerme los modelos. |
+| Miniaturas al arrancar | Completa miniatura, canal y categorías de videos ya descargados, con 3 s entre consultas. |
+
+### Proceso de voz
+
+`vt/tts.py` (`TTSClient`) lanza `vt/tts_worker.py` con el Python de `.venvs/<motor>/` (`Scripts/python.exe` en Windows, `bin/python` en Linux). Así el motor de voz tiene su propio torch y sus dependencias sin tocar las del servidor.
+
+La comunicación usa `vt/ipc.py`: cada mensaje es una trama `[u32 largo JSON][JSON UTF-8][u32 largo binario][binario]` por stdin/stdout. El proceso reserva stdout para las tramas y manda a stderr todo lo que impriman las librerías; el servidor lo muestra con el prefijo `[voz]`.
+
+| Operación | Respuesta |
+|---|---|
+| (al arrancar) | `{"ok": true, "sr": …}` cuando el modelo cargó y se calentó. |
+| `synth` (`text`, `lang`, `ref`, `ref_text`, `params`) | `{"ok", "sr"}` + audio `float32`. |
+| `offload` / `onload` | Pasa el modelo (y DeepFilterNet) a la RAM o de vuelta a la GPU. |
+| `quit` | Termina el proceso. |
+
+`TTSClient` atiende un pedido a la vez; si el proceso no está vivo, lo arranca antes de sintetizar.
+
+### Navegador
+
+La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y los JS en orden (ver [Interfaz](../interface/)). Se conecta por WebSocket a `/ws` (con `?lib=<biblioteca>` si la página es `/b/<biblioteca>`) y se reconecta sola al segundo si se corta. Videos, audios y voces se piden por HTTP con soporte de `Range`, para poder saltar dentro del video.
+
+## Módulos de `vt/`
+
+| Módulo | Responsabilidad |
+|---|---|
+| `app.py` | Punto de entrada: argumentos, carga de modelos, rutas HTTP y arranque. |
+| `httpws.py` | Servidor HTTP estático (con `Range`) y WebSocket RFC 6455 sobre `asyncio`, sin dependencias. |
+| `session.py` | Una sesión por pestaña: protocolo WebSocket, permisos, procesamiento en vivo y cola de voz de la pestaña. |
+| `processor.py` | Cola del servidor: procesa videos guardados y descarga los de YouTube. Estado en `data/queue.json`. |
+| `vad.py` | Detector de voz por energía con piso de ruido adaptativo. |
+| `asr.py` | Whisper (faster-whisper sobre CTranslate2): audio → palabras con tiempos. |
+| `streaming.py` | Transcripción en streaming con acuerdo local: confirma palabras y cierra frases. |
+| `translate.py` | Traductores sobre CTranslate2 (Opus-MT, NLLB, MADLAD) con la misma interfaz. |
+| `textproc.py` | Texto antes y después de traducir: oraciones, modismos, forma y convenciones latinoamericanas. |
+| `glossary.py` | Glosario de cada biblioteca: términos que no se traducen o con traducción fija. |
+| `speakers.py` | Diarización en línea: huella de voz (WeSpeaker en ONNX) y referencias de cada persona. |
+| `dub.py` | Doblaje por frase: persona, referencia, síntesis, ajuste de duración y sonoridad. |
+| `tts.py` | Cliente del proceso de voz. |
+| `tts_worker.py` | Proceso de voz: OmniVoice (y Chatterbox o VoxCPM, para comparar). |
+| `enhance_df.py` | DeepFilterNet3 para limpiar referencias ruidosas (corre en el proceso de voz). |
+| `ipc.py` | Tramas binarias por tuberías entre procesos. |
+| `audiofx.py` | Audio propio en numpy: re-muestreo, WSOLA, sonoridad, compuerta espectral, YIN, ruido de prueba, WAV. |
+| `repair_refs.py` | Reparación de referencias de voz recortadas por versiones anteriores. |
+| `resources.py` | Modo reposo y turnos en la GPU (`FairLock`). |
+| `gpu.py` | DLL de CUDA en Windows y límite del caché de CTranslate2. |
+| `store.py` | Transcripción de cada video (`transcripts/<video>.json`). |
+| `library.py` | Videos y colecciones de una biblioteca (`library.json`). |
+| `vaults.py` | Varias bibliotecas, cada una en su carpeta; rutas de sus archivos. |
+| `prefs.py` | Esquema y valores de las preferencias (`data/prefs.json`). |
+| `youtube.py` | Descargas con yt-dlp, miniaturas, canales y categorías. |
+| `cookies.py` | Importa la sesión de YouTube (navegador o `cookies.txt`). |
+| `exporter.py` | Exporta video y audio traducidos u originales, subtítulos y transcripción. |
+| `auth.py` | Acceso: dueño, bibliotecas privadas, con contraseña o públicas, y claves de API. |
+| `api.py` | API HTTP v1, inicio de sesión y guardián de archivos (`make_guard`). |
+| `events.py` | Catálogo de eventos y su emisión. |
+| `webhooks.py` | Envío firmado de eventos a otras apps, con reintentos. |
+
+## Recorrido de un video
+
+Un enlace de YouTube, de punta a punta:
+
+<Steps>
+
+1. **Importar.** El navegador manda `youtube`, `playlist` o `yt_batch` por WebSocket. La sesión registra el video en la biblioteca (sin `media` todavía) y lo agrega a la cola.
+2. **Descargar.** El hilo de descargas de `Processor` lo baja con yt-dlp a `<biblioteca>/youtube/<id>.mp4` y `<id>.m4a`, con su miniatura y datos, y completa la entrada de `library.json`.
+3. **Ponerlo en turno.** El hilo de la cola toma el primer trabajo descargado; si alguien está viendo un video, ese va primero y empieza desde su punto de reproducción.
+4. **Decodificar.** PyAV pasa el audio a mono de 16 kHz. Se lee en bloques de 3 s.
+5. **Reconocer.** `StreamingTranscriber` acumula los bloques, consulta a Whisper y entrega frases cerradas (`Segment`) con su audio original.
+6. **Traducir.** Cada frase pasa por `textproc.py` y Opus-MT con el glosario de la biblioteca. `Transcript.add_segment` la guarda.
+7. **Identificar a la persona.** `Dubber.identify` calcula la huella de voz, asigna la persona y mejora su referencia; `Dubber.relabel` corrige frases cortas anteriores.
+8. **Doblar.** La frase va al hilo `tts`: OmniVoice clona la voz de la persona, se ajusta la duración y la sonoridad, y el WAV queda en `<biblioteca>/audio/<video>/<frase>.wav`.
+9. **Avisar.** Cada paso emite un mensaje `bg` (`segment`, `translations`, `dub`, `covered`) que el servidor reenvía solo a las pestañas que tienen ese video abierto.
+10. **Reproducir.** El navegador baja cada voz a medida que se acerca y la hace sonar en el inicio de su frase, con el original atenuado debajo.
+
+</Steps>
+
+Un archivo del equipo sigue el mismo camino con dos diferencias: su identificador es una huella del contenido (SHA-256 del tamaño, el primer MB y el último MB, recortado a 32 caracteres) y, mientras el servidor no tiene su copia, es el navegador el que envía el audio por delante de la reproducción. Ver [Pipeline](../pipeline/#dos-formas-de-procesar).
+
+<Aside>
+La cola y la sesión usan el mismo pipeline (`StreamingTranscriber` → traductor → `Dubber`). Lo que cambia es quién entrega el audio: el disco del servidor o el navegador.
+</Aside>

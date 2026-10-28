@@ -1,0 +1,39 @@
+---
+title: Desktop app
+description: The Translay window on Windows, its title bar, the tray, the library folder and logs.
+sidebar:
+  order: 13
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The desktop app is the same Translay interface inside its own window: everything in this guide works the same. Under the hood, the app starts the Translay server without a window and shuts it down when you quit (see [Architecture](../../how-it-works/architecture/#desktop-app)).
+
+## The window
+
+- The Translay header is the title bar: drag it to move the window and double-click to maximize or restore it. It follows the light or dark theme, like the window border.
+- On the right, **Preferencias** (Preferences) and the light/dark switch appear as icons, next to minimize, maximize and close.
+- Translay opens only once: if you open it again from the Start menu, the window that was already open comes back.
+- On launch you see **Abriendo Translay** (Opening Translay) while the models load, with the theme you used last time.
+
+## Preferences › App de escritorio
+
+This page only appears in the app.
+
+| Option | What it does |
+|---|---|
+| **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray: the queue keeps downloading and translating. From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
+| **Biblioteca Principal** (Main library) | The folder where the Main library is stored. **Abrir carpeta** (Open folder) opens it in Explorer; **Cambiar…** (Change…) picks another and Translay restarts with it. Other libraries can be in any folder (see [Libraries](../libraries/)). |
+| **Registros** (Logs) | Opens the folder with `setup.log` (the installation) and `server.log` (what the server writes). Useful for reporting a problem. |
+
+<Aside type="caution">
+**Cambiar…** does not move your files: it points Translay at another folder. To take your library with you, copy the old folder to the new one before changing it. Don't use the same folder from the app and from `python run.py` at the same time.
+</Aside>
+
+## If the server stops
+
+The window shows **Translay se detuvo** (Translay stopped) with the server's last lines, **Reintentar** (Retry; starts it again) and **Abrir registros** (Open logs). Closing the app also closes the server and everything it launched (voice, downloads, ffmpeg), even if the app is killed abruptly.
+
+## Same machine, another browser
+
+The app's server listens on `127.0.0.1` (port 8765 or the next free one). To connect from your phone or another device on the network, turn on access in **Preferencias › Acceso y API** (Preferences › Access and API) (see [Access](../../integrations/access/)).

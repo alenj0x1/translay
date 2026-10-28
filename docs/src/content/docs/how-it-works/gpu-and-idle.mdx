@@ -1,0 +1,127 @@
+---
+title: GPU and idle
+description: How Whisper, the translator and the voice share the GPU, how the profile is chosen for your computer, when the models go to sleep, and which limits keep memory from overflowing.
+sidebar:
+  order: 4
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Whisper and the translator run in the server on CTranslate2; the voice runs in its own process with torch. All three share the same GPU. The memory and timing figures on this page are from an 8 GB RTX 4060 with the "Máxima calidad" (Maximum quality) profile; for smaller computers, see [Profiles by hardware](#profiles-by-hardware).
+
+## Measured memory
+
+| Situation | GPU memory |
+|---|---|
+| Processing (recognition, translation and voice loaded) | ~5.6 GB |
+| Whisper + translator active | 2.7 GB |
+| Whisper + translator idle (in RAM) | 0.1 GB |
+| Voice active | 2.1 GB |
+| Voice idle (model in RAM, process alive) | 0.85 GB |
+| Voice in deep idle (process closed) | 0 GB |
+| Server in deep idle | ~110 MB (minimum CUDA context) |
+
+## GPU turns
+
+Every computation goes through `Resources.run(partes, fn)` (`vt/resources.py`): it first makes sure those models are loaded and then waits for its turn on a shared lock, `FairLock`, which serves requests in arrival order.
+
+```python
+with self.use(*parts):      # wakes the models and marks the GPU as busy
+    with self._compute:     # FairLock: one computation at a time, in arrival order
+        return fn(*args)
+```
+
+There are two measured reasons:
+
+- **Memory peaks.** On 8 GB, the recognition peak added to the voice peak overflowed the GPU into Windows shared memory, and each step went from 0.3 s to tens of seconds. The GPU already works at around 97%: taking turns doesn't cost speed.
+- **Arrival order.** Python's lock doesn't guarantee turns: recognition asked for the GPU again as soon as it released it and the voice was left waiting. One sentence took as long as 75 s.
+
+In addition, the server has a single thread for recognition and translation (`gpu`) and one for the voice (`tts`), so at most two computations compete for the turn.
+
+## Unified memory (DGX Spark)
+
+On machines like the NVIDIA DGX Spark (GB10) the GPU has no VRAM of its own: it uses system RAM, and `nvidia-smi` reports the memory as `[N/A]`. Without knowing how much memory it has, Translay treated the GPU as if it didn't exist: Rendimiento (Performance) showed "Muy forzado" (Very strained) at 0.02× and the automatic profile picked "Subtítulos ligeros" (Light subtitles).
+
+`vt/hardware.py` detects it when the memory isn't reported **and** the addressing mode (`nvidia-smi --query-gpu=addressing_mode`, queried separately so as not to break old drivers) is `ATS` or `HMM`. The GPU is marked `unified` and its memory is the RAM the process can use, capped by the container limit if there is one. `TRANSLAY_UNIFIED_MEMORY=1` or `0` forces the detection. A GPU with its own VRAM never enters this mode, even if the driver says `ATS` (like the GH200).
+
+With unified memory, profiles and warnings use that memory, and the [light idle](#idle-mode) happens together with the deep one, at 120 s: moving the models to RAM frees nothing.
+
+Turns and one-sentence-at-a-time voice are kept. Measured on a GB10 with "Máxima calidad", on the same video, 6 min per configuration:
+
+| Configuration | Speed |
+|---|---|
+| Turns, 1 voice process, 1 sentence per request (the usual) | 1.69–1.80× |
+| No turns | 1.41× |
+| No turns, 2 voice processes | 1.23× |
+| Voice in batches of 4 sentences | 1.69× |
+| Voice in batches of 8 sentences | 1.48× |
+
+Separately, Whisper runs at 5.1× real time and the voice at 2.45×, and the GPU shows ~95% usage with low power draw: the limit is the bandwidth of the unified memory (LPDDR5x), not an idle GPU. Computing at the same time only splits the GPU's time, and in a batch the short sentences are generated at the length of the longest one.
+
+## Idle mode
+
+Models occupy the GPU only while something is being processed. `Resources` keeps count of the uses in progress and of the last activity; a thread checks it every 2 s.
+
+| No activity for | What happens |
+|---|---|
+| 45 s (`idle_s`) | Whisper and the translator move to RAM (they return in ~1 s). The voice model and DeepFilterNet also move to RAM, with the process alive. |
+| 120 s (`deep_s`) | The voice process is closed. Only the server's minimum context stays on the GPU. |
+
+While a computation is in progress nothing is put to sleep. Audio arriving from the browser counts as activity (`Resources.touch`) even if it doesn't use a model yet.
+
+There are three shortcuts:
+
+- **At startup.** The server loads Whisper and the translator to verify them and returns them to RAM right away. The voice process doesn't start until it is needed.
+- **When opening a video.** If the video is missing something, the queue requests all three models as soon as `watch` arrives, without waiting for the first sentence. From deep idle, the voice takes ~15 s to be ready.
+- **When pausing the queue with nothing in view.** If no video is processing in the tab and none is open in the queue, it waits up to 30 s for what was in progress to finish and goes to deep idle immediately.
+
+The state (`reposo`, `cargando` or `activo`: idle, loading or active) reaches all tabs with the `power` message, and the server logs it to the console as `[recursos] reposo → cargando`.
+
+### Waking up
+
+Each model has its own load lock: loading the voice (about 20 s the first time) doesn't hold up Whisper. When coming back from RAM, the voice process repeats its warm-up (`OmniVoice.warm`): the first cloning with Whisper occupying the GPU takes 25 to 50 s, and it's better to pay for it at load time and not on the first sentence.
+
+## Cache limits
+
+Without limits, the CTranslate2 and torch memory caches held on to freed memory, the GPU filled up, Windows overflowed into shared memory and a sentence could take 65 s instead of 1 to 2 s.
+
+| Cache | Limit | Where |
+|---|---|---|
+| CTranslate2 (Whisper and translator) | 400 MB | `vt/gpu.py`: `CT2_CUDA_CACHING_ALLOCATOR_CONFIG=4,3,12,419430400` (bin growth, minimum bin, maximum bin, cached bytes). |
+| torch (voice process) | 2.5 GB | `vt/tts_worker.py`: after each sentence, if reserved memory exceeds 2.5 GB, `torch.cuda.empty_cache()`. After warm-up it is always emptied. |
+
+<Aside>
+`vt/gpu.py` defines the variable with `os.environ.setdefault`: if it already exists in the environment, yours is respected.
+</Aside>
+
+On Windows, `vt/gpu.py` also registers the `bin` folders of the `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` packages, which CTranslate2 doesn't find on its own.
+
+## What weighs most on time
+
+| Factor | Measured |
+|---|---|
+| Length of the voice reference, with Whisper on the GPU | 15 s → 61 s per sentence; 9 s → 4 s. Hence the 8 s cap per sentence ([Voice and cloning](../voice/#why-up-to-8-s-and-no-trimming)). |
+| First cloning after loading | 25 to 50 s; later ones, ~2 s. |
+| Voice with OmniVoice, 16 steps | 0.27 s of GPU per second of audio. |
+| Translation with `opus-big` | 52 ms per sentence (median). |
+
+If a voice takes more than 5 s, the queue logs it to the console (`[cola] voz 42s tardó 7.3s`): it is almost always the GPU overflowed into shared memory.
+
+
+## Profiles by hardware
+
+At startup, `vt/hardware.py` detects the GPU (with `nvidia-smi`), the RAM and the CPU, with no new dependencies; on Linux it also reads the container limits (cgroups). `vt/profiles.py` picks the profile using the table of speeds measured in the [hardware labs](../../development/testing/#hardware-labs): the most complete one whose speed is enough to watch live (1× or more) with the available VRAM, RAM and threads, trimmed by the limits in Preferencias (Preferences). What is passed on the command line wins over the profile. The usage guide is in [Performance](../../guide/performance/).
+
+| Profile | Whisper | Translator | Voice | Peak VRAM | Committed RAM |
+|---|---|---|---|---|---|
+| Máxima calidad (Maximum quality) | large-v3-turbo fp16, beam 5 | opus-big | OmniVoice, 16 steps | ~4.6 GB | ~12 GB |
+| Equilibrado (Balanced) | large-v3-turbo int8_float16 | opus-big int8_float16 | OmniVoice, 8 steps | ~3.5 GB | ~11 GB |
+| Ligero (Light) | small.en int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 steps | ~3.3 GB | ~10.7 GB |
+| Solo subtítulos (Subtitles only) | large-v3-turbo int8_float16 | opus-big | — | ~1.9 GB | ~3.5 GB |
+| Subtítulos ligeros (Light subtitles) | small.en int8, beam 3 | opus-base int8 | — | ~0.6 GB | ~2.2 GB |
+
+When a profile doesn't fit in VRAM, the Windows driver doesn't fail: it overflows into shared memory and most sentences come out just as fast, but some go from 0.3 s to 15–40 s. `vt/perf.py` counts those sentences (more than 6 times the recent median) and reports it in Rendimiento.
+
+## RAM and CPU limits
+
+`vt/limits.py` puts the server in a Windows *Job Object* at startup (or when the limits change, live); the voice process inherits it. RAM is limited with a hard cap on resident memory per process (`SetProcessWorkingSetSizeEx`, which doesn't require administrator permissions), split among the job's processes: what doesn't fit is paged out. Threads are limited with each process's affinity. In Docker, `--memory` and `--cpus` are used.

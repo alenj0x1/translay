@@ -1,0 +1,78 @@
+---
+title: Releases
+description: How a Translay version is numbered and released.
+sidebar:
+  order: 5
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Translay uses [semantic versioning](https://semver.org/): `major.minor.patch`. The version lives in `vt/__init__.py` (`python run.py --version`), `docs/package.json` and the desktop app (`desktop/package.json`, `desktop/src-tauri/Cargo.toml` and `tauri.conf.json`); `scripts/release.py` changes them all together. Each version is a `vX.Y.Z` tag.
+
+| Bumps | When since the last version there is… |
+|---|---|
+| Major | an incompatible change (`!` or `BREAKING CHANGE:`): data that has to be migrated, API routes that change |
+| Minor | at least one `feat` |
+| Patch | only `fix` or `perf` |
+
+## Release
+
+<Steps>
+
+1. Check that "Unreleased" in `CHANGELOG.md` and "Sin publicar" in `CHANGELOG.es.md` cover everything that changed, grouped as in previous versions.
+
+2. Find out which number is next based on the commits:
+
+   ```sh
+   python scripts/release.py --next
+   ```
+
+3. Test and release:
+
+   ```sh
+   python scripts/release.py 1.1.0 --dry-run
+   python scripts/release.py 1.1.0
+   ```
+
+   It changes the version, moves "Unreleased" and "Sin publicar" to `## 1.1.0 · <date>` in both changelogs, makes the `chore(release): v1.1.0` commit and the annotated `v1.1.0` tag with the notes.
+
+4. Publish:
+
+   ```sh
+   git push --follow-tags
+   ```
+
+   When the tag arrives, `.github/workflows/release.yml` builds the Windows installer (`npm --prefix desktop run build`) and creates the release on [Releases](https://github.com/alenj0x1/translay/releases) with the notes from both changelogs (English, and Spanish below) and `Translay_<version>_x64-setup.exe` attached.
+
+</Steps>
+
+## Build the installer by hand
+
+```sh
+cd desktop
+npm ci
+npm run build
+```
+
+It needs Node.js and Rust (`rustup`). `scripts/prepare.mjs` downloads the tools listed in `desktop/tools.json` (once; they stay in `desktop/.cache/`) and checks their SHA-256 before bundling them. The installer ends up in `desktop/src-tauri/target/release/bundle/nsis/`. To try the app without installing it: `npm run dev` (it uses the code in the repository).
+
+If you change `requirements.txt`, regenerate the server lock (the next time the app opens it installs it):
+
+```sh
+uv pip compile requirements.txt --python-version 3.12 --python-platform x86_64-pc-windows-msvc --generate-hashes --no-header -o desktop/locks/server.txt
+```
+
+## Repository
+
+[github.com/alenj0x1/translay](https://github.com/alenj0x1/translay), `main` branch. Commits are authored as `alenj0x1` with GitHub's private email (`140274341+alenj0x1@users.noreply.github.com`), configured in the repository:
+
+```sh
+git config user.name alenj0x1
+git config user.email 140274341+alenj0x1@users.noreply.github.com
+```
+
+| Workflow | When | What it does |
+|---|---|---|
+| `docs.yml` | push to `main` with changes in `docs/`, `vt/` or the changelogs | Builds and publishes the documentation |
+| `release.yml` | `vX.Y.Z` tag | Builds the installer and creates the release with the notes and the installer |
+| `commits.yml` | pull request | Checks that commits follow the convention |

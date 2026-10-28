@@ -1,0 +1,181 @@
+---
+title: Interfaz
+description: Cómo está hecha la interfaz sin framework, cómo habla con el servidor y cómo se agrega una preferencia nueva.
+sidebar:
+  order: 6
+---
+
+import { Aside, Steps, FileTree } from "@astrojs/starlight/components";
+
+La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor sirve `web/` tal cual: cambiar un archivo y recargar la página basta.
+
+## Archivos
+
+<FileTree>
+
+- web/
+  - index.html la página única: barra, reproductor, biblioteca, cola, preferencias y diálogos
+  - api.html página con la referencia de la API
+  - css/
+    - tokens.css todo valor visual: colores de cada modo, tipo, espacios, radios, alturas
+    - base.css reset, página, texto e íconos
+    - components/ button, controls, indicators, lists, overlays, card
+    - layout.css armazón de la página según la vista
+    - views/ player, transcript, library, queue, prefs, vaults, access
+    - patterns.css banners y distintivos Bauhaus
+  - js/
+    - ui.js componentes: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
+    - menu.js menús propios y listas desplegables
+    - theme.js modo claro u oscuro
+    - app.js conexión, reproductor, transcripción, voz, preferencias
+    - patterns.js patrones Bauhaus e íconos de colecciones
+    - library.js biblioteca, colecciones, selección, cola y exportaciones; `setView`
+    - vaults.js bibliotecas: selector, crear, editar, mover
+    - home.js portada de la biblioteca, color de acento y reproductor tipo cine
+    - access.js inicio de sesión, vista de invitado, Preferencias → Acceso y API
+    - route.js la vista actual en el hash de la dirección
+    - contextmenu.js menú contextual según dónde se hace clic
+    - capture-worklet.js captura del audio del video (respaldo)
+
+</FileTree>
+
+Los scripts se cargan en ese orden al final de `index.html` y comparten variables globales (`state`, `lib`, `prefs`, `send`…). Cada archivo dice en su encabezado qué usa de los otros.
+
+## Estilos por capas
+
+`index.html` carga las hojas en este orden, y cada capa solo usa lo de las anteriores:
+
+<Steps>
+
+1. **`tokens.css`**: todos los valores visuales como variables (`--bg`, `--surface`, `--fg`, `--primary`, `--s1`…`--s8`, `--r-xs`…`--r-lg`, `--h-xs`…`--h-lg`). Fuera de este archivo nada usa un color o una medida suelta, salvo lo que va sobre un video (siempre oscuro).
+2. **`base.css`**: reset, página, texto e íconos. Sin componentes.
+3. **`components/`**: botones, controles, indicadores, listas, capas (menús y diálogos) y tarjetas.
+4. **`layout.css`**: el armazón según clases de `body`: `view-library`, `view-prefs`, `view-queue` (sin ninguna, el reproductor), `layout-wide` (reproductor ampliado), `side-mini` (barra lateral solo con íconos) y `mini` (video en miniatura fuera del reproductor).
+5. **`views/`**: una hoja por pantalla.
+6. **`patterns.css`**: los patrones Bauhaus de banners, distintivos, miniaturas que faltan y estados vacíos.
+
+</Steps>
+
+La tipografía es una sola familia, Plus Jakarta Sans, con tamaños de 12 a 28 px definidos en los tokens.
+
+### Modo claro y grafito
+
+`tokens.css` tiene dos bloques de colores: `[data-theme="light"]` (también `:root`) y `[data-theme="dark"]`, el oscuro «grafito». La preferencia `theme_mode` (`sistema`, `claro`, `oscuro`) decide cuál; con `sistema`, `theme.js` sigue a `prefers-color-scheme` y cambia en vivo si cambia el sistema.
+
+Para que no haya un destello claro al cargar en modo oscuro, un script en el `<head>` aplica el último bloque usado, que `applyTheme` guarda en `localStorage` (`vt-theme-block`). Después manda la preferencia que llega del servidor. Con «Color de cada biblioteca» (`accent_lib`), `home.js` reemplaza el color de acento por el de la biblioteca abierta.
+
+## Componentes JS
+
+`web/js/ui.js` es el único lugar donde se crean elementos, íconos y botones; el aspecto vive en `css/components/`.
+
+| Función | Uso |
+|---|---|
+| `el(tag, attrs, ...hijos)` | Crea un elemento. `attrs` acepta `class`, `text`, `on: {evento: fn}` y cualquier atributo; `false` o `null` lo omiten. |
+| `icon(nombre, clase)` | Ícono SVG de línea, 16×16, trazo de 1,5, color de `currentColor`. Las partes rellenas llevan `class="solid"`. La lista está en `ICONS`. |
+| `btn(texto, {icon, variant, size, title, onClick, disabled, href, cls})` | Botón `.btn`. `variant`: `""`, `dark`, `ghost` o `danger`; `size`: `""`, `sm` o `xs`. Con `href` es un enlace que abre otra pestaña. |
+| `setBtn(boton, texto, icono)` | Cambia texto e ícono sin rehacer el botón si no hace falta. |
+| `hydrateIcons(raiz)` | Pone el ícono a todo `[data-icon]` del HTML estático y envuelve su texto en `.btn-text`, para que el botón pueda quedar solo con el ícono cuando falta espacio. |
+| `meter(pct, clase)` | Barra de avance. |
+
+No hay emojis: todos los íconos salen de `ICONS`.
+
+## Menús propios
+
+Ni el menú contextual ni las listas desplegables son los del navegador.
+
+- **`openMenu(items, at, opts)`** (`menu.js`): `items` es una lista de `{label, icon, badge, kbd, onClick, danger, disabled, check, sub}`, `"sep"` o `{head}`. `at` es un punto `{x, y}` (junto al mouse) o un `DOMRect` (debajo de ese elemento, o arriba si no cabe). Se navega con las flechas y se cierra con Escape, con un clic afuera, al cambiar el tamaño de la ventana o cuando la persona desplaza la página (no con desplazamientos automáticos, como la transcripción que sigue al video). Dentro de un diálogo abierto, el menú se agrega al diálogo para quedar encima.
+- **`dropdown(select)`**: reemplaza la vista de un `<select>` (que sigue guardando el valor) por un botón y un menú propio. Todo `select.select` que aparezca en la página se convierte solo.
+- **Menú contextual** (`contextmenu.js`): `menuFor` elige el menú según dónde fue el clic derecho: tarjeta de video, «Siguientes», trabajo de la cola, colección (barra lateral, fila o banner), frase de la transcripción, el video o el espacio libre. En campos de texto, enlaces, diálogos o con texto seleccionado queda el menú del navegador.
+
+«Copiar» usa el portapapeles moderno solo en conexiones seguras; desde otro equipo por `http://` usa un respaldo con `execCommand("copy")`.
+
+## Rutas en el hash
+
+`route.js` guarda la vista actual en la dirección, así recargar vuelve al mismo lugar y atrás y adelante del navegador funcionan:
+
+| Hash | Vista |
+|---|---|
+| `#/` | Inicio de la biblioteca |
+| `#/c/<colección>` | Una colección, playlist, canal o categoría |
+| `#/video/<id>` | El reproductor con ese video |
+| `#/cola` | La pantalla de la Cola |
+| `#/preferencias/<sección>` | Una página de Preferencias |
+
+La primera vez que llega la biblioteca, `routeRestore` aplica el hash pedido. Después, cada cambio de vista llama a `syncRoute`, que agrega una entrada al historial. La biblioteca va en la ruta de la página, no en el hash: `/b/<biblioteca>` abre esa biblioteca.
+
+## Patrones Bauhaus
+
+`patterns.js` dibuja en SVG círculos, cuartos de círculo, triángulos y cuadrados en cuadrícula, con una de 8 paletas. Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
+
+## Comunicación con el servidor
+
+Casi todo pasa por un solo WebSocket (`/ws`). `connect()` en `app.js` lo abre y lo reconecta al segundo si se cae; `send(obj)` manda JSON. Antes de enviar, `send` aplica el cambio local de ese tipo de mensaje si existe (`OPTIMISTIC[tipo]`, en `library.js` y `vaults.js`): lo que editas se ve al instante y la respuesta del servidor lo confirma. `onMessage` reparte cada respuesta según su `type`.
+
+El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` little-endian con el tiempo en el video y PCM `int16` mono de 16 kHz.
+
+### Del navegador al servidor
+
+| Mensaje | Para qué |
+|---|---|
+| `open {id, name}` | Abre (o crea) la transcripción del video. |
+| binario | Audio por delante de la reproducción o capturado en vivo. |
+| `seek`, `stop`, `end` | Descarta o confirma la frase abierta. |
+| `pos {t}` | Punto de reproducción, cada segundo: ordena la voz y los saltos de la cola. |
+| `watch {video, t}`, `unwatch` | El video guardado que se está viendo: la cola lo procesa primero. |
+| `youtube`, `playlist`, `yt_batch` | Importar uno o varios enlaces. |
+| `library`, `lib_*`, `coll_*` | Biblioteca y colecciones. |
+| `vault_*` | Bibliotecas: abrir, crear, editar, mover videos. |
+| `queue_*` | Cola: agregar, quitar, pausar, reanudar, limpiar, bajar el video completo. |
+| `export`, `export_remove` | Exportaciones. |
+| `comment_add`, `comment_edit`, `comment_delete` | Comentarios por frase. |
+| `people_set`, `people_save`, `people_forget` | Personas del video y personas guardadas. |
+| `glossary_get`, `glossary_set` | Glosario. |
+| `search {q}` | Búsqueda en las transcripciones. |
+| `prefs_set {key, value}` | Cambiar una preferencia. |
+| `cookies_browsers`, `cookies_import`, `admin_*` | Sesión de YouTube, acceso, claves y webhooks (solo el dueño). |
+
+### Del servidor al navegador
+
+| Mensaje | Contenido |
+|---|---|
+| `auth`, `ready`, `power` | Quién eres y qué puedes hacer; modelos cargados; estado de reposo. |
+| `transcript` | La transcripción completa al abrir un video, con las referencias de voz. |
+| `partial` | Frase abierta: lo confirmado, lo tentativo y su traducción en vivo. |
+| `segment`, `translations`, `speaker`, `dub`, `covered` | Frase nueva, traducciones, persona corregida, voz lista (con su URL) y tramos procesados. |
+| `stats` | Tiempo de inferencia y búfer; también confirma cada bloque de audio adelantado. |
+| `library`, `library_changed`, `vaults`, `prefs`, `glossary` | Estado de la biblioteca, las bibliotecas, las preferencias y el glosario. |
+| `queue`, `exports` | Estado de la cola y de las exportaciones. |
+| `yt_progress`, `yt_ready`, `yt_queued`, `yt_error`, `yt_blocked` | Descargas de YouTube. |
+| `search_results`, `comments`, `people`, `people_saved` | Respuestas de búsqueda, comentarios y personas. |
+| `denied` | El mensaje no está permitido para tu acceso. |
+
+El avance de la cola en segundo plano llega envuelto como `bg {video, msg}`; `Session.forward_bg` lo desenvuelve y lo manda solo a las pestañas que tienen ese video abierto. A un invitado la cola le llega filtrada a las bibliotecas que puede ver, y las exportaciones, solo las suyas.
+
+<Aside>
+Los permisos se revisan en el servidor (`Session._allowed`): `OWNER_ONLY` lista lo que solo hace el dueño e `IMPORT_ONLY` lo que además puede hacer quien tiene permiso de importar. La interfaz oculta esos botones con las clases `guest` y `can-import` en `body`, pero no es lo que protege. Ver [Acceso](../../integrations/access/).
+</Aside>
+
+## Agregar una preferencia
+
+Las preferencias tienen un solo origen: `SCHEMA` en `vt/prefs.py`. La pantalla de Preferencias y la [referencia](../../reference/preferences/) se arman a partir de él.
+
+<Steps>
+
+1. Suma una entrada a `SCHEMA`. Por ejemplo, una preferencia para el tamaño de los subtítulos:
+
+   ```python
+   {"key": "sub_size", "section": "audio", "label": "Tamaño de los subtítulos", "type": "choice",
+    "default": "normal", "options": [["chico", "Chico"], ["normal", "Normal"], ["grande", "Grande"]]},
+   ```
+
+   `section` es una de las claves de `SECTIONS`; `type` es `bool` (un interruptor) o `choice` (botones con las `options`, cada una `[valor, texto]`).
+
+2. Suma su grupo y su descripción a `DETAILS`: `"sub_size": ("Subtítulos", "Qué tan grandes se ven sobre el video.")`. Las opciones del mismo grupo se muestran juntas en su página.
+
+3. Si debe guardarse por biblioteca y no en general, agrega la clave a `VAULT_PREFS` en `vt/vaults.py`: se guarda en `vault.json` de la biblioteca abierta.
+
+4. Léela en la vista con `prefs.sub_size`. Si cambia algo global (una clase en `body`, un volumen), aplícala en `applyPrefs` de `app.js`, que corre cada vez que llegan las preferencias. Si la vista la necesita antes de conectarse, agrega su valor por defecto al objeto `prefs` inicial de `app.js`.
+
+</Steps>
+
+El servidor valida cada valor: un `bool` debe ser booleano y un `choice`, una de sus opciones. Los valores inválidos de `data/prefs.json` se ignoran y queda el de por defecto. La página de referencia se regenera sola al compilar la documentación (`docs/scripts/gen_reference.py` lee `SCHEMA`).

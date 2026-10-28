@@ -15,9 +15,9 @@
    docs(api): ejemplo de exportación
    ```
 
-   Tipos: `feat` `fix` `perf` `refactor` `style` `docs` `test` `build` `ci` `chore` `revert`. Detalle en [docs/…/desarrollo/commits.mdx](docs/src/content/docs/desarrollo/commits.mdx).
+   Tipos: `feat` `fix` `perf` `refactor` `style` `docs` `test` `build` `ci` `chore` `revert`. Detalle en [docs/…/development/commits.mdx](docs/src/content/docs/development/commits.mdx).
 
-3. La documentación cambia en el mismo commit que el código: la página de `docs/` que corresponda y una línea en «Sin publicar» de [CHANGELOG.md](CHANGELOG.md). El hook rechaza un `feat`, `fix` o `perf` que toque la app sin eso. Ver [Mantener la documentación](docs/src/content/docs/desarrollo/documentacion.mdx).
+3. La documentación cambia en el mismo commit que el código: la página de `docs/` que corresponda (en inglés y en `es/`) y una línea en «Unreleased» de [CHANGELOG.md](CHANGELOG.md) y en «Sin publicar» de [CHANGELOG.es.md](CHANGELOG.es.md). El hook rechaza un `feat`, `fix` o `perf` que toque la app sin eso. Ver [Mantener la documentación](docs/src/content/docs/development/docs.mdx).
 
 4. Antes de proponer el cambio:
 
@@ -26,4 +26,4 @@
    cd docs && npm run build
    ```
 
-Para liberar una versión: [Versiones](docs/src/content/docs/desarrollo/versiones.mdx).
+Para liberar una versión: [Versiones](docs/src/content/docs/development/releases.mdx).

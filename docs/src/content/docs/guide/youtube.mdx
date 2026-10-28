@@ -1,0 +1,77 @@
+---
+title: YouTube
+description: What is downloaded from YouTube, how to use your session to download, and what to do if YouTube asks you to verify you are not a bot.
+sidebar:
+  order: 10
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Translay downloads YouTube videos with yt-dlp into the library's `youtube/` folder and processes them just like a file from your computer. What has already been downloaded is not downloaded again. The code is in `vt/youtube.py`.
+
+## What is downloaded
+
+- **Video and audio**: an MP4 in H.264 and AAC up to 720p, which any browser plays without conversion, plus the audio track as M4A, which is what gets processed.
+- **Audio only**, if you chose it in Preferences › Importar y descargas › **Qué descargar** (What to download): just the M4A. The video can be downloaded later (see [Import](../import/#audio-only)).
+
+With each video, its title, channel, duration, categories and thumbnail are saved. When you import many links, the title and channel arrive before downloading, through a public query to YouTube.
+
+## Download stages
+
+Each download goes through these stages, which show on the card and in the [Queue](../queue/#downloads):
+
+1. **Video**, with percentage, speed and time remaining.
+2. **Audio**, the same.
+3. **Uniendo** (Merging): the two tracks are joined into the MP4.
+4. **Preparando** (Preparing): the audio track to be processed is separated.
+
+On the card, the play button is replaced by a ring with the percentage while downloading.
+
+## Thumbnails, avatars and banners
+
+- **Thumbnails**: for a downloaded video, it is stored next to the video. For one not yet downloaded (for example, from a playlist), it is requested from YouTube the first time it is shown and saved in `data/youtube/thumbs/`; the home page uses a larger version.
+- **Each channel's avatar and banner**: requested only once per channel, the first time it is shown, and saved in `data/youtube/channels/`. If the channel has none, that is remembered and the collection uses its pattern.
+
+## YouTube session
+
+Without a session, YouTube lets you download most videos, but not age-restricted ones, and asks for verification more often. In Preferences › YouTube › **Sesión para descargar** (Session for downloading) you choose which one to use:
+
+| Option | What it does |
+|---|---|
+| **No usar** (Don't use; default) | Downloads without a session. |
+| **Firefox, Brave, Chrome o Edge** | Reads that browser's session on each download. |
+| **Archivo cookies.txt** (cookies.txt file) | Uses the session imported into `data/cookies.txt`. |
+
+**Recommended: the `cookies.txt` file.** Chrome-based browsers (Brave, Chrome, Edge) lock their cookies while open and recent versions encrypt them, so reading them on each download often fails.
+
+### Import the session
+
+On the same page, **Importar sesión** (Import session) offers two paths:
+
+<Steps>
+
+1. **Subir cookies.txt** (Upload cookies.txt; recommended on Windows). With your YouTube session signed in on your browser, export the youtube.com cookies with a `cookies.txt` export extension (for example "Get cookies.txt LOCALLY") and upload them with this button. It works with the browser open.
+
+2. **Importar de** (Import from) and the browser name: a button appears for each installed browser that Translay finds (Brave, Chrome, Edge, Firefox, Opera, Vivaldi or Chromium). It reads the session once. Firefox can be read while open; the others must be closed first, and if they encrypt their cookies the message will ask you to use **Subir cookies.txt**.
+
+</Steps>
+
+Below you see the status: how many cookies there are, whether they have a signed-in session and when they were imported. If cookies are imported without a signed-in session, a notice says so: sign in to YouTube in that browser and import again.
+
+On import, **Sesión para descargar** switches on its own to **Archivo cookies.txt** and, if downloads were paused because of a verification, they continue right away. If the cookies expire, export and upload them again.
+
+Only YouTube and Google cookies are saved, in `data/cookies.txt`, which is shared by all libraries and never leaves your machine (`data/` is not tracked by git). The code is in `vt/cookies.py`.
+
+## If YouTube asks you to verify you are not a bot
+
+After many downloads in a row, YouTube may block your connection for a few hours. When that happens:
+
+- The notice "YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min" appears (YouTube asked to verify you are not a bot: downloads are paused for 20 min).
+- Downloads pause for 20 minutes without marking any video as failed, and then continue in careful mode, more spaced out.
+- What has already been downloaded keeps being processed normally.
+
+To continue sooner, import a new session or use **Reintentar descargas** (Retry downloads) on the Queue screen. If the notice comes back with the session in place, check that you signed in to YouTube in that browser. More detail in [Queue](../queue/#if-youtube-asks-you-to-verify-you-are-not-a-bot).
+
+<Aside type="caution">
+yt-dlp needs Node.js in the `PATH` to solve YouTube's JavaScript challenge. See [Installation](../../getting-started/install/).
+</Aside>

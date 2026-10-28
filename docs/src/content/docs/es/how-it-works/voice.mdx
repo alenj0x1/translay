@@ -1,0 +1,127 @@
+---
+title: Voz y clonación
+description: Cómo se arma la voz de referencia de cada persona, cómo se clona en español y cómo cada frase calza en su espacio con la sonoridad del original.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Cada frase se dobla con la voz de quien la dice. `vt/dub.py` (`Dubber`) toma la persona que asignó la [diarización](../pipeline/#diarización), busca su voz de referencia y le pide al proceso de voz la frase en español con esa voz:
+
+<Steps>
+
+1. Elegir la referencia: la de la persona, la de otra que elegiste en «Personas» o la más parecida si aún no tiene.
+2. Calcular el espacio disponible y la duración que se le pide al motor.
+3. Sintetizar con OmniVoice (16 pasos), limpiando antes la referencia si es ruidosa.
+4. Recortar silencios y, si no cupo, comprimir con WSOLA.
+5. Igualar la sonoridad a la de la voz original y guardar el WAV.
+
+</Steps>
+
+## Referencias de voz
+
+La referencia de una persona son sus mejores frases originales, completas, unidas con 0,15 s de silencio, junto con su transcripción. Se arma sola mientras avanza el video (`SpeakerTracker.add_reference` en `vt/speakers.py`):
+
+- Solo aportan frases de 1,6 s o más (las cortas dan huellas poco fiables) y de al menos 1 s sin los silencios de los bordes.
+- Cada frase entra **entera, de hasta 8 s** (`MAX_CLIP_S`). Una frase de 8 a 12 s (`MAX_FALLBACK_S`) se usa solo como último recurso, si la persona no tiene otra, y la reemplaza la primera frase de largo normal.
+- Cada frase se puntúa por largo y limpieza: `min(duración, 6) × (SNR / 30)`, con el factor de limpieza entre 0,2 y 1. Se guardan las mejores hasta sumar 9 s.
+- Con la referencia ya al 75 %, una frase nueva solo entra si es 1,3 veces mejor que la peor: cada cambio obliga al motor a recalcular la voz (1 a 2 s de GPU).
+
+Las referencias se guardan en `<biblioteca>/voices/<video>/spk<persona>_v<versión>.wav`, con `voices.json` (archivo, versión, texto y puntaje). Cada versión lleva un nombre nuevo (el motor guarda en caché la voz calculada por ruta y fecha del archivo, y así nunca reutiliza una vieja). Se conservan la actual y la anterior, que el proceso de voz puede estar leyendo en ese momento; las más viejas se borran.
+
+### Por qué hasta 8 s y sin recortar
+
+<Aside type="caution" title="Una referencia nunca se recorta">
+El motor necesita que el texto de la referencia coincida exactamente con su audio. Si se corta una frase a la mitad y se adivina el texto, el motor «continúa» la referencia y la voz generada arrastra las palabras sobrantes: se oía «and so» o «stands» en cada frase doblada. Por eso solo se usan frases completas.
+</Aside>
+
+El largo tiene un costo directo: con Whisper ocupando la GPU, una referencia de 15 s hacía que la clonación tardara 61 s por frase; con 9 s, 4 s. OmniVoice recomienda referencias de 3 a 10 s.
+
+### Qué voz usa cada frase
+
+| Caso | Referencia |
+|---|---|
+| La persona tiene referencia | La suya. |
+| En «Personas» elegiste la voz de otra persona del video | La de esa persona (`voice_map` en la transcripción). |
+| Elegiste una persona guardada en la biblioteca | Su WAV en `<biblioteca>/people/` (`voice_map` con el prefijo `p:`). |
+| La persona aún no tiene referencia | La de la persona con referencia cuya huella más se le parece. |
+
+## Síntesis
+
+El proceso de voz carga `k2-fsa/OmniVoice` en `float16` y genera con 16 pasos y `guidance_scale` 2,0, pasándole la duración deseada. La voz calculada de cada referencia se guarda en caché (las 8 más recientes).
+
+La primera clonación tarda de 25 a 50 s cuando Whisper ya ocupa la GPU; las siguientes, unos 2 s. Ese costo se paga al cargar el motor, con una frase corta de prueba (`OmniVoice.warm`), y no en la primera frase del video. Se repite cada vez que el modelo vuelve de la RAM a la GPU.
+
+## Limpieza con DeepFilterNet
+
+Con `clean_ref="auto"` (lo que usa `Dubber`), el proceso de voz estima la relación señal/ruido de la referencia. Si es menor que 20 dB, la limpia con DeepFilterNet3 (`vt/enhance_df.py`, atenuación máxima de 30 dB) y clona desde la copia limpia `spk<persona>_v<versión>_df.wav`. Las referencias limpias no se tocan: cualquier procesamiento le resta un poco de identidad a la voz.
+
+Medido con `tools/eval_tts.py`: con ruido rosa a 5 dB, el parecido de voz del clon sube de 0,45 a 0,59 y el tono deja de desviarse.
+
+Si DeepFilterNet no carga, se clona la referencia tal cual. `enhance_df.py` sustituye un módulo que torchaudio 2.9 eliminó y que DeepFilterNet todavía importa. La compuerta espectral propia de `vt/audiofx.py` (`denoise`) existe, pero queda desactivada por defecto por la misma razón.
+
+## Duración
+
+El español suele ser más largo que el inglés. Para que cada frase calce sin deformarse, la duración se pide al motor y WSOLA queda de respaldo:
+
+| Paso | Regla (`vt/dub.py`) |
+|---|---|
+| Espacio disponible | Hasta el inicio de la frase siguiente, menos 0,08 s (al menos 0,4 s). Si aún no hay frase siguiente, la duración de la frase más 0,3 s. |
+| Duración pedida | La de la frase original + 5 %, o la que da un ritmo de 20 caracteres por segundo si es mayor; entre 0,5 s y el espacio disponible. |
+| Recorte | Silencios de los bordes, dejando 0,03 s. |
+| Compresión | Si el audio pasa del espacio en más de 2 %, WSOLA lo comprime hasta 1,25 veces. |
+
+`time_stretch` (`vt/audiofx.py`) es un WSOLA propio: ventanas Hann de 30 ms con salto de 15 ms y una búsqueda de ±10 ms por correlación para continuar la forma de onda. Cambia la duración sin cambiar el tono; `tests/test_core.py` lo comprueba con un tono de 150 Hz comprimido 1,3 veces.
+
+## Sonoridad
+
+La voz doblada suena al mismo nivel que la original:
+
+- De la frase original se mide la sonoridad de las partes con voz (`active_rms_db`: tramas de 30 ms, ignorando las que están más de 30 dB bajo la más fuerte). Se guarda en la frase como `orig_db`.
+- La voz generada se lleva a ese nivel, acotado entre −26 y −14 dB (−20 dB si no hay medición), con un limitador de picos en 0,97.
+- Se aplica un fundido de 8 ms en cada borde.
+
+El resultado se guarda en `<biblioteca>/audio/<video>/<frase>.wav` (16 bits, mono) y la frase registra `dub`: archivo, duración, compresión aplicada, segundos de GPU, motor, persona y el texto que se dobló.
+
+## Re-doblaje
+
+Una frase se vuelve a doblar cuando su `dub` ya no corresponde a lo que la frase es ahora:
+
+| Cambio | Por qué |
+|---|---|
+| La traducción cambió (glosario, otro traductor) | `dub.text` distinto de `translation`. |
+| Cambió el motor de voz (`--voice`) | `dub.engine` distinto. |
+| La frase cambió de persona (corrección de la diarización) | `dub.voice` distinto de `speaker`. |
+| En «Personas» cambiaste la voz de alguien | Se borra el `dub` de sus frases y el video entra a la cola. |
+
+La cola lo hace sola al pasar por esas frases, empezando por lo que vas a escuchar (ver [Pipeline](../pipeline/#cola-del-servidor)). Mejorar una referencia no rehace las frases ya dobladas: solo las que vienen usan la versión nueva.
+
+## Reparar referencias antiguas
+
+Versiones anteriores recortaban las referencias a 8 s adivinando el texto. `vt/repair_refs.py` las rehace:
+
+```sh
+python -m vt.repair_refs --check   # solo lista los videos con referencias sospechosas
+python -m vt.repair_refs           # las repara (con el servidor detenido)
+```
+
+Una referencia es sospechosa si su texto no termina en un signo de cierre (`.`, `?`, `!`, `…`, `»`, comillas o paréntesis). Para cada persona afectada arma una nueva con sus frases completas de 1,5 a 8 s (las que no cierran valen 0,6 veces menos), hasta 9 s; si no tiene ninguna, usa una frase entera de 8 a 12 s, y si tampoco hay, la persona queda sin referencia y usa la voz más parecida. Después borra toda la voz del video y lo pone en la cola para doblarlo de nuevo.
+
+<Aside>
+`repair_refs` revisa solo la biblioteca Principal (`data/`): lee `data/library.json`, `data/voices/` y `data/transcripts/`.
+</Aside>
+
+## Elección del motor
+
+Medido con `tools/eval_tts.py` en una RTX 4060: 3 diálogos, 9 personas, 18 frases.
+
+| Motor | Parecido de voz | Identidad | Error de palabras | RTF |
+|---|---|---|---|---|
+| **OmniVoice** (16 pasos, duración fijada) | **0,78** | 100 % | **2,2 %** | **0,27** |
+| Chatterbox Multilingual | 0,64 | 100 % | 17,2 % (corta frases) | 0,83 |
+| VoxCPM2 | 0,02 | 28 % | 99 % (alucina) | — |
+
+Como referencia, dos grabaciones de la misma persona dan entre 0,6 y 0,7 de parecido, y personas distintas 0,2 o menos. Con ruido en el video, OmniVoice da 0,76 con música a 10 dB, 0,66 con cafetería a 10 dB y 0,59 con ruido rosa a 5 dB.
+
+Cada motor vive en su propio entorno (`.venvs/omnivoice`, `.venvs/chatterbox`, `.venvs/voxcpm`) y se elige al arrancar con `--voice`. Con `--voice none` no se dobla. El uso de memoria y los tiempos de carga están en [GPU y reposo](../gpu-and-idle/).

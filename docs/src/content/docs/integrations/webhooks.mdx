@@ -1,0 +1,160 @@
+---
+title: Webhooks
+description: Signed HTTP notifications that Translay sends to other apps when a video or an export finishes or the queue changes.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+A webhook is a URL of yours to which Translay sends a `POST` with JSON every time something happens: a video finished dubbing, an export is ready, YouTube asked for verification. It lets you chain Translay with n8n, Zapier, a bot or your own server without polling the [API](../api/) every few seconds.
+
+## Create a webhook
+
+<Steps>
+1. Open **Preferencias → Acceso y API → Webhooks** (Preferences → Access and API → Webhooks) and click **Agregar webhook** (Add webhook).
+2. Enter the URL (it must start with `http://` or `https://`) and, optionally, a name; without a name, it uses the URL.
+3. Choose which libraries: **Todas las bibliotecas** (All libraries) or one.
+4. Check the events you care about, or leave **Todos los eventos** (All events).
+5. Click **Guardar webhook** (Save webhook). To stop receiving notifications without deleting it, uncheck **Activo** (Active).
+</Steps>
+
+Each webhook has a secret (`whsec_…`) that is created with it and doesn't change when you edit it. Copy it with the **Secreto** (Secret) button: you need it to verify the signature. If it leaks, remove the webhook and create another.
+
+A single-library webhook receives that library's events and also the general ones, which don't belong to any library (`cola.pausa`, `cola.terminada`, `youtube.bloqueo`, …).
+
+## What arrives
+
+```http
+POST /your-path HTTP/1.1
+Content-Type: application/json
+User-Agent: video-translator-webhooks/1
+X-VT-Event: video.procesado
+X-VT-Delivery: 3f9a1c2b4d5e
+X-VT-Signature: sha256=9c1e…
+
+{"event": "video.procesado", "time": 1730000000.0, "vault": "ciencia",
+ "data": {"video": "yt_dQw4w9WgXcQ", "title": "…"}}
+```
+
+| Field | What it is |
+| --- | --- |
+| `event` | The event name (same as `X-VT-Event`). |
+| `time` | When it was sent, in seconds since 1970 (Unix). |
+| `vault` | The library id, or `null` if the event is general. |
+| `data` | The event's data; it varies by event. |
+
+`X-VT-Delivery` identifies each delivery. Every retry is a new delivery, with a different `X-VT-Delivery` and `time`.
+
+### Most useful events
+
+| Event | When | `data` |
+| --- | --- | --- |
+| `video.procesado` | A video was translated and dubbed. | `video`, `title` |
+| `video.error` | A video failed. | `video`, `title`, `error` |
+| `video.agregado` | Videos were added to a library. | `videos`, `count` |
+| `exportacion.lista` | An export can be downloaded. | `job`, `name`, `url`, `videos`, `kinds` |
+| `cola.terminada` | Nothing is left to process. | (empty) |
+| `youtube.bloqueo` | YouTube asked for verification and downloads were paused. | `until` |
+
+The full list, with all the events, is in [Events](../../reference/events/). The API also provides it at `GET /api/v1/events`.
+
+`url` in `exportacion.lista` is a path on the server (it starts with `/`); to download the file, request it with an [API key](../api/#authentication).
+
+### Grouped events
+
+`cola.cambio` and `descarga.progreso` can happen several times per second. Instead of sending each one, Translay collects those for each webhook and every **5 seconds** sends only the last one.
+
+## Verify the signature
+
+`X-VT-Signature` is `sha256=` followed by the HMAC-SHA256, in hexadecimal, of the **body exactly as it arrived** (the bytes, before interpreting it as JSON), with the webhook's secret as the key. If the signature doesn't match, discard the notification.
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```python
+import hashlib, hmac, json
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+SECRETO = b"whsec_…"
+
+def firma_valida(cuerpo: bytes, cabecera: str) -> bool:
+    esperada = "sha256=" + hmac.new(SECRETO, cuerpo, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(esperada, cabecera or "")
+
+class Hook(BaseHTTPRequestHandler):
+    def do_POST(self):
+        cuerpo = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        if not firma_valida(cuerpo, self.headers.get("X-VT-Signature")):
+            self.send_response(401)
+            self.end_headers()
+            return
+        aviso = json.loads(cuerpo)
+        print(aviso["event"], aviso["data"])
+        self.send_response(204)
+        self.end_headers()
+
+HTTPServer(("0.0.0.0", 9000), Hook).serve_forever()
+```
+</TabItem>
+<TabItem label="Node">
+```js
+// Node 18 or newer; save it as .mjs
+import { createServer } from "node:http";
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+const SECRETO = "whsec_…";
+
+function firmaValida(cuerpo, cabecera = "") {
+  const esperada = Buffer.from("sha256=" + createHmac("sha256", SECRETO).update(cuerpo).digest("hex"));
+  const recibida = Buffer.from(cabecera);
+  return esperada.length === recibida.length && timingSafeEqual(esperada, recibida);
+}
+
+createServer(async (req, res) => {
+  const partes = [];
+  for await (const parte of req) partes.push(parte);
+  const cuerpo = Buffer.concat(partes);
+  if (!firmaValida(cuerpo, req.headers["x-vt-signature"])) {
+    res.writeHead(401).end();
+    return;
+  }
+  const aviso = JSON.parse(cuerpo);
+  console.log(aviso.event, aviso.data);
+  res.writeHead(204).end();
+}).listen(9000);
+```
+</TabItem>
+</Tabs>
+
+<Aside type="caution">
+Compute the signature over the received bytes, not over the re-serialized JSON: the body carries unescaped accented characters (`ensure_ascii=False`) and any change in whitespace or ordering breaks the signature. In Express, use `express.raw({ type: "application/json" })` on that route.
+</Aside>
+
+The signature proves the notification comes from your Translay, but it doesn't prevent someone who intercepts it from replaying it later. If that matters, use HTTPS and discard notifications with a very old `time`.
+
+## Retries and timeout
+
+- Each delivery waits for the response for at most **8 seconds**.
+- It counts as delivered if your server responds `2xx`. Any other code, a connection error or a timeout counts as a failure.
+- After a failure it retries at **10 s**, **1 min** and **5 min**: up to 4 attempts in total. After that it is dropped.
+- If you delete the webhook while it waits for a retry, that retry isn't sent.
+
+Deliveries go one at a time, in order. Respond quickly (for example, `204` and process afterward) so you don't hold up the next ones.
+
+Retries and grouped notifications that haven't gone out yet live in memory: if the server restarts, they are lost.
+
+## Test a webhook
+
+Each webhook's **Probar** (Test) button immediately sends a `prueba` event, with `vault` as `null` and this data:
+
+```json
+{"event": "prueba", "time": 1730000000.0, "vault": null, "data": {"mensaje": "Webhook de prueba desde el traductor"}}
+```
+
+It arrives signed just like the others, even if the webhook is paused or has no event of that kind checked: it's useful for checking the URL and the signature verification.
+
+## Delivery log
+
+Below the webhooks, **Últimos envíos** (Latest deliveries) shows the 8 most recent ones across all webhooks, with the time, the event and the response code. Failed ones are marked and say `sin respuesta` ("no response") if there was none; from the second attempt on they show the attempt number, and the error on hover.
+
+The server keeps the last 60 deliveries in memory; the log is emptied on restart.

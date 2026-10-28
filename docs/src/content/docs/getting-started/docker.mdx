@@ -1,0 +1,86 @@
+---
+title: Docker
+description: Run Translay in a container with an NVIDIA GPU.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The image includes everything: CUDA 12.8 and cuDNN 9, the server (Python 3.12), the OmniVoice voice engine in its own environment (Python 3.11 + torch), ffmpeg and Node.
+
+## Requirements
+
+- An NVIDIA GPU with an up-to-date driver.
+- Linux: Docker with the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+- Windows: Docker Desktop with WSL 2 (the GPU is passed to the container without installing anything else).
+
+## With Docker Compose
+
+<Steps>
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/alenj0x1/translay.git
+   cd translay
+   ```
+
+1. Set the owner password:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   and change `TRANSLAY_OWNER_PASSWORD` in `.env`.
+
+2. Build and start:
+
+   ```sh
+   docker compose up -d --build
+   ```
+
+3. Open `http://localhost:8765` and sign in with that password.
+
+</Steps>
+
+The first time, it downloads the models (~6 GB) into the `modelos` volume; the container shows as *healthy* once the server responds. To follow progress:
+
+```sh
+docker compose logs -f
+```
+
+## Why the password is needed
+
+Outside Docker, anyone connecting from the same machine (`127.0.0.1`) is the owner without signing in. Inside the container, connections arrive from the Docker network, so nobody counts as local: without a password nobody could administer the app. `TRANSLAY_OWNER_PASSWORD` (or `--owner-password`) sets it at startup. More in [Access](../../integrations/access/).
+
+## Volumes
+
+| Path in the container | What it stores |
+|---|---|
+| `/app/data` | Your library, transcripts, voices, queue, preferences and keys (in the compose file, `./data`). |
+| `/models` | Hugging Face models (`HF_HOME`). Keeping it avoids downloading them again. |
+
+You can mount the same `data/` folder used by the local installation: the format is the same.
+
+## Without Compose
+
+```sh
+docker build -t translay .
+docker run -d --gpus all -p 8765:8765 \
+  -e TRANSLAY_OWNER_PASSWORD=tu-contraseña \
+  -v "$PWD/data:/app/data" -v translay-modelos:/models \
+  --name translay translay
+```
+
+The [startup options](../../reference/cli/) go after the image name; they replace the defaults (`--host 0.0.0.0 --no-browser`), so include them:
+
+```sh
+docker run … translay --host 0.0.0.0 --no-browser --translator nllb-1.3b
+```
+
+<Aside type="caution" title="What doesn't work in the container">
+- **Choosing a folder** when creating a library: there is no system window; type the path (inside the container, e.g. on a mounted volume).
+- **Importing a browser session**: the container can't see your browsers; use **Subir cookies.txt** (Upload cookies.txt) ([YouTube](../../guide/youtube/)).
+- **Access from other machines** doesn't apply: Docker's `-p` decides it. With `-p 127.0.0.1:8765:8765` only this machine can connect.
+</Aside>

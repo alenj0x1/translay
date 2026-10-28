@@ -1,0 +1,39 @@
+---
+title: App de escritorio
+description: La ventana de Translay en Windows, su barra de título, la bandeja, la carpeta de la biblioteca y los registros.
+sidebar:
+  order: 13
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+La app de escritorio es la misma interfaz de Translay dentro de su propia ventana: todo lo de esta guía funciona igual. Por debajo, la app arranca el servidor de Translay sin ventana y lo cierra cuando sales (ver [Arquitectura](../../how-it-works/architecture/#app-de-escritorio)).
+
+## La ventana
+
+- El encabezado de Translay es la barra de título: se arrastra para mover la ventana y con doble clic se maximiza o se restaura. Sigue el tema claro u oscuro, como el borde de la ventana.
+- A la derecha, **Preferencias** y el cambio entre claro y oscuro van como íconos, junto a minimizar, maximizar y cerrar.
+- Translay se abre una sola vez: si lo abres de nuevo desde el menú Inicio, vuelve la ventana que ya estaba abierta.
+- Al abrir se ve **Abriendo Translay** mientras se cargan los modelos, con el tema que usaste la última vez.
+
+## Preferencias › App de escritorio
+
+Esta página solo aparece en la app.
+
+| Opción | Qué hace |
+|---|---|
+| **Al cerrar la ventana** | **Salir** cierra Translay por completo. **Seguir en la bandeja** oculta la ventana y deja Translay en la bandeja del sistema: la cola sigue descargando y traduciendo. Desde el ícono de la bandeja, **Abrir Translay** o **Salir**. |
+| **Biblioteca Principal** | La carpeta donde se guarda la biblioteca Principal. **Abrir carpeta** la abre en el Explorador; **Cambiar…** elige otra y Translay se reinicia con ella. Las demás bibliotecas pueden estar en cualquier carpeta (ver [Bibliotecas](../libraries/)). |
+| **Registros** | Abre la carpeta con `setup.log` (la instalación) y `server.log` (lo que escribe el servidor). Sirven para reportar un problema. |
+
+<Aside type="caution">
+**Cambiar…** no mueve tus archivos: apunta Translay a otra carpeta. Para llevarte la biblioteca, copia la carpeta anterior a la nueva antes de cambiarla. No uses la misma carpeta desde la app y desde `python run.py` a la vez.
+</Aside>
+
+## Si el servidor se detiene
+
+La ventana muestra **Translay se detuvo** con las últimas líneas del servidor, **Reintentar** (lo arranca de nuevo) y **Abrir registros**. Cerrar la app también cierra el servidor y todo lo que lanzó (voz, descargas, ffmpeg), aunque la app se cierre de golpe.
+
+## Mismo equipo, otro navegador
+
+El servidor de la app escucha en `127.0.0.1` (el puerto 8765 o el siguiente libre). Para entrar desde el celular u otro equipo de la red, activa el acceso en **Preferencias › Acceso y API** (ver [Acceso](../../integrations/access/)).

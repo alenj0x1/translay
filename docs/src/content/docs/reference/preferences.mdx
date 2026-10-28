@@ -1,0 +1,58 @@
+---
+title: Preferences
+description: All preferences, their options and defaults, generated from vt/prefs.py.
+sidebar:
+  order: 2
+---
+
+import PrefTable from "../../../components/PrefTable.astro";
+
+They are stored on the server (`data/prefs.json`) and apply to all tabs. Those marked as **propias** (per library) are stored in each library (`vault.json`), so each one can have its own. In the app: Preferences, one page per section. How to use them: [Preferences](../../guide/preferences/).
+
+## Appearance
+
+How Translay looks in this library.
+
+<PrefTable section="apariencia" />
+
+## Playback
+
+What happens when you open, finish or add videos while watching.
+
+<PrefTable section="video" />
+
+## Audio and subtitles
+
+What you hear and which texts appear over the video.
+
+<PrefTable section="audio" />
+
+## Import and downloads
+
+What is done with what you import and how it is downloaded.
+
+<PrefTable section="biblioteca" />
+
+## YouTube
+
+The session used for downloading.
+
+<PrefTable section="youtube" />
+
+<PrefTable except={["apariencia", "video", "audio", "biblioteca", "youtube"]} />
+
+The **Bibliotecas** (Libraries), **Glosario** (Glossary) and **Acceso y API** (Access and API) sections are not individual preferences: they are screens of their own. See [Libraries](../../guide/libraries/), [Glossary and search](../../guide/glossary-and-search/) and [Access](../../integrations/access/).
+
+## Add a preference
+
+1. Add an entry to `SCHEMA` in `vt/prefs.py` (with its `section`) and its group and description in `DETAILS`.
+2. Read it in the UI (`prefs.<key>` in `web/js/`). The Preferences screen builds itself.
+3. If it should be per library, add it to `VAULT_PREFS` in `vt/vaults.py`.
+
+This page regenerates itself when the documentation is built.
+
+## Performance
+
+The profile and the limits. In the app they have their own screen (Preferences › **Rendimiento**); see [Performance](../../guide/performance/). `0` means "Sin límite" (no limit).
+
+<PrefTable section="_perf" />

@@ -5,170 +5,185 @@
   </picture>
 </h1>
 
-Traduce y dobla videos del inglés al español **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en español: subtítulos, transcripción alineada EN | ES y voz clonada sincronizada con la imagen. Nada sale de tu equipo salvo las descargas de YouTube.
+English | [Español](README.es.md)
 
-**Versión 1.1.0** · [Documentación](https://alenj0x1.github.io/translay/) · [Cambios](CHANGELOG.md) · [Versiones](https://github.com/alenj0x1/translay/releases)
+Translate and dub videos from English into Spanish **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in Spanish: subtitles, an aligned EN | ES transcript, and a cloned voice synced to the picture. Nothing leaves your machine except the YouTube downloads.
 
-![Translay: video doblado al español con subtítulos y la transcripción alineada](docs/src/assets/capturas/reproductor.webp)
+[![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
+[![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
 
-## Contenido
+**[Download for Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentation](https://alenj0x1.github.io/translay/) · [Changelog](CHANGELOG.md)
 
-- [Qué hace](#qué-hace)
-- [Rendimiento: qué equipo necesitas](#rendimiento-qué-equipo-necesitas)
-- [Cómo funciona](#cómo-funciona)
-- [Capturas](#capturas)
-- [Empezar](#empezar)
-- [Acceso, API y webhooks](#acceso-api-y-webhooks)
-- [Tus datos](#tus-datos)
-- [Documentación](#documentación) · [Desarrollo](#desarrollo) · [Estructura](#estructura)
+![Translay: a video dubbed into Spanish with subtitles and the aligned transcript](docs/src/assets/capturas/reproductor.webp)
 
-## Qué hace
+## Contents
 
-### Traducción y doblaje
+- [What it does](#what-it-does)
+- [Performance: what hardware you need](#performance-what-hardware-you-need)
+- [How it works](#how-it-works)
+- [Screenshots](#screenshots)
+- [Install](#install)
+- [Access, API and webhooks](#access-api-and-webhooks)
+- [Your data](#your-data)
+- [Documentation](#documentation) · [Development](#development) · [Structure](#structure)
 
-- **Reconocimiento** con Whisper large-v3-turbo en streaming: el video se procesa mientras lo ves, desde tu punto de reproducción, y si saltas, el procesamiento salta contigo.
-- **Traducción** con Opus-MT big y capas propias para **español latinoamericano**: separa oraciones, reescribe modismos ingleses antes de traducir («call it a day», «let me know») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»). NLLB-1.3B y MADLAD-3B como alternativas.
-- **Quién habla**: diarización propia (huella de voz WeSpeaker en ONNX + agrupamiento en línea). 97,6 % de frases con la persona correcta en 12 videos de prueba con 2 a 4 personas, con y sin ruido.
-- **Doblaje con la voz de cada persona**: OmniVoice clona su voz a partir de sus mejores frases (hasta 8 s, limpiadas con DeepFilterNet si tienen ruido). Cada frase calza en su espacio (duración pedida al motor y WSOLA de respaldo, sin cambiar el tono) y suena al mismo volumen que el original.
-- **Sincronizada**: desfase mediano de 0,08 s entre la voz y la imagen.
-- **Lo hecho no se rehace**: cada video se reconoce por una huella de su contenido. Si cambia la traducción, la persona o el motor de voz, solo esas frases se vuelven a doblar.
+## What it does
 
-### Reproductor
+### Translation and dubbing
 
-- Vista **ampliada** (subtítulo en español abajo, inglés arriba) o **dividida** (original y traducido lado a lado).
-- **ES / EN** para pasar de la voz en español al original; el original queda de fondo bajo la voz al volumen que elijas.
-- Velocidad de 0,75× a 2× sin cambiar el tono, pantalla completa, atajos de teclado.
-- Indicador **«Preparando NN %» / «Listo para reproducir»** calculado con la velocidad real del doblaje; puede pausar solo hasta que haya voz por delante y seguir solo.
-- **Transcripción alineada** EN | ES con quién habla cada frase, **comentarios** por frase (marcados en la línea de avance) y clic para saltar.
-- **Personas**: ponle nombre a cada una, elige su voz (la suya, la de otra persona del video o una **persona guardada** en la biblioteca) y escucha su referencia.
-- **Siguientes** (la colección o playlist desde donde abriste) con reproducción automática del próximo, y **miniatura flotante** al volver a la biblioteca.
+- **Recognition** with Whisper large-v3-turbo in streaming mode: the video is processed while you watch, starting from your playback position, and if you skip ahead, processing skips with you.
+- **Translation** with Opus-MT big and custom layers for **Latin American Spanish**: it splits sentences, rewrites English idioms before translating («call it a day», «let me know») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»). NLLB-1.3B and MADLAD-3B as alternatives.
+- **Who is speaking**: custom diarization (WeSpeaker voiceprint in ONNX + online clustering). 97.6% of sentences assigned to the right person across 12 test videos with 2 to 4 people, with and without noise.
+- **Dubbing in each person's voice**: OmniVoice clones their voice from their best sentences (up to 8 s, cleaned with DeepFilterNet if noisy). Each sentence fits its slot (duration requested from the engine with WSOLA as a fallback, without changing pitch) and plays at the same volume as the original.
+- **In sync**: median offset of 0.08 s between voice and picture.
+- **Finished work is never redone**: each video is identified by a fingerprint of its content. If the translation, the person or the voice engine changes, only those sentences are dubbed again.
 
-### Importar y cola
+### Player
 
-- **YouTube**: videos, `shorts/`, `live/`, playlists (se importan como colección y se actualizan al volver a pegarlas), varios enlaces mezclados con texto o un **CSV con miles de enlaces**. Pega un enlace en cualquier parte de la página.
-- **Archivos de tu equipo**: videos y audios, arrastrándolos a la página.
-- Importar **directo a una colección o categoría**, «Solo descargar» (sin usar la GPU) o «Solo el audio» (más rápido; el video se baja después si hace falta).
-- **Una sola cola en el servidor** que sobrevive a recargar o cerrar la pestaña: primero el video que ves, después lo priorizado, después el resto. Pausa, «Priorizar», pantalla propia con estados (Descargando, Procesando, En cola, Con error, Listos…).
-- **Descargas cuidadosas**: una a la vez, espaciadas, en orden o al azar; si YouTube pide verificar que no eres un bot, pausa 20 min sin marcar errores y sigue en modo cuidadoso. Sesión de YouTube con `cookies.txt` o desde el navegador instalado.
-- **Avisos del navegador** al terminar una descarga, un video, la cola o una exportación.
+- **Expanded** view (Spanish subtitle below, English above) or **split** view (original and translated side by side).
+- **ES / EN** to switch from the Spanish voice to the original; the original stays in the background under the voice at the volume you choose.
+- Speed from 0.75× to 2× without changing pitch, fullscreen, keyboard shortcuts.
+- **«Preparando NN %» / «Listo para reproducir»** (Preparing NN% / Ready to play) indicator, computed from the real dubbing speed; it can pause by itself until there is voice ahead and resume on its own.
+- **Aligned EN | ES transcript** showing who speaks each sentence, per-sentence **comments** (marked on the progress bar) and click to jump.
+- **People**: name each one, choose their voice (their own, another person's from the video, or a **saved person** from the library) and listen to their reference.
+- **Up next** (the collection or playlist you opened it from) with autoplay of the next video, and a **floating thumbnail** when you go back to the library.
 
-### Biblioteca
+### Import and queue
 
-- **Portada** con «Seguir viendo» y filas por colección; **colecciones** propias y automáticas (Recientes, Todos, una por canal y por categoría de YouTube) con avatar y banner reales de cada canal.
-- **Varias bibliotecas**, cada una en su carpeta (otro disco, por ejemplo), con sus videos, colecciones, glosario, personas, tema y forma de importar. «Mover a…» lleva los archivos; «Abrir carpeta» agrega una biblioteca existente.
-- **Búsqueda** en todas las transcripciones (inglés, español y comentarios, sin importar tildes).
-- **Glosario** por biblioteca: términos que no se traducen o que siempre se traducen igual; al cambiarlo, se re-traduce lo ya hecho y se rehace la voz.
-- **Selección múltiple** para abrir, procesar, exportar, mover o eliminar; menú contextual en todo.
-- **Papelera de 30 días**: eliminar videos, vaciar o eliminar una biblioteca se puede deshacer al momento o restaurar después, con sus traducciones, voces, descargas y colecciones. Vaciar y eliminar una biblioteca piden escribir su nombre.
-- Banners y distintivos con **patrones geométricos** por colección y biblioteca; modo claro y oscuro (por biblioteca); interfaz adaptada al celular.
+- **YouTube**: videos, `shorts/`, `live/`, playlists (imported as a collection and updated when you paste them again), several links mixed with text, or a **CSV with thousands of links**. Paste a link anywhere on the page.
+- **Files from your machine**: videos and audio, by dragging them onto the page.
+- Import **straight into a collection or category**, **«Solo descargar»** (Download only; doesn't use the GPU) or **«Solo el audio»** (Audio only; faster, and the video is downloaded later if needed).
+- **A single server-side queue** that survives reloading or closing the tab: first the video you are watching, then prioritized items, then the rest. Pause, **«Priorizar»** (Prioritize), and a dedicated screen with states (Descargando, Procesando, En cola, Con error, Listos… — Downloading, Processing, Queued, Failed, Done).
+- **Careful downloads**: one at a time, spaced out, in order or at random; if YouTube asks you to verify you're not a bot, it pauses for 20 min without flagging errors and continues in careful mode. YouTube session with `cookies.txt` or from the installed browser.
+- **Browser notifications** when a download, a video, the queue or an export finishes.
 
-### Exportar
+### Library
 
-| Opción | Formato |
+- **Home page** with **«Seguir viendo»** (Continue watching) and a row per collection; custom and automatic **collections** (Recientes, Todos, one per channel and per YouTube category — Recent, All) with each channel's real avatar and banner.
+- **Multiple libraries**, each in its own folder (another drive, for example), with its own videos, collections, glossary, people, theme and import settings. **«Mover a…»** (Move to…) moves the files; **«Abrir carpeta»** (Open folder) adds an existing library.
+- **Search** across all transcripts (English, Spanish and comments, ignoring accents).
+- **Glossary** per library: terms that are not translated or are always translated the same way; when you change it, what is already done is re-translated and the voice is redone.
+- **Multi-select** to open, process, export, move or delete; context menu everywhere.
+- **30-day trash**: deleting videos, or emptying or deleting a library, can be undone right away or restored later, with their translations, voices, downloads and collections. Emptying and deleting a library require typing its name.
+- Banners and badges with **geometric patterns** per collection and library; light and dark mode (per library); phone-friendly interface.
+
+### Desktop app
+
+- **Windows installer**, no administrator rights needed. The first time you open it, the app installs the server and the voice engine by itself (packages pinned with their SHA-256 hash) and shows progress on the button; then it opens Translay in its own window.
+- **Custom title bar** that follows the light or dark theme, with Preferences and the theme switch as icons.
+- Optional **system tray** so the queue keeps working with the window closed; a single instance; the server and everything it launches close with the app.
+- **Your library wherever you want** (by default `Videos\Translay`), chosen at install time and changeable later.
+
+### Export
+
+| Option | Format |
 |---|---|
-| Video traducido | MP4 con la voz en español como pista principal, el inglés como segunda pista y subtítulos ES/EN |
-| Audio traducido / original | M4A |
-| Video original | MP4 |
-| Subtítulos en español / inglés | SRT |
-| Transcripción bilingüe con personas y comentarios | TXT |
+| Translated video | MP4 with the Spanish voice as the main track, English as the second track, and ES/EN subtitles |
+| Translated / original audio | M4A |
+| Original video | MP4 |
+| Spanish / English subtitles | SRT |
+| Bilingual transcript with people and comments | TXT |
 
-Desde el reproductor, una tarjeta, una colección entera o una selección; varios archivos van en un `.zip`. Si el video aún no está listo, la exportación espera (y lo manda a la cola si hace falta).
+From the player, a card, an entire collection or a selection; several files go in a `.zip`. If the video isn't ready yet, the export waits (and sends it to the queue if needed).
 
-## Rendimiento: qué equipo necesitas
+## Performance: what hardware you need
 
-Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Preferencias › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://alenj0x1.github.io/translay/funcionamiento/gpu-y-reposo/#memoria-unificada-dgx-spark)).
+Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvidia-smi`), VRAM, RAM and CPU, and picks the most complete **profile** that can be watched live. Everything is shown and changed in **Preferencias › Rendimiento** (Preferences › Performance). On machines with unified memory, such as NVIDIA DGX Spark, GPU memory is the system RAM ([details](https://alenj0x1.github.io/translay/how-it-works/gpu-and-idle/#unified-memory-dgx-spark)).
 
-### Perfiles
+### Profiles
 
-| Perfil | Reconocimiento | Traductor | Voz | VRAM pico | RAM comprometida | Para |
+| Profile | Recognition | Translator | Voice | Peak VRAM | Committed RAM | For |
 |---|---|---|---|---|---|---|
-| **Máxima calidad** | large-v3-turbo fp16, beam 5 | opus-big | Clonada, 16 pasos | ~4,6 GB | ~12 GB | GPU de 8 GB o más |
-| **Equilibrado** | large-v3-turbo int8 | opus-big int8 | Clonada, 8 pasos | ~3,5 GB | ~11 GB | GPU de 6 GB |
-| **Ligero** | small.en int8, beam 3 | opus-base int8 | Clonada, 8 pasos | ~3,3 GB | ~10,7 GB | GPU de 4 GB |
-| **Solo subtítulos** | large-v3-turbo int8 | opus-big | Sin voz | ~1,9 GB | ~3,5 GB | GPU de 2 GB |
-| **Subtítulos ligeros** | small.en int8, beam 3 | opus-base int8 | Sin voz | ~0,6 GB | ~2,2 GB | Sin GPU |
+| **Máxima calidad** (Maximum quality) | large-v3-turbo fp16, beam 5 | opus-big | Cloned, 16 steps | ~4.6 GB | ~12 GB | 8 GB GPU or more |
+| **Equilibrado** (Balanced) | large-v3-turbo int8 | opus-big int8 | Cloned, 8 steps | ~3.5 GB | ~11 GB | 6 GB GPU |
+| **Ligero** (Light) | small.en int8, beam 3 | opus-base int8 | Cloned, 8 steps | ~3.3 GB | ~10.7 GB | 4 GB GPU |
+| **Solo subtítulos** (Subtitles only) | large-v3-turbo int8 | opus-big | No voice | ~1.9 GB | ~3.5 GB | 2 GB GPU |
+| **Subtítulos ligeros** (Light subtitles) | small.en int8, beam 3 | opus-base int8 | No voice | ~0.6 GB | ~2.2 GB | No GPU |
 
-La voz clonada necesita GPU: en la CPU va de 0,01× a 0,04× (inviable). Sin GPU, Translay hace subtítulos y transcripción.
+The cloned voice needs a GPU: on the CPU it runs at 0.01× to 0.04× (unusable). Without a GPU, Translay produces subtitles and transcripts.
 
-### Velocidad medida
+### Measured speed
 
-No son estimaciones: se midieron con el mismo camino que la cola, en equipos emulados con límites reales de VRAM, RAM y CPU ([labs de hardware](tools/lab/)), sobre 90 s de un podcast con ruido de cafetería. «2,2×» = procesa 2,2 segundos de video por segundo de reloj; 1× o más alcanza para verlo en vivo. En negrita, lo que elige el modo automático.
+These are not estimates: they were measured through the same path as the queue, on emulated machines with real VRAM, RAM and CPU limits ([hardware labs](tools/lab/)), over 90 s of a podcast with cafeteria noise. "2.2×" = it processes 2.2 seconds of video per second of wall-clock time; 1× or more is enough to watch live. In bold, what automatic mode picks.
 
-| Equipo | Calidad | Equilibrado | Ligero | Subtítulos | Subtítulos ligeros |
+| Machine | Quality | Balanced | Light | Subtitles | Light subtitles |
 |---|---|---|---|---|---|
-| GPU de 8 GB | **2,2×** | 2,7× | 2,5× | 7,3× | 6,7× |
-| GPU de 6 GB | 0,94× | **2,5×** | 2,3× | 7,2× | 6,2× |
-| GPU de 4 GB | 0,54× | 0,89× | **1,3×** | 7,2× | 6,1× |
-| GPU de 2 GB | 0,25× | 0,46× | 0,47× | **3,4×** | 5,2× |
-| Sin GPU, 8 hilos | 0,02× | 0,03× | 0,04× | 0,3× | **1,2×** |
+| 8 GB GPU | **2.2×** | 2.7× | 2.5× | 7.3× | 6.7× |
+| 6 GB GPU | 0.94× | **2.5×** | 2.3× | 7.2× | 6.2× |
+| 4 GB GPU | 0.54× | 0.89× | **1.3×** | 7.2× | 6.1× |
+| 2 GB GPU | 0.25× | 0.46× | 0.47× | **3.4×** | 5.2× |
+| No GPU, 8 threads | 0.02× | 0.03× | 0.04× | 0.3× | **1.2×** |
 
-Cada perfil dice en su tarjeta si **va bien** (1,5× o más), está **al límite** (en vivo con unos segundos de espera) o va **forzado** (sirve para dejarlo en la cola, no para verlo en vivo), cuánto tarda un video del largo que elijas («10 min de video → ~5 min») y si tiene voz. Cambiar de perfil reinicia Translay solo en unos segundos y lo que se procesaba se retoma. Las opciones `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` y `--device` ganan sobre el perfil.
+Each profile's card says whether it **runs well** (1.5× or more), is **borderline** (live with a few seconds of waiting) or is **strained** (fine for leaving in the queue, not for watching live), how long a video of the length you choose takes ("10 min of video → ~5 min") and whether it has voice. Switching profiles restarts Translay by itself in a few seconds and whatever was being processed resumes. The `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` and `--device` options take precedence over the profile.
 
-### Límites de VRAM, RAM y CPU
+### VRAM, RAM and CPU limits
 
-Para dejarle espacio a otros programas (un juego, un editor de video):
+To leave room for other programs (a game, a video editor):
 
-- **VRAM**: el perfil automático elige modelos que entren en ese límite.
-- **RAM**: tope para Translay y su proceso de voz juntos; lo que no entra pasa al disco (más lento, pero no se cae).
-- **Hilos de la CPU**: cuántos puede usar.
+- **VRAM**: the automatic profile picks models that fit within that limit.
+- **RAM**: a cap for Translay and its voice process together; whatever doesn't fit goes to disk (slower, but it doesn't crash).
+- **CPU threads**: how many it can use.
 
-La RAM y los hilos se aplican **al momento, sin reiniciar**. En Windows usan un *Job Object* y un tope de memoria por proceso, sin permisos de administrador; en Docker, `--memory` y `--cpus` del contenedor (Translay lee los límites de cgroups).
+RAM and threads apply **immediately, without restarting**. On Windows they use a *Job Object* and a per-process memory cap, without administrator rights; in Docker, the container's `--memory` and `--cpus` (Translay reads the cgroup limits).
 
-### Avisos
+### Warnings
 
-Rendimiento explica por qué algo va lento y qué hacer: el perfil elegido va forzado en este equipo (y cuál conviene); no entra entero en la VRAM y el driver desborda a la memoria compartida (algunas frases pasan de 0,3 s a 15–40 s); falta RAM; un límite demasiado bajo; y en vivo, frases de voz que tardan mucho más de lo normal, poca RAM libre u otro programa usando casi toda la VRAM.
+Performance explains why something is slow and what to do: the chosen profile is strained on this machine (and which one would be better); it doesn't fit entirely in VRAM and the driver spills into shared memory (some sentences go from 0.3 s to 15–40 s); not enough RAM; a limit that is too low; and, live, voice sentences taking much longer than normal, little free RAM, or another program using almost all the VRAM.
 
-### Memoria y reposo
+### Memory and idle
 
-Los modelos ocupan la GPU solo mientras se procesa algo. Medido en una RTX 4060 de 8 GB con «Máxima calidad»:
+The models occupy the GPU only while something is being processed. Measured on an 8 GB RTX 4060 with "Máxima calidad":
 
-| Situación | VRAM |
+| Situation | VRAM |
 |---|---|
-| Procesando (reconocimiento, traducción y voz) | ~5,6 GB |
-| Tras 45 s sin uso: modelos a la RAM, vuelven en ~1 s | ~1 GB |
-| Tras 2 min: se cierra el proceso de voz | ~110 MB |
+| Processing (recognition, translation and voice) | ~5.6 GB |
+| After 45 s idle: models move to RAM, back in ~1 s | ~1 GB |
+| After 2 min: the voice process shuts down | ~110 MB |
 
-Reconocimiento, traducción y voz se turnan en la GPU por orden de llegada (sumar sus picos desbordaba 8 GB), y los cachés de CTranslate2 (400 MB) y torch (2,5 GB) tienen tope para que la memoria no crezca sin control.
+Recognition, translation and voice take turns on the GPU in order of arrival (adding up their peaks overflowed 8 GB), and the CTranslate2 (400 MB) and torch (2.5 GB) caches have caps so memory doesn't grow out of control.
 
-## Cómo funciona
+## How it works
 
 ```text
-audio 16 kHz → detección de voz → Whisper en streaming → Opus-MT + glosario → quién habla → OmniVoice → voz en su lugar
+16 kHz audio → voice detection → streaming Whisper → Opus-MT + glossary → who speaks → OmniVoice → voice in place
 ```
 
-- **Servidor** en Python (`vt/`) con HTTP + WebSocket propios sobre asyncio, sin framework. Whisper y el traductor corren sobre CTranslate2; la voz, en su propio proceso con torch (`.venvs/omnivoice`).
-- **Interfaz** en HTML, CSS y JavaScript sin framework (`web/`): el navegador manda el audio que suena y recibe frases, traducciones y voces al instante; la cola del servidor procesa lo demás.
-- **Datos** en JSON y WAV en la carpeta de cada biblioteca, escritos de forma atómica con copia de respaldo.
+- **Server** in Python (`vt/`) with its own HTTP + WebSocket on asyncio, no framework. Whisper and the translator run on CTranslate2; the voice runs in its own process with torch (`.venvs/omnivoice`).
+- **Interface** in HTML, CSS and JavaScript with no framework (`web/`): the browser sends the audio that is playing and instantly receives sentences, translations and voices; the server queue processes the rest.
+- **Data** in JSON and WAV in each library's folder, written atomically with a backup copy.
 
-El detalle (VAD, acuerdo local del streaming, reglas contra alucinaciones, referencias de voz, duración, sonoridad, re-doblaje) está en [Pipeline](https://alenj0x1.github.io/translay/funcionamiento/pipeline/) y [Voz y clonación](https://alenj0x1.github.io/translay/funcionamiento/voz/).
+The details (VAD, streaming local agreement, anti-hallucination rules, voice references, duration, loudness, re-dubbing) are in [Pipeline](https://alenj0x1.github.io/translay/how-it-works/pipeline/) and [Voice and cloning](https://alenj0x1.github.io/translay/how-it-works/voice/).
 
-## Capturas
-
-| | |
-|---|---|
-| ![Portada de una biblioteca](docs/src/assets/capturas/inicio.webp) | ![Varias bibliotecas, cada una con su banner](docs/src/assets/capturas/bibliotecas.webp) |
-| ![Colección de un canal de YouTube](docs/src/assets/capturas/coleccion.webp) | ![Vista dividida: original y traducido](docs/src/assets/capturas/dividido.webp) |
-| ![Personas del video con su voz](docs/src/assets/capturas/personas.webp) | ![Cola con estados y descargas](docs/src/assets/capturas/cola.webp) |
-| ![Importar varios enlaces](docs/src/assets/capturas/importar.webp) | ![Exportar video, audio y subtítulos](docs/src/assets/capturas/exportar.webp) |
-| ![Búsqueda en las transcripciones](docs/src/assets/capturas/busqueda.webp) | ![Modo claro](docs/src/assets/capturas/inicio-claro.webp) |
-
-Capturas de una instancia de prueba con videos de dominio público de la NASA y la NOAA.
-
-## Empezar
-
-### Requisitos
+## Screenshots
 
 | | |
 |---|---|
-| GPU | NVIDIA. Con 8 GB, todo en máxima calidad; con 6 o 4 GB, voz clonada con modelos más livianos; con 2 GB o sin GPU, solo subtítulos (ver [Rendimiento](#rendimiento-qué-equipo-necesitas)). |
-| RAM | ~12 GB libres para el doblaje con voz; ~4 GB para solo subtítulos. |
-| Python | 3.11 o más nuevo para el servidor; el motor de voz usa su propio entorno con Python 3.11. |
-| [uv](https://docs.astral.sh/uv/) | Para crear el entorno del motor de voz. |
-| ffmpeg | En el `PATH`: descargas, miniaturas y exportar. |
-| Node.js 20+ | En el `PATH`: yt-dlp lo usa para el desafío de JavaScript de YouTube. |
-| Disco | ~15 GB para modelos y entornos, más lo que ocupen tus videos. |
+| ![Home page of a library](docs/src/assets/capturas/inicio.webp) | ![Several libraries, each with its own banner](docs/src/assets/capturas/bibliotecas.webp) |
+| ![A YouTube channel's collection](docs/src/assets/capturas/coleccion.webp) | ![Split view: original and translated](docs/src/assets/capturas/dividido.webp) |
+| ![The video's people with their voice](docs/src/assets/capturas/personas.webp) | ![Queue with states and downloads](docs/src/assets/capturas/cola.webp) |
+| ![Importing several links](docs/src/assets/capturas/importar.webp) | ![Exporting video, audio and subtitles](docs/src/assets/capturas/exportar.webp) |
+| ![Search across transcripts](docs/src/assets/capturas/busqueda.webp) | ![Light mode](docs/src/assets/capturas/inicio-claro.webp) |
 
-### Con Docker (GPU NVIDIA)
+Screenshots from a test instance with public-domain videos from NASA and NOAA.
+
+## Install
+
+### Windows: the desktop app
+
+1. Download `Translay_<version>_x64-setup.exe` from the [latest release](https://github.com/alenj0x1/translay/releases/latest) and open it.
+2. Open **Translay**, choose where to store your library and click **Instalar** (Install).
+
+The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens). Details: [Installation](https://alenj0x1.github.io/translay/getting-started/install/).
+
+| | |
+|---|---|
+| System | 64-bit Windows 10 or 11. |
+| GPU | NVIDIA. With 8 GB, everything at maximum quality; with 6 or 4 GB, cloned voice with lighter models; with 2 GB or no GPU, subtitles only (see [Performance](#performance-what-hardware-you-need)). |
+| RAM | ~12 GB free for dubbing with voice; ~4 GB for subtitles only. |
+| Disk | ~15 GB for environments and models, plus whatever your videos take up. |
+
+### With Docker (NVIDIA GPU)
 
 ```sh
 git clone https://github.com/alenj0x1/translay.git && cd translay
@@ -176,9 +191,11 @@ cp .env.example .env          # y cambia TRANSLAY_OWNER_PASSWORD
 docker compose up -d --build
 ```
 
-Abre http://localhost:8765. La primera vez descarga los modelos (~6 GB). Detalle: [Docker](docs/src/content/docs/empezar/docker.mdx).
+Open http://localhost:8765. The first time it downloads the models (~6 GB). Details: [Docker](https://alenj0x1.github.io/translay/getting-started/docker/).
 
-### En tu equipo
+### From source (Windows or Linux)
+
+You need Python 3.11+, [uv](https://docs.astral.sh/uv/), ffmpeg and Node.js 20+ on your `PATH`.
 
 ```sh
 git clone https://github.com/alenj0x1/translay.git && cd translay
@@ -188,22 +205,22 @@ uv pip install -p .venvs/omnivoice/Scripts/python.exe --torch-backend=cu128 omni
 python run.py
 ```
 
-En Linux, el Python del motor está en `.venvs/omnivoice/bin/python`. En Windows también sirve `iniciar.bat`. Se abre http://127.0.0.1:8765. Opciones: `python run.py --help` ([Línea de comandos](https://alenj0x1.github.io/translay/referencia/linea-de-comandos/)). Detalle: [Instalación](docs/src/content/docs/empezar/instalacion.mdx) y [Tu primer video](https://alenj0x1.github.io/translay/empezar/primer-video/).
+On Linux, the engine's Python is at `.venvs/omnivoice/bin/python`. It opens http://127.0.0.1:8765. Options: `python run.py --help` ([Command line](https://alenj0x1.github.io/translay/reference/cli/)). Details: [From source](https://alenj0x1.github.io/translay/getting-started/from-source/) and [Your first video](https://alenj0x1.github.io/translay/getting-started/first-video/).
 
-## Acceso, API y webhooks
+## Access, API and webhooks
 
-- **Dueño e invitados**: desde el mismo equipo eres el dueño sin contraseña; desde otros equipos de la red se entra con la contraseña del dueño. Cada biblioteca puede ser privada, con contraseña o pública, con permiso de ver o de importar, y tiene su enlace `/b/<biblioteca>`.
-- **API REST** en `/api/v1` con claves de lectura o escritura, para una biblioteca o todas: bibliotecas, videos, búsqueda, cola, importar y exportar. Ver [API](https://alenj0x1.github.io/translay/integraciones/api/).
-- **Webhooks** firmados con HMAC-SHA256, con reintentos, filtrados por biblioteca y evento (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). Ver [Webhooks](https://alenj0x1.github.io/translay/integraciones/webhooks/).
-- **Seguridad**: contraseñas con scrypt y tokens con hash; el WebSocket y lo que cambia algo exigen que el `Origin` sea la propia app; protección contra *DNS rebinding*; token nuevo en cada inicio de sesión y máximo de 10 intentos fallidos cada 10 minutos; los archivos de las bibliotecas nunca se sirven como páginas. Ver [Acceso](https://alenj0x1.github.io/translay/integraciones/acceso/).
+- **Owner and guests**: from the same machine you are the owner without a password; from other machines on the network you sign in with the owner's password. Each library can be private, password-protected or public, with view or import permission, and has its own `/b/<library>` link.
+- **REST API** at `/api/v1` with read or write keys, for one library or all: libraries, videos, search, queue, import and export. See [API](https://alenj0x1.github.io/translay/integrations/api/).
+- **Webhooks** signed with HMAC-SHA256, with retries, filtered by library and event (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). See [Webhooks](https://alenj0x1.github.io/translay/integrations/webhooks/).
+- **Security**: passwords hashed with scrypt and hashed tokens; the WebSocket and anything that changes state require the `Origin` to be the app itself; protection against *DNS rebinding*; a new token on every sign-in and a maximum of 10 failed attempts every 10 minutes; library files are never served as pages. See [Access](https://alenj0x1.github.io/translay/integrations/access/).
 
-## Tus datos
+## Your data
 
-Todo queda en tu equipo: `data/` (cola, preferencias, sesión de YouTube, lista de bibliotecas) y la carpeta de cada biblioteca (`library.json`, transcripciones, descargas, voces, personas, glosario y su papelera). Nada de eso entra en git. Ver [Datos en disco](https://alenj0x1.github.io/translay/funcionamiento/datos/).
+Everything stays on your machine: the data folder (`data/` from source, or the one you chose in the app; queue, preferences, YouTube session, list of libraries) and each library's folder (`library.json`, transcripts, downloads, voices, people, glossary and its trash). None of it goes into git. See [Data on disk](https://alenj0x1.github.io/translay/how-it-works/data/).
 
-## Documentación
+## Documentation
 
-Todo el funcionamiento (guía de uso, rendimiento, arquitectura, pipeline, GPU, datos, API, webhooks y desarrollo) está en **https://alenj0x1.github.io/translay/**, un sitio Starlight que vive en [`docs/`](docs/) y se publica solo en cada cambio. Para verlo en local:
+All of how it works (usage guide, desktop app, performance, architecture, pipeline, GPU, data, API, webhooks and development) is at **https://alenj0x1.github.io/translay/** (also in Spanish), a Starlight site that lives in [`docs/`](docs/) and is published automatically on every change. To view it locally:
 
 ```sh
 cd docs
@@ -211,28 +228,34 @@ npm install
 npm run dev        # http://localhost:4321
 ```
 
-Las tablas de referencia (opciones de arranque, preferencias, eventos y rutas de la API) se generan desde el código al compilar, y la página de cambios sale de [CHANGELOG.md](CHANGELOG.md).
+The reference tables (startup options, preferences, events and API routes) are generated from the code at build time, and the changelog page comes from [CHANGELOG.md](CHANGELOG.md) (and [CHANGELOG.es.md](CHANGELOG.es.md) in Spanish).
 
-## Desarrollo
+## Development
 
 ```sh
-git config core.hooksPath .githooks     # valida la convención de commits
-python -m pytest tests                  # pruebas sin GPU
+git config core.hooksPath .githooks     # validates the commit convention
+python -m pytest tests                  # tests without a GPU
+npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js + Rust)
 ```
 
-- Commits con [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) en español: `feat(cola): priorizar desde la tarjeta`. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
-- Cada cambio actualiza su página de la documentación y «Sin publicar» en el changelog.
-- Versiones con `python scripts/release.py X.Y.Z` ([Versiones](docs/src/content/docs/desarrollo/versiones.mdx)).
-- Medición: `tools/eval_pipeline.py` (reconocimiento y quién habla), `tools/eval_translation.py`, `tools/eval_tts.py` y los labs de hardware de `tools/lab/` (`TRANSLAY_EMULATE` emula un equipo menor). Ver [Pruebas y evaluación](https://alenj0x1.github.io/translay/desarrollo/pruebas-y-evaluacion/).
+- Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) with the description in Spanish: `feat(cola): priorizar desde la tarjeta`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Every change updates its documentation page (in English and Spanish) and "Unreleased" / «Sin publicar» in both changelogs.
+- Versions with `python scripts/release.py X.Y.Z` ([Releases](https://alenj0x1.github.io/translay/development/releases/)).
+- Measurement: `tools/eval_pipeline.py` (recognition and who speaks), `tools/eval_translation.py`, `tools/eval_tts.py` and the hardware labs in `tools/lab/` (`TRANSLAY_EMULATE` emulates a smaller machine). See [Testing and evaluation](https://alenj0x1.github.io/translay/development/testing/).
 
-## Estructura
+## Structure
 
 | | |
 |---|---|
-| `vt/` | Servidor: HTTP + WebSocket propios, reconocimiento, traducción, voz, cola, biblioteca, papelera, rendimiento, API |
-| `web/` | Interfaz (HTML, CSS por capas y JS sin framework) |
-| `tools/` | Evaluación, doblaje por línea de comandos y labs de hardware |
-| `tests/` | Pruebas sin GPU |
-| `docs/` | Documentación (Astro + Starlight) |
-| `scripts/` | Liberar versiones |
-| `data/` | Tu biblioteca, voces y preferencias (no va a git) |
+| `vt/` | Server: its own HTTP + WebSocket, recognition, translation, voice, queue, library, trash, performance, API |
+| `web/` | Interface (HTML, layered CSS and framework-free JS) |
+| `desktop/` | Windows desktop app (Tauri 2) and installer |
+| `tools/` | Evaluation, command-line dubbing and hardware labs |
+| `tests/` | Tests without a GPU |
+| `docs/` | Documentation (Astro + Starlight) |
+| `scripts/` | Version releases |
+| `data/` | Your library, voices and preferences (not in git) |
+
+## Credits
+
+Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).

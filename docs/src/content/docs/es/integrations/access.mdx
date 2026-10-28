@@ -1,0 +1,165 @@
+---
+title: Acceso
+description: Quién es el dueño, cómo entran otras personas a cada biblioteca y cómo se protege todo.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Translay distingue entre el dueño, que puede todo, y los invitados, que entran a bibliotecas concretas. Todo se configura en **Preferencias → Acceso y API**, que solo ve el dueño.
+
+![Preferencias, Acceso y API: contraseña del dueño, acceso desde otros equipos y visibilidad de cada biblioteca](../../../../assets/capturas/acceso.webp)
+
+## El dueño
+
+Es dueño quien se conecta **desde el mismo equipo donde corre la app**: la conexión llega desde `127.0.0.1` (o `::1`), pide la app por `localhost`, `127.0.0.1` o `[::1]` (así un dominio que apunte a tu equipo, el llamado *DNS rebinding*, no cuenta como local) y no trae ninguna de estas cabeceras de proxy:
+
+`X-Forwarded-For` · `X-Real-IP` · `Forwarded` · `CF-Connecting-IP` · `X-Forwarded-Host`
+
+Así entra sin contraseña. Desde cualquier otro equipo, el dueño inicia sesión con la **contraseña del dueño**.
+
+<Aside type="caution" title="Los túneles cuentan como remotos">
+Un túnel como Cloudflare Tunnel o ngrok corre en el mismo equipo, así que su conexión también llega desde `127.0.0.1`. Lo que lo delata son las cabeceras que agrega (`CF-Connecting-IP`, `X-Forwarded-For`): por eso quien entra por un túnel es un visitante remoto y necesita contraseña.
+
+Un proxy local que **no** agregue ninguna de esas cabeceras (una redirección de puertos por SSH, `socat` o un nginx sin `proxy_set_header X-Forwarded-For`) haría pasar a cualquiera por dueño. Si pones algo delante de Translay, comprueba que agregue `X-Forwarded-For`.
+</Aside>
+
+### Contraseña del dueño
+
+En **Preferencias → Acceso y API → Contraseña** escribe una de al menos 6 caracteres y pulsa **Guardar** (o **Cambiar** si ya había una).
+
+- Sin contraseña, solo se entra como dueño desde este equipo; la pantalla de inicio de sesión de los demás equipos lo explica.
+- **Cambiarla** o **Quitar contraseña** cierra las sesiones de dueño abiertas en otros equipos. Las sesiones de invitados a bibliotecas siguen igual.
+- Desde otro equipo, **Cerrar sesión** borra la sesión en el servidor (`POST /api/auth/logout`).
+
+### Fijarla al arrancar
+
+`--owner-password` (o la variable `TRANSLAY_OWNER_PASSWORD`) fija la contraseña del dueño cada vez que arranca el servidor. Si la guardada es otra, la reemplaza y cierra las sesiones de dueño abiertas.
+
+```sh
+python run.py --owner-password "una-contraseña-larga"
+# o
+TRANSLAY_OWNER_PASSWORD="una-contraseña-larga" python run.py
+```
+
+Con la variable definida, lo que cambies o quites en Preferencias dura hasta el próximo arranque: ahí vuelve a valer la de la variable.
+
+## Docker
+
+Dentro de un contenedor las conexiones llegan desde la red de Docker, nunca desde `127.0.0.1`, así que nadie es dueño sin contraseña. Por eso `docker-compose.yml` exige `TRANSLAY_OWNER_PASSWORD` en `.env` y no arranca sin ella. Los pasos están en [Docker](../../getting-started/docker/).
+
+En Docker, quién llega a la app lo decide la publicación del puerto, no la opción **Acceso desde otros equipos**:
+
+- `-p 8765:8765` (o `"8765:8765"` en `docker-compose.yml`) la abre a toda la red del equipo.
+- `-p 127.0.0.1:8765:8765` la deja solo para este equipo, que aun así entra con la contraseña.
+
+## Sesiones
+
+Al iniciar sesión, el servidor guarda una cookie `vt_s` con un token al azar, `HttpOnly` y `SameSite=Lax`, que dura **30 días** desde el último inicio de sesión (no se renueva con el uso).
+
+Una misma cookie puede valer como dueño y como invitado de varias bibliotecas a la vez: cada contraseña de biblioteca que escribes se suma a tu sesión.
+
+## Quién entra a cada biblioteca
+
+En **Preferencias → Acceso y API → Bibliotecas**, cada biblioteca tiene su visibilidad:
+
+| Visibilidad | En la app | Quién entra |
+| --- | --- | --- |
+| `privada` | Solo yo | Solo el dueño. Es la opción por omisión. |
+| `clave` | Con contraseña | Quien tenga el enlace y la contraseña de esa biblioteca. |
+| `publica` | Pública | Cualquiera que llegue a la app. |
+
+Y, si no es privada, lo que puede hacer quien entra:
+
+| Permiso | En la app | Qué incluye |
+| --- | --- | --- |
+| `ver` | Solo ver | Ver los videos, buscar en las transcripciones y exportar. |
+| `importar` | Ver e importar | Lo anterior, y además agregar videos y mandarlos a la cola. |
+
+Los cambios valen al instante: si a alguien le quitas el acceso a la biblioteca que tiene abierta, su pestaña se cierra.
+
+### Enlace de la biblioteca
+
+Cada biblioteca tiene su enlace, `/b/<id>`, que aparece con el botón **Copiar enlace** cuando la visibilidad no es privada. Abre la app directamente en esa biblioteca. Si quien lo abre todavía no tiene acceso a nada:
+
+- con una biblioteca `clave`, la app pide la contraseña de esa biblioteca (y, si hay contraseña del dueño, ofrece entrar como dueño);
+- con una `privada`, solo deja entrar con la contraseña del dueño;
+- en ambos casos lista las bibliotecas públicas, si hay.
+
+Si **Acceso desde otros equipos** está activo y abres Preferencias desde este equipo, el enlace usa la dirección de la red local en lugar de `localhost`, para que sirva al compartirlo.
+
+### Cambiar la contraseña de una biblioteca
+
+Al guardar una contraseña nueva para una biblioteca `clave`, quien había entrado con la anterior pierde el acceso en ese momento y tiene que escribir la nueva. Cambiar solo el permiso (`ver` / `importar`) no lo expulsa.
+
+Para pasar una biblioteca a `clave` por primera vez hay que darle una contraseña; mientras no la tenga, el cambio no se guarda. Si vuelve a `clave` desde otra visibilidad con la contraseña que ya tenía, quienes entraron antes tienen que escribirla de nuevo.
+
+## Quién puede qué
+
+| | Dueño | Invitado «Solo ver» | Invitado «Ver e importar» | Clave de lectura | Clave de escritura |
+| --- | --- | --- | --- | --- | --- |
+| Ver, buscar y exportar | Sí | Sí | Sí | Sí | Sí |
+| Importar y mandar a la cola | Sí | No | Sí | No | Sí |
+| Borrar videos, cambiar el glosario, quitar de la cola | Sí | No | No | No | Sí |
+| Pausar o reanudar la cola | Sí | No | No | No | Solo si es para todas las bibliotecas |
+| Colecciones, comentarios y personas | Sí | No | No | No | No |
+| Preferencias, acceso, claves y webhooks | Sí | No | No | No | No |
+| Ver la carpeta de cada biblioteca | Sí | No | No | No | No |
+
+Invitados y claves solo alcanzan las bibliotecas que les tocan. Las claves de API se explican en [API REST](../api/).
+
+## Acceso desde otros equipos
+
+Por omisión el servidor escucha solo en `127.0.0.1:8765`: nadie más llega. En **Preferencias → Acceso y API → Otros equipos**, elige **Sí** para que escuche también en cada dirección IPv4 de la red local del equipo (sin las `127.*` ni las `169.254.*`), en el mismo puerto.
+
+<Steps>
+1. Pon una contraseña del dueño, si vas a entrar como dueño desde otro equipo.
+2. En **Otros equipos**, elige **Sí**.
+3. Copia una de las direcciones que aparecen (p. ej. `http://192.168.1.20:8765`) y ábrela en el otro equipo o en el celular, conectado a la misma red.
+</Steps>
+
+La opción se guarda y se vuelve a aplicar al arrancar; la consola muestra las direcciones (`En la red: …`). Si no aparece ninguna dirección, el equipo no está conectado a una red local.
+
+Si arrancas con `--host 0.0.0.0`, el servidor ya escucha en todas las direcciones y esta opción no cambia quién llega.
+
+## Cómo se guardan los secretos
+
+| Qué | Cómo | Dónde |
+| --- | --- | --- |
+| Contraseña del dueño | scrypt (N = 2¹⁴, r = 8, p = 1) con sal al azar de 16 bytes | `data/auth.json` |
+| Contraseña de cada biblioteca | scrypt, igual que la del dueño | `vault.json` de esa biblioteca |
+| Tokens de sesión | SHA-256 del token | `data/auth.json` |
+| Claves de API | SHA-256 de la clave; se muestra completa una sola vez | `data/auth.json` |
+| Secretos de los webhooks | En claro (hacen falta para firmar) | `data/webhooks.json` |
+
+Ninguna contraseña ni clave se guarda en claro. Cada intento de inicio de sesión espera 0,4 s antes de responder y, tras 10 intentos fallidos en 10 minutos, ese equipo espera (`429`). Iniciar sesión siempre entrega un token nuevo: uno que alguien haya plantado antes no sirve para colarse en tu sesión.
+
+## Otros sitios web
+
+El navegador manda la cookie de sesión a `localhost:8765` aunque el pedido lo haga otra página, y desde este equipo ni siquiera hace falta la cookie para ser dueño. Para que un sitio cualquiera que abras no pueda usar Translay por ti, el servidor exige que la cabecera `Origin` sea la propia app en:
+
+- el WebSocket de la interfaz (`/ws`);
+- todo pedido que cambia algo (`POST`, `PUT`, `DELETE`): la API, el inicio de sesión, subir archivos y cookies.
+
+Si el origen es otro (o `null`), responde `403 Origen no permitido`. No aplica a:
+
+- pedidos sin `Origin`, como los de `curl` o un script: no vienen de un navegador;
+- pedidos con `Authorization: Bearer …`: otra página no conoce tu clave;
+- lecturas (`GET`): el navegador no le deja a otra página leer la respuesta.
+
+El origen vale si coincide con el `Host` del pedido o con el `X-Forwarded-Host` que agrega un proxy. Si pones Translay detrás de un proxy o túnel que cambia el `Host` y no agrega `X-Forwarded-Host`, declara la dirección pública:
+
+```sh
+python run.py --allow-origin https://translay.midominio.com
+# o
+TRANSLAY_ORIGINS=https://translay.midominio.com python run.py
+```
+
+## Recomendaciones de seguridad
+
+- **En la red local todo viaja por HTTP, sin cifrar.** Contraseñas, la cookie de sesión y las claves de API se pueden leer desde la misma red. Úsalo en redes de confianza, no en el wifi de un café.
+- **Para entrar desde internet, no abras el puerto en el router.** Usa un túnel o un proxy con HTTPS (Cloudflare Tunnel, ngrok, Caddy) que agregue `X-Forwarded-For` hacia el puerto `8765`, y pon una contraseña del dueño larga.
+- Las bibliotecas `publica` quedan abiertas para cualquiera que llegue a la app; detrás de un túnel, eso es cualquiera en internet. Prefiere `clave`.
+- Da `importar` solo a quien confíes: cada video importado ocupa disco y tiempo de GPU.
+- Crea claves de API para una sola biblioteca y de lectura cuando alcance, y revoca las que ya no uses.

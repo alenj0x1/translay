@@ -1,0 +1,107 @@
+---
+// draw.io-style diagram: dashed groups, boxes with a Tabler icon and a label, and arrows with a label.
+// Boxes size themselves to their label (a "\n" splits it in two lines) with room on both sides; arrows join two
+// boxes in the same column or row and keep room for their label. Colors come from styles/translay.css (.dd-*).
+import fs from 'node:fs';
+import path from 'node:path';
+
+type Group = { x: number; y: number; w: number; h: number; title: string; icon: string; titleAt?: 'top' | 'bottom' };
+type Node = { id: string; x: number; y: number; icon: string; label: string };
+type Edge = { from: string; to: string; label?: string; dashed?: boolean };
+interface Props {
+  width: number;
+  height: number;
+  label: string;
+  groups?: Group[];
+  nodes: Node[];
+  edges?: Edge[];
+}
+const { width, height, label, groups = [], nodes, edges = [] } = Astro.props;
+
+const MIN_W = 100;
+const PAD_X = 16;
+const LINE = 15;
+const GAP = 3;
+// Read at build time from the docs' own node_modules (the build runs in docs/).
+const iconDir = path.join(process.cwd(), 'node_modules', '@tabler', 'icons', 'icons', 'outline');
+const icon = (name: string) =>
+  fs.readFileSync(path.join(iconDir, `${name}.svg`), 'utf8').replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+// Plus Jakarta Sans averages about 0.6 em per character; a little generous so text never touches an edge.
+const textWidth = (text: string, size: number) => text.length * size * 0.6;
+
+// Every box in a diagram has the same height, so rows line up; shorter labels are centered in it.
+const maxLines = Math.max(...nodes.map((n) => n.label.split('\n').length));
+const boxes = Object.fromEntries(nodes.map((n) => {
+  const lines = n.label.split('\n');
+  const w = Math.max(MIN_W, Math.ceil(Math.max(...lines.map((l) => textWidth(l, 12.5))) + PAD_X * 2));
+  const h = 70 + maxLines * LINE;
+  const shift = ((maxLines - lines.length) * LINE) / 2;
+  return [n.id, { ...n, lines, w, h, shift }];
+}));
+
+const arrows = edges.map((e) => {
+  const a = boxes[e.from];
+  const b = boxes[e.to];
+  if (a.x === b.x) {
+    const down = b.y > a.y;
+    const y1 = down ? a.y + a.h / 2 : a.y - a.h / 2;
+    const y2 = down ? b.y - b.h / 2 - GAP : b.y + b.h / 2 + GAP;
+    return { ...e, x1: a.x, y1, x2: a.x, y2, lx: a.x, ly: (y1 + y2) / 2, vertical: true };
+  }
+  const right = b.x > a.x;
+  const x1 = right ? a.x + a.w / 2 : a.x - a.w / 2;
+  const x2 = right ? b.x - b.w / 2 - GAP : b.x + b.w / 2 + GAP;
+  return { ...e, x1, y1: a.y, x2, y2: a.y, lx: (x1 + x2) / 2, ly: a.y - 10, vertical: false };
+});
+const id = `dd-${Math.abs([...label].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7))}`;
+---
+<figure class="dd not-content" style={`max-width:${width}px`}>
+  <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+    <defs>
+      <marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M1 1 L9 5 L1 9 z" class="dd-head" />
+      </marker>
+      <marker id={`${id}-arrow-dashed`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M1 1 L9 5 L1 9 z" class="dd-head-muted" />
+      </marker>
+    </defs>
+    {groups.map((g) => {
+      const ty = g.titleAt === 'bottom' ? g.y + g.h : g.y;
+      return (
+        <g>
+          <rect class="dd-group" x={g.x} y={g.y} width={g.w} height={g.h} rx="8" />
+          <rect class="dd-tab" x={g.x + 12} y={ty - 11} width={textWidth(g.title, 13) + 34} height="22" rx="4" />
+          <g class="dd-group-icon" transform={`translate(${g.x + 16} ${ty - 8}) scale(0.67)`} set:html={icon(g.icon)} />
+          <text class="dd-group-title" x={g.x + 36} y={ty + 4.5}>{g.title}</text>
+        </g>
+      );
+    })}
+    {arrows.map((e) => (
+      <line
+        class={e.dashed ? 'dd-edge dd-dashed' : 'dd-edge'}
+        x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
+        marker-end={`url(#${id}-arrow${e.dashed ? '-dashed' : ''})`}
+      />
+    ))}
+    {arrows.filter((e) => e.label).map((e) => {
+      const w = textWidth(e.label!, 11.5) + 16;
+      return e.vertical ? (
+        <g>
+          <rect class="dd-pill" x={e.lx - w / 2} y={e.ly - 11} width={w} height="22" rx="4" />
+          <text class="dd-edge-label" x={e.lx} y={e.ly + 4} text-anchor="middle">{e.label}</text>
+        </g>
+      ) : (
+        <text class="dd-edge-label" x={e.lx} y={e.ly} text-anchor="middle">{e.label}</text>
+      );
+    })}
+    {Object.values(boxes).map((n) => (
+      <g>
+        <rect class="dd-node" x={n.x - n.w / 2} y={n.y - n.h / 2} width={n.w} height={n.h} rx="6" />
+        <g class="dd-icon" transform={`translate(${n.x - 15} ${n.y - n.h / 2 + 12 + n.shift}) scale(1.25)`} set:html={icon(n.icon)} />
+        {n.lines.map((line, i) => (
+          <text class="dd-node-label" x={n.x} y={n.y - n.h / 2 + 62 + n.shift + i * LINE} text-anchor="middle">{line}</text>
+        ))}
+      </g>
+    ))}
+  </svg>
+</figure>

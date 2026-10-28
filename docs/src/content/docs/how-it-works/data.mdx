@@ -1,0 +1,163 @@
+---
+title: Data on disk
+description: What Translay stores, where, in what format, which HTTP routes serve it, and what is worth backing up.
+sidebar:
+  order: 5
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+Translay uses no database: everything is JSON files, WAV files and the downloaded media. General data lives in the data folder; each library's data, in its own folder. The **Principal** (Main) library is the data folder itself.
+
+The data folder is `data/` at the repository root when running `python run.py`, or the one you specify with `--data-dir` (or `TRANSLAY_DATA`). The desktop app uses the one you chose at install time (by default `Videos\Translay`; changed in **Preferencias › App de escritorio**, Preferences › Desktop app). On this page, `data/` is that folder.
+
+JSON files are written atomically: first a `.tmp` next to it, then the original is replaced. A crash in the middle of a write doesn't leave a half-written file.
+
+<Aside type="caution">
+`data/` is in `.gitignore` and never goes into the repository: it holds your YouTube session, the access credentials and your videos.
+</Aside>
+
+## `data/`
+
+<FileTree>
+
+- data/
+  - prefs.json general preferences (`vt/prefs.py`)
+  - queue.json processing queue: jobs, state, pause (`vt/processor.py`)
+  - auth.json owner password (scrypt), sessions (SHA-256 of the token), API keys (SHA-256) and network access (`vt/auth.py`)
+  - webhooks.json webhooks with their URL, events, library and signing secret (`vt/webhooks.py`)
+  - cookies.txt YouTube session in Netscape format, only YouTube and Google cookies (`vt/cookies.py`)
+  - libraries.json list of libraries (id and absolute path) and the last one opened (`vt/vaults.py`)
+  - exports/ exports ready to download; at startup anything older than 24 h is deleted
+  - libraries/ default folder for new libraries
+    - \<library\>/
+  - youtube/
+    - thumbs/ thumbnails of videos not yet downloaded, fetched only once
+    - channels/ each channel's avatar and banner (or `.none` if it has none)
+  - offline/ output of `tools/dub_file.py`
+  - …
+
+</FileTree>
+
+Since `data/` is also the Principal library, it also contains everything from [a library](#a-library).
+
+## A library
+
+Each library is a self-contained folder, like an Obsidian vault: it can be on another disk and opened from another computer with "Abrir carpeta" (Open folder). The structure comes from the docstring of `vt/vaults.py`:
+
+<FileTree>
+
+- \<library\>/
+  - vault.json name, color, icon, banner pattern, own preferences and access
+  - library.json videos and collections (`vt/library.py`)
+  - glossary.json glossary (`vt/glossary.py`)
+  - transcripts/
+    - \<video\>.json transcript, translation, people and voice of each sentence (`vt/store.py`)
+  - youtube/
+    - \<id\>.mp4 H.264 + AAC video, up to 720p
+    - \<id\>.m4a audio only (what the queue processes)
+    - \<id\>.json yt-dlp data
+    - \<id\>.jpg thumbnail
+  - library/
+    - \<video\>.mp4 copy of a file imported from your computer (with its extension)
+    - \<video\>.jpg its thumbnail, taken in the browser
+  - audio/
+    - \<video\>/
+      - \<sentence\>.wav Spanish voice of each sentence
+  - voices/
+    - \<video\>/
+      - voices.json each person's reference: file, version, text, score
+      - spk0_v3.wav reference of person 0, version 3
+      - spk0_v3_df.wav the same, cleaned with DeepFilterNet (only if it was noisy)
+  - people/
+    - people.json saved people to use in any video of the library
+    - \<id\>_\<date\>.wav their voice
+
+</FileTree>
+
+A video lives in only one library. That way the queue, transcripts and files are located by id alone. Moving it to another library moves its transcript, audio, voices and media. When you remove a library along with its files, only the names in the list above are deleted, never the whole folder: it may contain other things.
+
+### Identifiers
+
+| Source | Video id | Example |
+|---|---|---|
+| YouTube | `yt_` + the 11-character id | `yt_qVr_3bE1JwQ` |
+| File from your computer | Content fingerprint: SHA-256 of the size, the first MB and the last MB, as 32 hexadecimal characters | `5683f09bf1e1c4acc98b18ab3ee16f44` |
+
+The fingerprint doesn't change if you rename the file: when you open it again, everything comes from disk. `vt/store.py` only accepts ids of 8 to 128 characters with letters, numbers, `_` and `-`.
+
+### `vault.json`
+
+| Field | Content |
+|---|---|
+| `id`, `name`, `color`, `icon`, `pattern` | The library's identity; `pattern` is the seed of the Bauhaus banner. |
+| `prefs` | Own preferences: `theme_mode`, `import_mode` and `download_what` (`VAULT_PREFS`). |
+| `access` | `mode` (`privada`, `clave`, `publica`), `perm` (`ver`, `importar`), password with scrypt (`pw`) and its version (`pv`): when it changes, anyone who got in with the old one no longer gets in. |
+
+### `library.json`
+
+`vt/library.py` stores:
+
+- `videos`: id → `title`, `duration`, `source` (`file` or `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (in Spanish), `added`, `opened`, `position` and `audio_only` if only the audio was downloaded. `media`, `audio` and `thumb` are HTTP paths (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). A playlist video not yet downloaded has no `media`.
+- `collections`: those the person creates (`id`, `name`, `items`, `created`) and imported playlists (additionally `kind: "playlist"`, `playlist`, `url`, `channel`).
+
+Automatic collections (recent, all, channels, categories) aren't stored: they are computed when the library is requested. The playback position is saved at most every 5 s.
+
+### Per-video transcript
+
+`transcripts/<video>.json` (`vt/store.py`) is the heart of each video. When you rewind or reopen it, everything comes from here and only what's new is processed.
+
+| Field | Content |
+|---|---|
+| `id`, `name`, `created`, `updated`, `next_id` | The video's data and the sentence counter. |
+| `segments` | Sentences in order: `id`, `start`, `end`, `text` (English), `translation`, `tr_model`, `speaker`, `orig_db` (loudness of the original) and `dub` (voice: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
+| `covered` | `[start, end]` ranges already processed, silences included; they merge if they are less than 0.25 s apart. |
+| `speakers` | Diarization state: each person's centroids, aliases of those that merged and the next id. |
+| `speaker_names` | Each person's name ("Personas", People). |
+| `voice_map` | The voice each person uses if you chose another one: another person's number or `p:<id>` of a saved person. |
+| `comments` | Per-sentence comments: sentence id → list of `{id, text, created, updated}`. |
+
+A new sentence replaces those that overlap with it by more than half of the shorter one.
+
+## HTTP routes
+
+`AppServer` (`vt/httpws.py`) serves files with `Range` support (to seek within the video). Images are cached for one hour; everything else, never. With `?dl=<name>` the file downloads with that name instead of opening. No route can escape its folder.
+
+Before serving a file or accepting an upload, the `make_guard` guard (`vt/api.py`) decides whether the requester can see it:
+
+| Route | Serves | Who can |
+|---|---|---|
+| `/media/yt/…` | `data/youtube/` | Anyone who can see Principal. |
+| `/media/lib/…` | `data/library/` | Anyone who can see Principal. |
+| `/audio/…` | `data/audio/` | Anyone who can see Principal. |
+| `/voices/…` | `data/voices/` | Anyone who can see Principal. |
+| `/people/…` | `data/people/` | Anyone who can see Principal. |
+| `/v/<library>/media/yt/…`, `/media/lib/…`, `/audio/…`, `/voices/…`, `/people/…` | The same folders of another library | Anyone who can see that library. |
+| `/thumb/yt/<id>.jpg` (and `<id>_hd.jpg`) | The thumbnail of the downloaded video in its library or, failing that, a copy in `data/youtube/thumbs/` fetched only once from YouTube | Anyone with access to some library. |
+| `/exports/…` | `data/exports/` | Anyone with access to some library. |
+| `/chan/<avatar\|banner>/<channel>` | `data/youtube/channels/` | Public. |
+| `/samples/…` | `samples/` | Public. |
+| `/`, `/b/<library>` | `web/` (`/b/…` always gives `index.html`) | Public: the page asks you to sign in if needed. |
+| `PUT /api/upload/<video>?name=&lib=` | Saves the copy of a file from your computer in `<library>/library/` | Anyone who can import into that library. |
+| `PUT /api/thumb/<video>?lib=` | Saves its thumbnail (up to 2 MB) | Anyone who can import into that library. |
+| `PUT /api/cookies` | Validates and saves `data/cookies.txt` | The owner. |
+
+`/api/v1` and `/api/auth/` do their own authentication (see [API](../../integrations/api/)) and accept bodies of up to 2 MB. The WebSocket is `/ws`.
+
+## What to back up
+
+| What | Why |
+|---|---|
+| `transcripts/`, `voices/`, `people/`, `library.json`, `glossary.json` and `vault.json` of each library | This is your work: transcripts, translations, people, comments, collections and glossary. Without it everything has to be processed again. |
+| Each library's `library/` | The copies of your files. If you no longer have the originals, they can't be recovered. |
+| `data/prefs.json`, `data/libraries.json`, `data/auth.json`, `data/webhooks.json` | Preferences, list of libraries, access, API keys and webhooks. |
+| `audio/` | Optional: it can be rebuilt, but it costs hours of GPU in a large library. |
+| `youtube/` | Optional: it is downloaded again. |
+
+You don't need to back up `data/exports/` (it cleans itself), `data/youtube/thumbs/`, `data/youtube/channels/` or `data/offline/`.
+
+<Aside type="caution">
+Libraries created in another folder or disk are **not** inside `data/`: back them up separately. `data/libraries.json` stores absolute paths; if you restore on another computer, open them with "Abrir carpeta".
+
+`cookies.txt` is your YouTube session and `webhooks.json` stores in plain text the secret used to sign each webhook: treat them like passwords.
+</Aside>

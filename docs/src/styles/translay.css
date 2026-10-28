@@ -134,3 +134,46 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 .capturas-par { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 1.5rem; align-items: center; }
 .capturas-par img { width: 100%; height: auto; }
 @media (max-width: 40rem) { .capturas-par { grid-template-columns: minmax(0, 1fr); } .capturas-par img { max-width: 260px; } }
+
+/* Botón de menú de Starlight (celular): con los colores del tema y el ícono justo al centro. */
+button.sl-menu-button {
+  display: grid; place-items: center; padding: 0;
+  background-color: var(--sl-color-gray-6); color: var(--sl-color-white);
+  border: 1px solid var(--sl-color-gray-5); box-shadow: none;
+}
+button.sl-menu-button svg { display: block; grid-area: 1 / 1; }
+button.sl-menu-button:has(~ :popover-open) { background-color: var(--sl-color-gray-5); }
+
+/* Diagramas (components/Diagram.astro): estilo draw.io, grupos punteados, cajas neutras y flechas grises. */
+:root {
+  --dd-card: #202226;
+  --dd-line: #33363c;
+  --dd-group: #6f737b;
+  --dd-ink: #c9cbcf;
+  --dd-muted: #9a9ea6;
+  --dd-text: #e6e7e9;
+}
+:root[data-theme="light"] {
+  --dd-card: #ffffff;
+  --dd-line: #ebe9e3;
+  --dd-group: #9a9ca2;
+  --dd-ink: #45484e;
+  --dd-muted: #6b6e75;
+  --dd-text: #23252a;
+}
+.dd { margin: 2rem auto; }
+.dd svg { display: block; width: 100%; height: auto; font-family: var(--__sl-font); }
+.dd-group { fill: none; stroke: var(--dd-group); stroke-width: 1.2; stroke-dasharray: 6 5; }
+.dd-tab { fill: var(--sl-color-bg); }
+.dd-group-icon, .dd-icon { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.dd-group-icon { stroke: var(--dd-muted); }
+.dd-icon { stroke: var(--dd-ink); }
+.dd-group-title { fill: var(--dd-text); font-size: 13px; font-weight: 600; }
+.dd-node { fill: var(--dd-card); stroke: var(--dd-line); stroke-width: 1.2; }
+.dd-node-label { fill: var(--dd-text); font-size: 12.5px; }
+.dd-edge { fill: none; stroke: var(--dd-ink); stroke-width: 1.6; stroke-linejoin: round; }
+.dd-edge.dd-dashed { stroke: var(--dd-muted); stroke-width: 1.4; stroke-dasharray: 4 4; }
+.dd-head { fill: var(--dd-ink); }
+.dd-head-muted { fill: var(--dd-muted); }
+.dd-pill { fill: var(--dd-card); stroke: var(--dd-line); }
+.dd-edge-label { fill: var(--dd-text); font-size: 11.5px; }

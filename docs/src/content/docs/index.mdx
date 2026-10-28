@@ -1,19 +1,19 @@
 ---
-title: Inicio
-description: Traduce y dobla videos del inglés al español con la voz de cada persona, en tu propio equipo.
+title: Home
+description: Translate and dub videos from English into Spanish in each person's own voice, on your own machine.
 template: splash
 editUrl: false
 lastUpdated: false
 hero:
   title: Translay
-  tagline: Traduce y dobla videos del inglés al español con la voz de cada persona. Todo corre en tu equipo, con tu GPU.
+  tagline: Translate and dub videos from English into Spanish in each person's own voice. Everything runs on your machine, on your GPU.
   actions:
-    - text: Instalar
-      link: empezar/instalacion/
+    - text: Install
+      link: getting-started/install/
       icon: right-arrow
       variant: primary
-    - text: Con Docker
-      link: empezar/docker/
+    - text: From source
+      link: getting-started/from-source/
       variant: minimal
     - text: GitHub
       link: https://github.com/alenj0x1/translay
@@ -27,34 +27,37 @@ import Bauhaus from "../../components/Bauhaus.astro";
 <Bauhaus seed="translay" main="#e4572e" cols={24} />
 
 <CardGrid>
-  <Card title="Doblaje con su propia voz" icon="seti:audio">
-    Whisper reconoce, Opus-MT traduce y OmniVoice clona la voz de cada persona del video. La voz suena sincronizada con la imagen.
+  <Card title="Dubbing in their own voice" icon="seti:audio">
+    Whisper transcribes, Opus-MT translates and OmniVoice clones the voice of each person in the video. The voice stays in sync with the picture.
   </Card>
-  <Card title="YouTube y archivos" icon="seti:video">
-    Pega un enlace, una playlist o un CSV con miles de enlaces; se descargan y procesan solos en una cola.
+  <Card title="YouTube and files" icon="seti:video">
+    Paste a link, a playlist or a CSV with thousands of links; they are downloaded and processed automatically in a queue.
   </Card>
-  <Card title="Bibliotecas" icon="open-book">
-    Colecciones, canales, categorías y búsqueda en todas las transcripciones. Cada biblioteca en su carpeta.
+  <Card title="Libraries" icon="open-book">
+    Collections, channels, categories and search across all transcripts. Each library in its own folder.
   </Card>
-  <Card title="API y webhooks" icon="puzzle">
-    Todo lo que hace la app también por HTTP, con claves por biblioteca y avisos firmados.
+  <Card title="Desktop app" icon="laptop">
+    A Windows installer: the app sets up Python, the server and the voice engine by itself, and opens Translay in its own window.
+  </Card>
+  <Card title="API and webhooks" icon="puzzle">
+    Everything the app does is also available over HTTP, with per-library keys and signed notifications.
   </Card>
 </CardGrid>
 
-## Así se ve
+## What it looks like
 
-![El reproductor: video doblado con subtítulos en español e inglés y la transcripción alineada al costado](../../assets/capturas/reproductor.webp)
+![The player: dubbed video with Spanish and English subtitles and the aligned transcript on the side](../../assets/capturas/reproductor.webp)
 
-![La portada de una biblioteca con el video para seguir viendo, colecciones, canales y categorías](../../assets/capturas/inicio.webp)
+![A library home page with the continue-watching video, collections, channels and categories](../../assets/capturas/inicio.webp)
 
-![Varias bibliotecas, cada una con su banner](../../assets/capturas/bibliotecas.webp)
+![Several libraries, each with its own banner](../../assets/capturas/bibliotecas.webp)
 
-Las capturas son de una instancia de prueba con videos de dominio público de la NASA y la NOAA.
+The screenshots come from a test instance with public-domain videos from NASA and NOAA.
 
-## Por dónde seguir
+## Where to go next
 
-- [Instalación](empezar/instalacion/) en Windows o Linux, o [con Docker](empezar/docker/).
-- [Tu primer video](empezar/primer-video/), de pegar el enlace a escucharlo en español.
-- [Cómo funciona](funcionamiento/arquitectura/) por dentro, si vas a modificarlo.
-- [Cambios](cambios/) de cada versión y las [versiones publicadas](https://github.com/alenj0x1/translay/releases).
-- El código, los reportes de errores y las propuestas, en [GitHub](https://github.com/alenj0x1/translay).
+- [Installation](getting-started/install/) on Windows with the installer, [from source](getting-started/from-source/) or [with Docker](getting-started/docker/).
+- [Your first video](getting-started/first-video/), from pasting the link to hearing it in Spanish.
+- [How it works](how-it-works/architecture/) under the hood, if you plan to modify it.
+- [Changes](changelog/) in each version and the [published releases](https://github.com/alenj0x1/translay/releases).
+- The code, bug reports and proposals, on [GitHub](https://github.com/alenj0x1/translay).

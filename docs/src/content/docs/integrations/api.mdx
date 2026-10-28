@@ -1,0 +1,269 @@
+---
+title: REST API
+description: How to authenticate against the Translay API, which permissions each group of routes requires, and examples for common cases.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Everything the app does with libraries, videos, the queue and exports can also be requested over HTTP, in JSON, under `http://<computer>:8765/api/v1`. The full list of routes is in [API routes](../../reference/api/); here is what you need to use them.
+
+`GET /api/v1` responds `{version, doc}` with that same list as text, useful to check that you reach the server and that your key works.
+
+## Authentication
+
+Every request carries an API key in the `Authorization` header:
+
+```sh
+curl -H "Authorization: Bearer vt_…" http://localhost:8765/api/v1/libraries
+```
+
+A key has two properties:
+
+| | Options |
+| --- | --- |
+| Scope | **All libraries** (including ones you create later) or **one** library. |
+| Permission | **Read**: view, search and export. **Write**: also import, delete, change the glossary and manage the queue. |
+
+### Create and revoke a key
+
+<Steps>
+1. Open **Preferencias → Acceso y API → Claves de API** (Preferences → Access and API → API keys).
+2. Give it a name that says where you use it (e.g. `n8n`), choose the scope and **Lectura** (Read) or **Escritura** (Write).
+3. Click **Crear clave** (Create key) and copy it: it starts with `vt_` and **is not shown again**. The server only stores its hash.
+</Steps>
+
+The key list shows the name, scope, permission, a key summary (`vt_xxxx…xxxx`) and when it was last used (updated at most once per minute). **Revocar** (Revoke) deletes it: whatever uses it starts receiving `401` immediately.
+
+If you delete the library of a single-library key, the key stops working.
+
+### Without a key
+
+- **From the same computer** where the app runs (see [Access](../access/)), a request without `Authorization` is answered as the owner. This lets you test with `curl` without creating a key.
+- **With an invalid or revoked key**, the response is `401` even if the request comes from the same computer: it doesn't fall back to owner access.
+- **From another computer, without a key**, the API uses the same as the browser: the `vt_s` session cookie, if it sends one, and the public libraries.
+
+## Responses and errors
+
+Responses are JSON (`application/json; charset=utf-8`), except subtitles. Errors carry `{"error": "…"}`:
+
+| Code | When |
+| --- | --- |
+| `200` | Done. |
+| `202` | Accepted and in progress: import, send to the queue, request an export. |
+| `400` | Invalid data (e.g. `urls` missing, unknown `mode`, empty `kinds`). A body that is not valid JSON is treated as `{}`. |
+| `401` | No valid key, or no access to any library. |
+| `403` | The key is read-only, pausing the queue without a write key for all libraries, or a request that changes something from another website without a key ([Other websites](../access/#other-websites)). |
+| `404` | The route, library, video or export doesn't exist, **or the key can't see it**: this is deliberately not distinguished. |
+| `413` | The body is over 2 MB (plain-text response). |
+
+## Libraries
+
+All require **read** permission on the library, except where noted.
+
+- `GET /libraries` lists the libraries the key can see: `id`, `name`, `count` (videos), `downloaded`, `main`, `color`, `icon`, `pattern`. Only the owner also receives `path` (the folder) and `access` (the visibility).
+- `GET /libraries/{lib}/collections` gives `id`, `name`, `kind`, `count`, `url` and `channel` (these last two can be `null`). The automatic `id`s are `all`, `recent`, `ch-…` (channels) and `cat-…` (categories).
+- `GET /libraries/{lib}/search?q=` searches the transcripts and responds `{q, total, results}`.
+- `GET /libraries/{lib}/glossary` gives `{entries}`. `PUT` with `{"entries": [{"src": "prompt", "dst": "instrucción"}]}` replaces it entirely; requires **write**.
+
+### Videos in a library
+
+`GET /libraries/{lib}/videos` paginates with `offset` (from 0) and `limit` (100 by default, **maximum 500**: more is capped at 500). `collection` picks the collection (`all` by default, from most recently added to oldest).
+
+```json
+{ "total": 1240, "offset": 0, "videos": [ { "id": "yt_dQw4w9WgXcQ", "title": "…", "progress": { "asr": 1, "dub": 1 }, "queue": { "state": "listo" } } ] }
+```
+
+To walk through all of it, add `limit` to `offset` until you pass `total`.
+
+### Import
+
+`POST /libraries/{lib}/import` requires **write**.
+
+```json
+{ "urls": ["https://www.youtube.com/watch?v=…", "https://www.youtube.com/playlist?list=…"], "mode": "traducir", "priority": false }
+```
+
+- `urls` accepts YouTube links to videos or playlists (or an 11-character id). `"url": "…"` also works for a single one. Anything that isn't from YouTube is ignored.
+- `mode`: `traducir` (translate and dub) or `descargar` (just download the video). If you omit it, it uses that library's **Al importar** (On import) preference.
+- `priority: true` puts them first in the queue, and then they are processed even if `mode` is `descargar`.
+- Each playlist is imported as a collection of the library.
+
+It responds `202` with `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2}}`: `elsewhere` counts the videos that were already in another library and stayed there (a video lives in only one).
+
+## Videos
+
+- `GET /videos/{id}` (**read**) gives the video's data (`title`, `duration`, `channel`, `categories`, `added`, `library`), the URLs of its files (`media`, `audio`, `thumb`), the progress and its queue state:
+  - `progress.asr`: fraction of the video recognized and translated (0 to 1).
+  - `progress.dub`: fraction dubbed (0 to 1).
+  - `queue`: `{state, prio, error, dl}` or `null` if the video isn't in the queue. `state` is `en cola` (queued), `procesando` (processing), `descargado` (downloaded), `listo` (done) or `error`; `dl` is the download progress.
+- `GET /videos/{id}/transcript` (**read**) gives the sentences with `start`, `end`, `text` (English), `translation` (Spanish) and `speaker`, plus `speaker_names` and `comments`.
+- `GET /videos/{id}/subtitles?lang=es` (**read**) returns an SRT file (`application/x-subrip`). `lang=es` is Spanish (the default); any other value gives English.
+- `DELETE /videos/{id}` (**write**) deletes the video with its files.
+
+## Queue
+
+- `GET /queue?library=` (**read**) gives `{paused, current, blocked_until, jobs}`, only with the jobs of the libraries the key sees; `library` filters by one. `current` (what is being processed now) is only shown to the owner. `blocked_until` is non-zero while YouTube asks for verification.
+- `POST /queue` (**write**) with `{"video": "yt_…", "priority": true}` sends a video that is already in the library to the queue; with `priority`, first.
+- `DELETE /queue/{id}` (**write**) removes it from the queue.
+- `POST /queue/pause` and `POST /queue/resume` pause or resume all processing. Since they affect all libraries, they require a **write key for all libraries**.
+
+## Exports
+
+- `POST /exports` (**read** on each video) with `{"videos": ["yt_…"], "kinds": ["es_video", "srt_es"], "name": "…"}` responds `202` with `{id, state}`. The `kinds` values are in [API routes](../../reference/api/#export-types); unknown ones are ignored. `name` is optional.
+- `GET /exports/{id}` gives `{id, name, state, pct, detail, url, error}`, only if you can see all of its videos (otherwise, `404`). `state` goes through `en espera` (waiting), `exportando` (exporting) or `esperando …` (waiting for…, if the video hasn't finished processing yet) until `listo` or `error`.
+
+When it becomes `listo`, `url` is a path on the same server (it starts with `/`). Download it with the same `Authorization` header.
+
+<Aside type="tip">
+Instead of polling every few seconds, a [webhook](../webhooks/) with `video.procesado` or `exportacion.lista` notifies you when it finishes.
+</Aside>
+
+## Examples
+
+In all of them, `TOKEN` is your key and the app runs on `localhost:8765`.
+
+### List libraries
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8765/api/v1/libraries
+```
+
+### Import a video and prioritize it
+
+```sh
+curl -X POST http://localhost:8765/api/v1/libraries/principal/import \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"urls": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"], "priority": true}'
+```
+
+YouTube videos get the id `yt_` followed by the YouTube id (here, `yt_dQw4w9WgXcQ`).
+
+### Check a video's progress
+
+<Tabs syncKey="lang">
+<TabItem label="curl">
+```sh
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8765/api/v1/videos/yt_dQw4w9WgXcQ
+```
+</TabItem>
+<TabItem label="Python">
+```python
+import json, os, time, urllib.request
+
+BASE, TOKEN = "http://localhost:8765", os.environ["TOKEN"]
+
+def get(path):
+    req = urllib.request.Request(BASE + path, headers={"Authorization": f"Bearer {TOKEN}"})
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+while True:
+    v = get("/api/v1/videos/yt_dQw4w9WgXcQ")
+    state = (v["queue"] or {}).get("state")
+    print(state, v["progress"])
+    if state in ("listo", "error"):
+        break
+    time.sleep(10)
+```
+</TabItem>
+<TabItem label="Node">
+```js
+// Node 18 or newer; save it as .mjs
+const BASE = "http://localhost:8765";
+const headers = { Authorization: `Bearer ${process.env.TOKEN}` };
+
+while (true) {
+  const v = await (await fetch(`${BASE}/api/v1/videos/yt_dQw4w9WgXcQ`, { headers })).json();
+  const state = v.queue?.state;
+  console.log(state, v.progress);
+  if (state === "listo" || state === "error") break;
+  await new Promise((r) => setTimeout(r, 10_000));
+}
+```
+</TabItem>
+</Tabs>
+
+### Download the Spanish subtitles
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" -o video.es.srt \
+  "http://localhost:8765/api/v1/videos/yt_dQw4w9WgXcQ/subtitles?lang=es"
+```
+
+### Export and wait for the file
+
+<Tabs syncKey="lang">
+<TabItem label="curl">
+```sh
+# 1. request the export: responds {"id": "…", "state": "en espera"}
+curl -X POST http://localhost:8765/api/v1/exports \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"videos": ["yt_dQw4w9WgXcQ"], "kinds": ["es_video"]}'
+
+# 2. repeat until "state" is "listo"
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8765/api/v1/exports/<id>
+
+# 3. download the file from "url"
+curl -H "Authorization: Bearer $TOKEN" -o video.mp4 "http://localhost:8765<url>"
+```
+</TabItem>
+<TabItem label="Python">
+```python
+import json, os, time, urllib.request
+
+BASE, TOKEN = "http://localhost:8765", os.environ["TOKEN"]
+AUTH = {"Authorization": f"Bearer {TOKEN}"}
+
+def call(path, body=None):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(BASE + path, data=data,
+                                 headers={**AUTH, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+job = call("/api/v1/exports", {"videos": ["yt_dQw4w9WgXcQ"], "kinds": ["es_video"]})
+while (job := call(f"/api/v1/exports/{job['id']}"))["state"] not in ("listo", "error"):
+    time.sleep(5)
+
+if job["state"] == "error":
+    raise SystemExit(job["error"])
+req = urllib.request.Request(BASE + job["url"], headers=AUTH)
+with urllib.request.urlopen(req) as r, open("video.mp4", "wb") as f:
+    while chunk := r.read(1 << 20):
+        f.write(chunk)
+```
+</TabItem>
+<TabItem label="Node">
+```js
+// Node 18 or newer; save it as .mjs
+import { writeFile } from "node:fs/promises";
+
+const BASE = "http://localhost:8765";
+const headers = { Authorization: `Bearer ${process.env.TOKEN}`, "Content-Type": "application/json" };
+const call = async (path, body) =>
+  (await fetch(BASE + path, body ? { method: "POST", headers, body: JSON.stringify(body) } : { headers })).json();
+
+let job = await call("/api/v1/exports", { videos: ["yt_dQw4w9WgXcQ"], kinds: ["es_video"] });
+while (!["listo", "error"].includes(job.state)) {
+  await new Promise((r) => setTimeout(r, 5000));
+  job = await call(`/api/v1/exports/${job.id}`);
+}
+if (job.state === "error") throw new Error(job.error);
+
+const file = await fetch(BASE + job.url, { headers });
+await writeFile("video.mp4", Buffer.from(await file.arrayBuffer()));
+```
+</TabItem>
+</Tabs>
+
+## View sign-in
+
+The web app uses three other routes, outside `/api/v1`, meant for the browser:
+
+- `POST /api/auth/login` with `{"password": "…"}` (owner) or `{"password": "…", "vault": "<id>"}` (library with a password). If it succeeds, it responds `200` with the `vt_s` cookie; otherwise, `401`.
+- `POST /api/auth/logout` deletes the session.
+- `GET /api/auth/me` says what the connection can do: `{owner, perms, local}`.
+
+For integrations, use keys: they don't expire and are revoked one by one.

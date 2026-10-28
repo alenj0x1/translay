@@ -3,9 +3,9 @@ name: Documentación
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "vt/**", "CHANGELOG.md", ".github/workflows/docs.yml"]
+    paths: ["docs/**", "vt/**", "CHANGELOG.md", "CHANGELOG.es.md", ".github/workflows/docs.yml"]
   pull_request:
-    paths: ["docs/**", "vt/**", "CHANGELOG.md"]
+    paths: ["docs/**", "vt/**", "CHANGELOG.md", "CHANGELOG.es.md"]
   workflow_dispatch:
 
 permissions:

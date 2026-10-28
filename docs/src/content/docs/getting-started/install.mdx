@@ -1,0 +1,65 @@
+---
+title: Installation
+description: Install Translay on Windows with the installer; the app sets up everything it needs by itself.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import Diagram from "../../../components/Diagram.astro";
+import { desktop } from "../../../diagrams";
+
+Translay is a desktop app for Windows. The installer ships what never changes (the app, Python, ffmpeg, Node.js and uv); the first time you open it, the app itself installs the server and the voice engine and leaves you ready to translate. There is no need to open a terminal or install anything by hand.
+
+## Requirements
+
+| | |
+|---|---|
+| System | 64-bit Windows 10 or 11. |
+| GPU | NVIDIA. With 4 GB or more, cloned Spanish voice; with less or no GPU, subtitles only. Translay chooses automatically based on your machine (see [Performance](../../guide/performance/)). |
+| Disk | About 15 GB: 7.5 GB for the server and the voice engine, 6 GB for models, plus whatever your videos take up. |
+| Internet | The first time, to download packages and models; afterward, only for YouTube. |
+
+You don't need to be an administrator: it installs for your user.
+
+## Steps
+
+<Steps>
+
+1. Download `Translay_<version>_x64-setup.exe` from the latest release on [Releases](https://github.com/alenj0x1/translay/releases/latest) and open it.
+
+2. Open **Translay** from the Start menu. The **Preparar Translay** (Set up Translay) screen shows your GPU, whether you will get Spanish voice or subtitles only, and where your library is stored (by default `Videos\Translay`; **Cambiar…** (Change…) lets you pick another folder, for example on another disk).
+
+3. Click **Instalar** (Install). The button shows progress (`Instalando 42 %`, "Installing 42%") and, below it, how much of the download is done. It takes as long as your connection needs: about 4 GB compressed.
+
+4. When it finishes, **Abriendo Translay** (Opening Translay) appears while the models load. The first time they are downloaded from Hugging Face (Whisper large-v3-turbo, Opus-MT, OmniVoice and WeSpeaker, about 6 GB) and you see their percentage. After that it starts in seconds.
+
+</Steps>
+
+That's it: continue with [Your first video](../first-video/).
+
+<Diagram {...desktop("en")} />
+
+## What gets installed and where
+
+| What | Where |
+|---|---|
+| The app, Python 3.12 and 3.11, ffmpeg, Node.js and uv | `%LOCALAPPDATA%\Translay` |
+| Server and voice engine environments, package cache | `%LOCALAPPDATA%\dev.alejandro.translay\runtime` |
+| Logs (`setup.log`, `server.log`) and window settings | `%LOCALAPPDATA%\dev.alejandro.translay` |
+| Hugging Face models | Your user cache (`%USERPROFILE%\.cache\huggingface`) |
+| Your library: videos, transcripts, voices and preferences | The folder you chose (by default `Videos\Translay`) |
+
+Python packages are pinned to their exact version and SHA-256 hash (`desktop/locks/`), and the tools bundled in the installer are verified when it is built (`desktop/tools.json`). The voice engine is an exact copy of the environment that was measured in the labs.
+
+## Update
+
+Install the new version over the old one. When you open the app, if the Python packages changed, it updates them by itself (with the same progress button); otherwise it opens straight away. Your library is not touched.
+
+## Uninstall
+
+From Windows **Configuración › Aplicaciones** (Settings › Apps). If you check the box to delete the app's data, the environments and logs (`dev.alejandro.translay`) are deleted too. Your library stays in its folder; delete it by hand if you no longer want it.
+
+<Aside>
+Linux, another machine on the network, or development? Use [From source](../from-source/) or [Docker](../docker/).
+</Aside>
