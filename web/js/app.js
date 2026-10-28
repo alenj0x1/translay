@@ -1530,6 +1530,7 @@ function setPref(key, value) {
 function applyPrefs(m) {
   prefsSchema = m.schema;
   prefsSections = m.sections || [];
+  if (DESKTOP) prefsSections = [...prefsSections, DESKTOP_SECTION];  // web/js/desktop.js
   prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
@@ -1547,6 +1548,7 @@ const YT_IMPORT = $("#yt-import");
 // en la página, las opciones agrupadas con su descripción. Los bloques propios
 // (bibliotecas, glosario, sesión de YouTube, acceso) van como un grupo más.
 const PREF_BLOCKS = {
+  escritorio: () => desktopPrefsBlocks(),
   bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
   glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
   youtube: () => [[YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],

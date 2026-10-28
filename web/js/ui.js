@@ -27,6 +27,11 @@ const ICONS = {
   expand: '<rect x="2" y="3" width="12" height="10"/>',
   trash: '<path d="M2.5 4.5h11M6 4.5V2.5h4v2M4 4.5l.7 9h6.6l.7-9M6.7 7v4M9.3 7v4"/>',
   x: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  // controles de la ventana (app de escritorio, web/js/desktop.js)
+  minimize: '<path d="M3.5 8h9"/>',
+  maximize: '<rect x="3.5" y="3.5" width="9" height="9" rx="1"/>',
+  tray: '<path d="M2.5 9.5h3l1 1.5h3l1-1.5h3M2.5 9.5v3.5h11V9.5M4 9.5l1.2-6h5.6l1.2 6"/>',
+  unmaximize: '<rect x="3.5" y="5.5" width="7" height="7" rx="1"/><path d="M5.5 3.5h6a1 1 0 0 1 1 1v6"/>',
   check: '<path d="M3 8.5l3.2 3L13 4.5"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   up: '<path d="M8 13V3M4 7l4-4 4 4"/>',

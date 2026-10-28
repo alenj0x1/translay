@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es" class="desktop">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Translay</title>
+<script>
+  // Theme before the first paint: the one Translay last showed (saved by the app), else the system's.
+  (function () {
+    var t = window.__TRANSLAY_THEME__ || "";
+    try { t = t || localStorage.getItem("vt-theme-block") || ""; } catch (e) {}
+    document.documentElement.dataset.theme = t || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<!-- shared/ is copied from web/ by scripts/prepare.mjs: same font, colors and buttons as Translay -->
+<link rel="stylesheet" href="shared/css/fonts.css">
+<link rel="stylesheet" href="shared/css/tokens.css">
+<link rel="stylesheet" href="shared/css/base.css">
+<link rel="stylesheet" href="shared/css/components/button.css">
+<link rel="stylesheet" href="shared/css/components/controls.css">
+<link rel="stylesheet" href="shared/css/components/desktop.css">
+<link rel="stylesheet" href="setup.css">
+</head>
+<body>
+
+<header class="bar" data-tauri-drag-region>
+  <div class="brand" data-tauri-drag-region><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>Translay</div>
+  <div class="spacer" data-tauri-drag-region></div>
+  <button class="btn ghost icon" id="theme-btn" type="button"></button>
+  <div class="win-controls">
+    <button class="btn ghost icon win-btn" id="win-min" type="button" title="Minimizar" aria-label="Minimizar"></button>
+    <button class="btn ghost icon win-btn" id="win-max" type="button"></button>
+    <button class="btn ghost icon win-btn" id="win-close" type="button" title="Cerrar" aria-label="Cerrar"></button>
+  </div>
+</header>
+
+<main class="stage">
+  <!-- first launch: what gets installed and where the library goes -->
+  <section class="panel" id="setup" hidden>
+    <h1>Preparar Translay</h1>
+    <div class="rows">
+      <div class="row">
+        <span class="row-ic" data-ic="monitor"></span>
+        <div class="row-text"><strong>Tu equipo</strong><p id="gpu"></p></div>
+        <span class="tag" id="mode"></span>
+      </div>
+      <div class="row">
+        <span class="row-ic" data-ic="folder"></span>
+        <div class="row-text"><strong>Biblioteca</strong><p id="data-dir"></p></div>
+        <button class="btn sm" id="pick" type="button"></button>
+      </div>
+      <div class="row">
+        <span class="row-ic" data-ic="download"></span>
+        <div class="row-text"><strong>Se instala</strong><p id="size"></p></div>
+      </div>
+    </div>
+    <div class="go">
+      <button class="btn dark" id="install" type="button"></button>
+      <p class="note" id="install-note"></p>
+    </div>
+  </section>
+
+  <!-- every launch: the server loads its models (and downloads them the first time) -->
+  <section class="panel center" id="loading" hidden>
+    <span class="mark big" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>
+    <h1>Abriendo Translay</h1>
+    <div class="bar-track"><i id="load-bar"></i></div>
+    <p class="note" id="load-line"></p>
+  </section>
+
+  <!-- the server stopped -->
+  <section class="panel" id="failed" hidden>
+    <h1>Translay se detuvo</h1>
+    <p class="lead" id="fail-msg"></p>
+    <pre class="log" id="fail-log"></pre>
+    <div class="acts">
+      <button class="btn dark" id="retry" type="button"></button>
+      <button class="btn" id="open-logs" type="button"></button>
+    </div>
+  </section>
+</main>
+
+<script src="shared/js/ui.js"></script>
+<script src="setup.js"></script>
+</body>
+</html>

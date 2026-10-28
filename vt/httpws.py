@@ -25,7 +25,7 @@ _MIME = {
     ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
     ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".m4a": "audio/mp4",
     ".mp4": "video/mp4", ".webm": "video/webm", ".mkv": "video/x-matroska",
-    ".mov": "video/quicktime", ".mp3": "audio/mpeg", ".wav": "audio/wav",
+    ".mov": "video/quicktime", ".mp3": "audio/mpeg", ".wav": "audio/wav", ".woff2": "font/woff2",
 }
 
 

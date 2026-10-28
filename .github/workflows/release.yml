@@ -9,15 +9,34 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
-      - name: Notas desde CHANGELOG.md
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Instalador (Tauri + NSIS)
+        run: |
+          npm --prefix desktop ci
+          npm --prefix desktop run build
+      - name: Notas desde los dos changelogs (inglés y, debajo, español)
         run: |
           v="${GITHUB_REF_NAME#v}"
-          awk -v v="$v" '$0 ~ "^## "v" " {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notas.md
+          section() { awk -v v="$v" '$0 ~ "^## "v" " {on=1; next} /^## / && on {exit} on' "$1"; }
+          { section CHANGELOG.md; printf '\n---\n\n### Español\n\n'; section CHANGELOG.es.md; } > notas.md
           test -s notas.md
-      - name: Crear la versión
+      - name: Crear la versión con el instalador
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "Translay ${GITHUB_REF_NAME#v}" --notes-file notas.md
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "Translay ${GITHUB_REF_NAME#v}" --notes-file notas.md \
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe

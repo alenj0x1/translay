@@ -1,0 +1,74 @@
+{
+  "$comment": "Third-party tools bundled in the installer. scripts/prepare.mjs downloads each archive (or file), checks its SHA-256 and extracts only the listed files or folders into src-tauri/tools/.",
+  "tools": [
+    {
+      "name": "uv",
+      "version": "0.13.0",
+      "license": "MIT OR Apache-2.0",
+      "url": "https://github.com/astral-sh/uv/releases/download/0.13.0/uv-x86_64-pc-windows-msvc.zip",
+      "sha256": "088962f9e7b7bd9ea740c04c650b2a21c8928c345bd99ac24350dc924dba656c",
+      "files": {
+        "uv.exe": "uv.exe"
+      }
+    },
+    {
+      "name": "uv license (MIT)",
+      "version": "0.13.0",
+      "license": "MIT",
+      "url": "https://raw.githubusercontent.com/astral-sh/uv/0.13.0/LICENSE-MIT",
+      "sha256": "860e3d7a86b84e6a7012c7a635fc64df475cebc6cce34dfeb73a5982ec58176c",
+      "file": "licenses/uv-MIT.txt"
+    },
+    {
+      "name": "uv license (Apache-2.0)",
+      "version": "0.13.0",
+      "license": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/astral-sh/uv/0.13.0/LICENSE-APACHE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "file": "licenses/uv-Apache-2.0.txt"
+    },
+    {
+      "name": "Python 3.12",
+      "version": "3.12.15 (python-build-standalone 20261009)",
+      "license": "PSF-2.0",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261009/cpython-3.12.15%2B20261009-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "sha256": "11ed9f8a6ac64fb1b5a55e40e305a6744a3f77a70863c8f8197a6e4349abc64a",
+      "files": {
+        "python": "python-3.12"
+      }
+    },
+    {
+      "name": "Python 3.11",
+      "version": "3.11.17 (python-build-standalone 20261009)",
+      "license": "PSF-2.0",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261009/cpython-3.11.17%2B20261009-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "sha256": "c3045115465bb4aa7d1ca6bfe6ce311ba157d726d768bbb3520fad2580831c3f",
+      "files": {
+        "python": "python-3.11"
+      }
+    },
+    {
+      "name": "FFmpeg",
+      "version": "9.0.2 (essentials build by Gyan Doshi)",
+      "license": "GPL-3.0-or-later",
+      "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip",
+      "sha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
+      "files": {
+        "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe": "ffmpeg.exe",
+        "ffmpeg-9.0.2-essentials_build/bin/ffprobe.exe": "ffprobe.exe",
+        "ffmpeg-9.0.2-essentials_build/LICENSE": "licenses/FFmpeg.txt"
+      }
+    },
+    {
+      "name": "Node.js",
+      "version": "24.22.1",
+      "license": "MIT",
+      "url": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip",
+      "sha256": "d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5",
+      "files": {
+        "node-v24.22.1-win-x64/node.exe": "node.exe",
+        "node-v24.22.1-win-x64/LICENSE": "licenses/Node.js.txt"
+      }
+    }
+  ]
+}

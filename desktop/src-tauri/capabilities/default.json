@@ -1,0 +1,27 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Setup screen (bundled page). The Translay page served by the local server gets its own capability at runtime, limited to its exact origin (see server.rs).",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close",
+    "core:window:allow-hide",
+    "dialog:allow-open",
+    "allow-status",
+    "allow-install",
+    "allow-start",
+    "allow-pick-folder",
+    "allow-close-window",
+    "allow-quit-app",
+    "allow-server-tail",
+    "allow-open-folder",
+    "allow-set-theme"
+  ]
+}

@@ -46,13 +46,18 @@ def main():
                    help="Otro origen desde el que se puede usar la app (p. ej. https://translay.midominio.com "
                         "detrás de un proxy que cambia el Host); se repite, o TRANSLAY_ORIGINS separados por comas")
     p.add_argument("--no-browser", action="store_true", help="No abrir el navegador al arrancar")
+    p.add_argument("--data-dir", default=os.environ.get("TRANSLAY_DATA", ""),
+                   help="Carpeta de datos de la biblioteca Principal (o TRANSLAY_DATA; por defecto, data/ junto "
+                        "al código). La app de escritorio usa la que elegiste al instalar")
     a = p.parse_args()
+    DATA = Path(a.data_dir).expanduser().resolve() if a.data_dir else ROOT / "data"
+    DATA.mkdir(parents=True, exist_ok=True)
 
     # equipo, límites y perfil de rendimiento (vt/hardware.py, vt/limits.py, vt/profiles.py)
     from . import hardware, profiles
     from .limits import apply_self
 
-    prefs = Prefs(ROOT / "data" / "prefs.json")
+    prefs = Prefs(DATA / "prefs.json")
     hw = hardware.detect()
     lim = {"vram_mb": int(prefs.values.get("limit_vram_mb") or 0) or None,
            "ram_mb": int(prefs.values.get("limit_ram_mb") or 0) or None,
@@ -89,7 +94,7 @@ def main():
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
     # bibliotecas (vt/vaults.py): Principal es data/; las demás, cada una en su carpeta
-    vaults = Vaults(ROOT / "data")
+    vaults = Vaults(DATA)
     for vault in vaults.all():
         vault.library.import_youtube(vault.root / "youtube")
     store, library, youtube = vaults.store, vaults.library, vaults.main.youtube
@@ -114,7 +119,7 @@ def main():
                 _time.sleep(3)
 
     threading.Thread(target=backfill_youtube, daemon=True).start()
-    lib_dir = ROOT / "data" / "library"
+    lib_dir = DATA / "library"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
     def vault_dir(vid: str, query: dict) -> Path:
@@ -159,7 +164,7 @@ def main():
         out.write_bytes(data)
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
         return 200, "OK"
-    thumbs_dir = ROOT / "data" / "youtube" / "thumbs"
+    thumbs_dir = DATA / "youtube" / "thumbs"
     thumbs_dir.mkdir(parents=True, exist_ok=True)
     thumb_locks: dict = {}
 
@@ -199,7 +204,7 @@ def main():
         thumb_locks.pop(vid, None)
         return out if out.exists() else None
 
-    chan_dir = ROOT / "data" / "youtube" / "channels"
+    chan_dir = DATA / "youtube" / "channels"
     chan_dir.mkdir(parents=True, exist_ok=True)
     chan_locks: dict = {}  # canales ya pedidos en esta sesión
     chan_sem = asyncio.Semaphore(1)  # de a uno con YouTube
@@ -264,14 +269,14 @@ def main():
 
         data = b"".join([c async for c in body])[: 5 << 20]
         try:
-            info = cookies.import_file(data, ROOT / "data" / "cookies.txt")
+            info = cookies.import_file(data, DATA / "cookies.txt")
         except ValueError as e:
             return 400, str(e)
         if prefs.set("yt_session", "archivo"):
             notify(prefs.public())
         processor.unblock()  # cookies nuevas: las descargas en pausa siguen
         notify({"type": "cookies", "browsers": cookies.detect(),
-                "status": cookies.status(ROOT / "data" / "cookies.txt"), "imported": info})
+                "status": cookies.status(DATA / "cookies.txt"), "imported": info})
         return 200, "OK"
 
     dubber, tts = None, None
@@ -280,7 +285,7 @@ def main():
         from .tts import TTSClient
 
         tts = TTSClient(a.voice, a.device, lazy=True)  # el proceso de voz arranca al primer uso
-        dubber = Dubber(tts, ROOT / "data")
+        dubber = Dubber(tts, DATA)
         dubber.tts_params = {"num_step": prof["steps"] or 16}
     tts_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
     info = {"model": a.model, "device": "GPU" if a.device == "cuda" else a.device.upper(),
@@ -312,21 +317,21 @@ def main():
     from .perf import Perf
 
     perf = Perf(prefs, res, active, cli, device=a.device)
-    processor = Processor(ROOT / "data", store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
+    processor = Processor(DATA, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
                           youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
                           order=lambda: prefs.values.get("download_order", "orden"))
-    exporter = Exporter(ROOT / "data", store, library, processor, youtube, prefs, notify, vaults=vaults)
+    exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults)
 
     # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)
     from .api import Admin, Api, CollectorWS, make_guard
     from .auth import Auth, check_pw, same_origin
     from .webhooks import Webhooks
 
-    auth = Auth(ROOT / "data" / "auth.json", vaults)
+    auth = Auth(DATA / "auth.json", vaults)
     if a.owner_password and not check_pw(a.owner_password, auth.data.get("owner")):
         auth.set_owner_password(a.owner_password)  # Docker: desde el contenedor nadie llega por 127.0.0.1
     origins = tuple(o.strip().rstrip("/").lower() for o in a.allow_origin)
-    hooks = Webhooks(ROOT / "data" / "webhooks.json", notify)
+    hooks = Webhooks(DATA / "webhooks.json", notify)
     admin = Admin(auth, hooks, a.port)
 
     def make_session(vault, access):
@@ -351,10 +356,10 @@ def main():
         finally:
             sessions.discard(session)
 
-    (ROOT / "data" / "audio").mkdir(parents=True, exist_ok=True)
-    server = AppServer({"/samples/": ROOT / "samples", "/audio/": ROOT / "data" / "audio",
-                        "/media/yt/": ROOT / "data" / "youtube", "/media/lib/": lib_dir,
-                        "/exports/": ROOT / "data" / "exports", "/voices/": ROOT / "data" / "voices",
+    (DATA / "audio").mkdir(parents=True, exist_ok=True)
+    server = AppServer({"/samples/": ROOT / "samples", "/audio/": DATA / "audio",
+                        "/media/yt/": DATA / "youtube", "/media/lib/": lib_dir,
+                        "/exports/": DATA / "exports", "/voices/": DATA / "voices",
                         "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
                                              "/api/cookies": put_cookies},

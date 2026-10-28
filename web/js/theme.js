@@ -10,7 +10,13 @@ function themeBase(mode) {
 
 function applyTheme(p = prefs) {
   const block = themeBase(p.theme_mode);
-  document.documentElement.dataset.theme = block;
+  const root = document.documentElement;
+  if (root.dataset.theme && root.dataset.theme !== block) {
+    // sin transiciones durante el cambio: cada botón animaba su gris de un tema al otro (parpadeo)
+    root.classList.add("theme-switch");
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switch")));
+  }
+  root.dataset.theme = block;
   try { localStorage.setItem("vt-theme-block", block); } catch (e) { /* sin almacenamiento */ }
 }
 

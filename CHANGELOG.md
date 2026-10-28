@@ -1,141 +1,160 @@
-# Cambios
+# Changelog
 
-Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [Versionado semántico](https://semver.org/lang/es/).
+All notable changes to Translay. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
-Cada cambio que llega a `main` se anota primero en **Sin publicar**; al liberar una versión, `scripts/release.py` mueve esa sección a la versión nueva.
+Every change that lands on `main` is first recorded under **Unreleased** (and under «Sin publicar» in [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md), in Spanish); when a version is released, `scripts/release.py` moves that section to the new version.
 
-## Sin publicar
+## Unreleased
+
+### Added
+
+- Desktop app for Windows with an installer (`Translay_<version>_x64-setup.exe`): it installs without administrator rights, sets up the server and the voice engine by itself, and opens Translay in its own window.
+- «Preparar Translay» (Set up Translay) screen: your GPU, whether you'll get Spanish voice or subtitles only, where to store the library, and installation progress on the button itself. New versions automatically update the packages that changed.
+- The installer ships Python 3.12 and 3.11, ffmpeg, Node.js and uv verified by SHA-256; Python packages are installed pinned with their hash (`desktop/locks/`).
+- Custom title bar that follows the theme, with Preferences and the light/dark switch as icons next to minimize, maximize and close. The start screen opens with the last theme used.
+- Preferencias › App de escritorio (Preferences › Desktop app): keep running in the tray when the window is closed (the queue continues), change the Main library's folder, and open the logs.
+- Closing the app also closes the server and everything it launched (voice, downloads, ffmpeg), even if it is closed abruptly.
+- `--data-dir` (or `TRANSLAY_DATA`) sets the data folder, and `TRANSLAY_VENVS` the voice environments folder.
+- Documentation in English and Spanish, with diagrams; README and changelog in both languages.
+
+### Changed
+
+- The Plus Jakarta Sans font is served by Translay itself: the interface looks the same without internet.
+
+### Fixed
+
+- When switching between light and dark, the gray buttons no longer flicker.
 
 ## 1.2.0 · 2026-10-26
 
-### Agregado
+### Added
 
-- Soporte para equipos con memoria unificada, como NVIDIA DGX Spark (GB10): la GPU se detecta con la RAM del sistema como memoria, así que Rendimiento ya no la trata como «sin GPU» (marcaba «Muy forzado» a 0,02×) y el perfil automático elige «Máxima calidad». Los equipos con GPU dedicada no cambian.
-- Con memoria unificada, el reposo ligero se hace junto con el profundo: pasar los modelos a la RAM no liberaba nada.
+- Support for machines with unified memory, such as NVIDIA DGX Spark (GB10): the GPU is detected with the system RAM as its memory, so Performance no longer treats it as "no GPU" (it showed «Muy forzado» (Very strained) at 0.02×) and the automatic profile picks «Máxima calidad» (Maximum quality). Machines with a dedicated GPU are unchanged.
+- With unified memory, light idle is done together with deep idle: moving the models to RAM freed nothing.
 
 ## 1.1.0 · 2026-10-26
 
-### Corregido
+### Fixed
 
-- Crear, renombrar o eliminar una biblioteca fallaba al avisar a los webhooks y la pestaña no se actualizaba.
-- El id (y el enlace `/b/<id>`) de una biblioteca con tildes o eñes ya no se rompe: «Océanos» es `oceanos`, no `oc-anos`.
-- «Editar» y «Otro patrón» de una biblioteca funcionan ahí mismo, sin llevar al inicio.
-- Los menús ya no se cierran solos cuando algo se desplaza por su cuenta, y las opciones que abren otro panel ya no lo cierran en el mismo clic.
-- Al recargar no aparece por un instante «Traduce tu primer video» ni el banner roto de un canal.
-- El aviso «Listo para reproducir» ya no tapa el subtítulo en inglés.
-- La cola ya no reemplaza frases ya dobladas por fragmentos al retomar un video desde otro punto, ni pierde texto en la segunda pasada.
-- Dos partes de Translay que abrían la misma transcripción a la vez podían quedarse con copias distintas y perder frases guardadas.
-- Una frase cuya voz falla ya no deja el video entero en «error»: queda sin voz y se reintenta.
-- Si el proceso de voz se cuelga, se cierra a los 5 min en vez de trabar la GPU para siempre; si no carga, se reinicia limpio.
-- El reposo ligero libera la VRAM también con Chatterbox y VoxCPM, y un error al dormir los modelos ya no deja el estado en «cargando».
-- Al fusionar dos personas, la voz clonada ya no se pierde (sobre todo al reabrir el video).
-- Las frases muy largas sin puntuación ya no cortan el audio de su voz de referencia.
-- El audio de un video terminado no se queda en memoria.
-- Biblioteca, voces y personas se guardan sin poder quedar a medias, con una copia de respaldo (`.bak`) que se usa si el archivo se daña.
-- «Mover a…» otra biblioteca devuelve los archivos si alguno está en uso, en vez de dejar el video partido.
-- Desde otro equipo de la red (http) ya se puede reproducir con voz e importar archivos.
-- Los primeros mensajes del servidor ya no se pierden en conexiones lentas (el invitado veía la interfaz del dueño).
-- Al reconectar (o tras «Reiniciar ahora»), el video que ves vuelve a tener prioridad en la cola.
-- Enter en los cuadros de texto de los diálogos acepta en vez de cancelar.
-- En Cola → Exportaciones, «Descargar» y «Cancelar» funcionan; en el panel, el botón de quitar una exportación se ve.
-- Borrar el video que suena en miniatura cierra la miniatura.
-- Pasar rápido entre videos ya no aplica la posición ni la duración de uno al otro.
-- Cancelar «Importar» desde una colección ya no deja esa colección elegida para la próxima importación.
-- Un invitado ya no puede abrir Preferencias por la URL (salían avisos de permiso en bucle).
-- Reproducir a otra velocidad ya no acumula audio en memoria.
-- Lo que se escribe en Preferencias (una contraseña, una URL) ya no se borra si llega un aviso de otra pestaña.
-- En el celular hay botón para crear una colección.
-- Eliminar la biblioteca abierta cierra el video que se estaba viendo de ella.
-- Los toasts de Acceso ya no dicen «Copiado copiado».
-- Los avatares y banners de canales se bajan aparte y de a uno: ya no ocupan las conexiones del navegador (el video no cargaba) ni disparan el límite de YouTube.
+- Creating, renaming or deleting a library failed when notifying webhooks and the tab didn't update.
+- The id (and the `/b/<id>` link) of a library with accents or ñ no longer breaks: «Océanos» is `oceanos`, not `oc-anos`.
+- «Editar» (Edit) and «Otro patrón» (Another pattern) on a library work right there, without going back to the home page.
+- Menus no longer close by themselves when something scrolls on its own, and options that open another panel no longer close it on the same click.
+- On reload, «Traduce tu primer video» (Translate your first video) and a channel's broken banner no longer flash briefly.
+- The «Listo para reproducir» (Ready to play) notice no longer covers the English subtitle.
+- The queue no longer replaces already-dubbed sentences with fragments when resuming a video from another point, nor loses text in the second pass.
+- Two parts of Translay opening the same transcript at once could end up with different copies and lose saved sentences.
+- A sentence whose voice fails no longer leaves the whole video in "error": it is left without voice and retried.
+- If the voice process hangs, it is shut down after 5 min instead of locking the GPU forever; if it fails to load, it restarts cleanly.
+- Light idle also frees VRAM with Chatterbox and VoxCPM, and an error while putting the models to sleep no longer leaves the state stuck at "loading".
+- When merging two people, the cloned voice is no longer lost (especially when reopening the video).
+- Very long sentences without punctuation no longer cut off the audio of their voice reference.
+- The audio of a finished video no longer stays in memory.
+- Library, voices and people are saved without being able to end up half-written, with a backup copy (`.bak`) that is used if the file is damaged.
+- «Mover a…» (Move to…) another library gives the files back if any is in use, instead of leaving the video split.
+- From another machine on the network (http) you can now play with voice and import files.
+- The first server messages are no longer lost on slow connections (the guest saw the owner's interface).
+- On reconnecting (or after «Reiniciar ahora» (Restart now)), the video you are watching has queue priority again.
+- Enter in the text boxes of dialogs confirms instead of canceling.
+- In Cola → Exportaciones (Queue → Exports), «Descargar» (Download) and «Cancelar» (Cancel) work; in the panel, the button to remove an export is visible.
+- Deleting the video playing in the thumbnail closes the thumbnail.
+- Switching quickly between videos no longer applies one's position or duration to the other.
+- Canceling «Importar» (Import) from a collection no longer leaves that collection selected for the next import.
+- A guest can no longer open Preferences via the URL (permission warnings appeared in a loop).
+- Playing at another speed no longer accumulates audio in memory.
+- What you type in Preferences (a password, a URL) is no longer erased if a notice arrives from another tab.
+- On phones there is a button to create a collection.
+- Deleting the open library closes the video being watched from it.
+- The Acceso toasts no longer say «Copiado copiado» (Copied copied).
+- Channel avatars and banners are downloaded separately and one at a time: they no longer take up the browser's connections (the video wouldn't load) nor trigger YouTube's limit.
 
-### Seguridad
+### Security
 
-- Otro sitio abierto en el navegador ya no puede usar Translay como el dueño: el WebSocket y los pedidos que cambian algo exigen que el `Origin` sea la propia app (`--allow-origin` / `TRANSLAY_ORIGINS` para proxies que cambian el Host).
-- `GET /api/v1/exports/{id}` solo muestra exportaciones de videos que se pueden ver.
-- Al volver una biblioteca a «con contraseña», las sesiones de antes ya no reviven.
-- Revisión de todo el código: los videos ya no pueden registrar rutas de archivos (solo título, duración y origen); las rutas de archivos de los videos nunca salen de su carpeta.
-- Las subidas solo aceptan video o audio (y la miniatura, JPEG de hasta 2 MB); una subida cortada no deja el archivo a medias.
-- Los archivos de las bibliotecas se sirven siempre como medios o descargas, nunca como páginas, con `X-Content-Type-Options: nosniff`.
-- «Desde este equipo» solo vale si el pedido llega a `localhost`/`127.0.0.1` (protección contra *DNS rebinding*).
-- Iniciar sesión siempre da un token nuevo (fijación de sesión), con un máximo de 10 intentos fallidos cada 10 minutos por equipo; el hash de la contraseña ya no frena al servidor.
-- Importar o ver un video exige permiso en la biblioteca de ese video, no en la abierta.
-- WebSocket: marcos sin máscara, de control demasiado largos o mensajes que superan 16 MB entre fragmentos cierran la conexión; las cabeceras HTTP tienen un máximo de 100 y 15 s para llegar.
-- Los avatares de canales (`/chan/`) piden acceso como el resto de las miniaturas.
+- Another site open in the browser can no longer use Translay as the owner: the WebSocket and requests that change something require the `Origin` to be the app itself (`--allow-origin` / `TRANSLAY_ORIGINS` for proxies that change the Host).
+- `GET /api/v1/exports/{id}` only shows exports of videos that can be seen.
+- When a library goes back to "password-protected", earlier sessions no longer come back to life.
+- Review of the whole codebase: videos can no longer register file paths (only title, duration and origin); video file paths never leave their folder.
+- Uploads only accept video or audio (and the thumbnail, JPEG up to 2 MB); an interrupted upload doesn't leave the file half-written.
+- Library files are always served as media or downloads, never as pages, with `X-Content-Type-Options: nosniff`.
+- «Desde este equipo» (From this machine) only applies if the request arrives at `localhost`/`127.0.0.1` (protection against *DNS rebinding*).
+- Signing in always gives a new token (session fixation), with a maximum of 10 failed attempts every 10 minutes per machine; password hashing no longer stalls the server.
+- Importing or viewing a video requires permission on that video's library, not on the open one.
+- WebSocket: unmasked frames, control frames that are too long, or messages exceeding 16 MB across fragments close the connection; HTTP headers have a maximum of 100 and 15 s to arrive.
+- Channel avatars (`/chan/`) require access like the rest of the thumbnails.
 
-### Agregado
+### Added
 
-- **Rendimiento** (Preferencias): detecta GPU, VRAM, RAM y CPU y elige un perfil de modelos (Máxima calidad, Equilibrado, Ligero, Solo subtítulos, Subtítulos ligeros) con velocidades medidas en equipos de 8, 6, 4 y 2 GB y sin GPU. Muestra si cada perfil va bien, al límite o forzado, cuánto tarda un video y si se puede ver en vivo; cambiar de perfil reinicia Translay solo.
-- Límites de VRAM, RAM e hilos de CPU para Translay; la RAM y la CPU se aplican al momento (Job Object de Windows, sin administrador).
-- Avisos de por qué algo va lento: perfil forzado, VRAM que desborda a memoria compartida, poca RAM, límites demasiado bajos, otro programa en la GPU.
-- **Papelera**: eliminar videos, vaciar o eliminar una biblioteca los guarda 30 días; «Deshacer» en el aviso y Preferencias › Papelera para restaurar o borrar para siempre.
-- Labs de hardware (`tools/lab/`) que emulan equipos menores con límites reales de VRAM, RAM y CPU, y `vt/hardware.py` para detectar el equipo.
-- Barra lateral también en el reproductor (se pliega a íconos con el botón junto al logo).
-- «Bajar video» en la barra del reproductor y en el clic derecho para videos con solo audio.
-- Los botones que trabajan muestran su avance: «Bajando video 42 %», «Exportando 63 %».
+- **Rendimiento** (Performance, in Preferences): detects GPU, VRAM, RAM and CPU and picks a model profile (Máxima calidad, Equilibrado, Ligero, Solo subtítulos, Subtítulos ligeros — Maximum quality, Balanced, Light, Subtitles only, Light subtitles) with speeds measured on 8, 6, 4 and 2 GB machines and with no GPU. It shows whether each profile runs well, is borderline or strained, how long a video takes and whether it can be watched live; switching profiles restarts Translay by itself.
+- VRAM, RAM and CPU thread limits for Translay; RAM and CPU apply immediately (Windows Job Object, no administrator).
+- Warnings about why something is slow: strained profile, VRAM spilling into shared memory, low RAM, limits that are too low, another program on the GPU.
+- **Papelera** (Trash): deleting videos, or emptying or deleting a library, keeps them for 30 days; «Deshacer» (Undo) in the notice and Preferencias › Papelera (Preferences › Trash) to restore or delete forever.
+- Hardware labs (`tools/lab/`) that emulate smaller machines with real VRAM, RAM and CPU limits, and `vt/hardware.py` to detect the machine.
+- Sidebar in the player too (it collapses to icons with the button next to the logo).
+- «Bajar video» (Download video) in the player bar and in the right-click menu for audio-only videos.
+- Buttons that are working show their progress: «Bajando video 42 %» (Downloading video 42%), «Exportando 63 %» (Exporting 63%).
 
-### Cambiado
+### Changed
 
-- Vaciar y eliminar una biblioteca piden escribir su nombre; «Vaciar…» pasó de la cabecera de «Todos» al menú «⋯» de la biblioteca.
-- `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` y `--device` ya no tienen valor fijo: sin ellos, los decide el perfil de rendimiento.
-- Lo que se edita (bibliotecas, colecciones, comentarios, personas) se ve al instante en todos lados, sin esperar al servidor.
-- Las flechas de las filas del inicio quedan dentro de la fila y solo aparecen si hay más videos hacia ese lado.
+- Emptying and deleting a library require typing its name; «Vaciar…» (Empty…) moved from the «Todos» (All) header to the library's «⋯» menu.
+- `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` and `--device` no longer have a fixed value: without them, the performance profile decides.
+- What you edit (libraries, collections, comments, people) shows up instantly everywhere, without waiting for the server.
+- The arrows on the home page rows stay inside the row and only appear if there are more videos in that direction.
 
 ## 1.0.0 · 2026-10-25
 
-Primera versión pública.
+First public release.
 
-### Traducción y doblaje
+### Translation and dubbing
 
-- Reconocimiento con Whisper large-v3-turbo en streaming, con VAD y acuerdo local propios.
-- Traducción con Opus-MT big (fp16) y capas propias para español latinoamericano: división por oraciones, modismos y giros literales. NLLB-1.3B y MADLAD-3B como alternativas (`--translator`).
-- Diarización propia (WeSpeaker en ONNX + agrupamiento incremental): 97.6 % de frases con la persona correcta en 12 videos de prueba.
-- Doblaje con la voz clonada de cada persona (OmniVoice), referencias de hasta 8 s limpiadas con DeepFilterNet si tienen ruido, duración ajustada al espacio de cada frase y WSOLA de respaldo.
-- Procesamiento adelantado: la voz suena sincronizada con la imagen (desfase mediano 0.08 s; 0.25 s en un video de 28 min).
-- Persistencia por huella del video: lo procesado no se vuelve a procesar; si cambia el texto, la persona o el motor, la frase se vuelve a doblar sola.
+- Recognition with Whisper large-v3-turbo in streaming mode, with custom VAD and local agreement.
+- Translation with Opus-MT big (fp16) and custom layers for Latin American Spanish: sentence splitting, idioms and literal phrasings. NLLB-1.3B and MADLAD-3B as alternatives (`--translator`).
+- Custom diarization (WeSpeaker in ONNX + incremental clustering): 97.6% of sentences with the right person across 12 test videos.
+- Dubbing with each person's cloned voice (OmniVoice), references of up to 8 s cleaned with DeepFilterNet if noisy, duration fitted to each sentence's slot and WSOLA as a fallback.
+- Look-ahead processing: the voice plays in sync with the picture (median offset 0.08 s; 0.25 s on a 28-min video).
+- Persistence by video fingerprint: what is processed is not processed again; if the text, the person or the engine changes, the sentence is dubbed again automatically.
 
-### Biblioteca
+### Library
 
-- Portada con «Seguir viendo» y filas por colección; colecciones automáticas (Recientes, Todos, canales y categorías de YouTube) y propias.
-- Varias bibliotecas, cada una en su carpeta (otro disco, por ejemplo), con sus videos, colecciones, glosario, personas, tema y modo de importar; «Mover a…» lleva los archivos.
-- Banners y distintivos con patrones Bauhaus por colección y biblioteca; avatar y banner reales de los canales.
-- Búsqueda en todas las transcripciones (inglés, español y comentarios, sin importar tildes).
-- Selección múltiple para abrir, procesar, exportar, mover o eliminar.
+- Home page with «Seguir viendo» (Continue watching) and a row per collection; automatic collections (Recientes, Todos, YouTube channels and categories — Recent, All) and custom ones.
+- Multiple libraries, each in its own folder (another drive, for example), with its own videos, collections, glossary, people, theme and import mode; «Mover a…» (Move to…) moves the files.
+- Banners and badges with Bauhaus patterns per collection and library; real avatar and banner of the channels.
+- Search across all transcripts (English, Spanish and comments, ignoring accents).
+- Multi-select to open, process, export, move or delete.
 
-### Importar y cola
+### Import and queue
 
-- Enlaces de YouTube, playlists, varios enlaces a la vez, CSV con miles de enlaces y archivos del equipo; importar directo a una colección.
-- Una sola cola en el servidor que sobrevive a recargar: el video que ves va primero y sigue tus saltos; «Priorizar», pausa y pantalla propia con estados.
-- Descargas espaciadas y en orden o al azar, solo audio o video, «Solo descargar»; pausa automática si YouTube pide verificación y reintentos espaciados.
-- Sesión de YouTube con cookies.txt o desde el navegador instalado.
-- Modo reposo: los modelos dejan la GPU a los 45 s sin uso y el proceso de voz se cierra a los 2 min.
+- YouTube links, playlists, several links at once, CSV with thousands of links, and files from the machine; import straight into a collection.
+- A single server-side queue that survives reloading: the video you are watching goes first and follows your jumps; «Priorizar» (Prioritize), pause and a dedicated screen with states.
+- Spaced-out downloads, in order or at random, audio only or video, «Solo descargar» (Download only); automatic pause if YouTube asks for verification, and spaced-out retries.
+- YouTube session with cookies.txt or from the installed browser.
+- Idle mode: the models leave the GPU after 45 s idle and the voice process shuts down after 2 min.
 
-### Reproductor
+### Player
 
-- Vista ampliada y dividida, controles propios, velocidad de 0.75× a 2× sin cambiar el tono, subtítulos ES/EN.
-- Indicador «Preparando NN % / Listo para reproducir» según la velocidad real del doblaje; pausa hasta que esté listo y reproducción automática del siguiente.
-- Transcripción alineada EN | ES con la persona que habla, comentarios por frase y marcas en la línea de avance.
-- Personas: nombre y voz de cada una (la suya clonada o la de otra persona del video).
-- Glosario por biblioteca: términos fijos o sin traducir; al cambiarlo se re-traduce y se rehace la voz.
+- Expanded and split view, custom controls, speed from 0.75× to 2× without changing pitch, ES/EN subtitles.
+- «Preparando NN % / Listo para reproducir» (Preparing NN% / Ready to play) indicator based on the real dubbing speed; pauses until ready and autoplays the next one.
+- Aligned EN | ES transcript with the person speaking, per-sentence comments and marks on the progress bar.
+- People: name and voice for each one (their own cloned voice or another person's from the video).
+- Glossary per library: fixed or untranslated terms; changing it re-translates and redoes the voice.
 
-### Exportar
+### Export
 
-- Video traducido (voz en español + inglés como segunda pista + subtítulos), audio traducido, video y audio originales, subtítulos SRT en ambos idiomas y transcripción TXT; varios en un .zip.
+- Translated video (Spanish voice + English as a second track + subtitles), translated audio, original video and audio, SRT subtitles in both languages and TXT transcript; several in a .zip.
 
-### Acceso e integraciones
+### Access and integrations
 
-- Dueño sin sesión desde el mismo equipo y con contraseña desde otros; cada biblioteca privada, con contraseña o pública, de solo ver o ver e importar.
-- Acceso desde otros equipos de la red local.
-- API REST `/api/v1` con claves por biblioteca (lectura o escritura).
-- Webhooks firmados con HMAC-SHA256, con reintentos y 21 eventos.
+- Owner without a session from the same machine and with a password from others; each library private, password-protected or public, view-only or view and import.
+- Access from other machines on the local network.
+- REST API `/api/v1` with per-library keys (read or write).
+- Webhooks signed with HMAC-SHA256, with retries and 21 events.
 
-### Interfaz
+### Interface
 
-- Diseño «Translay»: una sola fuente, claro y oscuro grafito, menús, listas y casillas propios, menú contextual por zona, barra lateral colapsable y silueta al cargar.
-- La dirección guarda dónde estás: recargar no vuelve al inicio y atrás/adelante funcionan.
+- «Translay» design: a single font, light and graphite dark, custom menus, lists and checkboxes, per-area context menu, collapsible sidebar and loading skeleton.
+- The address keeps track of where you are: reloading doesn't go back to the home page and back/forward work.
 
-### Instalación y documentación
+### Installation and documentation
 
-- Imagen Docker con CUDA 12.8, servidor y motor de voz; `docker-compose.yml` y `--owner-password` / `TRANSLAY_OWNER_PASSWORD` para el acceso del dueño en el contenedor.
-- Documentación en Starlight (`docs/`) con referencia generada desde el código.
-- Convención de commits (Conventional Commits) con validación en `.githooks/commit-msg`.
+- Docker image with CUDA 12.8, server and voice engine; `docker-compose.yml` and `--owner-password` / `TRANSLAY_OWNER_PASSWORD` for owner access in the container.
+- Documentation in Starlight (`docs/`) with reference generated from the code.
+- Commit convention (Conventional Commits) with validation in `.githooks/commit-msg`.

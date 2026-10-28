@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Translay",
+  "version": "1.3.0",
+  "identifier": "dev.alejandro.translay",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeDevCommand": "node scripts/prepare.mjs",
+    "beforeBuildCommand": "node scripts/prepare.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "publisher": "alenj0x1",
+    "homepage": "https://alenj0x1.github.io/translay/",
+    "shortDescription": "Traduce y dobla videos del inglés al español",
+    "resources": {
+      "../.stage/translay/": "translay/",
+      "../locks/": "locks/",
+      "tools/": "tools/"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Spanish"
+        ],
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
+  }
+}

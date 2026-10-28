@@ -34,6 +34,9 @@ a { color: inherit; }
 /* texto secundario pequeño (en oración, nunca en mayúsculas) */
 .label { font: 600 var(--fs-xs)/1.35 var(--font); color: var(--fg-muted); }
 
+/* al cambiar entre claro y oscuro, todo cambia de una vez (web/js/theme.js) */
+html.theme-switch *, html.theme-switch *::before, html.theme-switch *::after { transition: none !important; }
+
 /* foco visible solo con teclado */
 :focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }

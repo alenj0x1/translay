@@ -17,13 +17,16 @@ import numpy as np
 from .ipc import read_msg, write_msg
 
 ROOT = Path(__file__).resolve().parent.parent
+# entornos de los motores de voz: .venvs/ junto al código, o TRANSLAY_VENVS (la app de escritorio
+# los crea en su carpeta de datos del usuario)
+VENVS = Path(os.environ.get("TRANSLAY_VENVS") or ROOT / ".venvs")
 
 ENGINES = ("chatterbox", "voxcpm", "omnivoice")
 
 
 def venv_python(engine: str) -> Path:
     exe = "Scripts/python.exe" if sys.platform == "win32" else "bin/python"
-    return ROOT / ".venvs" / engine / exe
+    return VENVS / engine / exe
 
 
 class TTSClient:

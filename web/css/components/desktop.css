@@ -1,0 +1,25 @@
+/* =====================================================================
+   App de escritorio (web/js/desktop.js): el encabezado es la barra de título.
+   html.desktop          dentro de la ventana de Translay
+   html.maximized        ventana maximizada (sin borde)
+   ===================================================================== */
+
+/* controles de la ventana: al final del encabezado, separados de las acciones de Translay */
+.win-controls { flex: none; display: flex; align-items: center; gap: 2px; margin-left: var(--s2); padding-left: var(--s2); box-shadow: -1px 0 0 var(--line); }
+.btn.icon.win-btn svg, #theme-btn svg { display: block; }
+.win-btn#win-close:hover { background: var(--danger); color: #fff; }
+/* íconos de la barra (Preferencias, claro/oscuro, ventana): todos iguales; lo activo y el foco se marcan
+   solo con tono, sin anillos ni bordes */
+html.desktop .bar .btn.icon.on, html.desktop .bar .btn.icon.on:hover { background: var(--surface-2); color: var(--fg); box-shadow: none; }
+html.desktop .bar .btn.icon:focus-visible { outline: none; background: var(--surface-2); color: var(--fg); }
+
+/* borde de 1 px del tema alrededor de la ventana (sin sombra del sistema); maximizada, sin borde */
+html.desktop::after {
+  content: ""; position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+html.desktop.maximized::after { content: none; }
+
+/* Preferencias › App de escritorio */
+.desk-rows .set-ctl { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); }
+.desk-rows .desk-path { overflow-wrap: anywhere; }

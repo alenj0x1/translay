@@ -15,10 +15,8 @@
       || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- estilos: tokens (temas) → base → componentes → distribución → vistas -->
+<!-- estilos: fuente → tokens (temas) → base → componentes → distribución → vistas -->
+<link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/components/button.css">
@@ -27,6 +25,7 @@
 <link rel="stylesheet" href="css/components/lists.css">
 <link rel="stylesheet" href="css/components/overlays.css">
 <link rel="stylesheet" href="css/components/card.css">
+<link rel="stylesheet" href="css/components/desktop.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/views/player.css">
 <link rel="stylesheet" href="css/views/transcript.css">
@@ -336,6 +335,7 @@
 
 <!-- scripts: componentes y tema primero; luego la app -->
 <script src="js/ui.js"></script>
+<script src="js/desktop.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/app.js"></script>
