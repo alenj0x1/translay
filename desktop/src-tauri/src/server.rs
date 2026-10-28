@@ -227,7 +227,8 @@ fn open_page(app: &AppHandle, url: &str) {
         .permission("allow-open-folder")
         .permission("allow-set-close-to-tray")
         .permission("allow-close-window")
-        .permission("allow-set-theme");
+        .permission("allow-set-theme")
+        .permission("allow-quit-if-in-tray");
     let _ = app.add_capability(capability);
     let _ = app.emit("server", json!({ "state": "ready", "url": url }));
     if let (Some(window), Ok(parsed)) = (app.get_webview_window("main"), url.parse()) {

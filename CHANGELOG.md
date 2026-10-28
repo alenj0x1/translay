@@ -12,8 +12,8 @@ Every change that lands on `main` is first recorded under **Unreleased** (and un
 - «Preparar Translay» (Set up Translay) screen: your GPU, whether you'll get Spanish voice or subtitles only, where to store the library, and installation progress on the button itself. New versions automatically update the packages that changed.
 - The installer ships Python 3.12 and 3.11, ffmpeg, Node.js and uv verified by SHA-256; Python packages are installed pinned with their hash (`desktop/locks/`).
 - Custom title bar that follows the theme, with Preferences and the light/dark switch as icons next to minimize, maximize and close. The start screen opens with the last theme used.
-- Preferencias › App de escritorio (Preferences › Desktop app): keep running in the tray when the window is closed (the queue continues), change the Main library's folder, and open the logs.
-- Closing the app also closes the server and everything it launched (voice, downloads, ffmpeg), even if it is closed abruptly.
+- Preferencias › App de escritorio (Preferences › Desktop app): keep running in the tray when the window is closed (the queue continues and, when it finishes, Translay quits and frees everything), change the Main library's folder, and open the logs.
+- Closing the app also closes the server and everything it launched (models, voice, downloads, ffmpeg), even if it is closed abruptly: nothing is left using the GPU or RAM.
 - `--data-dir` (or `TRANSLAY_DATA`) sets the data folder, and `TRANSLAY_VENVS` the voice environments folder.
 - Documentation in English and Spanish, with diagrams; README and changelog in both languages.
 

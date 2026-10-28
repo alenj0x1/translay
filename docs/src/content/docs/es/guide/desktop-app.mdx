@@ -22,7 +22,7 @@ Esta página solo aparece en la app.
 
 | Opción | Qué hace |
 |---|---|
-| **Al cerrar la ventana** | **Salir** cierra Translay por completo. **Seguir en la bandeja** oculta la ventana y deja Translay en la bandeja del sistema: la cola sigue descargando y traduciendo. Desde el ícono de la bandeja, **Abrir Translay** o **Salir**. |
+| **Al cerrar la ventana** | **Salir** cierra Translay por completo. **Seguir en la bandeja** oculta la ventana y deja Translay en la bandeja del sistema mientras la cola tenga trabajo: sigue descargando, traduciendo y exportando; cuando termina, Translay se cierra solo y libera todo. Desde el ícono de la bandeja, **Abrir Translay** o **Salir**. |
 | **Biblioteca Principal** | La carpeta donde se guarda la biblioteca Principal. **Abrir carpeta** la abre en el Explorador; **Cambiar…** elige otra y Translay se reinicia con ella. Las demás bibliotecas pueden estar en cualquier carpeta (ver [Bibliotecas](../libraries/)). |
 | **Registros** | Abre la carpeta con `setup.log` (la instalación) y `server.log` (lo que escribe el servidor). Sirven para reportar un problema. |
 
@@ -32,7 +32,7 @@ Esta página solo aparece en la app.
 
 ## Si el servidor se detiene
 
-La ventana muestra **Translay se detuvo** con las últimas líneas del servidor, **Reintentar** (lo arranca de nuevo) y **Abrir registros**. Cerrar la app también cierra el servidor y todo lo que lanzó (voz, descargas, ffmpeg), aunque la app se cierre de golpe.
+La ventana muestra **Translay se detuvo** con las últimas líneas del servidor, **Reintentar** (lo arranca de nuevo) y **Abrir registros**. Cerrar la app también cierra el servidor y todo lo que lanzó (modelos, voz, descargas, ffmpeg), aunque la app se cierre de golpe: no queda nada usando la GPU ni la RAM.
 
 ## Mismo equipo, otro navegador
 

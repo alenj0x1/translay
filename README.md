@@ -72,7 +72,7 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 
 - **Windows installer**, no administrator rights needed. The first time you open it, the app installs the server and the voice engine by itself (packages pinned with their SHA-256 hash) and shows progress on the button; then it opens Translay in its own window.
 - **Custom title bar** that follows the light or dark theme, with Preferences and the theme switch as icons.
-- Optional **system tray** so the queue keeps working with the window closed; a single instance; the server and everything it launches close with the app.
+- Optional **system tray** so the queue keeps working with the window closed (when it finishes, Translay quits); a single instance; the server, its models and everything it launches close with the app, so nothing keeps using the GPU or RAM.
 - **Your library wherever you want** (by default `Videos\Translay`), chosen at install time and changeable later.
 
 ### Export

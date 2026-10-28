@@ -2,7 +2,7 @@
 //! - First launch: the bundled setup page (ui/) installs Python, the server and the voice engine (runtime.rs).
 //! - Every launch: starts the local server hidden (server.rs) and opens its page in the window.
 //! - Custom title bar in both pages (the Windows one takes the system accent color instead of the theme's),
-//!   tray icon when "Al cerrar la ventana" keeps Translay running, single instance.
+//!   tray icon when "Al cerrar la ventana" keeps Translay running (until the queue is empty), single instance.
 
 mod runtime;
 mod server;
@@ -20,6 +20,8 @@ struct AppState {
     paths: Paths,
     settings: Mutex<Settings>,
     quitting: AtomicBool,
+    /// The window was closed to the tray (not just minimized): the page may quit once the queue is empty.
+    in_tray: AtomicBool,
 }
 
 impl AppState {
@@ -126,9 +128,19 @@ fn set_close_to_tray(app: AppHandle, state: State<'_, AppState>, enabled: bool) 
 fn close_window(app: AppHandle, state: State<'_, AppState>) {
     if state.settings().close_to_tray {
         if let Some(window) = app.get_webview_window("main") {
+            state.in_tray.store(true, Ordering::SeqCst);
             let _ = window.hide();
         }
     } else {
+        quit(&app);
+    }
+}
+
+/// The page reports there is no work left: if the window is in the tray, quit and free every resource
+/// (the server, its models and the voice process).
+#[tauri::command]
+fn quit_if_in_tray(app: AppHandle, state: State<'_, AppState>) {
+    if state.in_tray.load(Ordering::SeqCst) {
         quit(&app);
     }
 }
@@ -195,6 +207,9 @@ fn server_tail(server: State<'_, Server>) -> Vec<String> {
 }
 
 fn show_main(app: &AppHandle) {
+    if let Some(state) = app.try_state::<AppState>() {
+        state.in_tray.store(false, Ordering::SeqCst);
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
@@ -251,7 +266,7 @@ pub fn run() {
             let settings = Settings::load(&paths);
             let tray = settings.close_to_tray;
             create_window(app, settings.theme.as_deref())?;
-            app.manage(AppState { paths, settings: Mutex::new(settings), quitting: AtomicBool::new(false) });
+            app.manage(AppState { paths, settings: Mutex::new(settings), quitting: AtomicBool::new(false), in_tray: AtomicBool::new(false) });
             sync_tray(app.handle(), tray)?;
             Ok(())
         })
@@ -264,6 +279,7 @@ pub fn run() {
                 }
                 if state.settings().close_to_tray {
                     api.prevent_close();
+                    state.in_tray.store(true, Ordering::SeqCst);
                     let _ = window.hide();
                 } else {
                     app.state::<Server>().stop();
@@ -272,7 +288,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             status, install, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
-            close_window, quit_app, server_tail, set_theme
+            close_window, quit_app, quit_if_in_tray, server_tail, set_theme
         ])
         .build(tauri::generate_context!())
         .expect("failed to start Translay");

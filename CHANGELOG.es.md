@@ -12,8 +12,8 @@ Cada cambio que llega a `main` se anota primero en **Sin publicar** (y en «Unre
 - Pantalla «Preparar Translay»: tu GPU, si tendrás voz en español o solo subtítulos, dónde guardar la biblioteca y el avance de la instalación en el propio botón. Las versiones nuevas actualizan solas los paquetes que cambiaron.
 - El instalador trae Python 3.12 y 3.11, ffmpeg, Node.js y uv verificados por SHA-256; los paquetes de Python se instalan fijados con su huella (`desktop/locks/`).
 - Barra de título propia que sigue el tema, con Preferencias y el cambio entre claro y oscuro como íconos junto a minimizar, maximizar y cerrar. La pantalla de inicio abre con el último tema usado.
-- Preferencias › App de escritorio: seguir en la bandeja al cerrar la ventana (la cola continúa), cambiar la carpeta de la biblioteca Principal y abrir los registros.
-- Cerrar la app cierra también el servidor y todo lo que lanzó (voz, descargas, ffmpeg), aunque se cierre de golpe.
+- Preferencias › App de escritorio: seguir en la bandeja al cerrar la ventana (la cola continúa y, al terminar, Translay se cierra y libera todo), cambiar la carpeta de la biblioteca Principal y abrir los registros.
+- Cerrar la app cierra también el servidor y todo lo que lanzó (modelos, voz, descargas, ffmpeg), aunque se cierre de golpe: no queda nada usando la GPU ni la RAM.
 - `--data-dir` (o `TRANSLAY_DATA`) elige la carpeta de datos, y `TRANSLAY_VENVS` la de los entornos de voz.
 - Documentación en inglés y en español, con diagramas; README y changelog en los dos idiomas.
 

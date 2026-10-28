@@ -22,7 +22,7 @@ This page only appears in the app.
 
 | Option | What it does |
 |---|---|
-| **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray: the queue keeps downloading and translating. From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
+| **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray while the queue has work: it keeps downloading, translating and exporting; when it finishes, Translay quits by itself and frees everything. From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
 | **Biblioteca Principal** (Main library) | The folder where the Main library is stored. **Abrir carpeta** (Open folder) opens it in Explorer; **Cambiar…** (Change…) picks another and Translay restarts with it. Other libraries can be in any folder (see [Libraries](../libraries/)). |
 | **Registros** (Logs) | Opens the folder with `setup.log` (the installation) and `server.log` (what the server writes). Useful for reporting a problem. |
 
@@ -32,7 +32,7 @@ This page only appears in the app.
 
 ## If the server stops
 
-The window shows **Translay se detuvo** (Translay stopped) with the server's last lines, **Reintentar** (Retry; starts it again) and **Abrir registros** (Open logs). Closing the app also closes the server and everything it launched (voice, downloads, ffmpeg), even if the app is killed abruptly.
+The window shows **Translay se detuvo** (Translay stopped) with the server's last lines, **Reintentar** (Retry; starts it again) and **Abrir registros** (Open logs). Closing the app also closes the server and everything it launched (models, voice, downloads, ffmpeg), even if the app is killed abruptly: nothing is left using the GPU or RAM.
 
 ## Same machine, another browser
 

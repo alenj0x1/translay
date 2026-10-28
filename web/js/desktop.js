@@ -5,6 +5,8 @@
 //   sistema, no el del tema).
 // - Preferencias suma la página «App de escritorio»: qué hace la ventana al cerrarla, dónde está la
 //   biblioteca Principal y los registros.
+// - En la bandeja (ventana cerrada con «Seguir en la bandeja»), cuando no queda trabajo en la cola,
+//   Translay se cierra del todo: no deja modelos ni procesos ocupando la GPU o la RAM.
 // En el navegador nada de esto existe (DESKTOP es false).
 
 const DESKTOP = !!(window.__TAURI__ && window.__TAURI__.core);
@@ -73,6 +75,24 @@ function initDesktop() {
   desktopCall("desktop_info").then((info) => { desktop.info = info; });
 }
 
+// ¿Queda algo por hacer? Trabajos en cola o procesándose (de todas las bibliotecas, sin pausa),
+// descargas abiertas o exportaciones en curso.
+function desktopBusy() {
+  const q = lib.queue || { jobs: [] };
+  const pending = !q.paused && q.jobs.some((j) => j.state === "en cola" || j.state === "procesando" || j.dl);
+  const exporting = (lib.exports || []).some((x) => x.state !== "listo" && x.state !== "error");
+  return pending || exporting || Object.keys(state.downloads || {}).length > 0;
+}
+
+// Cada 15 s: dos revisiones seguidas sin trabajo (30 s) le avisan a la app, que cierra Translay solo
+// si la ventana está en la bandeja (minimizada o a la vista no cuenta; la página no lo puede saber).
+let desktopIdle = 0;
+setInterval(() => {
+  if (!DESKTOP || typeof lib === "undefined") return;
+  desktopIdle = desktopBusy() ? 0 : desktopIdle + 1;
+  if (desktopIdle >= 2) desktopCall("quit_if_in_tray");
+}, 15000);
+
 // Página «App de escritorio» de Preferencias (web/js/app.js, PREF_BLOCKS)
 function desktopPrefsBlocks() {
   const box = el("div", { class: "set-rows desk-rows" });
@@ -87,7 +107,7 @@ function desktopPrefsBlocks() {
       el("div", { class: "set-text" }, el("strong", { text: title }), desc ? el("p", { class: "desk-path", text: desc }) : null),
       el("div", { class: "set-ctl" }, ...ctl));
     box.replaceChildren(
-      row("Al cerrar la ventana", info.close_to_tray ? "Translay sigue en la bandeja del sistema y la cola continúa." : "Translay se cierra por completo.",
+      row("Al cerrar la ventana", info.close_to_tray ? "Translay sigue en la bandeja mientras la cola tenga trabajo; al terminar, se cierra y libera todo." : "Translay se cierra por completo.",
         el("div", { class: "segs" }, seg(false, "x", "Salir"), seg(true, "tray", "Seguir en la bandeja"))),
       row("Biblioteca Principal", info.data_dir || "",
         btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),
