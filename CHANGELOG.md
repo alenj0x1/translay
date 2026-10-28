@@ -4,7 +4,7 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
-## Unreleased
+## 1.3.1 · 2026-10-27
 
 ### Changed
 
