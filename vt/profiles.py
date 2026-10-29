@@ -25,7 +25,7 @@ PROFILES = {
     "ligero": {
         "name": "Ligero", "voice": True,
         "desc": "Reconocimiento small y traductor base, con voz clonada de 8 pasos. Algo menos preciso con ruido.",
-        "asr": "small.en", "asr_ct": "int8_float16", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 8,
+        "asr": "small", "asr_ct": "int8_float16", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 8,
     },
     "texto": {
         "name": "Solo subtítulos", "voice": False,
@@ -36,7 +36,7 @@ PROFILES = {
     "texto-ligero": {
         "name": "Subtítulos ligeros", "voice": False,
         "desc": "Reconocimiento small y traductor base, sin voz. Funciona hasta sin GPU.",
-        "asr": "small.en", "asr_ct": "int8", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 0,
+        "asr": "small", "asr_ct": "int8", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 0,
     },
 }
 ORDER = list(PROFILES)  # de más a menos exigente

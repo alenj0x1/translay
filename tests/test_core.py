@@ -27,7 +27,7 @@ class FakeASR:
     def __init__(self, st_ref):
         self.st_ref = st_ref
 
-    def transcribe(self, audio, prompt=None):
+    def transcribe(self, audio, prompt=None, language=None):
         t0 = self.st_ref[0].t0
         end = t0 + len(audio) / SR
         return [Word(a - t0, b - t0, w, 0.99) for a, b, w in SCRIPT if b <= end and a >= t0 - 0.01]
@@ -386,3 +386,18 @@ if __name__ == "__main__":
     test_store_overlap_and_ranges()
     test_textproc()
     print("ok")
+
+
+def test_renamed_video_keeps_its_name(tmp_path):
+    from vt.library import Library
+
+    lib = Library(tmp_path / "library.json")
+    lib.register("lk_0123456789abcdef", source="link", title="21_10")
+    assert lib.rename_video("lk_0123456789abcdef", "  Clase   de estadística ")
+    # lo que llega después (descarga, abrirlo en el navegador) no pisa el nombre
+    lib.set_field("lk_0123456789abcdef", title="21_10", duration=60)
+    lib.set_fields({"lk_0123456789abcdef": {"title": "21_10"}})
+    lib.register("lk_0123456789abcdef", title="21_10")
+    v = Library(tmp_path / "library.json").data["videos"]["lk_0123456789abcdef"]
+    assert v["title"] == "Clase de estadística" and v["duration"] == 60
+    assert not lib.rename_video("lk_0123456789abcdef", "   ") and not lib.rename_video("no_existe_123", "x")

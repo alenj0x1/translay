@@ -1,8 +1,10 @@
 """Biblioteca: videos traducidos y colecciones.
 
 data/library.json guarda:
-  videos       id → {title, duration, source (file|youtube), media, audio, thumb,
-                     channel, categories, added, opened, position}
+  videos       id → {title, duration, source (file|youtube|link), media, audio, thumb,
+                     channel, categories, added, opened, position,
+                     url (el enlace compartido, si es link), lang (idioma en que se habla; "en" si falta),
+                     renamed (la persona le puso nombre: el título ya no se toma de YouTube ni del archivo)}
   collections  [{id, name, items: [ids], created}]   (las que crea la persona)
                + {kind: "playlist", playlist, url, channel}  (playlists importadas de YouTube)
 
@@ -33,7 +35,12 @@ CATEGORIES_ES = {
     "Science & Technology": "Ciencia y tecnología", "Nonprofits & Activism": "ONG y activismo",
 }
 
-_FIELDS = ("title", "duration", "source", "media", "audio", "thumb", "channel", "categories")
+_FIELDS = ("title", "duration", "source", "media", "audio", "thumb", "channel", "categories", "url", "lang")
+
+
+def _keep_name(v: dict, kw: dict) -> dict:
+    """Lo que llega de YouTube, de un enlace o del archivo no pisa un nombre puesto a mano."""
+    return {k: x for k, x in kw.items() if k != "title"} if v.get("renamed") else kw
 
 
 def _slug(text: str) -> str:
@@ -63,6 +70,8 @@ class Library:
         """Alta o actualización de un video (al abrirlo)."""
         v = self.data["videos"].setdefault(vid, {"id": vid, "added": time.time(), "position": 0})
         for k in _FIELDS:
+            if k == "title" and v.get("renamed"):
+                continue
             if info.get(k) not in (None, "", []):
                 v[k] = info[k]
         v["opened"] = time.time()
@@ -72,16 +81,26 @@ class Library:
     def set_field(self, vid: str, **kw):
         v = self.data["videos"].get(vid)
         if v:
-            v.update(kw)
+            v.update(_keep_name(v, kw))
             self.save()
 
     def set_fields(self, changes: dict[str, dict]):
         """Varios videos de una vez (un solo guardado)."""
         for vid, kw in changes.items():
             if vid in self.data["videos"]:
-                self.data["videos"][vid].update(kw)
+                self.data["videos"][vid].update(_keep_name(self.data["videos"][vid], kw))
         if changes:
             self.save()
+
+    def rename_video(self, vid: str, title: str) -> bool:
+        """Nombre que le pone la persona (p. ej. a «21_10»): queda aunque se vuelva a descargar."""
+        v = self.data["videos"].get(vid)
+        title = " ".join(title.split())[:300]
+        if not v or not title:
+            return False
+        v.update(title=title, renamed=True)
+        self.save()
+        return True
 
     def position(self, vid: str, t: float):
         """Punto de reproducción (para continuar); se guarda como máximo cada 5 s."""

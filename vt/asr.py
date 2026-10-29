@@ -57,10 +57,14 @@ class WhisperASR:
     def warmup(self):
         self.transcribe(np.zeros(16000, np.float32))
 
-    def transcribe(self, audio: np.ndarray, prompt: str | None = None) -> list[Word]:
+    def transcribe(self, audio: np.ndarray, prompt: str | None = None, language: str | None = None) -> list[Word]:
+        """language: el del video (por defecto, el del motor)."""
+        language = language or self.language
+        if language != "en" and self.name.endswith(".en"):
+            raise ValueError(f"el modelo {self.name} solo reconoce inglés: usa otro perfil de rendimiento")
         segments, _ = self.model.transcribe(
             audio,
-            language=self.language,
+            language=language,
             beam_size=self.beam_size,
             word_timestamps=True,
             condition_on_previous_text=False,

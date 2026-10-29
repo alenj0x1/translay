@@ -137,7 +137,7 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   body:not(.view-library):not(.view-prefs):not(.view-queue) { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: auto auto auto auto !important; padding: 0 10px 12px; }
   body:not(.view-library):not(.view-prefs):not(.view-queue) .bar { margin: 0 -10px 10px; }
   body:not(.view-library):not(.view-prefs):not(.view-queue) .library { display: none; }
-  .vbar, .stage { grid-column: 1; }
+  body .vbar, body .stage { grid-column: 1; }  /* gana a la de views/player.css, que se carga después */
   .vbar { flex-wrap: wrap; gap: var(--s2); }
   .vtitle { flex-basis: 100%; font-size: var(--fs-lg); white-space: normal; }
 }

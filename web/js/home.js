@@ -65,7 +65,7 @@ function renderHome() {
 function hero({ v, en, es, label }) {
   const pct = v.duration ? Math.min(100, (v.position || 0) / v.duration * 100) : 0;
   const play = () => { setContext({ name: label, items: [v.id], auto: false }); playItem(v.id); };
-  const canOpen = !!v.media || v.source === "youtube";
+  const canOpen = !!v.media || isRemote(v);
   return el("section", { class: "hero", style: v.thumb ? `--img: url("${v.thumb}")` : null },
     el("div", { class: "hero-media" + (canOpen ? " open" : ""), on: { click: () => canOpen && play() } },
       v.thumb ? el("img", { src: v.thumb.startsWith("/thumb/yt/") ? v.thumb.replace(/\.jpg$/, "_hd.jpg") : v.thumb, alt: "" }) : null,

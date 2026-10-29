@@ -19,6 +19,7 @@ const state = {
   audio: null,         // {ctx, node, orig, dub}
   userScrollAt: 0,
   dubMode: true,       // escuchar en español (voz doblada) u original
+  lang: "en",          // idioma en que se habla el video abierto ("es": solo se transcribe, sin voz)
   ahead: false,        // audio del archivo procesado por delante de la reproducción
   downloads: {},       // descargas de YouTube en curso: id → {title, stage, pct}
   comments: {},        // id de frase → [{id, text, created, updated}]
@@ -52,6 +53,11 @@ function connect() {
 // Lo que se edita se ve al instante: cada tipo de mensaje puede tener su cambio local
 // (OPTIMISTIC[tipo], en library.js y vaults.js); la respuesta del servidor luego lo confirma.
 const OPTIMISTIC = {};
+// YouTube o un enlace compartido (Dropbox): el servidor lo descarga
+const isRemote = (v) => v?.source === "youtube" || v?.source === "link";
+// ¿se espera voz en español? (un video que ya está en español solo se transcribe)
+const wantsVoice = () => !!state.voice && state.voice !== "none" && state.lang !== "es";
+
 function send(obj) {
   try { OPTIMISTIC[obj.type]?.(obj); } catch (e) { console.error(e); }
   if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify(obj));
@@ -161,6 +167,11 @@ function onMessage(m) {
       send({ type: "glossary_get" });
       break;
     case "batch_added": {
+      if (m.errors?.length) toast(cap(m.errors[0]) + ".", "warn");
+      if (lib.pendingImport && m.ids) {  // con enlaces de Dropbox: los ids los da el servidor
+        afterImport(m.ids.filter((id) => id !== state.videoId), lib.pendingImport);
+        lib.pendingImport = null;
+      }
       if (m.videos && !m.quiet) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
       // un video vive en una sola biblioteca: los que ya están en otra no se duplican
       const away = Object.entries(m.elsewhere || {});
@@ -190,6 +201,7 @@ function onMessage(m) {
       state.comments = m.comments || {};
       state.people = { names: m.speaker_names || {}, voices: m.voice_map || {}, refs: m.voice_refs || {} };
       state.prefix = m.prefix || "";      // archivos de su biblioteca (/v/<id>/…; Principal sin prefijo)
+      applyLang(m.lang);
       state.videoVault = m.vault;
       send({ type: "people_get", vault: m.vault });
       state.editing = null;
@@ -367,7 +379,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   readiness.hist = [];
   readiness.need = null;
   readiness.ok = false;
-  setMode(prefs.audio !== "original");
+  applyLang(lib.videos[id]?.lang);  // al llegar su transcripción se confirma
   libOnOpen({ id, name, ...opts });
   setView("player");
   $("#file-name").textContent = name;
@@ -413,8 +425,9 @@ window.addEventListener("drop", (e) => {
   openFiles([...e.dataTransfer.files]);
 });
 
-// YouTube: el servidor descarga el video y responde yt_ready
+// YouTube o Dropbox: el servidor descarga el video
 function openYouTube(url) {
+  if (classify(url)?.link) { importVideos([url]); return true; }
   if (!/(youtube\.com|youtu\.be)\//.test(url) && !/^[\w-]{11}$/.test(url)) return false;
   const list = (url.match(/[?&]list=([\w-]{10,})/) || [])[1];
   const isList = list && !/^(RD|UL)/.test(list);  // los mix automáticos no son playlists
@@ -447,10 +460,14 @@ function importMode() {
 }
 function importVideos(urls) {
   const mode = importMode();
-  const ids = [...new Set(urls.map((u) => classify(u)).filter((c) => c?.kind === "video").map((c) => "yt_" + c.key))]
-    .filter((id) => id !== state.videoId);
-  send({ type: "yt_batch", urls, coll: $("#multi-coll").value || "", quiet: true, front: mode === "abrir" });
+  const found = urls.map((u) => classify(u)).filter((c) => c?.kind === "video");
+  const ids = [...new Set(found.filter((c) => !c.link).map((c) => "yt_" + c.key))].filter((id) => id !== state.videoId);
+  if (found.some((c) => c.link)) lib.pendingImport = mode;  // sigue al responder el servidor (batch_added)
+  send({ type: "yt_batch", urls, coll: $("#multi-coll").value || "", quiet: true, front: mode === "abrir", lang: takeImportLang() });
   $("#yt-url").value = ""; updateImportBtn();
+  if (!lib.pendingImport) afterImport(ids, mode);
+}
+function afterImport(ids, mode) {
   if (!ids.length) return;
   if (mode === "abrir") {
     lib.openWhenReady = ids[0];  // se abre apenas termine de descargarse
@@ -489,8 +506,11 @@ function openVideoLink(url) {
 }
 function addPlaylist(url) {
   setStatus("busy", "leyendo la playlist", false);
-  send({ type: "playlist", url });
+  send({ type: "playlist", url, lang: takeImportLang() });
 }
+// «Importar ▾ → Está en español»: vale solo para la próxima importación
+let importLang = "en";
+function takeImportLang() { const l = importLang; importLang = "en"; return l; }
 // un solo botón «Importar»: con un enlace lo importa; vacío, ofrece varios enlaces o archivos
 $("#yt").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -498,15 +518,28 @@ $("#yt").addEventListener("submit", (e) => {
   const text = $("#yt-url").value.trim();
   if (!ytLinks(text).length && !/^[\w-]{11}$/.test(text)) return;
   if (ytLinks(text).length > 1) return openMulti(text);
-  openYouTube(text);
+  if (/dropbox\.com\//i.test(text) && !classify(text)) {
+    importLang = "en";
+    return toast("Ese enlace de Dropbox no es de un video: abre el video en Dropbox y copia su enlace.", "warn");
+  }
+  if (!openYouTube(text)) importLang = "en";
   updateImportBtn();
 });
 // «Importar» solo se habilita con un enlace de YouTube en el campo
 function updateImportBtn() {
   const text = $("#yt-url").value.trim();
-  $("#import-go").disabled = !(ytLinks(text).some((u) => classify(u)) || /^[\w-]{11}$/.test(text));
+  $("#import-go").disabled = $("#import-more").disabled = !(ytLinks(text).some((u) => classify(u) || /dropbox\.com\//i.test(u)) || /^[\w-]{11}$/.test(text));
 }
 $("#yt-url").addEventListener("input", updateImportBtn);
+// «Importar ▾»: el video ya está en español → solo se transcribe
+function importMenu(more, form) {
+  const go = (lang) => { importLang = lang; form.requestSubmit(); };
+  openMenu([
+    { label: "Importar y traducir", icon: "import", onClick: () => go("en") },
+    { label: "Está en español: solo transcribir", icon: "comment", onClick: () => go("es") },
+  ], more.getBoundingClientRect());
+}
+$("#import-more").addEventListener("click", (e) => { e.stopPropagation(); importMenu($("#import-more"), $("#yt")); });
 $("#yt").addEventListener("click", (e) => e.stopPropagation());
 
 document.addEventListener("paste", (e) => {
@@ -518,11 +551,18 @@ document.addEventListener("paste", (e) => {
 });
 
 /* ------------------------------------------------------------ varios enlaces */
+// enlaces de YouTube y de Dropbox (vt/links.py)
 function ytLinks(text) {
   const found = text.match(/(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com|youtu\.be)\/[^\s,;"'<>]+/gi) || [];
-  return [...new Set(found)];
+  const dbx = text.match(/(?:https?:\/\/)?(?:www\.)?dropbox\.com\/[^\s,;"'<>]+/gi) || [];
+  return [...new Set([...found, ...dbx])];
 }
+// Dropbox: solo enlaces a un archivo de video o audio (no a una carpeta)
+const MEDIA_EXT = /\.(mp4|m4v|webm|mkv|mov|avi|ts|flv|wmv|3gp|mpg|mpeg|mp3|m4a|wav|ogg|opus|flac|aac)$/i;
 function classify(url) {
+  const dbx = url.match(/dropbox\.com(\/[^?#\s]+)/i);
+  if (dbx) return MEDIA_EXT.test(dbx[1]) && dbx[1].split("/").filter(Boolean).length >= 3
+    ? { kind: "video", key: "dbx:" + dbx[1], link: true } : null;
   const v = (url.match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/) || [])[1];
   const list = (url.match(/[?&]list=([\w-]{10,})/) || [])[1];
   if (v) return { kind: "video", key: v };
@@ -573,7 +613,7 @@ function linksFromCsv(text) {
 
 async function importCsvFile(file, append = false) {
   const links = linksFromCsv(await file.text());
-  if (!links.length) { toast(`«${file.name}» no tiene enlaces de YouTube.`, "warn"); return; }
+  if (!links.length) { toast(`«${file.name}» no tiene enlaces de YouTube ni de Dropbox.`, "warn"); return; }
   if (append && $("#multi-dlg").open) {
     const prev = $("#multi-text").value.trim();
     $("#multi-text").value = (prev ? prev + "\n" : "") + links.join("\n");
@@ -596,12 +636,12 @@ function updateMulti() {
   const items = multiParsed();
   const nv = items.filter((x) => x.kind === "video").length;
   const np = items.length - nv;
-  const known = items.filter((x) => x.kind === "video" && lib.videos["yt_" + x.key]).length;
+  const known = items.filter((x) => x.kind === "video" && !x.link && lib.videos["yt_" + x.key]).length;
   const parts = [];
   if (nv) parts.push(nv === 1 ? "1 video" : `${nv} videos`);
   if (np) parts.push(np === 1 ? "1 playlist" : `${np} playlists`);
   if (known) parts.push(known === 1 ? "1 ya está en la biblioteca" : `${known} ya están en la biblioteca`);
-  $("#multi-sum").textContent = cap(parts.join(" · ")) || "Sin enlaces de YouTube";
+  $("#multi-sum").textContent = cap(parts.join(" · ")) || "Sin enlaces de YouTube ni de Dropbox";
   $("#multi-go").disabled = !items.length;
 }
 // target: id de la colección o categoría donde se guarda lo importado (desde su cabecera)
@@ -641,6 +681,7 @@ $("#multi-csv").addEventListener("change", (e) => {
 });
 $("#multi-dlg").addEventListener("close", () => {
   if ($("#multi-dlg").returnValue !== "ok") {
+    importLang = "en";
     $("#multi-coll").value = "";  // cancelado: la colección elegida no queda para la próxima importación
     return;
   }
@@ -777,7 +818,7 @@ async function feedLoop(run) {
     }
     // no alejarse demasiado de lo ya doblado: reconocimiento y voz comparten la GPU,
     // y lo urgente es doblar lo que se va a escuchar primero
-    const lead = state.voice && state.voice !== "none" ? AHEAD_OF_DUB : 120;
+    const lead = wantsVoice() ? AHEAD_OF_DUB : 120;
     if (feeder.pos > Math.max(vEn.currentTime, dubFrontier()) + lead) { await sleep(400); continue; }
     if (feeder.pos >= total - 0.05) {
       if (feeder.inSpan) send({ type: "end" });
@@ -850,10 +891,10 @@ function isReadyAt(t) {
 
 function readyFrontier() {
   // sin voz basta la traducción
-  return state.voice && state.voice !== "none" ? dubFrontier() : frontier((s) => !!s.translation);
+  return wantsVoice() ? dubFrontier() : frontier((s) => !!s.translation);
 }
 
-const segDone = (s) => (state.voice && state.voice !== "none" ? !!s.dub : !!s.translation);
+const segDone = (s) => (wantsVoice() ? !!s.dub : !!s.translation);
 
 function speechDensity() {
   // fracción de voz en lo ya procesado de este video (mínimo 0.7: por delante puede haber más)
@@ -1086,10 +1127,19 @@ setInterval(() => {
 }, 80);
 
 function setMode(dub) {
+  dub = dub && state.lang !== "es";
   state.dubMode = dub;
   for (const b of $("#c-lang").querySelectorAll("button")) b.classList.toggle("on", (b.dataset.v === "es") === dub);
   if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
   if (!dub) stopDub();
+}
+// video que ya está en español: se escucha el original, con un solo subtítulo y una columna
+function applyLang(lang) {
+  state.lang = lang === "es" ? "es" : "en";
+  document.body.classList.toggle("native", state.lang === "es");
+  setMode(state.lang === "es" ? false : prefs.audio !== "original");
+  // dividida mostraría el mismo video dos veces: siempre ampliada (sin cambiar la preferencia)
+  setLayout(state.lang === "es" || prefs.layout !== "dividida", false);
 }
 $("#c-lang").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -1535,7 +1585,7 @@ function applyPrefs(m) {
   prefs = { ...prefs, ...m.values };
   applyTheme();
   if (typeof applyAccent === "function" && typeof vaults !== "undefined") applyAccent(prefs.accent_lib ? currentVault().color : null);
-  setLayout(prefs.layout !== "dividida", false);
+  setLayout(state.lang === "es" || prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
   document.body.classList.toggle("no-sub-en", !prefs.sub_en);
   if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;

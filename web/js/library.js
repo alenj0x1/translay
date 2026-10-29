@@ -64,6 +64,17 @@ OPTIMISTIC.coll_rename = (m) => {
   const c = lib.collections.find((x) => x.id === m.coll);
   if (c && m.name) { c.name = m.name; refreshLibraryViews(); }
 };
+OPTIMISTIC.lib_rename = (m) => {
+  const v = lib.videos[m.video];
+  if (!v || !m.title) return;
+  v.title = m.title;
+  if (m.video === state.videoId) {
+    state.videoName = m.title;
+    $("#file-name").textContent = $("#file-name").title = m.title;
+    document.title = `${m.title} · Translay`;
+  }
+  refreshLibraryViews();
+};
 OPTIMISTIC.coll_toggle = (m) => {
   const c = lib.collections.find((x) => x.id === m.coll);
   if (!c) return;
@@ -403,7 +414,7 @@ function renderShelfHead(c) {
 
 const pickedIn = (c) => c.items.filter((id) => lib.picked.has(id));
 // los que se descargaron solo con el audio (y aún no se pidió su video)
-const audioOnly = (ids) => ids.filter((id) => lib.videos[id]?.audio_only && lib.videos[id]?.source === "youtube" && !jobOf(id)?.fetch_video);
+const audioOnly = (ids) => ids.filter((id) => lib.videos[id]?.audio_only && isRemote(lib.videos[id]) && !jobOf(id)?.fetch_video);
 
 function openPicked(c) {
   const ids = pickedIn(c);
@@ -414,14 +425,16 @@ function openPicked(c) {
 }
 
 function welcome() {
-  const input = el("input", { type: "text", placeholder: "Enlace de YouTube: video o playlist", spellcheck: "false" });
+  const input = el("input", { type: "text", placeholder: "Enlace de YouTube o Dropbox", spellcheck: "false" });
   const file = el("input", { type: "file", accept: "video/*,audio/*", multiple: true, hidden: true,
     on: { change: (e) => { openFiles([...e.target.files]); e.target.value = ""; } } });
   return el("div", { class: "welcome" },
     patternEl("translay", "welcome-band", 24, 2),
     el("h2", { text: "Traduce tu primer video" }),
-    el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); openYouTube(input.value.trim()); } } },
-      icon("link"), input, btn("Importar", { icon: "import", variant: "dark", type: "submit" })),
+    el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (!openYouTube(input.value.trim())) importLang = "en"; } } },
+      icon("link"), input, el("div", { class: "split sm" }, btn("Importar", { icon: "import", variant: "dark", type: "submit" }),
+        btn("Más opciones de Importar", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
+          onClick: (e) => { e.stopPropagation(); importMenu(e.currentTarget, e.currentTarget.closest("form")); } }))),
     el("label", { class: "btn", "data-icon": "upload" }, icon("upload"), document.createTextNode("Importar archivos"), file),
     el("small", { text: "o arrastra un video aquí" }));
 }
@@ -432,10 +445,10 @@ function progressBar(v) {
   const j = jobOf(v.id);
   const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
   const pct = Math.round(p.dub * 100);
-  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), "Listo en español"));
-  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: "Descargado, sin traducir" }));
+  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), v.lang === "es" ? "Transcrito" : "Listo en español"));
+  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: v.lang === "es" ? "Descargado, sin transcribir" : "Descargado, sin traducir" }));
   const label = j?.state === "procesando" ? `procesando · ${pct} %`
-    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `doblado ${pct} %` : "";
+    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `${v.lang === "es" ? "transcrito" : "doblado"} ${pct} %` : "";
   if (!label) return null;
   return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") }, meter(pct), el("span", { text: cap(label) }));
 }
@@ -448,7 +461,7 @@ function card(v, coll, i) {
       if (e.target.checked) lib.picked.add(v.id); else lib.picked.delete(v.id);
       renderLibrary();
     } } });
-  const canOpen = !!v.media || v.source === "youtube";
+  const canOpen = !!v.media || isRemote(v);
   // abrir: toda la miniatura (y el título), como en YouTube; al pasar el mouse aparece el botón de reproducir
   const open = (e) => {
     if (!canOpen || e.target.closest(".pick")) return;
@@ -465,7 +478,7 @@ function card(v, coll, i) {
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null,
     v.media ? progressRing(jobOf(v.id) && jobOf(v.id).state !== "listo" ? jobOf(v.id) : v.progress) : null,
     canOpen ? playDisc(downloadPct(v)) : null);
-  const sub = [v.channel, v.source === "youtube" ? "YouTube" : "archivo"].filter(Boolean).join(" · ");
+  const sub = [v.channel, { youtube: "YouTube", link: "Dropbox" }[v.source] || "archivo"].filter(Boolean).join(" · ");
   const job = jobOf(v.id);
   const acts = [
     // «Ver» primero; luego lo que se puede hacer según su estado; a la derecha, exportar
@@ -474,7 +487,7 @@ function card(v, coll, i) {
       onClick: () => send({ type: "queue_add", video: v.id, front: true }) }) : null,
     canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", cls: "import-only", title: "Traducir y doblar en segundo plano",
       onClick: () => send({ type: "queue_add", video: v.id }) }) : null,
-    v.audio_only && v.source === "youtube" ? btn(fetchLabel(job) || "Bajar video", { icon: "film", variant: "ghost", cls: "import-only act-fetch",
+    v.audio_only && isRemote(v) ? btn(fetchLabel(job) || "Bajar video", { icon: "film", variant: "ghost", cls: "import-only act-fetch",
       disabled: !!fetchLabel(job),
       title: "Se descargó solo el audio: bajar el video completo (sin volver a traducir)",
       onClick: () => send({ type: "queue_video", videos: [v.id] }) }) : null,
@@ -492,7 +505,7 @@ function card(v, coll, i) {
 
 // centro de la miniatura: reproducir, o un anillo con el avance mientras se descarga
 // aún sin descargar (YouTube) y sin bajarse ahora mismo: se puede descargar sin abrirlo
-const canDownload = (v) => !v.media && v.source === "youtube" && downloadPct(v) === null && document.body.classList.contains("can-import");
+const canDownload = (v) => !v.media && isRemote(v) && downloadPct(v) === null && document.body.classList.contains("can-import");
 function downloadOnly(v) {
   send({ type: "queue_add", video: v.id, front: true, download_only: true });
   toast("Se descarga primero; queda en la biblioteca sin abrirse.", "ok");
@@ -538,7 +551,7 @@ function playItem(id) {
   const v = lib.videos[id];
   if (!v) return;
   if (v.media) return playFromLibrary(v);
-  if (v.source === "youtube") {
+  if (isRemote(v)) {
     lib.openWhenReady = id;
     send({ type: "queue_add", video: id, front: true });
     toast("Se abrirá en cuanto termine de descargarse.", "ok");
@@ -548,7 +561,7 @@ function playItem(id) {
 function canProcess(v) {
   const job = jobOf(v.id);
   const inQueue = job && (job.state === "en cola" || job.state === "procesando");
-  return (!!v.media || v.source === "youtube") && !inQueue && (!v.progress || v.progress.dub < 0.97);
+  return (!!v.media || isRemote(v)) && !inQueue && (!v.progress || v.progress.dub < 0.97);
 }
 
 /* ------------------------------------------------------------ siguientes */
@@ -562,7 +575,7 @@ function contextItems() {
 }
 
 // video abierto del que solo se bajó el audio: «Bajar video» en su barra (y en el clic derecho)
-const needsVideo = (v) => !!v && v.audio_only && v.source === "youtube";
+const needsVideo = (v) => !!v && v.audio_only && isRemote(v);
 // texto de un botón que trabaja: «Bajando video 42 %» (o en espera, si aún no empezó)
 function fetchLabel(j) {
   if (!j?.fetch_video) return null;
@@ -616,7 +629,7 @@ function renderUpNext(scroll) {
   items.forEach((id, i) => {
     const v = lib.videos[id];
     const now = id === state.videoId;
-    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? "Listo en español" : "")]
+    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? (v.lang === "es" ? "Transcrito" : "Listo en español") : "")]
       .filter(Boolean).join(" · ");
     frag.append(el("li", { class: now ? "now" : "", "data-id": id, on: { click: () => { if (!now) playItem(id); } } },
       el("span", { class: "n", text: String(i + 1) }),
@@ -797,7 +810,7 @@ function jobItem(j) {
       meter(pct),
       el("small", {}, away ? vaultBadge(away, "xs") : null, away ? `${away.name} · ${text}` : text)),
     el("div", { class: "qactions" },
-      btn("Ver", { icon: "play", size: "xs", title: "Ver", disabled: !v.media && v.source !== "youtube",
+      btn("Ver", { icon: "play", size: "xs", title: "Ver", disabled: !v.media && !isRemote(v),
         onClick: () => {
           closeQueue();
           if (away) return playAcross(v.id, away.id);
@@ -1025,7 +1038,7 @@ function libOnOpen({ id, name, file, fromLibrary, position, keepContext }) {
     if (state.videoId !== id) return;
     if (position) vEn.currentTime = position;
     send({ type: "lib_register", id, title: name, duration: vEn.duration,
-      source: file ? "file" : (id.startsWith("yt_") ? "youtube" : "file") });
+      source: file ? "file" : id.startsWith("yt_") ? "youtube" : id.startsWith("lk_") ? "link" : "file" });
     if (file) {
       if (!lib.videos[id]?.media) {
         fetch(`/api/upload/${id}?name=${encodeURIComponent(file.name)}&lib=${vaults.current || ""}`, { method: "PUT", body: file })

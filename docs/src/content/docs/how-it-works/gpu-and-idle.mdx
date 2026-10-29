@@ -116,9 +116,9 @@ At startup, `vt/hardware.py` detects the GPU (with `nvidia-smi`), the RAM and th
 |---|---|---|---|---|---|
 | Máxima calidad (Maximum quality) | large-v3-turbo fp16, beam 5 | opus-big | OmniVoice, 16 steps | ~4.6 GB | ~12 GB |
 | Equilibrado (Balanced) | large-v3-turbo int8_float16 | opus-big int8_float16 | OmniVoice, 8 steps | ~3.5 GB | ~11 GB |
-| Ligero (Light) | small.en int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 steps | ~3.3 GB | ~10.7 GB |
+| Ligero (Light) | small int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 steps | ~3.3 GB | ~10.7 GB |
 | Solo subtítulos (Subtitles only) | large-v3-turbo int8_float16 | opus-big | — | ~1.9 GB | ~3.5 GB |
-| Subtítulos ligeros (Light subtitles) | small.en int8, beam 3 | opus-base int8 | — | ~0.6 GB | ~2.2 GB |
+| Subtítulos ligeros (Light subtitles) | small int8, beam 3 | opus-base int8 | — | ~0.6 GB | ~2.2 GB |
 
 When a profile doesn't fit in VRAM, the Windows driver doesn't fail: it overflows into shared memory and most sentences come out just as fast, but some go from 0.3 s to 15–40 s. `vt/perf.py` counts those sentences (more than 6 times the recent median) and reports it in Rendimiento.
 

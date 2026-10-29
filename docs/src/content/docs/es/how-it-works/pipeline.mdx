@@ -28,7 +28,9 @@ Es deliberadamente simple: cambiarlo por un VAD neuronal no toca el resto.
 
 ## Reconocimiento en streaming
 
-`vt/asr.py` envuelve faster-whisper (pesos en CTranslate2). Por defecto usa `large-v3-turbo` en `float16`, búsqueda de ancho 5, inglés, tiempos por palabra, temperatura 0, sin condicionar al texto anterior y sin el VAD propio de Whisper. Descarta los tramos típicos de alucinación: `no_speech_prob > 0.6` con `avg_logprob < -1.0`, o `compression_ratio > 2.4`. Otros modelos disponibles con `--model`: `large-v3`, `medium.en`, `small.en`, `small` y `base.en`.
+`vt/asr.py` envuelve faster-whisper (pesos en CTranslate2). Por defecto usa `large-v3-turbo` en `float16`, búsqueda de ancho 5, el idioma del video (inglés salvo que se haya marcado como español), tiempos por palabra, temperatura 0, sin condicionar al texto anterior y sin el VAD propio de Whisper. Descarta los tramos típicos de alucinación: `no_speech_prob > 0.6` con `avg_logprob < -1.0`, o `compression_ratio > 2.4`. Otros modelos disponibles con `--model`: `large-v3`, `medium.en`, `small.en`, `small` y `base.en` (los `.en` solo reconocen inglés).
+
+Un video que ya está en español (`lang: "es"` en su transcripción) solo pasa por el reconocimiento: la traducción de cada frase es su mismo texto (`tr_model: "original"`), se saltan el traductor y la voz, y el glosario no lo toca. Cambiar el idioma de un video borra sus frases y tramos cubiertos para volver a procesarlo.
 
 `vt/streaming.py` (`StreamingTranscriber`) convierte ese reconocedor por bloques en uno continuo, sincronizado con el tiempo del video:
 

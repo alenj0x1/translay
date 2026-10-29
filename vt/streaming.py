@@ -83,8 +83,9 @@ class Partial:
 
 
 class StreamingTranscriber:
-    def __init__(self, asr, cfg: Config | None = None, vad: EnergyVAD | None = None):
+    def __init__(self, asr, cfg: Config | None = None, vad: EnergyVAD | None = None, language: str = "en"):
         self.asr = asr
+        self.language = language  # el que se habla en el video (Transcript.lang)
         self.cfg = cfg or Config()
         self.vad = vad or EnergyVAD()
         self.context = ""
@@ -211,7 +212,7 @@ class StreamingTranscriber:
     # ---------------------------------------------------------------- internos
     def _hypothesis(self) -> list[Word]:
         prompt = self.context[-self.cfg.prompt_chars:] if self.context else None
-        words = [w.shifted(self.t0) for w in self.asr.transcribe(self.audio, prompt)]
+        words = [w.shifted(self.t0) for w in self.asr.transcribe(self.audio, prompt, self.language)]
         # descartar palabras que caen donde el VAD no oyó voz (alucinaciones)
         out = []
         n = len(self.flags)

@@ -215,12 +215,13 @@ class Exporter:
         v = self.library.data["videos"][vid]
         if v.get("media") and not (video and v.get("audio_only")):
             return
-        if v.get("source") != "youtube" or not self.youtube:
+        vault = self.vaults.of(vid) if self.vaults else None
+        if v.get("source") not in ("youtube", "link") or not self.youtube or (v.get("source") == "link" and not vault):
             raise FileNotFoundError(f"«{v.get('title', vid)}» no tiene copia en el equipo")
         self._set(job, state="exportando", detail=f"descargando {v.get('title', vid)}")
-        vault = self.vaults.of(vid) if self.vaults else None
-        info = (vault or self).youtube.fetch(vid[3:], None, self.prefs.values.get("yt_session", "ninguna"),
-                                             audio_only=False)
+        session = self.prefs.values.get("yt_session", "ninguna")
+        info = (vault.download(vid, None, session, audio_only=False) if vault
+                else self.youtube.fetch(vid[3:], None, session, audio_only=False))
         self.library.set_field(vid, media=info["video"], audio=info["audio"], audio_only=False,
                                **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
                                   if info.get(k)})

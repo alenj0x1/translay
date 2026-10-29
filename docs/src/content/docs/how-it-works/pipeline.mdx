@@ -28,7 +28,9 @@ It is deliberately simple: swapping it for a neural VAD doesn't touch the rest.
 
 ## Streaming recognition
 
-`vt/asr.py` wraps faster-whisper (weights in CTranslate2). By default it uses `large-v3-turbo` in `float16`, beam search of width 5, English, word timestamps, temperature 0, no conditioning on previous text and without Whisper's own VAD. It discards typical hallucination spans: `no_speech_prob > 0.6` with `avg_logprob < -1.0`, or `compression_ratio > 2.4`. Other models available with `--model`: `large-v3`, `medium.en`, `small.en`, `small` and `base.en`.
+`vt/asr.py` wraps faster-whisper (weights in CTranslate2). By default it uses `large-v3-turbo` in `float16`, beam search of width 5, the video's language (English unless it was marked as Spanish), word timestamps, temperature 0, no conditioning on previous text and without Whisper's own VAD. It discards typical hallucination spans: `no_speech_prob > 0.6` with `avg_logprob < -1.0`, or `compression_ratio > 2.4`. Other models available with `--model`: `large-v3`, `medium.en`, `small.en`, `small` and `base.en` (the `.en` ones only recognize English).
+
+A video already in Spanish (`lang: "es"` in its transcript) only goes through recognition: each sentence's translation is its own text (`tr_model: "original"`), the translator and the voice are skipped, and the glossary doesn't touch it. Changing a video's language deletes its sentences and covered ranges so it is processed again.
 
 `vt/streaming.py` (`StreamingTranscriber`) turns that block-based recognizer into a continuous one, synchronized with the video's time:
 

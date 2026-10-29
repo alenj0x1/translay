@@ -4,6 +4,23 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Enlaces de Dropbox: pega el enlace compartido de un video (también dentro de una carpeta, como `dropbox.com/scl/fo/…/video.mp4`) en «Importar», en el cuadro de varios enlaces, en un CSV o por la API. Entra a la cola, se descarga con su avance igual que uno de YouTube y su tarjeta dice «Dropbox».
+- Videos que ya están en español: «Importar ▾ › Está en español: solo transcribir», o «Idioma del video» en el menú contextual. Se transcriben en español sin traducir ni doblar, se reproducen con el audio original y un solo subtítulo, y la transcripción muestra una columna.
+- «Renombrar…» en el menú contextual de un video le pone tu propio nombre (por ejemplo, en vez de `21_10`); se queda aunque el video se vuelva a descargar. También `PATCH /api/v1/videos/{id}` con `{"title"}`.
+- La API de importar acepta `"lang": "es"`, y los datos de un video incluyen su `lang` y el `url` compartido.
+
+### Cambiado
+
+- Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small` en lugar de `small.en`, así también reconocen español.
+
+### Corregido
+
+- En el celular, el video del reproductor quedaba sin ancho y no se veía.
+
 ## 1.3.1 · 2026-10-27
 
 ### Cambiado

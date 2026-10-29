@@ -100,6 +100,7 @@ It responds `202` with `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2
   - `queue`: `{state, prio, error, dl}` or `null` if the video isn't in the queue. `state` is `en cola` (queued), `procesando` (processing), `descargado` (downloaded), `listo` (done) or `error`; `dl` is the download progress.
 - `GET /videos/{id}/transcript` (**read**) gives the sentences with `start`, `end`, `text` (English), `translation` (Spanish) and `speaker`, plus `speaker_names` and `comments`.
 - `GET /videos/{id}/subtitles?lang=es` (**read**) returns an SRT file (`application/x-subrip`). `lang=es` is Spanish (the default); any other value gives English.
+- `PATCH /videos/{id}` (**write**) with `{"title": "…"}` renames the video; the name stays even if the video is downloaded again.
 - `DELETE /videos/{id}` (**write**) deletes the video with its files.
 
 ## Queue

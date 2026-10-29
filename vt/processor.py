@@ -29,6 +29,7 @@ from pathlib import Path
 import numpy as np
 
 from . import events
+from .store import SAME
 from .streaming import Segment, StreamingTranscriber
 
 SR = 16000
@@ -145,7 +146,7 @@ class Processor:
         with self._cond:
             for vid in vids:
                 v = self.library.data["videos"].get(vid) or {}
-                if v.get("source") != "youtube" or not v.get("audio_only"):
+                if v.get("source") not in ("youtube", "link") or not v.get("audio_only"):
                     continue
                 job = self._job(vid)
                 if job is None:
@@ -219,7 +220,7 @@ class Processor:
         dubbed = sum(1 for s in segs if s.get("dub"))
         asr = min(1.0, covered / dur) if dur else 0.0
         dub = asr * (dubbed / len(segs)) if segs else 0.0
-        return {"asr": round(asr, 3), "dub": round(dub if self.dubber else asr, 3)}
+        return {"asr": round(asr, 3), "dub": round(dub if self.dubber and not tr.native else asr, 3)}
 
     def _vault(self, vid: str):
         return self.vaults.of(vid) if self.vaults else None
@@ -295,7 +296,7 @@ class Processor:
             v = self.library.data["videos"].get(j["id"]) or {}
             if v.get("media"):
                 waiting += 0 if j.get("download_only") else 1
-            elif v.get("source") == "youtube":
+            elif v.get("source") in ("youtube", "link"):
                 if j.get("prio"):
                     return j
                 if shuffle:
@@ -325,9 +326,13 @@ class Processor:
                     self._broadcast()
 
             try:
-                yt = (self._vault(vid) or self).youtube  # se descarga en la carpeta de su biblioteca
-                info = yt.fetch(vid[3:], progress, self.session(),
-                                audio_only=bool(job.get("audio_only")) and not job.get("fetch_video"), careful=self.careful)
+                audio_only = bool(job.get("audio_only")) and not job.get("fetch_video")
+                vault = self._vault(vid)  # se descarga en la carpeta de su biblioteca
+                if vault:
+                    info = vault.download(vid, progress, self.session(), audio_only=audio_only, careful=self.careful)
+                else:
+                    info = self.youtube.fetch(vid[3:], progress, self.session(), audio_only=audio_only,
+                                              careful=self.careful)
                 self.library.set_field(vid, media=info["video"] or info["audio"], audio=info["audio"],
                                        audio_only=bool(info.get("audio_only")),
                                        **{k: info[k] for k in ("title", "duration", "thumb", "channel", "categories")
@@ -436,7 +441,7 @@ class Processor:
         tr = self.store.open(vid)
         if not any(a - 0.5 <= t < b for a, b in tr.covered):
             return False
-        return all(x.get("dub") or not x.get("translation") or not self.dubber
+        return all(x.get("dub") or not x.get("translation") or not self.dubber or tr.native
                    for x in tr.segments if t - 0.5 <= x["start"] < t + 10)
 
     def _media(self, vid: str) -> Path:
@@ -469,14 +474,21 @@ class Processor:
         tr = self.store.open(vid, title)
         vault = self._vault(vid)
         tx = partial(self.translator.translate, glossary=vault.glossary if vault else None)  # su glosario
-        st = StreamingTranscriber(self.asr)
+        st = StreamingTranscriber(self.asr, language=tr.lang)
+        # ya en español: solo se transcribe (sin traducción, personas ni voz)
+        dubber = None if tr.native else self.dubber
+        lang = tr.lang
+
+        def stop(span_start: float, pos: float) -> bool:
+            # cambió el idioma del video: lo hecho se borró y se empieza de nuevo
+            return tr.lang != lang or self._interrupt(vid, span_start, pos)
         dubs = []
         inflight: set[int] = set()  # frases con voz en camino
         voice_end = [start]  # fin de la última frase con voz de este trabajo
         step = int(CHUNK_S * SR)
 
         def needs_dub(seg) -> bool:
-            if not self.dubber or seg["id"] in inflight:
+            if not dubber or seg["id"] in inflight:
                 return False
             d = seg.get("dub")
             return not (d and d.get("text") == seg.get("translation") and d.get("engine") == self.dubber.tts.engine
@@ -490,28 +502,32 @@ class Processor:
             if todo:
                 print(f"[cola] completar {lo:.0f}-{hi:.0f}s: {len(todo)} frases", flush=True)
             for seg in sorted((x for x in tr.segments if lo - 0.5 <= x["start"] < hi), key=lambda x: x["start"]):
-                if self._interrupt(vid, lo, seg["start"]):
+                if stop(lo, seg["start"]):
                     return False  # se saltó a otra parte: se retoma desde ahí
-                if not seg.get("translation"):
+                if not seg.get("translation") and tr.native:
+                    seg["translation"], seg["tr_model"] = seg["text"], SAME
+                elif not seg.get("translation"):
                     seg["translation"] = self.gpu.submit(self.res.run, ("mt",), tx, seg["text"]).result()
                     seg["tr_model"] = self.translator.name
                     self._bg(vid, {"type": "translations", "items": [{"id": seg["id"], "translation": seg["translation"]}]})
                 if needs_dub(seg):
                     while sum(not f.done() for f in dubs) > MAX_PENDING_DUBS:
                         time.sleep(0.1)
-                        if self._interrupt(vid, lo, seg["start"]):
+                        if stop(lo, seg["start"]):
                             return False
                     dubs.append(self._dub(tr, vid, seg, seg.get("orig_db"), inflight, voice_end))
             return True
 
         def handle(events):
+            if tr.lang != lang:  # cambió el idioma: lo de este trabajo ya no vale
+                return
             for ev in events:
                 if not isinstance(ev, Segment):
                     continue
-                es = self.gpu.submit(self.res.run, ("mt",), tx, ev.text).result()
+                es = None if tr.native else self.gpu.submit(self.res.run, ("mt",), tx, ev.text).result()
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, es, self.translator.name)
                 fixed = []
-                if self.dubber:
+                if dubber:
                     seg["speaker"] = self.dubber.identify(tr, seg, ev.audio)
                     fixed = self.dubber.relabel(tr)
                     dubs.append(self._dub(tr, vid, seg, self.dubber.loudness(ev.audio), inflight, voice_end))
@@ -541,7 +557,7 @@ class Processor:
         for lo, hi in ((start, dur), (0.0, start)):
             pos, span_start = lo, lo
             while pos < hi - 0.05:
-                if self._interrupt(vid, span_start, pos):
+                if stop(span_start, pos):
                     end_span(abort=True)
                     drop_pending()
                     return False
@@ -558,7 +574,7 @@ class Processor:
                 while (sum(not f.done() for f in dubs) > MAX_PENDING_DUBS
                        or (inflight and pos - voice_end[0] > MAX_AHEAD_OF_VOICE_S)):
                     time.sleep(0.1)
-                    if self._interrupt(vid, span_start, pos):
+                    if stop(span_start, pos):
                         end_span(abort=True)
                         drop_pending()
                         return False

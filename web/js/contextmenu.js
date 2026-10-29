@@ -8,6 +8,24 @@
 const isOwner = () => !document.body.classList.contains("guest");
 const canImport = () => document.body.classList.contains("can-import");
 const ytUrl = (v) => (v?.source === "youtube" ? `https://www.youtube.com/watch?v=${v.id.slice(3)}` : "");
+const shareUrl = (v) => ytUrl(v) || (v?.source === "link" ? v.url || "" : "");
+// idioma en que se habla: en español solo se transcribe (lo ya reconocido se rehace)
+async function setVideoLang(v, lang) {
+  if ((v.lang || "en") === lang) return;
+  if (v.progress?.asr > 0 && !(await confirmDlg("¿Cambiar el idioma del video?",
+    "Lo transcrito hasta ahora se borra y el video se vuelve a procesar.", "Cambiar"))) return;
+  v.lang = lang;
+  if (v.id === state.videoId) applyLang(lang);
+  send({ type: "video_lang", video: v.id, lang });
+}
+async function renameVideo(v) {
+  const title = (await promptDlg("Renombrar video", v.title || v.id, "Guardar"))?.trim();
+  if (title && title !== v.title) send({ type: "lib_rename", video: v.id, title });
+}
+const langMenu = (v) => ({ label: "Idioma del video", icon: "globe", sub: [
+  { label: "Inglés: traducir y doblar", icon: "spark", check: (v.lang || "en") !== "es", onClick: () => setVideoLang(v, "en") },
+  { label: "Español: solo transcribir", icon: "comment", check: v.lang === "es", onClick: () => setVideoLang(v, "es") },
+] });
 // copiar: el portapapeles moderno solo existe en conexiones seguras (no desde otro equipo por http)
 function copyText(text, what) {
   const ok = () => toast(`${what} copiado.`, "ok");
@@ -30,7 +48,7 @@ function legacyCopy(text) {
 /* ------------------------------------------------------------ video */
 function videoMenu(v, coll) {
   const job = jobOf(v.id);
-  const canOpen = !!v.media || v.source === "youtube";
+  const canOpen = !!v.media || isRemote(v);
   const own = lib.collections.filter((c) => c.kind === "propia");
   const others = typeof vaults !== "undefined" ? vaults.list.filter((x) => x.id !== vaults.current) : [];
   const picked = lib.picked.has(v.id);
@@ -42,8 +60,10 @@ function videoMenu(v, coll) {
     canDownload(v) && { label: "Descargar sin abrir", icon: "download", onClick: () => downloadOnly(v) },
     "sep",
     canImport() && job?.state === "en cola" && !job.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: v.id, front: true }) },
-    canImport() && canProcess(v) && { label: "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
-    canImport() && v.audio_only && v.source === "youtube" && !job?.fetch_video && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(v.id) },
+    canImport() && canProcess(v) && { label: v.lang === "es" ? "Transcribir" : "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
+    canImport() && langMenu(v),
+    isOwner() && { label: "Renombrar…", icon: "pencil", onClick: () => renameVideo(v) },
+    canImport() && v.audio_only && isRemote(v) && !job?.fetch_video && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(v.id) },
     isOwner() && job && !["listo", "error"].includes(job.state) && { label: "Quitar de la cola", icon: "x", onClick: () => send({ type: "queue_remove", video: v.id }) },
     "sep",
     isOwner() && { label: "Guardar en", icon: "bookmark", sub: [
@@ -110,14 +130,14 @@ function jobMenu(j) {
   const v = videoInfo(j.id) || { id: j.id, title: j.id };
   return [
     { head: v.title || j.id },
-    { label: "Ver", icon: "play", disabled: !v.media && v.source !== "youtube", onClick: () => {
+    { label: "Ver", icon: "play", disabled: !v.media && !isRemote(v), onClick: () => {
       closeQueue();
       if (j.lib && j.lib !== vaults.current) return playAcross(v.id, j.lib);  // de otra biblioteca
       playItem(v.id);
     } },
     canImport() && j.state === "en cola" && !j.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: j.id, front: true }) },
-    canImport() && j.state === "descargado" && { label: "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
-    ytUrl(v) && { label: "Copiar enlace", icon: "link", onClick: () => copyText(ytUrl(v), "Enlace") },
+    canImport() && j.state === "descargado" && { label: v.lang === "es" ? "Transcribir" : "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
+    shareUrl(v) && { label: "Copiar enlace", icon: "link", onClick: () => copyText(shareUrl(v), "Enlace") },
     "sep",
     isOwner() && { label: "Quitar de la cola", icon: "x", danger: true, onClick: () => send({ type: "queue_remove", video: j.id }) },
   ];
@@ -130,8 +150,8 @@ function lineMenu(li) {
   return [
     { label: "Ir a este momento", icon: "play", kbd: fmt(s.start), onClick: () => { vEn.currentTime = s.start; } },
     "sep",
-    s.translation && { label: "Copiar en español", icon: "copy", onClick: () => copyText(s.translation, "Texto") },
-    { label: "Copiar en inglés", icon: "copy", onClick: () => copyText(s.text, "Texto") },
+    s.translation && { label: state.lang === "es" ? "Copiar" : "Copiar en español", icon: "copy", onClick: () => copyText(s.translation, "Texto") },
+    state.lang !== "es" && { label: "Copiar en inglés", icon: "copy", onClick: () => copyText(s.text, "Texto") },
     ytUrl(lib.videos[state.videoId]) && { label: "Copiar enlace a este momento", icon: "link",
       onClick: () => copyText(`${ytUrl(lib.videos[state.videoId])}&t=${Math.floor(s.start)}s`, "Enlace") },
     "sep",
@@ -147,10 +167,11 @@ function playerMenu() {
   const dub = !!$("#c-lang button.on[data-v='es']");
   return [
     { label: vEn.paused ? "Reproducir" : "Pausar", icon: vEn.paused ? "play" : "pause", kbd: "Espacio", onClick: togglePlay },
-    { label: dub ? "Escuchar el original" : "Escuchar en español", icon: "speaker", onClick: () => $(`#c-lang button[data-v='${dub ? "en" : "es"}']`)?.click() },
+    state.lang !== "es" && { label: dub ? "Escuchar el original" : "Escuchar en español", icon: "speaker", onClick: () => $(`#c-lang button[data-v='${dub ? "en" : "es"}']`)?.click() },
     { label: "Pantalla completa", icon: "fullscreen", onClick: toggleFull },
     "sep",
     { label: document.body.classList.contains("side-off") ? "Mostrar la transcripción" : "Ocultar la transcripción", icon: "comment", onClick: () => $("#side-toggle").click() },
+    isOwner() && lib.videos[state.videoId] && { label: "Renombrar…", icon: "pencil", onClick: () => renameVideo(lib.videos[state.videoId]) },
     isOwner() && { label: "Guardar en…", icon: "bookmark", onClick: () => $("#save").click() },
     canImport() && needsVideo(lib.videos[state.videoId]) && !jobOf(state.videoId)?.fetch_video
       && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(state.videoId) },

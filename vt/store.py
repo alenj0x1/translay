@@ -6,6 +6,8 @@ navegador). Se guarda un JSON por video con:
 * `segments`: frases con tiempo de inicio/fin, texto y traducción.
 * `covered`: rangos del video ya procesados (incluye silencios), para no
   volver a transcribirlos al retroceder o reabrir el video.
+* `lang`: idioma en que se habla ("en" si no está). Un video que ya está en
+  español solo se transcribe: su "traducción" es el mismo texto y no lleva voz.
 """
 
 import json
@@ -16,6 +18,9 @@ import uuid
 from pathlib import Path
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
+LANGS = ("en", "es")  # idiomas que se reconocen; se traduce de inglés a español
+TARGET = "es"
+SAME = "original"     # tr_model de las frases que ya estaban en español (sin traducir)
 
 
 def merge_ranges(ranges: list[list[float]], tol: float = 0.25) -> list[list[float]]:
@@ -36,6 +41,24 @@ class Transcript:
         self.deleted = False  # video eliminado: lo que siga procesándose ya no se guarda
 
     @property
+    def lang(self) -> str:
+        return self.data.get("lang") or "en"
+
+    @property
+    def native(self) -> bool:
+        """¿Ya está en español? Entonces solo se transcribe."""
+        return self.lang == TARGET
+
+    def set_lang(self, lang: str) -> bool:
+        """Cambia el idioma del video. Lo reconocido en el otro idioma no sirve: se borra
+        (frases, tramos cubiertos y comentarios) para volver a procesarlo. True si cambió."""
+        if lang not in LANGS or lang == self.lang:
+            return False
+        with self._lock:
+            self.data.update(lang=lang, segments=[], covered=[], comments={})
+        return True
+
+    @property
     def segments(self) -> list[dict]:
         return self.data["segments"]
 
@@ -46,6 +69,8 @@ class Transcript:
     def add_segment(self, start: float, end: float, text: str,
                     translation: str | None, tr_model: str | None = None) -> tuple[dict, list[int]]:
         """Inserta una frase; reemplaza las que se solapan. Devuelve (nueva, ids borrados)."""
+        if self.native:
+            translation, tr_model = text, SAME
         removed = []
         keep = []
         for s in self.segments:
@@ -64,7 +89,9 @@ class Transcript:
         return seg, removed
 
     def stale(self, tr_model: str) -> list[dict]:
-        """Frases sin traducir o traducidas con otro modelo."""
+        """Frases sin traducir o traducidas con otro modelo (ninguna si ya está en español)."""
+        if self.native:
+            return []
         return [s for s in self.segments if s.get("tr_model") != tr_model]
 
     def set_translation(self, seg_id: int, translation: str | None, tr_model: str) -> bool:
@@ -89,7 +116,7 @@ class Transcript:
 
     def public(self) -> dict:
         return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
-                "comments": self.comments, "speaker_names": self.data.get("speaker_names") or {},
+                "comments": self.comments, "lang": self.lang, "speaker_names": self.data.get("speaker_names") or {},
                 "voice_map": self.data.get("voice_map") or {}}
 
     # ------------------------------------------------- comentarios por frase

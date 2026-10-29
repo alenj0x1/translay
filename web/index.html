@@ -81,8 +81,11 @@
     <div class="popover import-pop" id="import-pop" hidden>
       <form class="field" id="yt">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
-        <input id="yt-url" type="text" placeholder="Pega uno o varios enlaces de YouTube" spellcheck="false" aria-label="Enlaces de YouTube">
-        <button class="btn sm dark" id="import-go" type="submit" data-icon="import" disabled>Importar</button>
+        <input id="yt-url" type="text" placeholder="Pega enlaces de YouTube o Dropbox" spellcheck="false" aria-label="Enlaces de YouTube o Dropbox">
+        <div class="split sm">
+          <button class="btn sm dark" id="import-go" type="submit" data-icon="import" disabled>Importar</button>
+          <button class="btn sm dark icon split-more" id="import-more" type="button" data-icon="chevron" aria-label="Más opciones de Importar" title="Más opciones" disabled></button>
+        </div>
       </form>
       <label class="btn sm ghost files-btn" id="file-btn" data-icon="upload" title="Importar videos, audios o un .csv con enlaces">Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
     </div>

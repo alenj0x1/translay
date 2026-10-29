@@ -90,3 +90,7 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
   .transcript .notes { padding-left: var(--s3); }
   .transcript .cbtn { display: grid; }
 }
+
+/* video que ya está en español: una sola columna (el texto es el mismo) */
+body.native .transcript li { grid-template-columns: 1fr; gap: 0; }
+body.native .transcript .cell:first-child { display: none; }

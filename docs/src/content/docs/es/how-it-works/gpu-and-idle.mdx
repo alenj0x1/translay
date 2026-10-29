@@ -116,9 +116,9 @@ Al arrancar, `vt/hardware.py` detecta la GPU (con `nvidia-smi`), la RAM y la CPU
 |---|---|---|---|---|---|
 | Máxima calidad | large-v3-turbo fp16, beam 5 | opus-big | OmniVoice, 16 pasos | ~4,6 GB | ~12 GB |
 | Equilibrado | large-v3-turbo int8_float16 | opus-big int8_float16 | OmniVoice, 8 pasos | ~3,5 GB | ~11 GB |
-| Ligero | small.en int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 pasos | ~3,3 GB | ~10,7 GB |
+| Ligero | small int8_float16, beam 3 | opus-base int8 | OmniVoice, 8 pasos | ~3,3 GB | ~10,7 GB |
 | Solo subtítulos | large-v3-turbo int8_float16 | opus-big | — | ~1,9 GB | ~3,5 GB |
-| Subtítulos ligeros | small.en int8, beam 3 | opus-base int8 | — | ~0,6 GB | ~2,2 GB |
+| Subtítulos ligeros | small int8, beam 3 | opus-base int8 | — | ~0,6 GB | ~2,2 GB |
 
 Cuando un perfil no entra en la VRAM, el driver de Windows no falla: desborda a la memoria compartida y la mayoría de las frases salen igual de rápido, pero algunas pasan de 0,3 s a 15–40 s. `vt/perf.py` cuenta esas frases (más de 6 veces la mediana reciente) y lo avisa en Rendimiento.
 

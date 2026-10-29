@@ -4,6 +4,23 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Dropbox links: paste a shared link to a video (also from a folder, like `dropbox.com/scl/fo/…/video.mp4`) in «Importar», in the several-links dialog, in a CSV or through the API. It enters the queue, downloads with progress like a YouTube video and its card says «Dropbox».
+- Videos that are already in Spanish: «Importar ▾ › Está en español: solo transcribir», or «Idioma del video» (Video language) in the context menu. They are transcribed in Spanish without translation or dubbing, play with the original audio and a single subtitle, and the transcript shows one column.
+- «Renombrar…» (Rename…) in a video's context menu gives it your own name (for example, instead of `21_10`); it stays even if the video is downloaded again. Also `PATCH /api/v1/videos/{id}` with `{"title"}`.
+- The import API takes `"lang": "es"`, and a video's data includes its `lang` and the shared `url`.
+
+### Changed
+
+- The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small` instead of `small.en`, so they also recognize Spanish.
+
+### Fixed
+
+- On a phone, the player's video had no width and didn't show.
+
 ## 1.3.1 · 2026-10-27
 
 ### Changed

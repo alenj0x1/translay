@@ -51,10 +51,10 @@ CONFIGS = {
     "calidad": ["--asr", "large-v3-turbo", "--asr-ct", "float16", "--mt", "opus-big", "--voice", "omnivoice", "--steps", "16"],
     "equilibrado": ["--asr", "large-v3-turbo", "--asr-ct", "int8_float16", "--mt", "opus-big", "--mt-ct", "int8_float16",
                     "--voice", "omnivoice", "--steps", "8"],
-    "ligero": ["--asr", "small.en", "--asr-ct", "int8_float16", "--beam", "3", "--mt", "opus-base", "--mt-ct", "int8",
+    "ligero": ["--asr", "small", "--asr-ct", "int8_float16", "--beam", "3", "--mt", "opus-base", "--mt-ct", "int8",
                "--voice", "omnivoice", "--steps", "8"],
     "texto": ["--asr", "large-v3-turbo", "--asr-ct", "int8_float16", "--mt", "opus-big", "--voice", "none"],
-    "texto-ligero": ["--asr", "small.en", "--asr-ct", "int8", "--beam", "3", "--mt", "opus-base", "--mt-ct", "int8",
+    "texto-ligero": ["--asr", "small", "--asr-ct", "int8", "--beam", "3", "--mt", "opus-base", "--mt-ct", "int8",
                      "--voice", "none"],
 }
 

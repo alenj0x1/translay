@@ -34,6 +34,7 @@ from pathlib import Path
 from .glossary import Glossary
 from .jsonio import read_json, write_json
 from .library import Library
+from .links import Links
 from .store import _SAFE_ID as _SAFE_VID, Store
 from .youtube import YouTube
 
@@ -64,6 +65,7 @@ class Vault:
         self.library = Library(root / "library.json")
         self.store = Store(root / "transcripts")
         self.youtube = YouTube(root / "youtube", cookies)
+        self.links = Links(root / "library")
         self.glossary = Glossary(root / "glossary.json")
         self.prefix = "" if main else f"/v/{vid}"
         self._lock = threading.Lock()
@@ -77,6 +79,14 @@ class Vault:
             tmp = self.root / "vault.tmp"
             tmp.write_text(json.dumps({**self.meta, "id": self.id}, ensure_ascii=False, indent=1), encoding="utf-8")
             tmp.replace(self.meta_path)
+
+    def download(self, vid: str, progress=None, session: str = "ninguna", audio_only: bool = False,
+                 careful: bool = False) -> dict:
+        """Baja un video de YouTube o de un enlace compartido (vt/links.py) a esta biblioteca."""
+        v = self.library.data["videos"].get(vid) or {}
+        if v.get("source") == "link":
+            return self.links.fetch(vid, v.get("url", ""), progress, audio_only=audio_only)
+        return self.youtube.fetch(vid[3:], progress, session, audio_only=audio_only, careful=careful)
 
     # ------------------------------------------------------------------ rutas
     def url(self, u: str) -> str:

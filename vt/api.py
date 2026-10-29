@@ -11,9 +11,11 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   GET    /api/v1/libraries/{lib}/videos           ?collection=&limit=&offset=
   GET    /api/v1/libraries/{lib}/collections
   GET    /api/v1/libraries/{lib}/search?q=        en las transcripciones
-  POST   /api/v1/libraries/{lib}/import           {"urls": [...], "mode": "traducir|descargar", "priority": false}
+  POST   /api/v1/libraries/{lib}/import           {"urls": [...], "mode": "traducir|descargar", "priority": false,
+                                                   "lang": "en|es"}  YouTube o Dropbox; "es": solo se transcribe
   GET    /api/v1/libraries/{lib}/glossary         ·  PUT {"entries": [{"src", "dst"}]}
   GET    /api/v1/videos/{id}                      datos, avance y estado en la cola
+  PATCH  /api/v1/videos/{id}                      {"title": "…"}  le cambia el nombre
   GET    /api/v1/videos/{id}/transcript           frases con inglés y español
   GET    /api/v1/videos/{id}/subtitles?lang=es    SRT (es | en)
   DELETE /api/v1/videos/{id}                      lo borra con sus archivos
@@ -178,7 +180,8 @@ class Api:
     def _video_public(self, v, vid: str) -> dict:
         e = v.library.data["videos"][vid]
         out = {"id": vid, "library": v.id, **{k: e.get(k) for k in ("title", "duration", "source", "channel",
-                                                                     "categories", "added")}}
+                                                                     "categories", "added", "url")},
+               "lang": e.get("lang") or "en"}
         out.update({k: v.url(e[k]) for k in ("media", "audio", "thumb") if e.get(k)})
         try:
             out["progress"] = self.processor.progress(vid)
@@ -240,8 +243,11 @@ class Api:
                 mode = str(body.get("mode", ""))
                 if mode not in ("", "traducir", "descargar"):
                     raise ValueError("mode: traducir o descargar")
+                lang = str(body.get("lang") or "en")
+                if lang not in ("en", "es"):
+                    raise ValueError("lang: en o es")
                 sess = await self._session(v, acc)
-                await sess._batch(urls, "", True, bool(body.get("priority")), mode)
+                await sess._batch(urls, "", True, bool(body.get("priority")), mode, lang=lang)
                 r = sess.ws.last("batch_added") or {}
                 return 202, {"videos": r.get("videos", 0), "playlists": r.get("playlists", 0),
                              "elsewhere": r.get("elsewhere", {})}, {}
@@ -261,6 +267,14 @@ class Api:
                 sess = await self._session(v, acc)
                 await sess._delete({"type": "lib_delete", "videos": [vid]})
                 return 200, {"deleted": vid}, {}
+            if len(p) == 2 and m == "PATCH":
+                v = self._video(acc, vid, write=True)
+                title = str((req.json() or {}).get("title") or "").strip()
+                if not title:
+                    raise ValueError("falta el nombre (title)")
+                sess = await self._session(v, acc)
+                await sess._library({"type": "lib_rename", "video": vid, "title": title})
+                return 200, self._video_public(v, vid), {}
             v = self._video(acc, vid)
             if len(p) == 2:
                 return 200, self._video_public(v, vid), {}

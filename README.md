@@ -98,9 +98,9 @@ Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvi
 |---|---|---|---|---|---|---|
 | **Máxima calidad** (Maximum quality) | large-v3-turbo fp16, beam 5 | opus-big | Cloned, 16 steps | ~4.6 GB | ~12 GB | 8 GB GPU or more |
 | **Equilibrado** (Balanced) | large-v3-turbo int8 | opus-big int8 | Cloned, 8 steps | ~3.5 GB | ~11 GB | 6 GB GPU |
-| **Ligero** (Light) | small.en int8, beam 3 | opus-base int8 | Cloned, 8 steps | ~3.3 GB | ~10.7 GB | 4 GB GPU |
+| **Ligero** (Light) | small int8, beam 3 | opus-base int8 | Cloned, 8 steps | ~3.3 GB | ~10.7 GB | 4 GB GPU |
 | **Solo subtítulos** (Subtitles only) | large-v3-turbo int8 | opus-big | No voice | ~1.9 GB | ~3.5 GB | 2 GB GPU |
-| **Subtítulos ligeros** (Light subtitles) | small.en int8, beam 3 | opus-base int8 | No voice | ~0.6 GB | ~2.2 GB | No GPU |
+| **Subtítulos ligeros** (Light subtitles) | small int8, beam 3 | opus-base int8 | No voice | ~0.6 GB | ~2.2 GB | No GPU |
 
 The cloned voice needs a GPU: on the CPU it runs at 0.01× to 0.04× (unusable). Without a GPU, Translay produces subtitles and transcripts.
 

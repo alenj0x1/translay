@@ -1,6 +1,6 @@
 ---
 title: Importar
-description: Cómo agregar videos de YouTube, playlists, listas en CSV y archivos de tu equipo, y qué pasa con cada uno.
+description: Cómo agregar videos de YouTube, playlists, enlaces de Dropbox, listas en CSV y archivos de tu equipo, y qué pasa con cada uno.
 sidebar:
   order: 3
 ---
@@ -19,9 +19,25 @@ También puedes pegar un enlace en cualquier parte de la página, fuera de un ca
 
 Fuera del reproductor, un video importado no se abre: entra a la cola y aparece en Recientes. Cuando quieras verlo, ábrelo desde su tarjeta.
 
+## Enlaces de Dropbox
+
+Un enlace compartido de Dropbox a un archivo de video o audio se importa igual que un video de YouTube: entra a la cola, se descarga con su avance en la tarjeta y la tarjeta dice «Dropbox». Sirve con un archivo suelto (`dropbox.com/scl/fi/…/clase.mp4`) y con un archivo dentro de una carpeta compartida (`dropbox.com/scl/fo/…/21_10.mp4`); el enlace a la carpeta entera se rechaza, porque Dropbox entregaría un zip. El enlace tiene que ser público («Cualquier persona con el enlace»).
+
+Translay cambia `dl=0` por `dl=1` para recibir el archivo directo y quita los parámetros de seguimiento (`st`, `e`), así el mismo enlace pegado dos veces es el mismo video. El archivo queda en la carpeta `library/` de la biblioteca, junto a su pista de audio y una miniatura sacada del video. Con «Solo el audio» se baja igual el archivo entero (Dropbox no entrega solo el audio), pero se queda únicamente el audio.
+
+## Videos que ya están en español
+
+Si el video ya está en español, abre la flecha junto a «Importar» y elige «Está en español: solo transcribir». Vale para lo que importas en ese momento (YouTube o Dropbox, uno o varios enlaces). El video se transcribe en español y nada más: sin traducción ni voz en español, se reproduce con el audio original y un solo subtítulo, la transcripción muestra una columna y la tarjeta dice «Transcrito» al terminar.
+
+Para cambiarlo después, usa «Idioma del video» en el menú contextual del video: «Inglés: traducir y doblar» o «Español: solo transcribir». Lo que ya estaba transcrito en el otro idioma se borra y el video se vuelve a procesar, por eso pregunta antes.
+
+<Aside>
+Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que también reconoce español. Un modelo `.en` elegido con `--model` solo reconoce inglés: un video en español termina en un error que pide cambiar de perfil.
+</Aside>
+
 ## Varios enlaces
 
-Si pegas texto con más de un enlace, se abre el cuadro «Importar varios enlaces» para revisarlos antes. Toma los enlaces de YouTube de cualquier parte del texto (uno por línea, separados por comas o mezclados con otro texto) y muestra un resumen: cuántos videos, cuántas playlists y cuántos ya están en la biblioteca. Los repetidos cuentan una sola vez.
+Si pegas texto con más de un enlace, se abre el cuadro «Importar varios enlaces» para revisarlos antes. Toma los enlaces de YouTube y de Dropbox de cualquier parte del texto (uno por línea, separados por comas o mezclados con otro texto) y muestra un resumen: cuántos videos, cuántas playlists y cuántos ya están en la biblioteca. Los repetidos cuentan una sola vez.
 
 En «Guardar en» eliges una colección propia o una categoría para lo que importes; las categorías de YouTube aparecen todas aunque aún no tengas videos en ellas.
 
@@ -39,7 +55,7 @@ Los mix automáticos de YouTube (listas que empiezan con `RD` o `UL`) no tienen 
 
 «Archivos» acepta un `.csv`, y también puedes arrastrarlo a la página o usar «Subir CSV» dentro del cuadro de varios enlaces. Translay toma:
 
-- Los enlaces de YouTube de cualquier columna.
+- Los enlaces de YouTube y de Dropbox de cualquier columna.
 - Los ids sueltos de 11 caracteres de una columna llamada `id`, `video_id`, `youtube_id` o `yt_id`.
 
 El separador puede ser coma, punto y coma o tabulación. Los enlaces encontrados se abren en el cuadro de varios enlaces para revisarlos antes de importar.
@@ -61,7 +77,7 @@ Preferencias › Importar y descargas › «Al importar» decide qué se hace co
 - **Descargar y traducir** (por defecto): se descarga, se traduce y se dobla.
 - **Solo descargar**: se descarga sin usar la GPU y queda «Descargado, sin traducir». Sirve para ver o exportar el original. Cuando quieras traducirlo, usa «Procesar» en su tarjeta o en la Cola; abrirlo para verlo también lo procesa.
 
-En un video de YouTube aún sin descargar, «Ver ▾» › «Descargar sin abrir» lo baja con prioridad sin abrirlo ni traducirlo.
+En un video de YouTube o de Dropbox aún sin descargar, «Ver ▾» › «Descargar sin abrir» lo baja con prioridad sin abrirlo ni traducirlo.
 
 ## Solo el audio
 

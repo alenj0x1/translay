@@ -11,10 +11,13 @@ Cliente → servidor
                                                      la cola (vt/processor.py) desde ese punto
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
   {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
+  {"type":"yt_batch", "urls":[…], "lang"}            enlaces de YouTube o Dropbox (vt/links.py) a la cola; batch_added
+  {"type":"video_lang", "video", "lang":"en"|"es"}   idioma en que se habla (en español solo se transcribe)
   {"type":"export", "videos":[ids], "kinds":[…], "name"}  exportar (vt/exporter.py) · export_remove
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
   trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}   papelera
+  lib_rename {video, title}                          nombre propio de un video
   {"type":"library"} · lib_register · lib_remove · coll_create · coll_toggle · coll_rename · coll_delete
                                                      biblioteca y colecciones (responde "library")
   vault_open {id} · vault_create {name, folder, color, icon} · vault_open_folder {folder}
@@ -49,9 +52,9 @@ from .vaults import VAULT_PREFS, RoutedStore
 # lo que solo hace el dueño; lo que además de ver puede hacer quien tiene "importar"
 OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "queue_pause", "queue_resume", "queue_clear",
               "queue_unblock", "queue_remove", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
-              "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete",
+              "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete"}
-IMPORT_ONLY = {"youtube", "playlist", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
+IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
 from .streaming import Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
@@ -178,7 +181,7 @@ class Session:
             if t == "queue_video":
                 vs = [self.vaults.of(str(x)) for x in m.get("videos", [])]
                 return bool(vs) and all(v and a.can_import(v.id) for v in vs)
-            if t in ("lib_register", "watch"):  # la del video, si ya está en alguna biblioteca
+            if t in ("lib_register", "watch", "video_lang"):  # la del video, si ya está en alguna biblioteca
                 return a.can_import(self._vault_of(str(m.get("id") or m.get("video") or "")).id)
             return a.can_import(self.vault.id)
         if t == "open":
@@ -287,10 +290,13 @@ class Session:
                     elif m.get("type") == "youtube":
                         asyncio.create_task(self._youtube(m.get("url", ""), bool(m.get("queue"))))
                     elif m.get("type") == "playlist":
-                        asyncio.create_task(self._playlist(m.get("url", "")))
+                        asyncio.create_task(self._playlist(m.get("url", ""), str(m.get("lang") or "en")))
+                    elif m.get("type") == "video_lang":
+                        await self._video_lang(str(m.get("video", "")), str(m.get("lang", "")))
                     elif m.get("type") == "yt_batch":
                         asyncio.create_task(self._batch(list(m.get("urls", [])), str(m.get("coll") or ""),
-                                                        bool(m.get("quiet")), bool(m.get("front"))))
+                                                        bool(m.get("quiet")), bool(m.get("front")),
+                                                        lang=str(m.get("lang") or "en")))
                     elif m.get("type") in ("export", "export_remove") and self.exporter:
                         await self._export(m)
                     elif m.get("type", "").startswith("queue_") and self.processor:
@@ -331,6 +337,7 @@ class Session:
                 elif kind == "open":
                     await self._finish()
                     self.tr = self.store.open(str(op[1].get("id", "")), op[1].get("name", ""))
+                    self.st.language = self.tr.lang
                     vault = self._vault_of(self.tr.data["id"])
                     await self.ws.send_json({"type": "transcript", **self.tr.public(),
                                              "voice_refs": self._voice_refs(self.tr.data["id"]),
@@ -369,12 +376,11 @@ class Session:
         dirty = False
         for ev in events:
             if isinstance(ev, Segment):
-                translation = await loop.run_in_executor(self.gpu, self.res.run, ("mt",),
-                                                         partial(self.translator.translate, glossary=self._gl(tr)),
-                                                         ev.text)
+                translation = None if tr.native else await loop.run_in_executor(
+                    self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(tr)), ev.text)
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, translation,
                                               self.translator.name)
-                if self.dubber:
+                if self.dubber and not tr.native:  # ya en español: solo se transcribe
                     seg["speaker"] = await loop.run_in_executor(None, self.dubber.identify, tr, seg, ev.audio)
                     self._queue_dub(0, tr, seg, self.dubber.loudness(ev.audio))
                     for fixed in self.dubber.relabel(tr):  # frases cortas con persona corregida
@@ -401,6 +407,8 @@ class Session:
         """Traduce la frase abierta para el subtítulo en vivo (solo si cambió)."""
         if not src:
             self._live_src = self._live_es = ""
+        elif self.tr is not None and self.tr.native:
+            self._live_src = self._live_es = src
         elif src != self._live_src:
             loop = asyncio.get_running_loop()
             self._live_es = await loop.run_in_executor(
@@ -428,7 +436,7 @@ class Session:
     # ---------------------------------------------------------------- doblaje
     def _queue_dub(self, prio: int, tr: Transcript, seg: dict, orig_db: float | None):
         """prio 0: frase en vivo (modo intérprete, va primero); 1: por delante / guardada."""
-        if not self.dubber or not seg.get("translation"):
+        if not self.dubber or not seg.get("translation") or tr.native:
             return
         old = self.dub_pending.get(seg["id"])
         self.dub_pending[seg["id"]] = (min(prio, old[0]) if old else prio, tr, orig_db)
@@ -559,17 +567,25 @@ class Session:
     def _download_only(self) -> bool:
         return bool(self.prefs) and self._pref("import_mode") == "descargar"
 
-    async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False, mode: str = ""):
+    async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False, mode: str = "",
+                     lang: str = "en"):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
-        orden) y cada playlist se importa como colección."""
+        orden) y cada playlist se importa como colección. lang: el idioma en que se hablan."""
+        from . import links
         from .youtube import playlist_id, video_id
 
-        loop = asyncio.get_running_loop()
-        vids, lists = [], []
+        vids, lists, shared, errors = [], [], {}, []
         for u in urls:
             u = str(u)
-            v = video_id(u)
-            if v:
+            try:
+                lk = links.parse(u)
+            except ValueError as e:
+                errors.append(str(e))
+                continue
+            v = video_id(u) if not lk else None
+            if lk:
+                shared[lk["id"]] = lk
+            elif v:
                 vids.append(v)
             elif playlist_id(u):
                 lists.append(u)
@@ -582,10 +598,22 @@ class Session:
             if o is not None and o is not self.vault:
                 elsewhere[o.name] = elsewhere.get(o.name, 0) + 1
                 vids.remove(v)
+        for v in list(shared):
+            o = self.vaults.of(v)
+            if o is not None and o is not self.vault:
+                elsewhere[o.name] = elsewhere.get(o.name, 0) + 1
+                shared.pop(v)
         # aparecen al instante; los títulos llegan de a poco (miles de consultas juntas
         # son justo la ráfaga que YouTube marca)
+        known = set(lib.data["videos"])
         ids = lib.add_pending([{"id": v} for v in vids])
-        asyncio.create_task(self._fill_titles([i for i in ids if (lib.data["videos"].get(i) or {}).get("title") == i[3:]], lib))
+        for vid, lk in shared.items():  # Dropbox: el título sale del nombre del archivo
+            if vid not in known:
+                lib.register(vid, source="link", url=lk["url"], title=lk["name"])
+            ids.append(vid)
+        self._import_lang(ids, known, lang)
+        asyncio.create_task(self._fill_titles([i for i in ids if i.startswith("yt_")
+                                               and (lib.data["videos"].get(i) or {}).get("title") == i[3:]], lib))
         if coll:
             for vid in ids:
                 lib.toggle(coll, vid, True)
@@ -596,11 +624,48 @@ class Session:
                                     audio_only=self._audio_only())
         if ids:
             events.emit("video.agregado", self.vault.id, videos=ids, count=len(ids))
-        await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists),
-                                 "quiet": bool(quiet), "elsewhere": elsewhere})
+        await self.ws.send_json({"type": "batch_added", "videos": len(ids), "playlists": len(lists), "ids": ids,
+                                 "quiet": bool(quiet), "elsewhere": elsewhere, "errors": errors})
         self.notify({"type": "library_changed"})
         for u in lists:
-            await self._playlist(u)
+            await self._playlist(u, lang)
+
+    def _import_lang(self, ids: list[str], known: set, lang: str):
+        """Idioma elegido al importar: para lo nuevo, y para lo que ya estaba solo si se pidió
+        «en español» (volver a importar en inglés no deshace lo que se cambió a mano)."""
+        for vid in ids:
+            if vid not in known or lang != "en":
+                self._set_lang(vid, lang)
+
+    def _set_lang(self, vid: str, lang: str) -> bool:
+        """Idioma del video, en su transcripción (lo usa el procesamiento) y en la biblioteca."""
+        from .store import LANGS
+
+        if lang not in LANGS or not _SAFE_VID.fullmatch(vid):
+            return False
+        vault = self._vault_of(vid)
+        tr = vault.store.open(vid)
+        had = bool(tr.covered)
+        changed = tr.set_lang(lang)
+        if changed:
+            tr.save()
+        if vid in vault.library.data["videos"]:
+            vault.library.set_field(vid, lang=lang)
+        if changed and had and self.processor:
+            self.processor.add(vid)  # lo reconocido en el otro idioma se rehace
+        return changed
+
+    async def _video_lang(self, vid: str, lang: str):
+        if not self._set_lang(vid, lang):
+            return
+        if self.tr is not None and self.tr.data["id"] == vid:  # esta pestaña lo procesaba en vivo
+            self.q.put_nowait(("seek", {}))
+        vault = self._vault_of(vid)
+        tr = vault.store.open(vid)
+        # cada pestaña que lo tenga abierto vuelve a cargar su transcripción (ahora vacía)
+        self.notify({"type": "bg", "video": vid, "msg": {"type": "transcript", **tr.public(), "voice_refs": {},
+                                                         "prefix": vault.prefix, "vault": vault.id}})
+        self.notify({"type": "library_changed"})
 
     async def _fill_titles(self, ids: list[str], lib=None):
         """Título y canal de los videos recién importados, 3 consultas a la vez y con pausas."""
@@ -624,7 +689,7 @@ class Session:
                 done.clear()
                 self.notify({"type": "library_changed"})
 
-    async def _playlist(self, url: str):
+    async def _playlist(self, url: str, lang: str = "en"):
         loop = asyncio.get_running_loop()
         sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
         try:
@@ -638,7 +703,9 @@ class Session:
         lib = self.library
         other = {"yt_" + e["id"] for e in info["entries"]
                  if (o := self.vaults.of("yt_" + e["id"])) is not None and o is not self.vault}
+        known = set(lib.data["videos"])
         c = lib.import_playlist(info, exclude=other)  # los que ya están en otra biblioteca se quedan allá
+        self._import_lang([i for i in c["items"] if i in lib.data["videos"]], known, lang)
         if self.processor:  # en orden: la cola descarga y procesa uno tras otro
             self.processor.add_many([i for i in c["items"] if i in lib.data["videos"]],
                                     download_only=self._download_only(), audio_only=self._audio_only())
@@ -728,6 +795,8 @@ class Session:
             if vid not in vault.library.data["videos"]:
                 continue
             tr = vault.store.open(vid)
+            if tr.native:  # en español: no pasa por el traductor
+                continue
             todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed)]
             if not todo:
                 continue
@@ -924,12 +993,17 @@ class Session:
                 events.emit("video.agregado", target.id, videos=[rid], count=1)
             # solo datos descriptivos: las rutas de archivos (media, audio, miniatura) las pone el servidor
             dur = m.get("duration")
+            known = (target.library.data["videos"].get(rid) or {}).get("source")  # el origen no cambia al abrirlo
             target.library.register(
                 rid, title=str(m.get("title") or "")[:300] or None,
                 duration=float(dur) if isinstance(dur, (int, float)) and 0 < dur < 1e6 else None,
-                source=m.get("source") if m.get("source") in ("file", "youtube") else None)
+                source=None if known else m.get("source") if m.get("source") in ("file", "youtube") else None)
         elif kind == "lib_remove":
             self._vault_of(vid).library.remove(vid)
+        elif kind == "lib_rename":
+            if not self._vault_of(vid).library.rename_video(vid, str(m.get("title") or "")):
+                return
+            self.notify({"type": "library_changed"})  # las demás pestañas
         elif kind == "coll_create":
             c = lib.create(m.get("name", ""))
             if vid:

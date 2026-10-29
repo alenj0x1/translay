@@ -100,6 +100,7 @@ Responde `202` con `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2}}`:
   - `queue`: `{state, prio, error, dl}` o `null` si el video no está en la cola. `state` es `en cola`, `procesando`, `descargado`, `listo` o `error`; `dl` es el avance de la descarga.
 - `GET /videos/{id}/transcript` (**lectura**) da las frases con `start`, `end`, `text` (inglés), `translation` (español) y `speaker`, más `speaker_names` y `comments`.
 - `GET /videos/{id}/subtitles?lang=es` (**lectura**) devuelve un archivo SRT (`application/x-subrip`). `lang=es` es el español (por omisión); cualquier otro valor da el inglés.
+- `PATCH /videos/{id}` (**escritura**) con `{"title": "…"}` le cambia el nombre al video; el nombre se queda aunque el video se vuelva a descargar.
 - `DELETE /videos/{id}` (**escritura**) borra el video con sus archivos.
 
 ## Cola

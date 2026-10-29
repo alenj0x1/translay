@@ -1,6 +1,6 @@
 ---
 title: Import
-description: How to add YouTube videos, playlists, CSV lists and files from your machine, and what happens with each.
+description: How to add YouTube videos, playlists, Dropbox links, CSV lists and files from your machine, and what happens with each.
 sidebar:
   order: 3
 ---
@@ -19,9 +19,25 @@ You can also paste a link anywhere on the page, outside a text field, or open th
 
 Outside the player, an imported video doesn't open: it enters the queue and appears in Recientes (Recent). When you want to watch it, open it from its card.
 
+## Dropbox links
+
+A Dropbox shared link to a video or audio file is imported like a YouTube video: it enters the queue, downloads with its progress on the card and the card says «Dropbox». It works with a single file (`dropbox.com/scl/fi/…/clase.mp4`) and with a file inside a shared folder (`dropbox.com/scl/fo/…/21_10.mp4`); a link to the whole folder is rejected, because Dropbox would hand over a zip. The link has to be public («Anyone with the link»).
+
+Translay changes `dl=0` to `dl=1` to get the file directly and drops the tracking parameters (`st`, `e`), so the same link pasted twice is the same video. The file is stored in the library's `library/` folder, next to its audio track and a thumbnail taken from the video. With «Solo el audio» (Audio only) the whole file is still downloaded (Dropbox can't send just the audio) but only the audio is kept.
+
+## Videos already in Spanish
+
+If the video is already in Spanish, open the arrow next to «Importar» and choose «Está en español: solo transcribir» (It's in Spanish: transcribe only). It applies to what you're importing right now (YouTube or Dropbox, one link or several). The video is transcribed in Spanish and that's it: no translation, no Spanish voice, it plays with the original audio and a single subtitle, the transcript shows one column and the card says «Transcrito» (Transcribed) when it's done.
+
+To change it later, use «Idioma del video» (Video language) in the video's context menu: «Inglés: traducir y doblar» (English: translate and dub) or «Español: solo transcribir» (Spanish: transcribe only). What was already transcribed in the other language is deleted and the video is processed again, so it asks first.
+
+<Aside>
+The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which also recognizes Spanish. A `.en` model passed with `--model` only recognizes English: a Spanish video ends with an error that tells you to change the profile.
+</Aside>
+
 ## Several links
 
-If you paste text with more than one link, the «Importar varios enlaces» dialog opens so you can review them first. It takes YouTube links from anywhere in the text (one per line, separated by commas, or mixed with other text) and shows a summary: how many videos, how many playlists and how many are already in the library. Duplicates count only once.
+If you paste text with more than one link, the «Importar varios enlaces» dialog opens so you can review them first. It takes YouTube and Dropbox links from anywhere in the text (one per line, separated by commas, or mixed with other text) and shows a summary: how many videos, how many playlists and how many are already in the library. Duplicates count only once.
 
 In «Guardar en» (Save to) you choose one of your collections or a category for what you import; all YouTube categories appear even if you don't have videos in them yet.
 
@@ -39,7 +55,7 @@ YouTube's automatic mixes (lists that start with `RD` or `UL`) have no end, so t
 
 «Archivos» accepts a `.csv`, and you can also drag it onto the page or use «Subir CSV» (Upload CSV) inside the several-links dialog. Translay takes:
 
-- YouTube links from any column.
+- YouTube and Dropbox links from any column.
 - Loose 11-character ids from a column named `id`, `video_id`, `youtube_id` or `yt_id`.
 
 The separator can be a comma, semicolon or tab. The links found open in the several-links dialog so you can review them before importing.
@@ -61,7 +77,7 @@ Preferencias › Importar y descargas › «Al importar» (Preferences › Impor
 - **Descargar y traducir** (Download and translate) (default): it is downloaded, translated and dubbed.
 - **Solo descargar** (Download only): it is downloaded without using the GPU and stays «Descargado, sin traducir» (Downloaded, not translated). Useful for watching or exporting the original. When you want to translate it, use «Procesar» (Process) on its card or in the Cola; opening it to watch also processes it.
 
-On a YouTube video not yet downloaded, «Ver ▾» › «Descargar sin abrir» (Watch ▾ › Download without opening) downloads it with priority without opening or translating it.
+On a YouTube or Dropbox video not yet downloaded, «Ver ▾» › «Descargar sin abrir» (Watch ▾ › Download without opening) downloads it with priority without opening or translating it.
 
 ## Audio only
 

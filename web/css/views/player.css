@@ -142,3 +142,6 @@ body.mini .ctrl .ic { width: var(--h-xs); height: var(--h-xs); }
   body.layout-wide #cap-en { display: none; }
   body.mini .stage { width: 62vw; right: 12px; bottom: 12px; }
 }
+
+/* video que ya está en español: sin voz que elegir ni subtítulo repetido */
+body.native #c-lang, body.native #cap-en, body.native #layout { display: none !important; }
