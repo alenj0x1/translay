@@ -9,7 +9,8 @@ import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import __version__
+from . import __version__, capture
+from .capture import Captures
 from .asr import WhisperASR
 from .httpws import AppServer
 from .session import Session
@@ -150,6 +151,33 @@ def main():
             tmp.unlink(missing_ok=True)  # subida cortada: no queda el archivo a medias
         library.set_field(vid, media=f"/media/lib/{out.name}")
         return 200, "OK"
+
+    captures = Captures(lambda vid, lib: vault_dir(vid, {"lib": lib}))
+
+    async def put_capture(rest, query, headers, body):
+        """Grabación de pantalla por partes, reanudable (vt/capture.py)."""
+        cid, _, seq = rest.strip("/").partition("/")
+        if not capture.ID_RE.fullmatch(cid):
+            return 400, "id invalido"
+        lib = query.get("lib")
+        if seq != "end":
+            if not seq.isdigit():
+                return 400, "parte invalida"
+            return await captures.part(cid, int(seq), body, lib)
+        async for _ in body:
+            pass
+        opts = capture.parse_opts(query)
+        title = (query.get("title") or "Grabación de pantalla")[:200]
+
+        def register(out, thumb, duration):
+            v = vaults.get(lib) or vaults.main
+            v.library.register(cid, title=title, duration=duration, source="file", media=f"/media/lib/{out.name}",
+                               thumb=f"/media/lib/{thumb.name}" if thumb else "")
+            if opts["quality"] == "audio":
+                v.library.set_field(cid, audio=f"/media/lib/{out.name}", audio_only=True)
+
+        parts = int(query.get("parts", "0") or 0)
+        return await captures.finish(cid, parts, opts, lib, register)
 
     async def put_thumb(rest, query, headers, body):
         vid = rest.strip("/")
@@ -360,7 +388,7 @@ def main():
                         "/media/yt/": DATA / "youtube", "/media/lib/": lib_dir,
                         "/exports/": DATA / "exports", "/voices/": DATA / "voices",
                         "/": ROOT / "web"},
-                       {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb,
+                       {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb, "/api/capture/": put_capture,
                                              "/api/cookies": put_cookies},
                        {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page},
                        {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults),

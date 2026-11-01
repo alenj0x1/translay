@@ -64,6 +64,31 @@ El separador puede ser coma, punto y coma o tabulación. Los enlaces encontrados
 
 «Archivos» (o arrastrar a la página) acepta videos y audios. Cada archivo se copia a la carpeta `library/` de la biblioteca abierta, con una miniatura sacada del video, y entra a la cola. Lo reconoce por una huella de su contenido, así que renombrarlo no lo duplica.
 
+## Grabar la pantalla
+
+«Grabar pantalla», en el menú «Importar», graba una pestaña del navegador, una ventana o toda la pantalla y la agrega a la biblioteca como cualquier video. Necesita un navegador de computadora (Chrome o Edge) y la página abierta en este equipo o por `https`.
+
+1. El navegador pregunta qué compartir. Para tener algo que traducir, la fuente debe traer sonido: una pestaña, o la pantalla completa con «Compartir audio» activado. Una ventana sola normalmente no trae sonido en Windows; en ese caso el cuadro lo dice y «Elegir otra» vuelve a abrir el selector.
+2. En la vista previa, al mover el cursor se resaltan los recuadros que encuentra: donde la imagen se mueve sin parar (un video, aunque ocupe solo parte de una página) y las cajas de bordes rectos (ventanas, paneles, reproductores). Un clic elige el recuadro resaltado, la rueda del mouse pasa al recuadro que lo contiene y arrastrar marca una zona a mano. «Toda la imagen» vuelve a grabar todo.
+3. Elige la calidad; debajo se ve el tamaño del archivo final y cuánto pesará como máximo por minuto y por hora:
+
+| Calidad | Alto máximo | Tope de video a 30 cuadros |
+|---|---|---|
+| Alta | 1080p | 4 Mbit/s |
+| Media (predeterminada) | 720p | 2 Mbit/s |
+| Ligera | 480p | 0,9 Mbit/s |
+| Solo audio | — | M4A a 96 kbit/s |
+
+A 15 cuadros por segundo el tope es dos tercios; una zona más chica pesa proporcionalmente menos. Es un techo: una pantalla con poco movimiento suele pesar bastante menos.
+
+4. «Grabar». Una barra abajo muestra el tiempo, el peso estimado y la última frase traducida: la grabación se transcribe y traduce en vivo. «Detener», o «Dejar de compartir» del navegador, la termina.
+
+Al detenerla, el servidor arma el archivo (recortado a la zona y comprimido a H.264 + AAC) y entra a la cola, que completa el doblaje.
+
+<Aside title="Nada se pierde si se corta la conexión">
+Cada segundo de grabación se guarda en el navegador antes de subirse y se borra solo cuando el servidor lo confirma. Sin conexión se sigue grabando («Sin conexión: se guarda en este equipo») y la subida se retoma al volver; la transcripción en vivo se reconecta sola y reenvía lo que no había confirmado. Si cierras la pestaña o se apaga el equipo, la próxima vez que abras Translay termina de subir lo grabado y lo arma.
+</Aside>
+
 ## Importar dentro de una colección
 
 En una colección propia o una categoría, el botón «Importar» de su cabecera (o «Importar aquí…» en el menú contextual) abre el cuadro de varios enlaces con esa colección ya elegida en «Guardar en». Si la colección está vacía, el botón aparece en el centro.

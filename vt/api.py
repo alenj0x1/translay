@@ -349,8 +349,8 @@ def make_guard(auth, vaults):
             ok = auth.access(req).can_view("principal")
         elif p.startswith(("/thumb/", "/exports/", "/chan/")):
             ok = auth.access(req).any
-        elif p.startswith(("/api/upload/", "/api/thumb/")):
-            vid = p.rsplit("/", 1)[-1]
+        elif p.startswith(("/api/upload/", "/api/thumb/", "/api/capture/")):
+            vid = p.split("/")[3]  # /api/capture/<id>/<parte>
             v = vaults.of(vid) or vaults.get(req.query.get("lib")) or vaults.main
             ok = auth.access(req).can_import(v.id)
         elif p.startswith("/api/"):

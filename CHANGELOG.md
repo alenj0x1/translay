@@ -8,6 +8,8 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Added
 
+- Record the screen («Importar › Grabar pantalla»): a tab, a window or the whole screen, all of it or a zone. Hovering the preview highlights the boxes it detects (a playing video, even inside part of a page, windows and panels); click to pick one, scroll to the box around it or drag to mark one by hand. Quality Alta, Media, Ligera or Solo audio and 30 or 15 fps, with the estimated size per minute and per hour. It is transcribed and translated live while recording, then compressed (H.264 + AAC) and added to the queue. Nothing is lost if the connection drops, the server restarts or the tab closes: each second stays in the browser until the server confirms it and the upload resumes on its own.
+
 - Empty lists explain themselves with an icon, a title and what will appear there (Queue sections, Exports and other screens) instead of an empty box or a bare «Nada aquí».
 
 - Export audio as MP3: when you check translated or original audio, «Formato del audio» lets you choose M4A or MP3 (192 kbps); the browser remembers it. The API takes `"audio": "mp3"`.

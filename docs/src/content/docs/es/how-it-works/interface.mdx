@@ -21,7 +21,7 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
     - base.css reset, página, texto e íconos
     - components/ button, controls, indicators, lists, overlays, card
     - layout.css armazón de la página según la vista
-    - views/ player, transcript, library, queue, prefs, vaults, access
+    - views/ player, transcript, library, queue, prefs, vaults, access, capture
     - patterns.css banners y distintivos Bauhaus
   - js/
     - ui.js componentes: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
@@ -35,6 +35,7 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
     - access.js inicio de sesión, vista de invitado, Preferencias → Acceso y API
     - route.js la vista actual en el hash de la dirección
     - contextmenu.js menú contextual según dónde se hace clic
+    - capture.js grabar la pantalla: zona con recuadros detectados, partes guardadas en IndexedDB y subida reanudable
     - capture-worklet.js captura del audio del video (respaldo)
 
 </FileTree>

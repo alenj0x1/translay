@@ -62,6 +62,7 @@ Each library is a self-contained folder, like an Obsidian vault: it can be on an
   - library/
     - \<video\>.mp4 copy of a file imported from your computer (with its extension)
     - \<video\>.jpg its thumbnail, taken in the browser
+    - captures/ screen recordings while they arrive: `<video>.webm.part` and `<video>.json` (confirmed parts; `vt/capture.py`)
   - audio/
     - \<video\>/
       - \<sentence\>.wav Spanish voice of each sentence
@@ -140,6 +141,7 @@ Before serving a file or accepting an upload, the `make_guard` guard (`vt/api.py
 | `/samples/…` | `samples/` | Public. |
 | `/`, `/b/<library>` | `web/` (`/b/…` always gives `index.html`) | Public: the page asks you to sign in if needed. |
 | `PUT /api/upload/<video>?name=&lib=` | Saves the copy of a file from your computer in `<library>/library/` | Anyone who can import into that library. |
+| `PUT /api/capture/<video>/<n>?lib=` · `…/end?parts=&q=&fps=&crop=&title=` | Receives a screen recording one part at a time (resumable) and, at the end, puts the final file together in `<library>/library/` | Anyone who can import into that library. |
 | `PUT /api/thumb/<video>?lib=` | Saves its thumbnail (up to 2 MB) | Anyone who can import into that library. |
 | `PUT /api/cookies` | Validates and saves `data/cookies.txt` | The owner. |
 

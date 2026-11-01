@@ -64,6 +64,31 @@ The separator can be a comma, semicolon or tab. The links found open in the seve
 
 «Archivos» (or dragging onto the page) accepts videos and audio files. Each file is copied to the open library's `library/` folder, with a thumbnail taken from the video, and enters the queue. It is recognized by a fingerprint of its content, so renaming it doesn't duplicate it.
 
+## Record the screen
+
+«Grabar pantalla» (Record screen), in the «Importar» menu, records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`.
+
+1. The browser asks what to share. To have something to translate, the source must carry sound: a tab, or the whole screen with «Compartir audio» (Share audio) turned on. A single window usually has no sound on Windows; if so, the dialog says so and «Elegir otra» (Choose another) opens the picker again.
+2. In the preview, moving the cursor highlights the boxes it finds: where the picture keeps moving (a video, even one that only takes up part of a page) and boxes with straight edges (windows, panels, players). A click picks the highlighted box, the mouse wheel jumps to the box that contains it, and dragging marks a zone by hand. «Toda la imagen» (Whole picture) goes back to recording everything.
+3. Choose the quality; under it you see the size of the final file and the most it will weigh per minute and per hour:
+
+| Quality | Maximum height | Video cap at 30 fps |
+|---|---|---|
+| Alta (High) | 1080p | 4 Mbit/s |
+| Media (Medium, default) | 720p | 2 Mbit/s |
+| Ligera (Light) | 480p | 0.9 Mbit/s |
+| Solo audio (Audio only) | — | M4A at 96 kbit/s |
+
+At 15 frames per second the cap is two thirds; a smaller zone weighs proportionally less. It is a ceiling: a screen with little movement usually weighs much less.
+
+4. «Grabar» (Record). A bar at the bottom shows the time, the estimated size and the sentence just translated: the recording is transcribed and translated live. «Detener» (Stop), or the browser's «Dejar de compartir» (Stop sharing), ends it.
+
+When it stops, the server puts the file together (cropped to the zone and compressed to H.264 + AAC) and it enters the queue, which completes the dubbing.
+
+<Aside title="Nothing is lost if the connection drops">
+Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión: se guarda en este equipo», No connection: saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
+</Aside>
+
 ## Import into a collection
 
 In a custom collection or a category, the «Importar» button in its header (or «Importar aquí…» (Import here…) in the context menu) opens the several-links dialog with that collection already chosen in «Guardar en». If the collection is empty, the button appears in the center.

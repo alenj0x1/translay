@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="css/views/prefs.css">
 <link rel="stylesheet" href="css/views/vaults.css">
 <link rel="stylesheet" href="css/views/access.css">
+<link rel="stylesheet" href="css/views/capture.css">
 <link rel="stylesheet" href="css/patterns.css">
 </head>
 <body class="view-library layout-wide can-import">
@@ -87,7 +88,10 @@
           <button class="btn sm dark icon split-more" id="import-more" type="button" data-icon="chevron" aria-label="Más opciones de Importar" title="Más opciones" disabled></button>
         </div>
       </form>
-      <label class="btn sm ghost files-btn" id="file-btn" data-icon="upload" title="Importar videos, audios o un .csv con enlaces">Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
+      <div class="import-acts">
+        <label class="btn sm ghost files-btn" id="file-btn" data-icon="upload" title="Importar videos, audios o un .csv con enlaces">Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
+        <button class="btn sm ghost" id="cap-btn" type="button" data-icon="record" title="Grabar una pestaña, una ventana o la pantalla y traducirla" hidden>Grabar pantalla</button>
+      </div>
     </div>
   </div>
   <div class="queue-wrap">
@@ -343,6 +347,35 @@
   </form>
 </dialog>
 
+<dialog class="dlg cap-dlg" id="cap-dlg">
+  <form method="dialog">
+    <h3>Grabar pantalla</h3>
+    <div class="cap-stage" id="cap-stage"><video id="cap-preview" muted playsinline></video><canvas id="cap-boxes"></canvas></div>
+    <div class="dlg-line" id="cap-zone-row"><span class="cap-zone" id="cap-zone"></span>
+      <button class="btn xs ghost" id="cap-all" type="button" data-icon="fullscreen">Toda la imagen</button></div>
+    <p class="dlg-note cap-warn" id="cap-warn"></p>
+    <div class="cap-opts">
+      <div class="dlg-row"><span class="label">Calidad</span><div class="segs" id="cap-q"></div></div>
+      <div class="dlg-row" id="cap-fps-row"><span class="label">Cuadros por segundo</span>
+        <div class="segs" id="cap-fps"><button class="seg" type="button" data-fps="30">30</button><button class="seg" type="button" data-fps="15">15</button></div></div>
+    </div>
+    <p class="dlg-note" id="cap-size"></p>
+    <div class="dlg-actions">
+      <button class="btn ghost cap-other" id="cap-other" type="button" data-icon="monitor">Elegir otra</button>
+      <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
+      <button class="btn dark" value="ok" type="submit" id="cap-go" data-icon="record">Grabar</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="cap-bar" id="cap-bar" role="status" hidden>
+  <span class="cap-dot"></span>
+  <span class="cap-time" id="cap-time"></span>
+  <span class="cap-meta" id="cap-meta"></span>
+  <span class="cap-live" id="cap-live"></span>
+  <button class="btn sm" id="cap-stop" type="button" data-icon="stop">Detener</button>
+</div>
+
 <div class="toast" id="toast" role="alert" hidden></div>
 
 <!-- scripts: componentes y tema primero; luego la app -->
@@ -360,6 +393,7 @@
 <script src="js/perf.js"></script>
 <script src="js/route.js"></script>
 <script src="js/contextmenu.js"></script>
+<script src="js/capture.js"></script>
 <script>hydrateIcons();</script>
 </body>
 </html>

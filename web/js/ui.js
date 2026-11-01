@@ -22,6 +22,8 @@ const ICONS = {
   video: '<rect x="2" y="3.5" width="12" height="9"/><path class="solid" d="M6.8 6v4l3.4-2z"/>',
   play: '<path class="solid" d="M4.5 2.8v10.4l8.6-5.2z"/>',
   pause: '<rect class="solid" x="3.8" y="2.8" width="2.8" height="10.4"/><rect class="solid" x="9.4" y="2.8" width="2.8" height="10.4"/>',
+  record: '<circle cx="8" cy="8" r="5.5"/><circle class="solid" cx="8" cy="8" r="2.5"/>',
+  stop: '<rect class="solid" x="4" y="4" width="8" height="8" rx="1.5"/>',
   bookmark: '<path d="M4 2.5h8v11l-4-3-4 3z"/>',
   columns: '<rect x="2" y="3" width="12" height="10"/><path d="M8 3v10"/>',
   expand: '<rect x="2" y="3" width="12" height="10"/>',

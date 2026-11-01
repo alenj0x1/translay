@@ -8,6 +8,8 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Agregado
 
+- Grabar la pantalla («Importar › Grabar pantalla»): una pestaña, una ventana o toda la pantalla, completa o una zona. Al pasar el cursor por la vista previa se resaltan los recuadros que detecta (un video en reproducción, aunque ocupe parte de una página, ventanas y paneles); un clic elige, la rueda pasa al recuadro que lo contiene y arrastrar marca uno a mano. Calidad Alta, Media, Ligera o Solo audio y 30 o 15 cuadros, con el peso estimado por minuto y por hora. Se transcribe y traduce en vivo mientras se graba; luego se comprime (H.264 + AAC) y entra a la cola. Nada se pierde si se corta la conexión, se reinicia el servidor o se cierra la pestaña: cada segundo queda en el navegador hasta que el servidor lo confirma y la subida se retoma sola.
+
 - Las listas vacías se explican solas con un ícono, un título y qué va a aparecer ahí (secciones de la Cola, Exportaciones y otras pantallas) en vez de una caja vacía o un «Nada aquí» suelto.
 
 - Exportar el audio en MP3: al marcar el audio traducido o el original, «Formato del audio» deja elegir M4A o MP3 (192 kbps); el navegador lo recuerda. La API acepta `"audio": "mp3"`.

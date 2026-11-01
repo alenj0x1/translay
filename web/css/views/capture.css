@@ -1,0 +1,55 @@
+/* Grabar pantalla (web/js/capture.js): elegir la zona sobre la vista previa y la
+   barra mientras se graba. La vista previa va sobre fondo de video (siempre oscuro). */
+
+.import-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+.cap-dlg { width: min(760px, calc(100vw - 32px)); --cap-mark: #4c8dff; }
+/* la vista previa toma el alto que queda: el diálogo entero cabe en la ventana */
+.cap-stage {
+  position: relative; height: clamp(160px, calc(100vh - 380px), 400px); overflow: hidden;
+  border-radius: var(--r-md); background: var(--video-bg);
+}
+.cap-stage[hidden] { display: none; }
+.cap-stage video, .cap-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cap-stage video { object-fit: contain; }
+.cap-stage canvas { cursor: crosshair; touch-action: none; }
+.cap-zone { font: 600 var(--fs-sm)/1.2 var(--font); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+#cap-zone-row { min-height: var(--h-xs); }
+#cap-zone-row[hidden] { display: none; }
+.cap-warn { color: var(--warn); }
+.cap-opts { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s6); }
+#cap-fps-row[hidden] { display: none; }
+#cap-size { font-variant-numeric: tabular-nums; }
+.cap-dlg .dlg-actions .cap-other { margin-right: auto; }
+
+/* barra de grabación: abajo a la derecha, por encima de todo (también del reproductor) */
+.cap-bar {
+  position: fixed; right: var(--s6); bottom: var(--s6); z-index: 79;
+  display: flex; align-items: center; gap: var(--s3); max-width: min(560px, calc(100vw - 32px));
+  min-height: var(--h-lg); padding: var(--s1) var(--s1) var(--s1) var(--s4);
+  border-radius: var(--r-pill); background: var(--raised); color: var(--fg); box-shadow: var(--menu-shadow);
+  font: 600 var(--fs-sm)/1.2 var(--font);
+}
+.cap-bar[hidden] { display: none; }
+.cap-bar:not(.rec) { padding-right: var(--s4); }
+.cap-dot { display: none; width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--danger); }
+.cap-bar.rec .cap-dot { display: block; animation: cap-blink 1.6s var(--ease) infinite; }
+@keyframes cap-blink { 50% { opacity: .35; } }
+.cap-time { flex: none; font-variant-numeric: tabular-nums; }
+.cap-meta { flex: none; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.cap-meta:empty, .cap-live:empty { display: none; }
+.cap-live {
+  min-width: 0; flex: 1 1 auto; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--fg-muted); font-weight: 500;
+}
+.cap-bar #cap-stop { flex: none; margin-left: auto; }
+.cap-bar #cap-stop[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .cap-bar { left: var(--s4); right: var(--s4); bottom: var(--s4); max-width: none; }
+  .cap-live { display: none; }
+}
+
+/* ventana angosta: nada se sale del diálogo */
+.cap-dlg form { grid-template-columns: minmax(0, 1fr); }
+.cap-dlg .dlg-actions { flex-wrap: wrap; }

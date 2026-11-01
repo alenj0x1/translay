@@ -107,6 +107,7 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 | `youtube.py` | Downloads with yt-dlp, thumbnails, channels and categories. |
 | `cookies.py` | Imports the YouTube session (browser or `cookies.txt`). |
 | `ytsession.py` | Connected YouTube account: its own browser profile, encrypted cookies and automatic renewal. |
+| `capture.py` | Screen recordings: receives the parts in order (resumable after a cut) and puts the final file together, cropped and compressed. |
 | `exporter.py` | Exports translated or original video and audio, subtitles and transcript. |
 | `auth.py` | Access: owner, private, password-protected or public libraries, and API keys. |
 | `api.py` | HTTP API v1, sign-in and the file guard (`make_guard`). |

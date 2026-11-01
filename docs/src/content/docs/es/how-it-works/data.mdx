@@ -62,6 +62,7 @@ Cada biblioteca es una carpeta autocontenida, como una bóveda de Obsidian: pued
   - library/
     - \<video\>.mp4 copia de un archivo importado del equipo (con su extensión)
     - \<video\>.jpg su miniatura, sacada en el navegador
+    - captures/ grabaciones de pantalla mientras llegan: `<video>.webm.part` y `<video>.json` (partes confirmadas; `vt/capture.py`)
   - audio/
     - \<video\>/
       - \<frase\>.wav voz en español de cada frase
@@ -140,6 +141,7 @@ Antes de servir un archivo o aceptar una subida, el guardián `make_guard` (`vt/
 | `/samples/…` | `samples/` | Público. |
 | `/`, `/b/<biblioteca>` | `web/` (`/b/…` siempre da `index.html`) | Público: la página pide iniciar sesión si hace falta. |
 | `PUT /api/upload/<video>?name=&lib=` | Guarda la copia de un archivo del equipo en `<biblioteca>/library/` | Quien puede importar en esa biblioteca. |
+| `PUT /api/capture/<video>/<n>?lib=` · `…/end?parts=&q=&fps=&crop=&title=` | Recibe una grabación de pantalla parte por parte (reanudable) y, al final, arma el archivo en `<biblioteca>/library/` | Quien puede importar en esa biblioteca. |
 | `PUT /api/thumb/<video>?lib=` | Guarda su miniatura (hasta 2 MB) | Quien puede importar en esa biblioteca. |
 | `PUT /api/cookies` | Valida y guarda `data/cookies.txt` | El dueño. |
 

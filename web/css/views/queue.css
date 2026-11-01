@@ -54,5 +54,5 @@
 /* ------------------------------------------------------------ importar (encabezado) */
 .import-pop { width: 480px; display: grid; gap: var(--s2); padding: var(--s3); }
 .import-pop .field { width: 100%; }
-.import-pop .files-btn { justify-self: start; }
+
 @media (max-width: 760px) { .import-pop { width: auto; } }

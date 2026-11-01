@@ -21,7 +21,7 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
     - base.css reset, page, text and icons
     - components/ button, controls, indicators, lists, overlays, card
     - layout.css page frame depending on the view
-    - views/ player, transcript, library, queue, prefs, vaults, access
+    - views/ player, transcript, library, queue, prefs, vaults, access, capture
     - patterns.css Bauhaus banners and badges
   - js/
     - ui.js components: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
@@ -35,6 +35,7 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
     - access.js sign-in, guest view, Preferencias → Acceso y API (Preferences → Access and API)
     - route.js the current view in the address hash
     - contextmenu.js context menu depending on where you click
+    - capture.js screen recording: zone from detected boxes, parts kept in IndexedDB and resumable upload
     - capture-worklet.js capture of the video's audio (fallback)
 
 </FileTree>
