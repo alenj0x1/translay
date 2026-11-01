@@ -3,9 +3,9 @@
 Tipos
   es_video    MP4 con la voz en español (pista principal), el inglés como segunda
               pista y subtítulos ES/EN (se activan en el reproductor)
-  es_audio    M4A con la voz en español
+  es_audio    M4A (o MP3) con la voz en español
   orig_video  el video original
-  orig_audio  el audio original
+  orig_audio  el audio original, M4A (o MP3)
 
 La mezcla en español es la misma que se escucha en la vista: cada frase doblada
 en su momento y el original bajo la voz (nivel de Preferencias). Donde no hay
@@ -13,7 +13,9 @@ voz, el original queda a volumen normal. Se arma por bloques (un video largo no
 pasa entero por memoria) con ffmpeg en la CPU: no usa la GPU.
 
 Lo traducido espera a que el doblaje termine (el video entra a la cola si
-hace falta). Un solo archivo se entrega tal cual; varios, en un .zip.
+hace falta). Un solo archivo se entrega tal cual; varios, en un .zip. Si un
+video de un lote no se puede exportar (p. ej. ya no está en YouTube y no tiene
+copia en el equipo), se omite y el resto sigue; el .zip lleva «omitidos.txt».
 """
 
 import json
@@ -40,6 +42,18 @@ KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
          "srt_es": ("subtítulos español", "srt"), "srt_en": ("subtítulos inglés", "srt"),
          "txt": ("transcripción", "txt"),
          "orig_video": ("original", "mp4"), "orig_audio": ("audio original", "m4a")}
+AUDIO_CODEC = {"m4a": ["-c:a", "aac", "-b:a", "160k"], "mp3": ["-c:a", "libmp3lame", "-b:a", "192k"]}
+AUDIO_FORMATS = tuple(AUDIO_CODEC)
+
+
+def reason(e: Exception) -> str:
+    """El motivo en palabras de la app, no el texto crudo de yt-dlp o ffmpeg."""
+    text = str(e)
+    if "removed by the uploader" in text or "Video unavailable" in text or "Private video" in text:
+        return "ya no está disponible en YouTube y no tiene copia en el equipo"
+    if isinstance(e, subprocess.CalledProcessError):
+        return "ffmpeg no pudo convertir el archivo"
+    return re.sub(r"^ERROR:\s*(\[\w+\]\s*)?", "", text)[:200]
 
 
 def safe_name(text: str) -> str:
@@ -78,15 +92,18 @@ class Exporter:
         threading.Thread(target=self._loop, daemon=True).start()
 
     # ------------------------------------------------------------------ API
-    def add(self, videos: list[str], kinds: list[str], name: str = "") -> dict:
+    def add(self, videos: list[str], kinds: list[str], name: str = "", audio: str = "m4a") -> dict:
         videos = [v for v in dict.fromkeys(videos) if v in self.library.data["videos"]]
         kinds = [k for k in KINDS if k in kinds]
         if not videos or not kinds:
             raise ValueError("nada que exportar")
+        if audio not in AUDIO_FORMATS:
+            raise ValueError("audio: " + ", ".join(AUDIO_FORMATS))
         if not name:
             name = self.library.data["videos"][videos[0]].get("title", "video") if len(videos) == 1 else "videos"
-        job = {"id": uuid.uuid4().hex[:10], "name": name, "videos": videos, "kinds": kinds,
-               "state": "en espera", "pct": 0, "detail": "", "url": "", "error": "", "added": time.time()}
+        job = {"id": uuid.uuid4().hex[:10], "name": name, "videos": videos, "kinds": kinds, "audio": audio,
+               "state": "en espera", "pct": 0, "detail": "", "url": "", "error": "", "skipped": [],
+               "added": time.time()}
         with self._cond:
             self.jobs.append(job)
             self._cond.notify_all()
@@ -100,7 +117,8 @@ class Exporter:
 
     def public(self) -> dict:
         return {"type": "exports", "jobs": [{k: j[k] for k in ("id", "name", "state", "pct", "detail", "url", "error")}
-                                            | {"count": len(j["videos"]), "videos": j["videos"][:50]} for j in self.jobs]}
+                                            | {"count": len(j["videos"]), "videos": j["videos"][:50],
+                                               "skipped": len(j["skipped"])} for j in self.jobs]}
 
     def _broadcast(self, force=False):
         if force or time.time() - self._last > 0.7:
@@ -123,7 +141,7 @@ class Exporter:
                 import traceback
 
                 traceback.print_exc()
-                self._set(job, state="error", error=str(e)[:200])
+                self._set(job, state="error", error=reason(e))
                 events.emit("exportacion.error", self._job_vault(job), job=job["id"], name=job["name"], error=job["error"])
 
     def _run(self, job):
@@ -137,26 +155,46 @@ class Exporter:
                 return
             v = self.library.data["videos"][vid]
             title = safe_name(v.get("title") or vid)
-            if any(k not in TEXT_KINDS for k in job["kinds"]):  # solo texto: no hace falta el archivo
-                self._ensure_media(job, vid, video=any(k in ("es_video", "orig_video") for k in job["kinds"]))
-            v = self.library.data["videos"][vid]
-            if any(k.startswith("es_") for k in job["kinds"]):
-                self._wait_dub(job, vid, title)
-            elif any(k in TEXT_KINDS for k in job["kinds"]):
-                self._wait_dub(job, vid, title, key="asr")  # el texto necesita la transcripción completa
-            for kind in job["kinds"]:
-                label, ext = KINDS[kind]
+            mine: list[tuple[Path, str]] = []
+            try:
+                if any(k not in TEXT_KINDS for k in job["kinds"]):  # solo texto: no hace falta el archivo
+                    self._ensure_media(job, vid, video=any(k in ("es_video", "orig_video") for k in job["kinds"]))
+                v = self.library.data["videos"][vid]
+                if any(k.startswith("es_") for k in job["kinds"]):
+                    self._wait_dub(job, vid, title)
+                elif any(k in TEXT_KINDS for k in job["kinds"]):
+                    self._wait_dub(job, vid, title, key="asr")  # el texto necesita la transcripción completa
+                for i, kind in enumerate(job["kinds"]):
+                    label, ext = KINDS[kind]
+                    if kind in ("es_audio", "orig_audio"):
+                        ext = job.get("audio", "m4a")
 
-                def prog(f, done=done):
-                    self._set(job, pct=round((done + f) / total * 100))
+                    def prog(f, done=done + i):
+                        self._set(job, pct=round((done + f) / total * 100))
 
-                self._set(job, state="exportando", detail=f"{title} · {label}")
-                path = self._make(kind, vid, v, out_dir, prog)
-                if kind == "orig_video":
-                    ext = path.suffix.lstrip(".")
-                files.append((path, f"{title} ({label}).{ext}" if kind != "orig_video" else f"{title}.{ext}"))
-                done += 1
-                self._set(job, pct=round(done / total * 100))
+                    self._set(job, state="exportando", detail=f"{title} · {label}")
+                    path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"))
+                    if kind == "orig_video":
+                        ext = path.suffix.lstrip(".")
+                    mine.append((path, f"{title} ({label}).{ext}" if kind != "orig_video" else f"{title}.{ext}"))
+            except Exception as e:
+                if len(job["videos"]) == 1:
+                    raise
+                import traceback
+
+                traceback.print_exc()
+                job["skipped"].append((v.get("title") or vid, reason(e)))  # el resto del lote sigue
+            files += mine
+            done += len(job["kinds"])
+            self._set(job, pct=round(done / total * 100))
+        if not files:
+            raise RuntimeError(f"ningún video se pudo exportar ({job['skipped'][0][1]})" if job["skipped"]
+                               else "nada que exportar")
+        if job["skipped"]:
+            note = out_dir / "omitidos.txt"
+            note.write_text("No se pudieron exportar:\n\n" + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n",
+                            encoding="utf-8")
+            files.append((note, "omitidos.txt"))
         if len(files) == 1:
             path, name = files[0]
         else:  # varios: un .zip sin comprimir (video y audio ya vienen comprimidos)
@@ -243,7 +281,7 @@ class Exporter:
             time.sleep(3)
 
     # ------------------------------------------------------------ salida
-    def _make(self, kind, vid, v, out_dir: Path, prog) -> Path:
+    def _make(self, kind, vid, v, out_dir: Path, prog, fmt: str = "m4a") -> Path:
         if kind in TEXT_KINDS:
             return self._make_text(kind, vid, v, out_dir)
         media = self._media_path(v["media"], vid)
@@ -251,13 +289,14 @@ class Exporter:
         if kind == "orig_video":
             return media
         if kind == "orig_audio":
-            if audio.suffix == ".m4a":
+            if audio.suffix == f".{fmt}":
                 return audio
-            out = out_dir / f"{vid}.orig.m4a"
-            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(media), "-vn", "-c:a", "aac",
-                            "-b:a", "160k", str(out)], check=True)
+            out = out_dir / f"{vid}.orig.{fmt}"
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(audio), "-vn", *AUDIO_CODEC[fmt],
+                            str(out)], check=True)
             return out
-        es = out_dir / f"{vid}.es.m4a"
+        # el MP4 lleva la mezcla en AAC (se copia tal cual); el audio suelto, en el formato elegido
+        es = out_dir / f"{vid}.es.{fmt if kind == 'es_audio' else 'm4a'}"
         if not es.exists():
             self._mix(vid, audio, es, prog if kind == "es_audio" else (lambda f: prog(f * 0.9)))
         if kind == "es_audio":
@@ -318,7 +357,7 @@ class Exporter:
         return out
 
     def _mix(self, vid, src: Path, out: Path, prog):
-        """Original (bajo la voz) + cada frase doblada en su momento → AAC."""
+        """Original (bajo la voz) + cada frase doblada en su momento → AAC o MP3 (según `out`)."""
         tr = self.store.open(vid)
         duck = DUCK_LEVELS.get(self.prefs.values.get("duck", "bajo"), 0.14)
         dub_dir = self._root(vid) / "audio"
@@ -346,7 +385,7 @@ class Exporter:
         dec = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-i", str(src), "-vn", "-f", "f32le", "-ac", "2",
                                 "-ar", str(SR), "-"], stdout=subprocess.PIPE)
         enc = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "f32le", "-ac", "2", "-ar", str(SR),
-                                "-i", "-", "-c:a", "aac", "-b:a", "160k", str(out)], stdin=subprocess.PIPE)
+                                "-i", "-", *AUDIO_CODEC[out.suffix.lstrip(".")], str(out)], stdin=subprocess.PIPE)
         pos, ci, ri = 0, 0, 0
         try:
             while True:

@@ -23,7 +23,8 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   POST   /api/v1/queue                            {"video": id, "priority": false}
   DELETE /api/v1/queue/{id}
   POST   /api/v1/queue/pause  ·  /queue/resume    (clave para todas las bibliotecas)
-  POST   /api/v1/exports                          {"videos": [...], "kinds": ["es_video", "srt_es", …]}
+  POST   /api/v1/exports                          {"videos": [...], "kinds": ["es_video", "srt_es", …],
+                                                   "audio": "m4a|mp3"}  formato de es_audio y orig_audio
   GET    /api/v1/exports/{id}                     estado y enlace de descarga
 
 Inicio de sesión (la vista): POST /api/auth/login {password, vault?} · POST /api/auth/logout · GET /api/auth/me
@@ -322,7 +323,7 @@ class Api:
                 kinds = [k for k in body.get("kinds", []) if k in KINDS]
                 if not kinds:
                     raise ValueError("kinds: " + ", ".join(KINDS))
-                job = self.exporter.add(vids, kinds, str(body.get("name", ""))[:120])
+                job = self.exporter.add(vids, kinds, str(body.get("name", ""))[:120], str(body.get("audio") or "m4a"))
                 return 202, {"id": job["id"], "state": job["state"]}, {}
             if len(p) == 2 and m == "GET":
                 j = next((x for x in self.exporter.public()["jobs"] if x["id"] == p[1]), None)

@@ -229,12 +229,15 @@
     <p class="dlg-sub" id="export-sub"></p>
     <div class="opts">
       <label><input class="check" type="checkbox" name="kind" value="es_video" checked><span>Video traducido</span><small>MP4</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small>M4A</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small class="audio-fmt">M4A</small></label>
       <label><input class="check" type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small>M4A</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small class="audio-fmt">M4A</small></label>
       <label><input class="check" type="checkbox" name="kind" value="srt_es"><span>Subtítulos en español</span><small>SRT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="srt_en"><span>Subtítulos en inglés</span><small>SRT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe con comentarios</span><small>TXT</small></label>
+    </div>
+    <div class="dlg-row" id="export-audio" hidden><span class="label">Formato del audio</span>
+      <div class="segs"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button></div>
     </div>
     <p class="dlg-note" id="export-note"></p>
     <div class="dlg-actions">

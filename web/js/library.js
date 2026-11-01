@@ -385,7 +385,11 @@ function renderShelfHead(c) {
     const got = downloaded(c.items);
     if (got.length && got.length < c.items.length) acts.append(btn(`Seleccionar descargados (${got.length})`, {
       icon: "check", onClick: () => { for (const id of got) lib.picked.add(id); renderLibrary(); } }));
-    acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name) }));
+    // con parte sin bajar: solo lo descargado (exportar el resto lo bajaría de YouTube uno por uno);
+    // la colección entera sigue en el menú contextual («Exportar todo…»)
+    if (got.length && got.length < c.items.length) {
+      acts.append(btn(`Exportar descargados (${got.length})`, { icon: "download", onClick: () => openExport(got, `${c.name} (descargados)`) }));
+    } else acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name) }));
     const ao = audioOnly(c.items);
     if (ao.length) acts.append(btn(`Bajar video de ${ao.length === 1 ? "1 que" : `${ao.length} que`} solo ${ao.length === 1 ? "tiene" : "tienen"} audio`, {
       icon: "film", cls: "import-only", onClick: async () => {
@@ -944,6 +948,7 @@ function openExport(ids, name = "") {
 function updateExportNote() {
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   $("#export-go").disabled = !kinds.length;
+  $("#export-audio").hidden = !kinds.some((k) => k.endsWith("_audio"));
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
     ? vs.filter((v) => !(v.progress && v.progress.dub >= 0.99)).length : 0;
@@ -963,10 +968,24 @@ function updateExportNote() {
   $("#export-note").textContent = parts.join(" · ");
 }
 $("#export-form").addEventListener("change", updateExportNote);
+// formato del audio suelto (traducido y original); se recuerda en este navegador
+let exportAudio = "m4a";
+function setExportAudio(fmt) {
+  exportAudio = fmt === "mp3" ? "mp3" : "m4a";
+  for (const b of $("#export-audio").querySelectorAll(".seg")) b.classList.toggle("on", b.dataset.fmt === exportAudio);
+  for (const s of $("#export-form").querySelectorAll(".audio-fmt")) s.textContent = exportAudio.toUpperCase();
+}
+try { setExportAudio(localStorage.getItem("vt-export-audio")); } catch { setExportAudio("m4a"); }
+$("#export-audio").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (!b) return;
+  setExportAudio(b.dataset.fmt);
+  try { localStorage.setItem("vt-export-audio", exportAudio); } catch {}
+});
 $("#export-dlg").addEventListener("close", () => {
   if ($("#export-dlg").returnValue !== "ok") return;
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
-  if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name });
+  if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name, audio: exportAudio });
 });
 $("#export-btn").addEventListener("click", () => { if (state.videoId) openExport([state.videoId]); });
 
@@ -982,7 +1001,8 @@ function exportsUpdate(m) {
     if (x.state === "listo" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
       lib.delivered.add(x.id);
       download(x);
-      toast(`Exportación lista: ${x.name}`, "ok");
+      toast(x.skipped ? `Exportación lista: ${x.name} · ${x.skipped} no se pudo exportar${x.skipped > 1 ? "n" : ""} (ver omitidos.txt)`
+        : `Exportación lista: ${x.name}`, "ok");
       notifyUser("Exportación lista", x.name);
     }
     if (x.state === "error" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
@@ -1167,7 +1187,7 @@ function renderSearch() {
 
 /* Una exportación en la cola (panel y pantalla Cola → Exportaciones) */
 function exportItem(x) {
-  const label = cap(x.state === "listo" ? "listo"
+  const label = cap(x.state === "listo" ? (x.skipped ? `listo · ${x.skipped} omitido${x.skipped > 1 ? "s" : ""} (ver omitidos.txt)` : "listo")
     : x.state === "error" ? (x.error || "error")
     : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state);
   const done = x.state === "listo" || x.state === "error";

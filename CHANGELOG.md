@@ -4,6 +4,17 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Export audio as MP3: when you check translated or original audio, «Formato del audio» lets you choose M4A or MP3 (192 kbps); the browser remembers it. The API takes `"audio": "mp3"`.
+
+### Fixed
+
+- A batch export no longer fails entirely because of one video: if one can't be exported (for example, it was removed from YouTube and was never downloaded), it is skipped, the rest continue and the `.zip` includes `omitidos.txt` with the reason. Errors are shown in plain words instead of yt-dlp's raw text.
+- When part of a collection isn't downloaded, its header button is «Exportar descargados (N)» and exports only what is on your computer; before, «Exportar» exported the whole collection and tried to download from YouTube what was missing.
+
 ## 1.5.0 · 2026-11-01
 
 ### Added

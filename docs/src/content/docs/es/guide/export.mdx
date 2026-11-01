@@ -16,20 +16,22 @@ En el cuadro de exportar marcas cualquier combinación de:
 | Opción | Formato | Contenido |
 |---|---|---|
 | Video traducido | MP4 | La voz en español como pista principal, el inglés como segunda pista y subtítulos en español e inglés que se activan en el reproductor. |
-| Audio traducido | M4A | La mezcla en español. |
+| Audio traducido | M4A o MP3 | La mezcla en español. |
 | Video original | MP4 | El video tal como se descargó o importó. |
-| Audio original | M4A | La pista de audio original. |
+| Audio original | M4A o MP3 | La pista de audio original. |
 | Subtítulos en español | SRT | La traducción, con sus tiempos. |
 | Subtítulos en inglés | SRT | Lo que se dice en inglés. |
 | Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), el inglés, el español y los comentarios. |
 
 La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Preferencias › Audio y subtítulos › «Original bajo la voz en español». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
 
+Al marcar un audio, «Formato del audio» deja elegir **M4A** (AAC, 160 kbps) o **MP3** (192 kbps, suena en cualquier equipo o radio del auto). El navegador recuerda lo que elegiste. El video traducido siempre lleva AAC dentro del MP4.
+
 ## Desde dónde
 
 - **Reproductor**: «Exportar» en la barra del video, para el video abierto.
 - **Tarjeta**: el ícono de descarga, o «Exportar…» en su menú contextual.
-- **Colección o playlist**: «Exportar» en su cabecera, o «Exportar todo…» en el menú contextual.
+- **Colección o playlist**: «Exportar» en su cabecera, o «Exportar todo…» en el menú contextual. Si parte de la colección no está descargada, el botón de la cabecera dice «Exportar descargados (N)» y exporta solo lo que ya está en tu equipo, así que nunca va a YouTube; «Exportar todo…» sigue exportando todo.
 - **Selección**: «Exportar» con varios videos elegidos.
 - **Portada**: «Exportar» junto al video destacado.
 
@@ -47,6 +49,8 @@ El cuadro avisa antes de exportar qué va a tener que esperar:
 - **Los subtítulos y el TXT** solo esperan la transcripción completa, no el doblaje.
 - **Un video sin descargar** se descarga primero.
 - **Un video del que solo se bajó el audio**: si pides un video (original o traducido), se descarga el video completo primero.
+
+Si un video de un lote no se puede exportar (por ejemplo, lo borraron de YouTube y no tiene copia en tu equipo), se omite y el resto sigue: el `.zip` trae `omitidos.txt` con cada video omitido y el motivo, y el panel dice cuántos quedaron fuera. Solo si es un único video, o no se pudo exportar ninguno, la exportación termina en error, con el motivo en palabras claras.
 
 Puedes cancelar una exportación en curso desde el panel de la Cola con «Cancelar».
 

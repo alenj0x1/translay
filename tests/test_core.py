@@ -465,3 +465,44 @@ def test_renamed_video_keeps_its_name(tmp_path):
     v = Library(tmp_path / "library.json").data["videos"]["lk_0123456789abcdef"]
     assert v["title"] == "Clase de estadística" and v["duration"] == 60
     assert not lib.rename_video("lk_0123456789abcdef", "   ") and not lib.rename_video("no_existe_123", "x")
+
+
+def test_export_mp3_and_skips_unavailable():
+    """Un lote sigue aunque un video ya no esté en YouTube; el audio sale en MP3."""
+    import subprocess
+    import time
+    import zipfile
+
+    from vt.exporter import Exporter
+    from vt.library import Library
+
+    class YT:
+        def fetch(self, *a, **k):
+            raise RuntimeError("ERROR: [youtube] gone0000000: Video unavailable. This video has been removed by the uploader")
+
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        (root / "youtube").mkdir()
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=d=1", "-c:a", "aac",
+                        str(root / "youtube" / "okokokokoko.m4a")], check=True)
+        lib = Library(root / "library.json")
+        for vid, title in (("yt_okokokokoko", "Sí está"), ("yt_gone0000000", "Ya no está")):
+            lib.data["videos"][vid] = {"id": vid, "source": "youtube", "title": title}
+        lib.set_field("yt_okokokokoko", media="/media/yt/okokokokoko.m4a", audio="/media/yt/okokokokoko.m4a")
+        ex = Exporter(root, None, lib, None, YT(), type("P", (), {"values": {}})(), lambda m: None)
+        job = ex.add(["yt_okokokokoko", "yt_gone0000000"], ["orig_audio"], "lote", audio="mp3")
+        for _ in range(100):
+            if job["state"] in ("listo", "error"):
+                break
+            time.sleep(0.1)
+        assert job["state"] == "listo", job["error"]
+        assert ex.public()["jobs"][0]["skipped"] == 1
+        with zipfile.ZipFile(root / "exports" / job["id"] / "export.zip") as z:
+            assert sorted(z.namelist()) == ["Sí está (audio original).mp3", "omitidos.txt"]
+            assert "ya no está disponible en YouTube" in z.read("omitidos.txt").decode()
+        one = ex.add(["yt_gone0000000"], ["orig_audio"])  # solo ese: error con el motivo claro
+        for _ in range(100):
+            if one["state"] in ("listo", "error"):
+                break
+            time.sleep(0.1)
+        assert one["state"] == "error" and "ya no está disponible" in one["error"]

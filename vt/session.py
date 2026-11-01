@@ -13,7 +13,7 @@ Cliente → servidor
   {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
   {"type":"yt_batch", "urls":[…], "lang"}            enlaces de YouTube o Dropbox (vt/links.py) a la cola; batch_added
   {"type":"video_lang", "video", "lang":"en"|"es"}   idioma en que se habla (en español solo se transcribe)
-  {"type":"export", "videos":[ids], "kinds":[…], "name"}  exportar (vt/exporter.py) · export_remove
+  {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3"}  exportar (vt/exporter.py) · export_remove
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
   trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}   papelera
@@ -701,7 +701,8 @@ class Session:
         try:
             vids = [str(v) for v in m.get("videos", [])
                     if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
-            job = self.exporter.add(vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120])
+            job = self.exporter.add(vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120],
+                                    str(m.get("audio") or "m4a"))
             self._my_exports.add(job["id"])
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
