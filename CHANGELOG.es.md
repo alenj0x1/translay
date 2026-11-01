@@ -14,6 +14,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 - Una exportación por lotes ya no falla entera por un video: si uno no se puede exportar (por ejemplo, lo borraron de YouTube y nunca se descargó), se omite, el resto sigue y el `.zip` trae `omitidos.txt` con el motivo. Los errores se muestran en palabras claras en vez del texto crudo de yt-dlp.
 - Cuando parte de una colección no está descargada, el botón de su cabecera es «Exportar descargados (N)» y exporta solo lo que está en tu equipo; antes, «Exportar» exportaba la colección entera e intentaba bajar de YouTube lo que faltaba.
+- Al exportar audio se ve el avance mientras se convierte cada archivo (un mix de dos horas tarda más de un minuto) y en lotes grandes el porcentaje va con un decimal y antes del título, así que el panel ya no parece trabado en 0 %.
 
 ## 1.5.0 · 2026-11-01
 

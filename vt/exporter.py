@@ -170,7 +170,7 @@ class Exporter:
                         ext = job.get("audio", "m4a")
 
                     def prog(f, done=done + i):
-                        self._set(job, pct=round((done + f) / total * 100))
+                        self._set(job, pct=round((done + f) / total * 100, 1))
 
                     self._set(job, state="exportando", detail=f"{title} · {label}")
                     path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"))
@@ -186,7 +186,7 @@ class Exporter:
                 job["skipped"].append((v.get("title") or vid, reason(e)))  # el resto del lote sigue
             files += mine
             done += len(job["kinds"])
-            self._set(job, pct=round(done / total * 100))
+            self._set(job, pct=round(done / total * 100, 1))
         if not files:
             raise RuntimeError(f"ningún video se pudo exportar ({job['skipped'][0][1]})" if job["skipped"]
                                else "nada que exportar")
@@ -292,8 +292,7 @@ class Exporter:
             if audio.suffix == f".{fmt}":
                 return audio
             out = out_dir / f"{vid}.orig.{fmt}"
-            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(audio), "-vn", *AUDIO_CODEC[fmt],
-                            str(out)], check=True)
+            self._convert(audio, out, fmt, prog, float(v.get("duration") or 0))
             return out
         # el MP4 lleva la mezcla en AAC (se copia tal cual); el audio suelto, en el formato elegido
         es = out_dir / f"{vid}.es.{fmt if kind == 'es_audio' else 'm4a'}"
@@ -326,6 +325,19 @@ class Exporter:
             subprocess.run(cmd, check=True, capture_output=True)
         prog(1.0)
         return out
+
+    @staticmethod
+    def _convert(src: Path, out: Path, fmt: str, prog, dur: float):
+        """Solo el audio, al formato pedido, informando el avance (un mix de horas tarda minutos)."""
+        p = subprocess.Popen(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-progress", "pipe:1", "-nostats",
+                              "-i", str(src), "-vn", *AUDIO_CODEC[fmt], str(out)],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        for line in p.stdout:
+            if dur > 0 and line.startswith("out_time_us=") and line[12:].strip().isdigit():
+                prog(min(1.0, int(line[12:]) / 1e6 / dur))
+        err = p.stderr.read()
+        if p.wait() != 0:
+            raise subprocess.CalledProcessError(p.returncode, "ffmpeg", stderr=err)
 
     def _make_text(self, kind, vid, v, out_dir: Path) -> Path:
         tr = self.store.open(vid)

@@ -1189,7 +1189,8 @@ function renderSearch() {
 function exportItem(x) {
   const label = cap(x.state === "listo" ? (x.skipped ? `listo · ${x.skipped} omitido${x.skipped > 1 ? "s" : ""} (ver omitidos.txt)` : "listo")
     : x.state === "error" ? (x.error || "error")
-    : x.detail ? `${x.detail}${x.state === "exportando" ? ` · ${x.pct} %` : ""}` : x.state);
+    // el porcentaje adelante: un título largo lo cortaría en el panel
+    : x.detail ? `${x.state === "exportando" ? `${x.pct} % · ` : ""}${x.detail}` : x.state);
   const done = x.state === "listo" || x.state === "error";
   return el("li", { class: "qitem" + (x.state === "exportando" ? " run" : "") },
     el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),

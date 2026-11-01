@@ -14,6 +14,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 - A batch export no longer fails entirely because of one video: if one can't be exported (for example, it was removed from YouTube and was never downloaded), it is skipped, the rest continue and the `.zip` includes `omitidos.txt` with the reason. Errors are shown in plain words instead of yt-dlp's raw text.
 - When part of a collection isn't downloaded, its header button is «Exportar descargados (N)» and exports only what is on your computer; before, «Exportar» exported the whole collection and tried to download from YouTube what was missing.
+- Exporting audio shows progress while each file is converted (a two-hour mix takes over a minute) and large batches show the percentage with one decimal and before the title, so the panel no longer looks stuck at 0 %.
 
 ## 1.5.0 · 2026-11-01
 
