@@ -132,7 +132,7 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `glossary_get`, `glossary_set` | Glosario. |
 | `search {q}` | Búsqueda en las transcripciones. |
 | `prefs_set {key, value}` | Cambiar una preferencia. |
-| `cookies_browsers`, `cookies_import`, `admin_*` | Sesión de YouTube, acceso, claves y webhooks (solo el dueño). |
+| `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | Sesión y cuenta de YouTube, acceso, claves y webhooks (solo el dueño; conectar la cuenta, solo desde el equipo donde corre Translay). |
 
 ### Del servidor al navegador
 
@@ -146,6 +146,7 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `library`, `library_changed`, `vaults`, `prefs`, `glossary` | Estado de la biblioteca, las bibliotecas, las preferencias y el glosario. |
 | `queue`, `exports` | Estado de la cola y de las exportaciones. |
 | `yt_progress`, `yt_ready`, `yt_queued`, `yt_error`, `yt_blocked` | Descargas de YouTube. |
+| `yt_need_account` | Un video con restricción de edad necesita la cuenta de YouTube; el aviso ofrece conectarla (solo el dueño). |
 | `search_results`, `comments`, `people`, `people_saved` | Respuestas de búsqueda, comentarios y personas. |
 | `denied` | El mensaje no está permitido para tu acceso. |
 

@@ -148,6 +148,70 @@ def test_cookies_import():
             pass
 
 
+def test_youtube_account_session():
+    """Cuenta conectada: solo se guarda lo de youtube.com, cifrado, y yt-dlp la recibe en memoria."""
+    import sys
+
+    from vt import ytsession
+    from vt.youtube import friendly_error
+
+    fake = [  # cookies inventadas: solo para la prueba
+        {"domain": ".youtube.com", "name": "__Secure-3PSID", "value": "falso1", "path": "/", "expires": 2000000000,
+         "secure": True, "httpOnly": True},
+        {"domain": ".youtube.com", "name": "PREF", "value": "f6=4", "path": "/", "expires": -1, "session": True},
+        {"domain": ".google.com", "name": "SID", "value": "falso2", "path": "/", "expires": 2000000000},
+        {"domain": ".banco-ejemplo.com", "name": "SESSION", "value": "no-se-guarda", "path": "/", "expires": -1},
+    ]
+    assert ytsession._logged_in(fake)
+    assert not ytsession._logged_in([c for c in fake if c["domain"] != ".youtube.com"])  # Google solo no basta
+    c = ytsession._cookie(fake[0])
+    assert c.domain == ".youtube.com" and c.secure and c.expires == 2000000000 and c.has_nonstandard_attr("HttpOnly")
+    assert ytsession._cookie(fake[1]).expires is None
+    assert "cuenta" in friendly_error(FileNotFoundError("cuenta de YouTube"), "cuenta")
+    assert "restricción de edad" in friendly_error(Exception("Sign in to confirm your age"), "ninguna")
+    if sys.platform != "win32":  # DPAPI es de Windows
+        return
+    with tempfile.TemporaryDirectory() as d:
+        s = ytsession.Session(Path(d))
+        assert not s.connected() and s.status()["connected"] is False
+        s.dir.mkdir()
+        assert s._save(fake) == 2                                    # solo youtube.com
+        raw = s.store.read_bytes()
+        assert b"falso1" not in raw and b"youtube" not in raw         # cifrado en disco
+        s._write_meta(browser="brave", renewed=1)
+        s._jar = None
+        assert {c.name for c in s.jar()} == {"__Secure-3PSID", "PREF"}
+        assert s.connected() and "ua" not in s.status()               # nada de la cuenta en el estado
+        s.mark_stale()
+        assert s.meta()["renewed"] == 0
+        s.store.write_bytes(b"no es DPAPI")                            # dañado: error claro, no sin sesión
+        s._jar = None
+        try:
+            s.jar()
+            raise AssertionError("debió fallar")
+        except ValueError as e:
+            assert "vuelve a conectarla" in str(e)
+
+
+def test_pending_titles():
+    """Los videos de YouTube que siguen con su id como nombre se buscan en todas las bibliotecas."""
+    import threading
+
+    from vt.library import Library
+    from vt.processor import Processor
+
+    with tempfile.TemporaryDirectory() as d:
+        lib = Library(Path(d) / "library.json")
+        lib.add_pending([{"id": "abcdefghijk"}, {"id": "bbbbbbbbbbb"}])
+        lib.set_field("yt_bbbbbbbbbbb", title="Ya tiene nombre")
+        p = Processor.__new__(Processor)  # sin modelos ni hilos: solo la búsqueda de pendientes
+        p.vaults, p.library, p._titles_wake = None, lib, threading.Event()
+        assert [v for _, v in p._pending_titles(set())] == ["yt_abcdefghijk"]
+        assert p._pending_titles({"yt_abcdefghijk"}) == []           # falló hace poco: espera
+        lib.rename_video("yt_abcdefghijk", "abcdefghijk")              # renombrado a mano: se respeta
+        assert p._pending_titles(set()) == []
+
+
 def test_playlist_library_and_srt():
     from vt.exporter import safe_name, srt
     from vt.library import Library

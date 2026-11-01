@@ -4,6 +4,26 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- «Seleccionar descargados (N)» (Select downloaded) in a collection's header selects only the videos already on your computer, leaving out the ones still in the queue, so you can export them (for example, only the audio) or move them.
+- Connect your YouTube account: «Conectar con Brave» (or your default browser) opens a window with Translay's own browser profile; you sign in once, close it, and downloads use that session. It renews itself before downloading if it's more than a week old and whenever YouTube asks to verify you are not a bot (the download is retried without the 20-minute pause). No extensions, no `cookies.txt` to export, and your everyday browser can stay open.
+- When YouTube asks to verify you are not a bot or a video is age-restricted, the notice offers «Conectar YouTube».
+
+### Fixed
+
+- Videos imported by link that kept their YouTube id as the name get their title and channel: the lookup now runs in the background over every library, resumes after a restart and retries every hour (before, it ran once and was lost if Translay closed or YouTube didn't answer).
+- On a phone, a group of options that didn't fit on one line became a misshapen pill: it now shows one option per row, and preferences with more than four options («Sesión para descargar») use a dropdown list.
+- On a phone, the header buttons stay on one row (the «Biblioteca» button no longer drops alone to a second row), and the header and the side pills no longer stretch on pages with little content.
+- In dark mode, switches use the same gray as the selected option instead of an almost white tone.
+- The notice with a button («Deshacer», «Conectar YouTube») no longer squeezes its text into half of a phone's width.
+
+### Security
+
+- The connected account keeps only the youtube.com cookies, encrypted with DPAPI and handed to yt-dlp in memory (no plain-text file). Translay talks to the browser over a private pipe, not a network port, only asks for cookies, never touches your everyday profile and stores nothing about the account. «Desconectar» signs out in Google and deletes the profile.
+
 ## 1.4.0 · 2026-10-28
 
 ### Added

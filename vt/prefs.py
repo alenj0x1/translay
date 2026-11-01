@@ -68,7 +68,7 @@ SCHEMA = [
      "default": True},
     {"key": "yt_session", "section": "youtube", "label": "Sesión para descargar", "type": "choice",
      "default": "ninguna",
-     "options": [["ninguna", "No usar"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
+     "options": [["ninguna", "No usar"], ["cuenta", "Cuenta conectada"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
                  ["edge", "Edge"], ["archivo", "Archivo cookies.txt"]]},
 ]
 # grupo (dentro de su página) y descripción de cada opción

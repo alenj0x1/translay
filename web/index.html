@@ -208,8 +208,14 @@
   <div class="prefs-body" id="prefs-body"></div>
 </section>
 
-<!-- importar sesión de YouTube: se muestra dentro de la sección YouTube de Preferencias -->
-<div id="stash" hidden><div class="pref yt-import" id="yt-import">
+<!-- cuenta e importar sesión de YouTube: se muestran dentro de la sección YouTube de Preferencias -->
+<div id="stash" hidden><div class="pref yt-account" id="yt-account">
+  <span class="pref-label">Cuenta de YouTube</span>
+  <div class="pref-ctl">
+    <div class="acts" id="yt-acc-acts"></div>
+    <small id="yt-acc-status"></small>
+  </div>
+</div><div class="pref yt-import" id="yt-import">
   <span class="pref-label">Importar sesión</span>
   <div class="pref-ctl">
     <div class="acts"><span class="contents" id="yt-browsers"></span><label class="btn sm" data-icon="upload">Subir cookies.txt<input type="file" id="cookies-file" accept=".txt,text/plain" hidden></label></div>

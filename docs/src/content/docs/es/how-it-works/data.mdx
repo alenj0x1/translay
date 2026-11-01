@@ -27,6 +27,7 @@ Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se 
   - auth.json contraseña del dueño (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)
   - webhooks.json webhooks con su URL, eventos, biblioteca y secreto de firma (`vt/webhooks.py`)
   - cookies.txt sesión de YouTube en formato Netscape, solo cookies de YouTube y Google (`vt/cookies.py`)
+  - yt-session/ cuenta de YouTube conectada: el perfil de navegador propio de Translay, las cookies de youtube.com cifradas con DPAPI (`cookies.bin`) y cuándo se renovó (`session.json`) (`vt/ytsession.py`)
   - libraries.json lista de bibliotecas (id y ruta absoluta) y la última abierta (`vt/vaults.py`)
   - exports/ exportaciones listas para descargar; al arrancar se borra lo que tenga más de 24 h
   - libraries/ carpeta por defecto de las bibliotecas nuevas
@@ -159,5 +160,5 @@ No hace falta respaldar `data/exports/` (se borra solo), `data/youtube/thumbs/`,
 <Aside type="caution">
 Las bibliotecas creadas en otra carpeta o disco **no** están dentro de `data/`: respáldalas aparte. `data/libraries.json` guarda rutas absolutas; si restauras en otro equipo, ábrelas con «Abrir carpeta».
 
-`cookies.txt` es tu sesión de YouTube y `webhooks.json` guarda en claro el secreto con que se firma cada webhook: trátalos como contraseñas.
+`cookies.txt` y `yt-session/` son tu sesión de YouTube y `webhooks.json` guarda en claro el secreto con que se firma cada webhook: trátalos como contraseñas.
 </Aside>

@@ -109,6 +109,29 @@ function el(tag, attrs = {}, ...kids) {
   return e;
 }
 
+// Grupos de opciones (.segs) que no caben en una fila: se marcan .wrapped (controls.css)
+// (se mide sin la marca, en una fila: así vuelve a la píldora si después hay espacio)
+const fitSegs = (s) => {
+  if (!s.isConnected || !s.firstElementChild) return;
+  s.classList.remove("wrapped");
+  s.classList.toggle("wrapped", s.offsetHeight > s.firstElementChild.offsetHeight * 1.6 + 6);
+};
+const segsFit = new ResizeObserver((entries) => {
+  for (const { target } of entries) {
+    if (!target.isConnected) { segsFit.unobserve(target); continue; }  // se redibujó: el nuevo se observa aparte
+    for (const s of target.querySelectorAll(":scope > .segs")) fitSegs(s);
+  }
+});
+const watchSegs = () => {
+  for (const s of document.querySelectorAll(".segs:not([data-fit])")) {
+    s.dataset.fit = "";
+    if (s.parentElement) segsFit.observe(s.parentElement);  // el espacio que tiene, no su propio alto
+    fitSegs(s);
+  }
+};
+new MutationObserver(watchSegs).observe(document.documentElement, { childList: true, subtree: true });
+watchSegs();
+
 // Botón del sistema. variant: "" | "dark" | "ghost" | "danger"; size: "" | "sm" | "xs".
 function btn(text, { icon: ic, variant = "", size = "sm", title, onClick, disabled, type = "button", href, cls = "", style } = {}) {
   const b = href

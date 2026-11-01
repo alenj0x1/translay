@@ -81,6 +81,6 @@ docker run … translay --host 0.0.0.0 --no-browser --translator nllb-1.3b
 
 <Aside type="caution" title="Lo que no funciona en el contenedor">
 - **Elegir carpeta** al crear una biblioteca: no hay ventana del sistema; escribe la ruta (dentro del contenedor, p. ej. en un volumen montado).
-- **Importar la sesión de un navegador**: el contenedor no ve tus navegadores; usa **Subir cookies.txt** ([YouTube](../../guide/youtube/)).
+- **Conectar tu cuenta de YouTube o importar la sesión de un navegador**: el contenedor no ve tus navegadores; usa **Subir cookies.txt** ([YouTube](../../guide/youtube/)).
 - **Acceso desde otros equipos** no aplica: lo decide el `-p` de Docker. Con `-p 127.0.0.1:8765:8765` solo entra este equipo.
 </Aside>

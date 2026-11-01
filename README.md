@@ -56,7 +56,7 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 - **Files from your machine**: videos and audio, by dragging them onto the page.
 - Import **straight into a collection or category**, **«Solo descargar»** (Download only; doesn't use the GPU) or **«Solo el audio»** (Audio only; faster, and the video is downloaded later if needed).
 - **A single server-side queue** that survives reloading or closing the tab: first the video you are watching, then prioritized items, then the rest. Pause, **«Priorizar»** (Prioritize), and a dedicated screen with states (Descargando, Procesando, En cola, Con error, Listos… — Downloading, Processing, Queued, Failed, Done).
-- **Careful downloads**: one at a time, spaced out, in order or at random; if YouTube asks you to verify you're not a bot, it pauses for 20 min without flagging errors and continues in careful mode. YouTube session with `cookies.txt` or from the installed browser.
+- **Careful downloads**: one at a time, spaced out, in order or at random; if YouTube asks you to verify you're not a bot, it pauses for 20 min without flagging errors and continues in careful mode. Connect your YouTube account once (its own browser profile, encrypted cookies, renewed automatically), or use `cookies.txt` or the installed browser.
 - **Browser notifications** when a download, a video, the queue or an export finishes.
 
 ### Library

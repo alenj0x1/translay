@@ -50,7 +50,7 @@ from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
 
 # lo que solo hace el dueño; lo que además de ver puede hacer quien tiene "importar"
-OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "queue_pause", "queue_resume", "queue_clear",
+OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "yt_disconnect", "queue_pause", "queue_resume", "queue_clear",
               "queue_unblock", "queue_remove", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete"}
@@ -269,7 +269,7 @@ class Session:
                         asyncio.create_task(self._delete(m))
                     elif self.library and m.get("type", "").startswith(("lib", "coll")):
                         await self._library(m)
-                    elif m.get("type") in ("cookies_browsers", "cookies_import"):
+                    elif m.get("type") in ("cookies_browsers", "cookies_import", "yt_connect", "yt_disconnect"):
                         asyncio.create_task(self._cookies(m))
                     elif m.get("type") == "prefs_set" and self.prefs:
                         key, value = str(m.get("key")), m.get("value")
@@ -612,8 +612,8 @@ class Session:
                 lib.register(vid, source="link", url=lk["url"], title=lk["name"])
             ids.append(vid)
         self._import_lang(ids, known, lang)
-        asyncio.create_task(self._fill_titles([i for i in ids if i.startswith("yt_")
-                                               and (lib.data["videos"].get(i) or {}).get("title") == i[3:]], lib))
+        if self.processor:  # los títulos se completan de a poco (Processor._titles_loop)
+            self.processor.kick_titles()
         if coll:
             for vid in ids:
                 lib.toggle(coll, vid, True)
@@ -666,28 +666,6 @@ class Session:
         self.notify({"type": "bg", "video": vid, "msg": {"type": "transcript", **tr.public(), "voice_refs": {},
                                                          "prefix": vault.prefix, "vault": vault.id}})
         self.notify({"type": "library_changed"})
-
-    async def _fill_titles(self, ids: list[str], lib=None):
-        """Título y canal de los videos recién importados, 3 consultas a la vez y con pausas."""
-        loop = asyncio.get_running_loop()
-        lib = lib or self.library
-        sem = asyncio.Semaphore(3)
-        done: dict[str, dict] = {}
-
-        async def one(vid):
-            async with sem:
-                info = await loop.run_in_executor(None, self.youtube.quick_info, vid[3:])
-                await asyncio.sleep(0.3)
-            if info.get("title") and info["title"] != vid[3:]:
-                done[vid] = {"title": info["title"], "channel": info.get("channel", "")}
-
-        for k in range(0, len(ids), 30):  # se guarda y se avisa cada 30
-            await asyncio.gather(*(one(v) for v in ids[k:k + 30]))
-            if done:
-                lib.set_fields({v: f for v, f in done.items()
-                                if (lib.data["videos"].get(v) or {}).get("title") == v[3:]})
-                done.clear()
-                self.notify({"type": "library_changed"})
 
     async def _playlist(self, url: str, lang: str = "en"):
         loop = asyncio.get_running_loop()
@@ -1086,7 +1064,8 @@ class Session:
         if t == "bg":
             return msg["msg"] if self.tr is not None and msg["video"] == self.tr.data["id"] else None
         if not self.access.owner:
-            if t in ("cookies", "webhooks", "webhooks_log", "glossary_applied", "admin", "yt_blocked", "perf", "restarting"):
+            if t in ("cookies", "webhooks", "webhooks_log", "glossary_applied", "admin", "yt_blocked", "yt_need_account", "perf",
+                     "restarting"):
                 return None
             if t == "queue":  # solo lo de sus bibliotecas
                 return {**msg, "jobs": [j for j in msg["jobs"] if self.access.can_view(j.get("lib") or "principal")]}
@@ -1221,14 +1200,15 @@ class Session:
     async def _cookies_status(self, extra: dict | None = None):
         from . import cookies
 
-        await self.ws.send_json({"type": "cookies", "browsers": cookies.detect(),
-                                 "status": cookies.status(self._cookies_path()), **(extra or {})})
+        await self.ws.send_json({**cookies.message(self._cookies_path()), **(extra or {})})
 
     async def _cookies(self, m: dict):
         from . import cookies
 
         if m["type"] == "cookies_browsers":
             return await self._cookies_status()
+        if m["type"] in ("yt_connect", "yt_disconnect"):
+            return await self._account(m)
         key = str(m.get("browser", ""))
         try:
             info = await asyncio.get_running_loop().run_in_executor(
@@ -1237,6 +1217,34 @@ class Session:
             return await self._cookies_status({"error": cookies.friendly(e, key)})
         self.cookies_imported(info)
         await self._cookies_status({"imported": info})
+
+    async def _account(self, m: dict):
+        """Conectar o desconectar la cuenta de YouTube. La ventana para iniciar sesión se
+        abre en el equipo donde corre Translay: solo desde ese equipo."""
+        from . import cookies, ytsession
+
+        if not self.access.local:
+            return await self._cookies_status({"error": "La cuenta de YouTube se conecta desde el equipo donde corre Translay."})
+        acc = ytsession.get(self._cookies_path().parent)
+        loop = asyncio.get_running_loop()
+        changed = lambda: self.notify(cookies.message(self._cookies_path()))  # noqa: E731 (desde el hilo)
+        try:
+            if m["type"] == "yt_disconnect":
+                await loop.run_in_executor(None, acc.disconnect, changed)
+                if self.prefs and self.prefs.values.get("yt_session") == "cuenta" and self.prefs.set("yt_session", "ninguna"):
+                    self.notify(self.prefs.public())
+                return await self._cookies_status({"disconnected": True})
+            key = str(m.get("browser") or next((b["key"] for b in ytsession.detect()), ""))
+            await loop.run_in_executor(None, acc.connect, key, changed)
+        except ytsession.Cancelled:
+            return await self._cookies_status({"cancelled": True})
+        except (ValueError, TimeoutError, OSError, RuntimeError) as e:
+            return await self._cookies_status({"error": str(e)})
+        if self.prefs and self.prefs.set("yt_session", "cuenta"):
+            self.notify(self.prefs.public())
+        if self.processor:
+            self.processor.unblock()
+        self.notify({**cookies.message(self._cookies_path()), "connected_now": True})
 
     def cookies_imported(self, info: dict):
         """Tras importar una sesión, las descargas pasan a usarla (y siguen si estaban en pausa)."""

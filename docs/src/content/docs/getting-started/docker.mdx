@@ -81,6 +81,6 @@ docker run … translay --host 0.0.0.0 --no-browser --translator nllb-1.3b
 
 <Aside type="caution" title="What doesn't work in the container">
 - **Choosing a folder** when creating a library: there is no system window; type the path (inside the container, e.g. on a mounted volume).
-- **Importing a browser session**: the container can't see your browsers; use **Subir cookies.txt** (Upload cookies.txt) ([YouTube](../../guide/youtube/)).
+- **Connecting your YouTube account or importing a browser session**: the container can't see your browsers; use **Subir cookies.txt** (Upload cookies.txt) ([YouTube](../../guide/youtube/)).
 - **Access from other machines** doesn't apply: Docker's `-p` decides it. With `-p 127.0.0.1:8765:8765` only this machine can connect.
 </Aside>

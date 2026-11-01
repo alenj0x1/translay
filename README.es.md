@@ -56,7 +56,7 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 - **Archivos de tu equipo**: videos y audios, arrastrándolos a la página.
 - Importar **directo a una colección o categoría**, «Solo descargar» (sin usar la GPU) o «Solo el audio» (más rápido; el video se baja después si hace falta).
 - **Una sola cola en el servidor** que sobrevive a recargar o cerrar la pestaña: primero el video que ves, después lo priorizado, después el resto. Pausa, «Priorizar», pantalla propia con estados (Descargando, Procesando, En cola, Con error, Listos…).
-- **Descargas cuidadosas**: una a la vez, espaciadas, en orden o al azar; si YouTube pide verificar que no eres un bot, pausa 20 min sin marcar errores y sigue en modo cuidadoso. Sesión de YouTube con `cookies.txt` o desde el navegador instalado.
+- **Descargas cuidadosas**: una a la vez, espaciadas, en orden o al azar; si YouTube pide verificar que no eres un bot, pausa 20 min sin marcar errores y sigue en modo cuidadoso. Conecta tu cuenta de YouTube una vez (perfil de navegador propio, cookies cifradas, se renueva sola), o usa `cookies.txt` o el navegador instalado.
 - **Avisos del navegador** al terminar una descarga, un video, la cola o una exportación.
 
 ### Biblioteca

@@ -109,12 +109,18 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
 /* ------------------------------------------------------------ celular */
 @media (max-width: 760px) {
   :root { --head-h: auto; --pad: 14px; }
-  body { overflow: auto; height: auto; min-height: 100%; grid-template-rows: auto auto !important; }
+  /* align-content: con poco contenido, el alto que sobra no estira el encabezado ni las píldoras */
+  body { overflow: auto; height: auto; min-height: 100%; grid-template-rows: auto auto !important; align-content: start; }
+  body.view-library .library, body.view-prefs .prefs-screen, body.view-queue .queue-screen { align-content: start; }
   .bar { position: sticky; top: 0; flex-wrap: wrap; height: auto; padding: 10px 12px; row-gap: 10px; }
   .side-btn { display: none; }
   .bar .brand { width: auto !important; }
   .bar .search { order: 10; flex: 1 1 100%; max-width: none; margin: 0; }
-  .bar .vault-wrap { margin-right: auto; }
+  /* los botones van siempre en la primera fila (ninguno baja solo): la biblioteca no cuenta
+     al repartir las filas (base 0) y toma el espacio que sobra, con su nombre recortado */
+  .bar .vault-wrap { flex: 1 1 0; min-width: 0; }
+  .bar .vault-btn { max-width: 100%; }
+  .bar .vault-btn .btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar .status { display: none; }
   body.view-library .library, body.view-prefs .prefs-screen, body.view-queue .queue-screen,
   body.side-mini.view-library .library, body.side-mini.view-prefs .prefs-screen, body.side-mini.view-queue .queue-screen {
@@ -140,6 +146,13 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   body .vbar, body .stage { grid-column: 1; }  /* gana a la de views/player.css, que se carga después */
   .vbar { flex-wrap: wrap; gap: var(--s2); }
   .vtitle { flex-basis: 100%; font-size: var(--fs-lg); white-space: normal; }
+}
+/* celular angosto: la marca sin su nombre e «Importar» solo con su ícono (como los demás) */
+@media (max-width: 520px) {
+  .bar .brand { gap: 0; padding: 0; font-size: 0; }
+  .bar .import-wrap > .btn .btn-text { display: none; }
+  .bar .import-wrap > .btn { min-width: var(--h-md); padding: 0 11px; }
+  .bar { column-gap: 6px; }
 }
 
 /* paneles del encabezado: se abren debajo de él, con aire (no encima del borde) */

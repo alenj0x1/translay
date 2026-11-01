@@ -132,7 +132,7 @@ Live audio goes over the same WebSocket as a binary message: little-endian `floa
 | `glossary_get`, `glossary_set` | Glossary. |
 | `search {q}` | Search across transcripts. |
 | `prefs_set {key, value}` | Change a preference. |
-| `cookies_browsers`, `cookies_import`, `admin_*` | YouTube session, access, keys and webhooks (owner only). |
+| `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | YouTube session and account, access, keys and webhooks (owner only; connecting the account, only from the machine running Translay). |
 
 ### Server to browser
 
@@ -146,6 +146,7 @@ Live audio goes over the same WebSocket as a binary message: little-endian `floa
 | `library`, `library_changed`, `vaults`, `prefs`, `glossary` | State of the library, the libraries, the preferences and the glossary. |
 | `queue`, `exports` | State of the queue and of the exports. |
 | `yt_progress`, `yt_ready`, `yt_queued`, `yt_error`, `yt_blocked` | YouTube downloads. |
+| `yt_need_account` | An age-restricted video needs the YouTube account; the notice offers to connect it (owner only). |
 | `search_results`, `comments`, `people`, `people_saved` | Search, comment and people responses. |
 | `denied` | The message isn't allowed for your access. |
 

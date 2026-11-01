@@ -12,6 +12,8 @@ import threading
 from collections import defaultdict
 from pathlib import Path
 
+from . import ytsession
+
 _ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([A-Za-z0-9_-]{11})")
 _LIST = re.compile(r"[?&]list=([A-Za-z0-9_-]{10,})")
 
@@ -28,6 +30,25 @@ def video_id(url: str) -> str | None:
         return url
     m = _ID.search(url)
     return m.group(1) if m else None
+
+
+class _Log:
+    """Logger de yt-dlp en silencio; solo atiende el aviso de cookies vencidas."""
+
+    def __init__(self, session):
+        self.session = session
+
+    def debug(self, msg):
+        pass
+
+    info = debug
+
+    def warning(self, msg):
+        if "cookies are no longer valid" in msg:
+            self.session.mark_stale()
+
+    def error(self, msg):
+        pass
 
 
 class YouTube:
@@ -134,7 +155,7 @@ class YouTube:
             raise ValueError("no es un enlace de playlist")
         opts = {"extract_flat": "in_playlist", "quiet": True, "no_warnings": True,
                 "js_runtimes": {"node": {}}, **self._session_opts(session)}
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        with self._ydl(opts, session) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/playlist?list={pid}", download=False)
         entries, seen = [], set()
         for e in info.get("entries") or []:
@@ -161,12 +182,12 @@ class YouTube:
 
         base = {"quiet": True, "no_warnings": True, "skip_download": True, "js_runtimes": {"node": {}},
                 **self._session_opts(session)}
-        with yt_dlp.YoutubeDL({**base, "noplaylist": True}) as ydl:
+        with self._ydl({**base, "noplaylist": True}, session) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=False, process=False)
         url = info.get("channel_url") or (f"https://www.youtube.com/channel/{info['channel_id']}" if info.get("channel_id") else "")
         if not url:
             raise ValueError("el video no dice de qué canal es")
-        with yt_dlp.YoutubeDL({**base, "extract_flat": True, "playlist_items": "0"}) as ydl:
+        with self._ydl({**base, "extract_flat": True, "playlist_items": "0"}, session) as ydl:
             ch = ydl.extract_info(url, download=False)
         thumbs = {t.get("id"): t.get("url") for t in ch.get("thumbnails") or [] if t.get("url")}
         got = {}
@@ -187,9 +208,15 @@ class YouTube:
         return got
 
     def _session_opts(self, session: str) -> dict:
-        """Sesión de YouTube de la persona, solo si la eligió en Preferencias: su
+        """Sesión de YouTube de la persona, solo si la eligió en Preferencias: la cuenta
+        conectada (vt/ytsession.py, sus cookies se cargan en memoria en _ydl), su
         navegador (Firefox se puede leer abierto; los de tipo Chrome bloquean sus
         cookies mientras están abiertos) o un cookies.txt exportado en data/."""
+        if session == "cuenta":
+            if not ytsession.get(self.cookies.parent).connected():
+                raise FileNotFoundError("cuenta de YouTube")
+            # yt-dlp avisa (warning) si YouTube dio las cookies por vencidas: se renuevan antes de la próxima
+            return {"no_warnings": False, "logger": _Log(ytsession.get(self.cookies.parent))}
         if session == "archivo":
             path = self.cookies
             if not path.exists():
@@ -198,6 +225,16 @@ class YouTube:
         if session in ("firefox", "brave", "chrome", "edge"):
             return {"cookiesfrombrowser": (session,)}
         return {}
+
+    def _ydl(self, opts: dict, session: str):
+        """yt_dlp.YoutubeDL con la cuenta conectada, si es la sesión elegida."""
+        import yt_dlp
+
+        ydl = yt_dlp.YoutubeDL(opts)
+        if session == "cuenta":
+            for c in ytsession.get(self.cookies.parent).jar():
+                ydl.cookiejar.set_cookie(c)
+        return ydl
 
     def _extras(self, vid: str, download: bool, hook=None, pp_hook=None, session: str = "ninguna",
                 audio_only: bool = False) -> dict:
@@ -223,7 +260,7 @@ class YouTube:
             "sleep_interval_requests": 1 if getattr(self, "careful", False) else 0,  # cuidadoso: sin ráfagas
             **self._session_opts(session),
         }
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        with self._ydl(opts, session) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=True)
         thumb = self.root / f"{vid}.jpg"
         if not thumb.exists():  # sin descarga, yt-dlp no convierte la miniatura (queda webp/png)
@@ -244,8 +281,11 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
     browser = {"brave": "Brave", "chrome": "Chrome", "edge": "Edge", "firefox": "Firefox"}.get(session, session)
     if "confirm you" in msg and "bot" in msg:
         if session == "ninguna":
-            return ("YouTube pidió verificar que no eres un bot. En Preferencias → «Sesión de YouTube» usa "
-                    "«Archivo cookies.txt» (con Brave, Chrome o Edge abiertos es lo que funciona), o espera unas horas.")
+            return ("YouTube pidió verificar que no eres un bot. Conecta tu cuenta de YouTube en "
+                    "Preferencias → YouTube, o espera unas horas.")
+        if session == "cuenta":
+            return ("YouTube sigue pidiendo verificación con tu cuenta conectada: espera unas horas o "
+                    "vuelve a conectarla en Preferencias → YouTube.")
         return (f"YouTube sigue pidiendo verificación con la sesión de {browser}: revisa que hayas iniciado "
                 "sesión en YouTube en ese navegador.")
     if "Could not copy" in msg and "cookie" in msg:
@@ -254,6 +294,11 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
     if "decrypt" in msg.lower() or "app-bound" in msg.lower():
         return (f"{browser} cifra sus cookies y no se pueden leer desde aquí. Usa Firefox o exporta un "
                 "cookies.txt (Preferencias → «Archivo cookies.txt»).")
+    if "confirm your age" in msg:
+        return ("El video tiene restricción de edad: hace falta tu cuenta de YouTube (Preferencias → YouTube)."
+                if session != "cuenta" else "El video tiene restricción de edad y tu cuenta no puede verlo.")
+    if isinstance(e, FileNotFoundError) and "cuenta de YouTube" in msg:
+        return "La cuenta de YouTube no está conectada: conéctala en Preferencias → YouTube."
     if isinstance(e, FileNotFoundError) and "cookies.txt" in msg:
         return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
     if "playlist" in msg.lower() and ("does not exist" in msg or "private" in msg.lower()):

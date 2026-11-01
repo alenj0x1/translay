@@ -381,6 +381,10 @@ function renderShelfHead(c) {
       btn("Abrir en YouTube", { icon: "external", href: c.url }));
   }
   if (c.items.length) {
+    // solo lo que ya está en el equipo (con su audio), sin lo que sigue en la cola: para exportarlo o moverlo
+    const got = downloaded(c.items);
+    if (got.length && got.length < c.items.length) acts.append(btn(`Seleccionar descargados (${got.length})`, {
+      icon: "check", onClick: () => { for (const id of got) lib.picked.add(id); renderLibrary(); } }));
     acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name) }));
     const ao = audioOnly(c.items);
     if (ao.length) acts.append(btn(`Bajar video de ${ao.length === 1 ? "1 que" : `${ao.length} que`} solo ${ao.length === 1 ? "tiene" : "tienen"} audio`, {
@@ -413,6 +417,8 @@ function renderShelfHead(c) {
 }
 
 const pickedIn = (c) => c.items.filter((id) => lib.picked.has(id));
+// los que ya se descargaron (tienen su audio o video en el equipo)
+const downloaded = (ids) => ids.filter((id) => lib.videos[id]?.media);
 // los que se descargaron solo con el audio (y aún no se pidió su video)
 const audioOnly = (ids) => ids.filter((id) => lib.videos[id]?.audio_only && isRemote(lib.videos[id]) && !jobOf(id)?.fetch_video);
 

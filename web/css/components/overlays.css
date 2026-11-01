@@ -73,7 +73,9 @@
 /* --------------------------------------------------------------- aviso */
 .toast {
   position: fixed; left: 50%; bottom: var(--s6); transform: translateX(-50%); z-index: 80;
-  display: flex; align-items: center; gap: var(--s3); max-width: min(620px, calc(100vw - 32px)); padding: var(--s3) var(--s4);
+  /* max-content: centrado con left 50 %, sin esto el ancho se queda en la mitad de la pantalla */
+  display: flex; align-items: center; gap: var(--s3); width: max-content; max-width: min(620px, calc(100vw - 32px));
+  padding: var(--s3) var(--s4);
   border-radius: var(--r-md); background: var(--raised); color: var(--fg); box-shadow: var(--menu-shadow);
   font: 600 var(--fs-md)/1.4 var(--font); cursor: pointer;
 }

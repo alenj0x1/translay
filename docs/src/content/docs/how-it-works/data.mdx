@@ -27,6 +27,7 @@ JSON files are written atomically: first a `.tmp` next to it, then the original 
   - auth.json owner password (scrypt), sessions (SHA-256 of the token), API keys (SHA-256) and network access (`vt/auth.py`)
   - webhooks.json webhooks with their URL, events, library and signing secret (`vt/webhooks.py`)
   - cookies.txt YouTube session in Netscape format, only YouTube and Google cookies (`vt/cookies.py`)
+  - yt-session/ connected YouTube account: Translay's own browser profile, the youtube.com cookies encrypted with DPAPI (`cookies.bin`) and when it was renewed (`session.json`) (`vt/ytsession.py`)
   - libraries.json list of libraries (id and absolute path) and the last one opened (`vt/vaults.py`)
   - exports/ exports ready to download; at startup anything older than 24 h is deleted
   - libraries/ default folder for new libraries
@@ -159,5 +160,5 @@ You don't need to back up `data/exports/` (it cleans itself), `data/youtube/thum
 <Aside type="caution">
 Libraries created in another folder or disk are **not** inside `data/`: back them up separately. `data/libraries.json` stores absolute paths; if you restore on another computer, open them with "Abrir carpeta".
 
-`cookies.txt` is your YouTube session and `webhooks.json` stores in plain text the secret used to sign each webhook: treat them like passwords.
+`cookies.txt` and `yt-session/` are your YouTube session and `webhooks.json` stores in plain text the secret used to sign each webhook: treat them like passwords.
 </Aside>

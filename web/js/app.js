@@ -159,8 +159,16 @@ function onMessage(m) {
     case "trash": trashUpdate(m); break;
     case "trash_restored": trashRestored(m); break;
     case "yt_blocked":
-      toast("YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min. "
-        + "Si sigue, renueva las cookies en Preferencias → YouTube.", "warn");
+      if (canConnectYouTube(m.account) && m.session !== "cuenta")
+        toast("YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min.", "warn",
+          { label: "Conectar YouTube", onClick: () => connectYouTube() });
+      else toast(m.account?.expired ? "Tu sesión de YouTube se cerró: las descargas se pausan 20 min." : m.error, "warn",
+        m.account?.expired && canConnectYouTube(m.account) ? { label: "Volver a conectar", onClick: () => connectYouTube() } : null);
+      break;
+    case "yt_need_account":
+      if (canConnectYouTube(m.account))
+        toast("Un video tiene restricción de edad: hace falta tu cuenta de YouTube.", "warn",
+          { label: "Conectar YouTube", onClick: () => connectYouTube() });
       break;
     case "library_changed":
       send({ type: "library" });
@@ -1594,6 +1602,7 @@ function applyPrefs(m) {
 }
 
 const YT_IMPORT = $("#yt-import");
+const YT_ACCOUNT = $("#yt-account");
 // Preferencias como en una app: las secciones a la izquierda (una página cada una) y,
 // en la página, las opciones agrupadas con su descripción. Los bloques propios
 // (bibliotecas, glosario, sesión de YouTube, acceso) van como un grupo más.
@@ -1601,7 +1610,8 @@ const PREF_BLOCKS = {
   escritorio: () => desktopPrefsBlocks(),
   bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
   glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
-  youtube: () => [[YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
+  youtube: () => [[YT_ACCOUNT, "Cuenta de YouTube", "Inicias sesión una vez en una ventana aparte del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva solo. Mejor con una cuenta secundaria."],
+    [YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
   rendimiento: () => {
     perfStart();
     renderPerf();
@@ -1627,6 +1637,13 @@ function prefControl(p) {
     return el("button", { type: "button", class: "switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), "aria-label": p.label,
       on: { click: () => { setPref(p.key, !on); if (p.key === "notify" && !on) requestNotify(); renderPrefs(); } } }, el("i"));
   }
+  if (opts.length > 4) {  // muchas opciones: lista desplegable (como grupo no caben en una fila)
+    // el <option> guarda la posición: el valor vuelve con su tipo (número, texto…)
+    const sel = el("select", { class: "select", "aria-label": p.label,
+      on: { change: (e) => { setPref(p.key, opts[+e.target.value][0]); renderPrefs(); } } },
+      ...opts.map(([value, text], i) => el("option", { value: String(i), text, selected: prefs[p.key] === value })));
+    return el("div", { class: "pref-dd" }, sel);
+  }
   return el("div", { class: "segs" }, ...opts.map(([value, text]) => el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : ""),
     on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, text)));
 }
@@ -1645,7 +1662,7 @@ function renderPrefs() {
     }
     return;
   }
-  $("#stash").append(YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, TRASH_BLOCK, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
+  $("#stash").append(YT_ACCOUNT, YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, TRASH_BLOCK, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
     ...Object.values(ACC));  // se vuelven a poner en su página
   if (!prefsSections.length) return;
   if (!prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = prefsSections[0][0];
@@ -1761,8 +1778,57 @@ function toast(text, kind = "error", action = null) {
 $("#toast").addEventListener("click", () => { $("#toast").hidden = true; });
 
 /* ------------------------------------------------------------ sesión de YouTube */
-// Importarla desde un navegador detectado o subir el cookies.txt exportado.
+// La cuenta conectada (vt/ytsession.py): se inicia sesión una vez en una ventana del
+// navegador con un perfil propio de Translay y desde ahí se renueva sola. O, a mano,
+// importarla desde un navegador detectado o subir el cookies.txt exportado.
+const ytAcc = { status: null, browser: null };
+const canConnectYouTube = (a) => !!a?.available && !!a.browsers?.length && state.access.local && state.access.owner;
+
+function connectYouTube(key = ytAcc.browser || ytAcc.status?.browser || ytAcc.status?.browsers?.[0]?.key) {
+  send({ type: "yt_connect", browser: key });
+}
+
+function renderAccount(a) {
+  ytAcc.status = a;
+  const browsers = a.browsers || [];
+  if (!browsers.some((b) => b.key === ytAcc.browser)) ytAcc.browser = a.browser && browsers.some((b) => b.key === a.browser)
+    ? a.browser : browsers[0]?.key || null;
+  const name = (browsers.find((b) => b.key === ytAcc.browser) || {}).name || "";
+  const acts = $("#yt-acc-acts"), status = $("#yt-acc-status");
+  acts.replaceChildren();
+  YT_ACCOUNT.hidden = !a.available;
+  if (!a.available) return;
+  const busy = { conectando: "Esperando inicio de sesión…", renovando: "Renovando…", desconectando: "Desconectando…" }[a.busy];
+  if (a.connected && !a.expired) {
+    acts.append(btn(busy || "Desconectar", { icon: "x", disabled: !!busy || !state.access.local,
+      onClick: () => send({ type: "yt_disconnect" }) }));
+    status.textContent = `Conectada con ${a.browser_name} · renovada ${ago(a.renewed)}`;
+    return;
+  }
+  if (!browsers.length) {
+    status.textContent = "No hay un navegador compatible (Brave, Chrome, Edge, Vivaldi o Chromium): usa «Subir cookies.txt».";
+    return;
+  }
+  const label = busy || (a.expired ? `Volver a conectar con ${name}` : `Conectar con ${name}`);
+  const main = btn(label, { icon: "user", variant: "dark", disabled: !!busy || !state.access.local, onClick: () => connectYouTube() });
+  acts.append(browsers.length > 1 && !busy ? el("div", { class: "split sm" }, main,
+    btn("Elegir navegador", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Elegir navegador",
+      disabled: !state.access.local,
+      onClick: (e) => {
+        e.stopPropagation();
+        openMenu(browsers.map((b) => ({ label: b.name, check: b.key === ytAcc.browser,
+          onClick: () => { ytAcc.browser = b.key; renderAccount(ytAcc.status); } })), e.currentTarget.closest(".split").getBoundingClientRect());
+      } })) : main);
+  status.textContent = !state.access.local ? "Se conecta desde el equipo donde corre Translay."
+    : a.busy === "conectando" ? `Inicia sesión en YouTube en la ventana de ${name} y ciérrala.`
+    : a.expired ? "La sesión se cerró en YouTube." : "Sin cuenta conectada";
+}
+
 function renderCookies(m) {
+  if (m.account) renderAccount(m.account);
+  if (m.connected_now) toast("Cuenta de YouTube conectada. Las descargas ya la usan.", "ok");
+  if (m.disconnected) toast("Cuenta de YouTube desconectada y borrada de este equipo.", "ok");
+  if (m.cancelled) toast("Se cerró la ventana sin iniciar sesión en YouTube.", "warn");
   const box = $("#yt-browsers");
   box.replaceChildren();
   for (const b of m.browsers) {

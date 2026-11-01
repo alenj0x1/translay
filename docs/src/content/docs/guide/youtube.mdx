@@ -14,7 +14,7 @@ Translay downloads YouTube videos with yt-dlp into the library's `youtube/` fold
 - **Video and audio**: an MP4 in H.264 and AAC up to 720p, which any browser plays without conversion, plus the audio track as M4A, which is what gets processed.
 - **Audio only**, if you chose it in Preferences › Importar y descargas › **Qué descargar** (What to download): just the M4A. The video can be downloaded later (see [Import](../import/#audio-only)).
 
-With each video, its title, channel, duration, categories and thumbnail are saved. When you import many links, the title and channel arrive before downloading, through a public query to YouTube.
+With each video, its title, channel, duration, categories and thumbnail are saved. When you import many links, they show up right away with their YouTube id and the title and channel arrive little by little before downloading, through a public query to YouTube (3 at a time, with pauses). If Translay closes halfway or YouTube doesn't answer, it picks up where it left off on the next start and retries every hour, in every library.
 
 ## Download stages
 
@@ -34,33 +34,64 @@ On the card, the play button is replaced by a ring with the percentage while dow
 
 ## YouTube session
 
-Without a session, YouTube lets you download most videos, but not age-restricted ones, and asks for verification more often. In Preferences › YouTube › **Sesión para descargar** (Session for downloading) you choose which one to use:
+Without a session, YouTube lets you download most videos, but not age-restricted ones, and asks for verification more often. The recommended way is to **connect your YouTube account**: you sign in once and Translay keeps the session up to date on its own.
+
+### Connect your YouTube account
+
+In Preferences › YouTube › **Cuenta de YouTube** (YouTube account):
+
+<Steps>
+
+1. Press **Conectar con Brave** (Connect with Brave, or whichever browser it says). It uses your default browser if it's supported (Brave, Chrome, Edge, Vivaldi or Chromium); the arrow next to it picks another one.
+
+2. A window of that browser opens on the Google sign-in page. Sign in to YouTube as usual, including two-step verification.
+
+3. **Close the window.** Translay reads the session, **Sesión para descargar** switches on its own to **Cuenta conectada** (Connected account) and, if downloads were paused because of a verification, they continue right away.
+
+</Steps>
+
+Below you see the status: "Conectada con Brave · renovada hace 2 h" (Connected with Brave · renewed 2 h ago). There are no files to export, no extensions to install, and you don't have to close your everyday browser.
+
+Translay offers to connect it when it's needed: if YouTube asks you to verify you are not a bot or a video is age-restricted, the notice comes with a **Conectar YouTube** (Connect YouTube) button.
+
+**Automatic renewal.** Before downloading, if the session is more than a week old, and whenever YouTube asks you to verify you are not a bot, Translay opens the same profile without a window, loads YouTube (so Google renews the session) and reads the cookies again. If it was a verification, the download is retried without the 20-minute pause. If yt-dlp warns that the cookies expired, they are renewed before the next download. If you signed out in Google, the notice comes with **Volver a conectar** (Connect again).
+
+**Desconectar** (Disconnect) signs out in Google (so any copied cookies stop working) and deletes the profile and the cookies from this machine.
+
+<Aside type="tip">
+Using your session to download goes against YouTube's terms, and there are reports of accounts restricted for downloading a lot. Better connect a secondary account.
+</Aside>
+
+#### How it's protected
+
+- **A separate profile.** The window uses Translay's own browser profile in `data/yt-session/profile`, with no sync, no browser account and no saved passwords. Translay never reads your everyday profile (passwords, history, other sessions).
+- **No control while you sign in.** The window is the browser as is: Google doesn't allow signing in on a browser controlled by another program. Translay reads the cookies afterwards, without a window.
+- **A private channel, no network port.** To read the cookies, Translay opens the profile without a window and talks to the browser over a channel between the two processes (`--remote-debugging-pipe`), not a port: no other program on the machine can connect. It only asks for the cookies; it never runs code in pages or reads their content.
+- **The minimum.** Only the `youtube.com` cookies are kept; nothing about the email, name or channel. After each use, history, cache and everything else that isn't cookies is deleted from the profile.
+- **Encrypted.** The cookies stay in `data/yt-session/cookies.bin`, encrypted with DPAPI: only your Windows user on this machine can decrypt them. They are handed to yt-dlp in memory, without writing a plain-text `cookies.txt`.
+- **Owner only, from this machine.** Connecting and disconnecting is done by the owner from the machine running Translay (the window opens there). Someone connecting from another machine or with a shared library sees, at most, whether an account is connected.
+
+The code is in `vt/ytsession.py`. It only works on Windows; in Docker or on another system, use **Subir cookies.txt** (Upload cookies.txt).
+
+### Other sessions
+
+In Preferences › YouTube › **Sesión para descargar** (Session for downloading) you choose which one to use:
 
 | Option | What it does |
 |---|---|
 | **No usar** (Don't use; default) | Downloads without a session. |
+| **Cuenta conectada** (Connected account) | Uses the connected account (above). |
 | **Firefox, Brave, Chrome o Edge** | Reads that browser's session on each download. |
 | **Archivo cookies.txt** (cookies.txt file) | Uses the session imported into `data/cookies.txt`. |
 
-**Recommended: the `cookies.txt` file.** Chrome-based browsers (Brave, Chrome, Edge) lock their cookies while open and recent versions encrypt them, so reading them on each download often fails.
+Reading a browser's session on each download often fails: Chrome-based browsers (Brave, Chrome, Edge) lock their cookies while open and recent versions encrypt them with a key only the browser itself uses.
 
-### Import the session
+**Importar sesión** (Import session) offers two manual paths:
 
-On the same page, **Importar sesión** (Import session) offers two paths:
+- **Subir cookies.txt** (Upload cookies.txt): with your YouTube session signed in on your browser, export the youtube.com cookies with a `cookies.txt` export extension and upload them with this button. It works with the browser open. Be careful with extensions: some turned out to steal cookies.
+- **Importar de** (Import from) and the browser name: reads the session once. Firefox can be read while open; the others must be closed first, and if they encrypt their cookies the message will ask you to use **Subir cookies.txt**.
 
-<Steps>
-
-1. **Subir cookies.txt** (Upload cookies.txt; recommended on Windows). With your YouTube session signed in on your browser, export the youtube.com cookies with a `cookies.txt` export extension (for example "Get cookies.txt LOCALLY") and upload them with this button. It works with the browser open.
-
-2. **Importar de** (Import from) and the browser name: a button appears for each installed browser that Translay finds (Brave, Chrome, Edge, Firefox, Opera, Vivaldi or Chromium). It reads the session once. Firefox can be read while open; the others must be closed first, and if they encrypt their cookies the message will ask you to use **Subir cookies.txt**.
-
-</Steps>
-
-Below you see the status: how many cookies there are, whether they have a signed-in session and when they were imported. If cookies are imported without a signed-in session, a notice says so: sign in to YouTube in that browser and import again.
-
-On import, **Sesión para descargar** switches on its own to **Archivo cookies.txt** and, if downloads were paused because of a verification, they continue right away. If the cookies expire, export and upload them again.
-
-Only YouTube and Google cookies are saved, in `data/cookies.txt`, which is shared by all libraries and never leaves your machine (`data/` is not tracked by git). The code is in `vt/cookies.py`.
+Below you see the status: how many cookies there are, whether they have a signed-in session and when they were imported. On import, **Sesión para descargar** switches on its own to **Archivo cookies.txt**. If the cookies expire, export and upload them again. Only YouTube and Google cookies are saved, in `data/cookies.txt` (`vt/cookies.py`).
 
 ## If YouTube asks you to verify you are not a bot
 
@@ -70,7 +101,7 @@ After many downloads in a row, YouTube may block your connection for a few hours
 - Downloads pause for 20 minutes without marking any video as failed, and then continue in careful mode, more spaced out.
 - What has already been downloaded keeps being processed normally.
 
-To continue sooner, import a new session or use **Reintentar descargas** (Retry downloads) on the Queue screen. If the notice comes back with the session in place, check that you signed in to YouTube in that browser. More detail in [Queue](../queue/#if-youtube-asks-you-to-verify-you-are-not-a-bot).
+With the account connected, Translay renews the session and keeps going without the pause; if there is no account, the notice offers **Conectar YouTube** (Connect YouTube). To continue sooner, connect it, import a new session or use **Reintentar descargas** (Retry downloads) on the Queue screen. More detail in [Queue](../queue/#if-youtube-asks-you-to-verify-you-are-not-a-bot).
 
 <Aside type="caution">
 yt-dlp needs Node.js in the `PATH` to solve YouTube's JavaScript challenge. See [Installation](../../getting-started/install/).

@@ -275,8 +275,7 @@ def main():
         if prefs.set("yt_session", "archivo"):
             notify(prefs.public())
         processor.unblock()  # cookies nuevas: las descargas en pausa siguen
-        notify({"type": "cookies", "browsers": cookies.detect(),
-                "status": cookies.status(DATA / "cookies.txt"), "imported": info})
+        notify({**cookies.message(DATA / "cookies.txt"), "imported": info})
         return 200, "OK"
 
     dubber, tts = None, None

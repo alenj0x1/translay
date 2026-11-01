@@ -84,9 +84,11 @@ class Processor:
         self._audio = (None, None)  # último audio decodificado (para saltos sin redecodificar)
         self._cond = threading.Condition()
         self._last_note = 0.0
+        self._titles_wake = threading.Event()
         threading.Thread(target=self._loop, daemon=True).start()
         if youtube:
             threading.Thread(target=self._download_loop, daemon=True).start()
+            threading.Thread(target=self._titles_loop, daemon=True).start()
 
     # ------------------------------------------------------------------ API
     def _job(self, vid):
@@ -261,6 +263,58 @@ class Processor:
     def _has_media(self, vid: str) -> bool:
         return bool((self.library.data["videos"].get(vid) or {}).get("media"))
 
+    # ------------------------------------------------------------- títulos
+    def kick_titles(self):
+        """Videos recién importados: sus títulos se buscan ya (sin esperar la próxima vuelta)."""
+        self._titles_wake.set()
+
+    def _pending_titles(self, skip: set) -> list[tuple]:
+        """(biblioteca, video) de YouTube que todavía se llaman por su id, en todas las bibliotecas."""
+        libs = [v.library for v in self.vaults.all()] if self.vaults else [self.library]
+        return [(lib, vid) for lib in libs for vid, v in list(lib.data["videos"].items())
+                if vid.startswith("yt_") and vid not in skip and v.get("title") == vid[3:] and not v.get("renamed")]
+
+    def _titles_loop(self):
+        """Título y canal de los videos que se importaron solo con su enlace.
+
+        Al importar miles de enlaces aparecen al instante con su id; acá se completan de
+        a poco (3 consultas a la vez, con pausas: miles juntas son la ráfaga que YouTube
+        marca). Como recorre la biblioteca, lo que quedó a medias (servidor cerrado,
+        YouTube que no respondió) se retoma al volver a abrir y se reintenta cada hora."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        failed: dict[str, float] = {}  # video → cuándo reintentar
+        pool = ThreadPoolExecutor(3)
+
+        def one(vid):
+            info = self.youtube.quick_info(vid[3:])
+            time.sleep(0.3)
+            return info
+
+        while True:
+            now = time.time()
+            for vid in [v for v, t in failed.items() if t <= now]:
+                failed.pop(vid)
+            pending = self._pending_titles(set(failed))
+            if not pending:
+                self._titles_wake.wait(timeout=min([t - now for t in failed.values()] + [3600]))
+                self._titles_wake.clear()
+                continue
+            for k in range(0, len(pending), 30):  # se guarda y se avisa cada 30
+                chunk = pending[k:k + 30]
+                infos = pool.map(lambda p: one(p[1]), chunk)
+                changes: dict = {}
+                for (lib, vid), info in zip(chunk, infos):
+                    if info.get("title") and info["title"] != vid[3:]:
+                        changes.setdefault(lib, {})[vid] = {"title": info["title"], "channel": info.get("channel", "")}
+                    else:
+                        failed[vid] = time.time() + 3600
+                for lib, ch in changes.items():
+                    # solo si sigue con el id (se pudo descargar o renombrar mientras tanto)
+                    lib.set_fields({v: f for v, f in ch.items() if (lib.data["videos"].get(v) or {}).get("title") == v[3:]})
+                if changes:
+                    self.notify({"type": "library_changed"})
+
     # ------------------------------------------------------------- descargas
     def unblock(self):
         """Cookies nuevas: las descargas siguen sin esperar el fin de la pausa."""
@@ -271,6 +325,16 @@ class Processor:
                 j.pop("retry_at", None)
             self._cond.notify_all()
         self._broadcast()
+
+    def _account(self):
+        from . import ytsession
+
+        return ytsession.get(self.youtube.cookies.parent)
+
+    def _account_changed(self):
+        from . import cookies
+
+        self.notify(cookies.message(self.youtube.cookies))
 
     def _next_download(self):
         # la pausa de la cola es del procesamiento (GPU); las descargas no la usan y siguen
@@ -326,6 +390,11 @@ class Processor:
                     self._broadcast()
 
             try:
+                if self.session() == "cuenta":  # cuenta conectada: se renueva si pasó una semana
+                    try:
+                        self._account().ensure_fresh(self._account_changed)
+                    except OSError as e:  # no es culpa del video: se descarga con las que hay
+                        print(f"[youtube] no se pudo renovar la sesión: {e}", flush=True)
                 audio_only = bool(job.get("audio_only")) and not job.get("fetch_video")
                 vault = self._vault(vid)  # se descarga en la carpeta de su biblioteca
                 if vault:
@@ -352,13 +421,21 @@ class Processor:
                 job.pop("dl", None)
                 msg = str(e)
                 if "confirm you" in msg and "bot" in msg:
-                    # verificación de YouTube: todas las descargas esperan; el video no queda en error
-                    self.blocked_until = time.time() + BLOCK_PAUSE_S
                     self.careful = True
-                    self.notify({"type": "yt_blocked", "until": self.blocked_until,
-                                 "error": friendly_error(e, self.session())})
-                    events.emit("youtube.bloqueo", until=self.blocked_until)
+                    # con la cuenta conectada se renueva la sesión y se sigue sin la pausa
+                    if self.session() == "cuenta" and self._account().renew(self._account_changed):
+                        job["retry_at"] = time.time() + random.uniform(*CAREFUL_GAP_S)
+                    else:
+                        # verificación de YouTube: todas las descargas esperan; el video no queda en error
+                        self.blocked_until = time.time() + BLOCK_PAUSE_S
+                        self.notify({"type": "yt_blocked", "until": self.blocked_until,
+                                     "error": friendly_error(e, self.session()), "session": self.session(),
+                                     "account": self._account().status()})
+                        events.emit("youtube.bloqueo", until=self.blocked_until)
                 else:
+                    if "confirm your age" in msg and self.session() != "cuenta":
+                        self.notify({"type": "yt_need_account", "reason": "edad",
+                                     "account": self._account().status()})
                     job["attempts"] = job.get("attempts", 0) + 1
                     if job["attempts"] >= MAX_ATTEMPTS:
                         job.pop("fetch_video", None)

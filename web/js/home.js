@@ -6,10 +6,13 @@
 /* ------------------------------------------------------------ acento: el color de la biblioteca */
 function applyAccent(color) {
   const root = document.documentElement.style;
+  // data-lib-accent: con el color de la biblioteca, los interruptores también lo usan (controls.css)
   if (!/^#[0-9a-f]{6}$/i.test(color || "")) {
     for (const k of ["--accent", "--on-accent", "--accent-soft"]) root.removeProperty(k);
+    delete document.documentElement.dataset.libAccent;
     return;
   }
+  document.documentElement.dataset.libAccent = "";
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
   const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   root.setProperty("--accent", color);

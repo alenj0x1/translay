@@ -4,6 +4,26 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- «Seleccionar descargados (N)» en la cabecera de una colección elige solo los videos que ya están en tu equipo, sin los que siguen en la cola, para exportarlos (por ejemplo, solo el audio) o moverlos.
+- Conectar tu cuenta de YouTube: «Conectar con Brave» (o tu navegador predeterminado) abre una ventana con un perfil de navegador propio de Translay; inicias sesión una vez, la cierras y las descargas usan esa sesión. Se renueva sola antes de descargar si tiene más de una semana y cada vez que YouTube pide verificar que no eres un bot (la descarga se reintenta sin la pausa de 20 minutos). Sin extensiones, sin exportar `cookies.txt` y con tu navegador de siempre abierto.
+- Cuando YouTube pide verificar que no eres un bot o un video tiene restricción de edad, el aviso ofrece «Conectar YouTube».
+
+### Corregido
+
+- Los videos importados por enlace que se quedaban con su id de YouTube como nombre reciben su título y canal: la búsqueda ahora corre en segundo plano en todas las bibliotecas, sigue tras reiniciar y reintenta cada hora (antes corría una sola vez y se perdía si Translay se cerraba o YouTube no respondía).
+- En el celular, un grupo de opciones que no cabía en una línea quedaba como una píldora deforme: ahora muestra una opción por fila, y las preferencias con más de cuatro opciones («Sesión para descargar») usan una lista desplegable.
+- En el celular, los botones del encabezado van en una sola fila (el de «Biblioteca» ya no baja solo a otra), y el encabezado y las píldoras de la barra lateral ya no se estiran en páginas con poco contenido.
+- En modo oscuro, los interruptores usan el mismo gris que la opción elegida en vez de un tono casi blanco.
+- El aviso con botón («Deshacer», «Conectar YouTube») ya no aprieta su texto en la mitad del ancho del celular.
+
+### Seguridad
+
+- La cuenta conectada guarda solo las cookies de youtube.com, cifradas con DPAPI, y se las pasa a yt-dlp en memoria (sin archivo en texto plano). Translay habla con el navegador por un canal privado, no por un puerto de red, solo le pide las cookies, nunca toca tu perfil de siempre y no guarda nada de la cuenta. «Desconectar» cierra la sesión en Google y borra el perfil.
+
 ## 1.4.0 · 2026-10-28
 
 ### Agregado

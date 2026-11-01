@@ -96,6 +96,14 @@ def status(out: Path) -> dict:
             "updated": time.strftime("%d/%m %H:%M", time.localtime(out.stat().st_mtime))}
 
 
+def message(out: Path) -> dict:
+    """Estado de la sesión de YouTube para la interfaz: el cookies.txt y la cuenta conectada."""
+    from . import ytsession
+
+    return {"type": "cookies", "browsers": detect(), "status": status(out),
+            "account": ytsession.get(out.parent).status()}
+
+
 def friendly(e: Exception, key: str) -> str:
     msg = str(e)
     name = BROWSERS.get(key, (key,))[0]
