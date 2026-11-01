@@ -17,9 +17,8 @@ function daysLeft(x) {
 function renderTrash() {
   const ctl = TRASH_BLOCK.querySelector(".pref-ctl");
   if (!trash.items.length) {
-    ctl.replaceChildren(el("div", { class: "empty-state small" }, el("span", { class: "vnew-ic" }, icon("trash")),
-      el("h3", { text: "La papelera está vacía" }),
-      el("p", { text: "Lo que borres (videos, una biblioteca vaciada o eliminada) queda aquí 30 días." })));
+    ctl.replaceChildren(emptyState("trash", "La papelera está vacía",
+      "Lo que borres (videos, una biblioteca vaciada o eliminada) queda aquí 30 días."));
     return;
   }
   const when = (t) => new Date(t * 1000).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });

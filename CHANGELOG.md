@@ -8,6 +8,8 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Added
 
+- Empty lists explain themselves with an icon, a title and what will appear there (Queue sections, Exports and other screens) instead of an empty box or a bare «Nada aquí».
+
 - Export audio as MP3: when you check translated or original audio, «Formato del audio» lets you choose M4A or MP3 (192 kbps); the browser remembers it. The API takes `"audio": "mp3"`.
 
 ### Fixed
@@ -15,6 +17,10 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - A batch export no longer fails entirely because of one video: if one can't be exported (for example, it was removed from YouTube and was never downloaded), it is skipped, the rest continue and the `.zip` includes `omitidos.txt` with the reason. Errors are shown in plain words instead of yt-dlp's raw text.
 - When part of a collection isn't downloaded, its header button is «Exportar descargados (N)» and exports only what is on your computer; before, «Exportar» exported the whole collection and tried to download from YouTube what was missing.
 - Exporting audio shows progress while each file is converted (a two-hour mix takes over a minute) and large batches show the percentage with one decimal and before the title, so the panel no longer looks stuck at 0 %.
+
+### Performance
+
+- Exports convert and mix several videos at once (up to six, half the processor's threads): about three times faster on a large batch, e.g. 8.6 hours of audio to MP3 in under two minutes. Each file goes into the `.zip` as soon as it's ready and its loose copy is deleted, so a batch takes up its size once on disk instead of twice; a cancelled export deletes what it had made.
 
 ## 1.5.0 · 2026-11-01
 

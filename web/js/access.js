@@ -213,7 +213,8 @@ function renderAccKeys(ctl) {
       el("small", { class: "label", text: "Cópiala ahora: no se vuelve a mostrar." }),
       el("div", { class: "acc-url" }, el("code", { text: accDraft.newToken }), copyBtn(accDraft.newToken, "Copiar", "Clave copiada"),
         btn("Listo", { size: "xs", icon: "check", onClick: () => { accDraft.newToken = null; renderAccKeys(ctl); } }))) : null,
-    rows.length ? el("div", { class: "vrows" }, ...rows) : null,
+    rows.length ? el("div", { class: "vrows" }, ...rows) : emptyState("lock", "Sin claves de API",
+      "Crea una para que tus scripts o n8n lean la biblioteca o importen videos."),
     el("form", { class: "acc-form", on: { submit: (e) => {
       e.preventDefault();
       send({ type: "admin_key_create", name: name.value || "Clave", scope: scope.value, perm: d.perm });
@@ -246,7 +247,8 @@ function renderAccHooks(ctl) {
       } }))));
   const log = (a.log || []).slice(0, 8);
   fill(ctl, 
-    rows.length ? el("div", { class: "vrows" }, ...rows) : null,
+    rows.length ? el("div", { class: "vrows" }, ...rows) : accDraft.hook ? null : emptyState("external", "Sin webhooks",
+      "Agrega uno para que otra app reciba un aviso cuando un video se importe, se traduzca o se exporte."),
     accDraft.hook ? hookForm(ctl, cat) : el("div", { class: "acts" },
       btn("Agregar webhook", { icon: "plus", variant: "dark", onClick: () => { accDraft.hook = { events: [], vault: "all", active: true }; renderAccHooks(ctl); } })),
     log.length ? el("div", { class: "acc-log" }, el("h4", { text: "Últimos envíos" }), ...log.map((x) => el("div", { class: "acc-logrow" + (x.ok ? "" : " bad") },

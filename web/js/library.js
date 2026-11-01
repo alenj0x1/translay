@@ -767,7 +767,8 @@ function renderQueuePanel() {
         el("small", { text: downloadText(d) })),
       el("div", { class: "qactions" })));
   }
-  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(el("li", { class: "empty-row", text: "Nada en la cola de esta biblioteca" }));
+  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(qEmpty("queue", "No hay nada en la cola",
+    "Lo que importes en esta biblioteca aparece aquí con su avance."));
   // los trabajos, en orden de estado (lo que se descarga, primero); el resto en la pantalla de la Cola
   const jobs = orderedJobs(null, mine);
   for (const j of jobs.slice(0, 50)) ul.append(jobItem(j));
@@ -867,7 +868,7 @@ function renderQueueScreen() {
         el("button", { type: "button", class: "item" + (cur === "all" ? " active" : ""), on: { click: () => pick("all") } },
           el("span", { text: "Todas" }), el("span", { text: String(q.jobs.length) })));
     }
-    if (lib.exports.length) {
+    if (lib.exports.length || lib.qsec === "exportar") {  // la sección abierta no desaparece al vaciarse
       nav.append(el("h4", { text: "Exportar" }), el("button", { type: "button", class: "item" + (lib.qsec === "exportar" ? " active" : ""),
         on: { click: () => { lib.qsec = "exportar"; renderQueueScreen(); } } },
         el("span", { text: "Exportaciones" }), el("span", { text: String(lib.exports.length) })));
@@ -893,13 +894,15 @@ function renderQueueScreen() {
   // lista
   const ul = $("#qlist");
   if (lib.qsec === "exportar") {
-    ul.dataset.sig = "";
+    ul.dataset.sig = "exportar";  // distinta de cualquier lista de la cola (también de la vacía)
     ul.replaceChildren(...lib.exports.map(exportItem));  // con sus botones (una copia no los traería)
+    if (!lib.exports.length) ul.append(qEmpty("download", "No hay exportaciones en curso",
+      "Exporta un video, una colección o una selección y su avance aparece aquí."));
     return;
   }
   const jobs = orderedJobs(lib.qsec === "todo" ? null : lib.qsec);
   const shown = jobs.slice(0, lib.qlimit);
-  const sig = shown.map((j) => j.id + jobKind(j) + (j.prio ? "p" : "")).join("|");
+  const sig = lib.qsec + ":" + shown.map((j) => j.id + jobKind(j) + (j.prio ? "p" : "")).join("|");
   if (ul.dataset.sig === sig) {  // misma lista: solo el avance y el texto, en su lugar
     for (const li of ul.querySelectorAll(".qitem[data-id]")) {
       const j = lib.queue.jobs.find((x) => x.id === li.dataset.id);
@@ -913,12 +916,17 @@ function renderQueueScreen() {
   }
   ul.dataset.sig = sig;
   ul.replaceChildren(...shown.map(jobItem));
-  if (!shown.length) ul.append(el("li", { class: "empty-row", text: "Nada aquí" }));
+  if (!shown.length) ul.append(lib.qsec === "todo"
+    ? qEmpty("queue", "No hay nada en la cola", "Lo que importes para traducir o descargar aparece aquí con su avance.")
+    : qEmpty("queue", "Nada en esta sección", "Cuando haya videos en este estado aparecen aquí."));
   if (jobs.length > shown.length) {
     ul.append(el("li", { class: "empty-row" }, btn(`Mostrar más (${jobs.length - shown.length})`, {
       icon: "plus", onClick: () => { lib.qlimit += 100; renderQueueScreen(); } })));
   }
 }
+
+// lista vacía de la pantalla Cola: el estado vacío como elemento de la lista
+const qEmpty = (ic, title, text) => emptyState(ic, title, text, "li");
 
 function openQueue() { renderQueuePanel(); $("#queue-pop").hidden = false; }
 function closeQueue() { $("#queue-pop").hidden = true; }
@@ -1030,6 +1038,7 @@ function renderSaveList() {
       on: { change: (e) => send({ type: "coll_toggle", coll: c.id, video: state.videoId, on: e.target.checked }) } });
     ul.append(el("li", {}, el("label", {}, box, el("span", { text: c.name }))));
   }
+  if (!own.length) ul.append(emptyState("bookmark", "Aún no tienes colecciones", "Escribe un nombre abajo para crear la primera.", "li"));
 }
 function openSave() { renderSaveList(); $("#save-pop").hidden = false; }
 function closeSave() { $("#save-pop").hidden = true; }
@@ -1166,7 +1175,7 @@ function renderSearch() {
   grid.classList.add("results");
   grid.replaceChildren();
   if (!m.results.length) {
-    grid.append(el("div", { class: "empty", text: "nada encontrado en las transcripciones" }));
+    grid.append(emptyState("search", "Sin coincidencias", "Nadie dice eso en las transcripciones ni en los comentarios. Prueba con otra palabra, en inglés o en español."));
     return;
   }
   for (const r of m.results) {

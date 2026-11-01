@@ -19,6 +19,7 @@ copia en el equipo), se omite y el resto sigue; el .zip lleva «omitidos.txt».
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -26,6 +27,7 @@ import threading
 import time
 import uuid
 import zipfile
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +36,8 @@ from . import events
 from .audiofx import read_wav, resample
 
 SR = 48000
+# conversiones a la vez (ffmpeg usa un núcleo por audio); deja la mitad del equipo libre
+WORKERS = max(1, min(6, (os.cpu_count() or 2) // 2))
 BLOCK = SR * 10
 DUCK_LEVELS = {"silencio": 0.0, "bajo": 0.14, "medio": 0.3}
 # texto: subtítulos (SRT) y transcripción bilingüe con comentarios (TXT); no necesitan el doblaje
@@ -145,70 +149,119 @@ class Exporter:
                 events.emit("exportacion.error", self._job_vault(job), job=job["id"], name=job["name"], error=job["error"])
 
     def _run(self, job):
+        """Lo que pesa (convertir, mezclar) corre en varios hilos, un video por hilo; descargar y esperar
+        el doblaje siguen de a uno. Cada archivo entra al .zip apenas está y se borra su copia suelta."""
         out_dir = self.dir / job["id"]
         out_dir.mkdir(exist_ok=True)
-        files: list[tuple[Path, str]] = []  # (archivo, nombre al descargar)
-        total = len(job["videos"]) * len(job["kinds"])
-        done = 0
-        for vid in job["videos"]:
-            if job not in self.jobs:
-                return
-            v = self.library.data["videos"][vid]
-            title = safe_name(v.get("title") or vid)
-            mine: list[tuple[Path, str]] = []
+        many = len(job["videos"]) > 1
+        zpath = out_dir / "export.zip"
+        z = zipfile.ZipFile(zpath, "w", zipfile.ZIP_STORED, allowZip64=True)             if many or len(job["kinds"]) > 1 else None  # varios: un .zip sin comprimir (ya vienen comprimidos)
+        files: list[tuple[Path, str]] = []  # (archivo, nombre al descargar) cuando es uno solo
+        used: set[str] = set()
+        frac: dict[str, float] = {}  # avance de cada video: 0 a 1
+        lock = threading.Lock()
+
+        def progress():
+            with lock:
+                pct = round(sum(frac.values()) / len(job["videos"]) * 100, 1)
+            self._set(job, pct=pct)
+
+        def skip(vid, v, e):
+            if not many:
+                raise e
+            import traceback
+
+            traceback.print_exc()
+            job["skipped"].append((v.get("title") or vid, reason(e)))  # el resto del lote sigue
+            with lock:
+                frac[vid] = 1.0
+
+        def one(vid, v, title):  # en un hilo del grupo: todos los tipos de un video, en orden
+            out = []
+            for i, kind in enumerate(job["kinds"]):
+                if job not in self.jobs:
+                    return out
+                label, ext = KINDS[kind]
+                if kind in ("es_audio", "orig_audio"):
+                    ext = job.get("audio", "m4a")
+
+                def prog(f, i=i):
+                    with lock:
+                        frac[vid] = (i + f) / len(job["kinds"])
+                    progress()
+
+                self._set(job, state="exportando", detail=f"{title} · {label}")
+                path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"))
+                if kind == "orig_video":
+                    ext = path.suffix.lstrip(".")
+                out.append((path, f"{title} ({label}).{ext}" if kind != "orig_video" else f"{title}.{ext}"))
+            return out
+
+        def collect(fut, vid, v):
             try:
-                if any(k not in TEXT_KINDS for k in job["kinds"]):  # solo texto: no hace falta el archivo
-                    self._ensure_media(job, vid, video=any(k in ("es_video", "orig_video") for k in job["kinds"]))
-                v = self.library.data["videos"][vid]
-                if any(k.startswith("es_") for k in job["kinds"]):
-                    self._wait_dub(job, vid, title)
-                elif any(k in TEXT_KINDS for k in job["kinds"]):
-                    self._wait_dub(job, vid, title, key="asr")  # el texto necesita la transcripción completa
-                for i, kind in enumerate(job["kinds"]):
-                    label, ext = KINDS[kind]
-                    if kind in ("es_audio", "orig_audio"):
-                        ext = job.get("audio", "m4a")
-
-                    def prog(f, done=done + i):
-                        self._set(job, pct=round((done + f) / total * 100, 1))
-
-                    self._set(job, state="exportando", detail=f"{title} · {label}")
-                    path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"))
-                    if kind == "orig_video":
-                        ext = path.suffix.lstrip(".")
-                    mine.append((path, f"{title} ({label}).{ext}" if kind != "orig_video" else f"{title}.{ext}"))
+                got = fut.result()
             except Exception as e:
-                if len(job["videos"]) == 1:
-                    raise
-                import traceback
+                return skip(vid, v, e)
+            for f, arc in got:
+                if z is None:
+                    files.append((f, arc))
+                    continue
+                stem, ext, n = arc.rsplit(".", 1)[0], arc.rsplit(".", 1)[1], 2
+                while arc in used:
+                    arc, n = f"{stem} ({n}).{ext}", n + 1
+                used.add(arc)
+                z.write(f, arc)
+                if f.is_relative_to(out_dir):
+                    f.unlink(missing_ok=True)  # ya está en el .zip: no ocupa el disco dos veces
+            with lock:
+                frac[vid] = 1.0
+            progress()
 
-                traceback.print_exc()
-                job["skipped"].append((v.get("title") or vid, reason(e)))  # el resto del lote sigue
-            files += mine
-            done += len(job["kinds"])
-            self._set(job, pct=round(done / total * 100, 1))
-        if not files:
+        pool = ThreadPoolExecutor(WORKERS, thread_name_prefix="exportar")
+        pending: dict = {}
+        try:
+            for vid in job["videos"]:
+                if job not in self.jobs:
+                    return
+                v = self.library.data["videos"][vid]
+                title = safe_name(v.get("title") or vid)
+                try:
+                    if any(k not in TEXT_KINDS for k in job["kinds"]):  # solo texto: no hace falta el archivo
+                        self._ensure_media(job, vid, video=any(k in ("es_video", "orig_video") for k in job["kinds"]))
+                    v = self.library.data["videos"][vid]
+                    if any(k.startswith("es_") for k in job["kinds"]):
+                        self._wait_dub(job, vid, title)
+                    elif any(k in TEXT_KINDS for k in job["kinds"]):
+                        self._wait_dub(job, vid, title, key="asr")  # el texto necesita la transcripción completa
+                except Exception as e:
+                    skip(vid, v, e)
+                    continue
+                pending[pool.submit(one, vid, v, title)] = (vid, v)
+                for f in [f for f in pending if f.done()]:
+                    collect(f, *pending.pop(f))
+            while pending:
+                if job not in self.jobs:
+                    return
+                finished, _ = wait(list(pending), timeout=1, return_when=FIRST_COMPLETED)
+                for f in finished:
+                    collect(f, *pending.pop(f))
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
+            if z is not None:
+                z.close()
+            if job not in self.jobs:  # cancelada: lo hecho no se va a descargar
+                shutil.rmtree(out_dir, ignore_errors=True)
+        if not files and not used:
             raise RuntimeError(f"ningún video se pudo exportar ({job['skipped'][0][1]})" if job["skipped"]
                                else "nada que exportar")
-        if job["skipped"]:
-            note = out_dir / "omitidos.txt"
-            note.write_text("No se pudieron exportar:\n\n" + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n",
-                            encoding="utf-8")
-            files.append((note, "omitidos.txt"))
-        if len(files) == 1:
+        if z is None:
             path, name = files[0]
-        else:  # varios: un .zip sin comprimir (video y audio ya vienen comprimidos)
-            self._set(job, detail="armando el .zip")
-            name = safe_name(job["name"]) + ".zip"
-            path = out_dir / "export.zip"
-            used = set()
-            with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED, allowZip64=True) as z:
-                for f, arc in files:
-                    stem, ext, n = arc.rsplit(".", 1)[0], arc.rsplit(".", 1)[1], 2
-                    while arc in used:
-                        arc, n = f"{stem} ({n}).{ext}", n + 1
-                    used.add(arc)
-                    z.write(f, arc)
+        else:
+            if job["skipped"]:
+                with zipfile.ZipFile(zpath, "a", zipfile.ZIP_STORED, allowZip64=True) as za:
+                    za.writestr("omitidos.txt", "No se pudieron exportar:\n\n"
+                                + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n")
+            path, name = zpath, safe_name(job["name"]) + ".zip"
         url = None
         for vault in (self.vaults.all() if self.vaults else []):  # el original, directo de su biblioteca
             for sub, pre in (("youtube", "/media/yt/"), ("library", "/media/lib/")):

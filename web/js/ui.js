@@ -132,6 +132,13 @@ const watchSegs = () => {
 new MutationObserver(watchSegs).observe(document.documentElement, { childList: true, subtree: true });
 watchSegs();
 
+// Estado vacío: ícono, título y qué va a aparecer ahí (en vez de una caja vacía o «Nada aquí»).
+// tag: "div" o "li" (dentro de una lista); acts: botones opcionales para empezar
+function emptyState(ic, title, text, tag = "div", ...acts) {
+  return el(tag, { class: "empty-state small" }, el("span", { class: "vnew-ic" }, icon(ic)),
+    el("h3", { text: title }), text ? el("p", { text }) : null, acts.length ? el("div", { class: "acts" }, ...acts) : null);
+}
+
 // Botón del sistema. variant: "" | "dark" | "ghost" | "danger"; size: "" | "sm" | "xs".
 function btn(text, { icon: ic, variant = "", size = "sm", title, onClick, disabled, type = "button", href, cls = "", style } = {}) {
   const b = href

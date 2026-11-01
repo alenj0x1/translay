@@ -19,6 +19,9 @@ body.side-off .side { display: none; }
 .transcript li { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); border-radius: var(--r-sm); cursor: pointer; }
 .transcript li:hover { background: var(--surface-2); }
 .transcript li.active { background: var(--surface-2); }
+/* sin frases todavía: el estado vacío, no una fila */
+.transcript li.empty-state { grid-template-columns: minmax(0, 1fr); gap: var(--s3); margin-top: var(--s2); cursor: default; }
+.transcript li.empty-state:hover { background: var(--surface-2); }
 .transcript .cell { display: grid; grid-template-columns: 48px 1fr; gap: var(--s2); padding: 10px var(--s3); }
 .transcript time { font: 600 var(--fs-xs)/1.9 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
 .transcript .spk { display: block; font: 700 11px/1.3 var(--font); color: var(--fg-muted); }

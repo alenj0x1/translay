@@ -1288,6 +1288,8 @@ function renderTranscript() {
   }
   const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
   ol.replaceChildren(frag);
+  if (!state.segments.length) ol.append(emptyState("comment", "Todavía no hay frases",
+    "La transcripción aparece aquí a medida que se reconoce el audio.", "li"));
   if (focused) {  // al redibujar (llega una frase nueva) el cuadro sigue donde estaba
     const ta = ol.querySelector(".ceditor .area");
     ta?.focus();
@@ -1462,7 +1464,7 @@ function renderActive(force) {
 }
 
 $("#transcript").addEventListener("click", (e) => {
-  const li = e.target.closest("li");
+  const li = e.target.closest("li[data-start]");
   if (!li || e.target.closest(".notes")) return;
   if (e.target.closest(".cbtn")) {  // comentar esta frase
     state.editing = { seg: Number(li.dataset.id), id: null, draft: "" };

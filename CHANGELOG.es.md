@@ -8,6 +8,8 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Agregado
 
+- Las listas vacías se explican solas con un ícono, un título y qué va a aparecer ahí (secciones de la Cola, Exportaciones y otras pantallas) en vez de una caja vacía o un «Nada aquí» suelto.
+
 - Exportar el audio en MP3: al marcar el audio traducido o el original, «Formato del audio» deja elegir M4A o MP3 (192 kbps); el navegador lo recuerda. La API acepta `"audio": "mp3"`.
 
 ### Corregido
@@ -15,6 +17,10 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 - Una exportación por lotes ya no falla entera por un video: si uno no se puede exportar (por ejemplo, lo borraron de YouTube y nunca se descargó), se omite, el resto sigue y el `.zip` trae `omitidos.txt` con el motivo. Los errores se muestran en palabras claras en vez del texto crudo de yt-dlp.
 - Cuando parte de una colección no está descargada, el botón de su cabecera es «Exportar descargados (N)» y exporta solo lo que está en tu equipo; antes, «Exportar» exportaba la colección entera e intentaba bajar de YouTube lo que faltaba.
 - Al exportar audio se ve el avance mientras se convierte cada archivo (un mix de dos horas tarda más de un minuto) y en lotes grandes el porcentaje va con un decimal y antes del título, así que el panel ya no parece trabado en 0 %.
+
+### Rendimiento
+
+- Las exportaciones convierten y mezclan varios videos a la vez (hasta seis, la mitad de los hilos del procesador): cerca de tres veces más rápido en un lote grande, p. ej. 8,6 horas de audio a MP3 en menos de dos minutos. Cada archivo entra al `.zip` apenas está listo y se borra su copia suelta, así que un lote ocupa su tamaño una vez en disco y no dos; una exportación cancelada borra lo que llevaba.
 
 ## 1.5.0 · 2026-11-01
 
