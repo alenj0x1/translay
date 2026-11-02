@@ -29,16 +29,11 @@ This page only appears in the app.
 
 ## Updates
 
-Translay looks for new versions on [GitHub Releases](https://github.com/alenj0x1/translay/releases) and updates itself; you don't need to download anything by hand.
+Translay looks for new versions on [GitHub Releases](https://github.com/alenj0x1/translay/releases) and tells you when there is one.
 
 - **Buscar actualizaciones** (Check for updates): **Automáticamente** (Automatically; when Translay opens and every 6 hours) or **Solo a mano** (Only manually). With a new version you get a notice and an icon in the title bar.
-- The **Buscar actualizaciones** button checks right away. If there is a new version, it shows its notes and **Actualizar a …** (Update to …, with the version): it downloads it (with progress on the button), closes Translay, installs it and opens it again. Your libraries, preferences and installed runtime stay as they were; if the new version needs other packages, they are installed on the next launch.
-- It never updates in the middle of a job: while the queue, a download or an export is working, the button says **Actualizar al terminar** (Update when done) and the update starts once there is nothing left.
-- Only installers signed with Translay's key are installed: the app carries the public key and rejects any download whose signature doesn't match.
-
-<Aside type="caution">
-**Cambiar…** does not move your files: it points Translay at another folder. To take your library with you, copy the old folder to the new one before changing it. Don't use the same folder from the app and from `python run.py` at the same time.
-</Aside>
+- The **Buscar actualizaciones** button checks right away. If there is a new version, it shows its notes and **Descargar …** (Download …, with the version), which opens the installer in your browser. Run it as usual: it installs over the current version and your libraries, preferences and installed runtime stay as they were; if the new version needs other packages, they are installed on the next launch.
+- The app never downloads or runs an installer by itself; it only opens Translay's releases on GitHub.
 
 ## If the server stops
 

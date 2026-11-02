@@ -6,6 +6,10 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ## Unreleased
 
+### Changed
+
+- Desktop app: new versions are announced instead of installed by the app: «Descargar» opens the installer in your browser and you run it as usual. Windows Defender's machine-learning scan took the release build that downloaded and ran its own installer for a trojan and deleted it.
+
 ### Fixed
 
 - Docs site: the menu button only shows on phones, with one icon (three lines closed, X open) and room next to the language selector; the page outline on the right is narrower.

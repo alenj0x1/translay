@@ -3,7 +3,7 @@
 const COMMANDS: &[&str] = &[
     "status", "install", "start", "pick_folder", "desktop_info", "change_data_dir", "open_folder", "set_close_to_tray",
     "close_window", "quit_app", "quit_if_in_tray", "server_tail", "set_theme",
-    "check_update", "install_update", "set_auto_update",
+    "open_download", "set_auto_update",
 ];
 
 fn main() {

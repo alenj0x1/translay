@@ -6,6 +6,10 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ## Sin publicar
 
+### Cambiado
+
+- App de escritorio: las versiones nuevas se avisan en vez de instalarlas la app: «Descargar» abre el instalador en tu navegador y lo ejecutas como siempre. El análisis por aprendizaje automático de Windows Defender confundía con un troyano la versión que bajaba y ejecutaba su propio instalador, y la borraba.
+
 ### Corregido
 
 - Sitio de documentación: el botón de menú solo aparece en el celular, con un solo ícono (tres líneas cerrado, X abierto) y con espacio junto al selector de idioma; el índice de la derecha es más angosto.

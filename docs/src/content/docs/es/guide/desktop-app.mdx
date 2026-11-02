@@ -29,16 +29,11 @@ Esta página solo aparece en la app.
 
 ## Actualizaciones
 
-Translay busca las versiones nuevas en [GitHub Releases](https://github.com/alenj0x1/translay/releases) y se actualiza solo; no hace falta descargar nada a mano.
+Translay busca las versiones nuevas en [GitHub Releases](https://github.com/alenj0x1/translay/releases) y te avisa cuando hay una.
 
 - **Buscar actualizaciones**: **Automáticamente** (al abrir Translay y cada 6 horas) o **Solo a mano**. Con una versión nueva llega un aviso y aparece un ícono en la barra de título.
-- El botón **Buscar actualizaciones** busca en el momento. Si hay una versión nueva, muestra sus notas y **Actualizar a …** (con la versión): la descarga (con el avance en el botón), cierra Translay, la instala y lo vuelve a abrir. Tus bibliotecas, preferencias y lo instalado quedan como estaban; si la versión nueva necesita otros paquetes, se instalan al abrir.
-- Nunca se actualiza a mitad de un trabajo: mientras la cola, una descarga o una exportación trabajan, el botón dice **Actualizar al terminar** y la actualización empieza cuando ya no queda nada.
-- Solo se instalan instaladores firmados con la clave de Translay: la app lleva la clave pública y descarta cualquier descarga cuya firma no coincida.
-
-<Aside type="caution">
-**Cambiar…** no mueve tus archivos: apunta Translay a otra carpeta. Para llevarte la biblioteca, copia la carpeta anterior a la nueva antes de cambiarla. No uses la misma carpeta desde la app y desde `python run.py` a la vez.
-</Aside>
+- El botón **Buscar actualizaciones** busca en el momento. Si hay una versión nueva, muestra sus notas y **Descargar …** (con la versión), que abre el instalador en tu navegador. Ejecútalo como siempre: se instala encima de la versión actual y tus bibliotecas, preferencias y lo instalado quedan como estaban; si la versión nueva necesita otros paquetes, se instalan al abrir.
+- La app nunca descarga ni ejecuta un instalador por su cuenta; solo abre las versiones de Translay en GitHub.
 
 ## Si el servidor se detiene
 

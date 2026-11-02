@@ -5,9 +5,9 @@
 //   sistema, no el del tema).
 // - Preferencias suma la página «App de escritorio»: qué hace la ventana al cerrarla, dónde está la
 //   biblioteca Principal, los registros y las actualizaciones.
-// - Actualizaciones (desktop/src-tauri/src/updates.rs, firmadas con la clave de Translay): busca sola al
-//   abrir y cada 6 h (salvo que se apague), o con «Buscar actualizaciones». Con una versión nueva aparece
-//   un botón en la barra de título; nunca se instala mientras hay trabajo (espera a que termine).
+// - Versiones nuevas (vt/updates.py): busca sola al abrir y cada 6 h (salvo que se apague), o con «Buscar
+//   actualizaciones». Con una versión nueva aparece un botón en la barra de título y «Descargar» abre el
+//   instalador en el navegador; la app no descarga ni ejecuta nada por su cuenta.
 // - En la bandeja (ventana cerrada con «Seguir en la bandeja»), cuando no queda trabajo en la cola,
 //   Translay se cierra del todo: no deja modelos ni procesos ocupando la GPU o la RAM.
 // En el navegador nada de esto existe (DESKTOP es false).
@@ -78,13 +78,6 @@ function initDesktop() {
   // doble clic en el encabezado: maximizar o restaurar, como en cualquier ventana
   bar.addEventListener("dblclick", (e) => { if (e.target === bar) desktopWindow().toggleMaximize(); });
 
-  window.__TAURI__.event.listen("update", (e) => {
-    const p = e.payload || {};
-    upd.state = p.state;
-    upd.pct = p.pct ?? null;
-    upd.mb = p.mb ?? null;
-    renderUpdate();
-  });
   desktopCall("desktop_info").then((info) => {
     desktop.info = info;
     setTimeout(() => checkUpdate(false), 20000);  // al abrir, sin competir con el arranque
@@ -92,70 +85,56 @@ function initDesktop() {
   setInterval(() => checkUpdate(false), 6 * 3600 * 1000);
 }
 
-/* ------------------------------------------------------------ actualizaciones */
-// state: idle · checking · latest · available · downloading · installing · error
-const upd = { state: "idle", info: null, error: "", pct: null, whenIdle: false, notified: false };
+/* ------------------------------------------------------------ versiones nuevas */
+// state: idle · checking · latest · available · opened · error
+const upd = { state: "idle", info: null, error: "", notified: false, manual: false };
 
-async function checkUpdate(manual) {
-  if (!manual && (!desktop.info?.auto_update || upd.state === "available")) return;
-  if (["checking", "downloading", "installing"].includes(upd.state)) return;
+// el servidor consulta GitHub (vt/updates.py) y responde con un mensaje «update» (onUpdateInfo)
+function checkUpdate(manual) {
+  if (!manual && (!desktop.info?.auto_update || upd.state === "available" || upd.state === "opened")) return;
+  if (upd.state === "checking") return;
   upd.state = "checking";
+  upd.manual = manual;
   upd.error = "";
   renderUpdate();
-  try {
-    const info = await desktopCall("check_update");
-    if (upd.state !== "checking") return;  // mientras tanto empezó una descarga: no se pisa
-    upd.info = info;
-    upd.state = info.available ? "available" : "latest";
-  } catch (e) {
-    if (upd.state !== "checking") return;
+  send({ type: "update_check", force: manual });
+}
+
+function onUpdateInfo(m) {
+  if (m.error) {
     // sin conexión, la búsqueda automática no molesta (ni olvida una versión ya encontrada)
-    upd.state = manual ? "error" : upd.info?.available ? "available" : "idle";
-    upd.error = String(e);
+    upd.state = upd.manual ? "error" : upd.info?.available ? "available" : "idle";
+    upd.error = m.error;
+  } else {
+    upd.info = m;
+    upd.state = m.available ? "available" : "latest";
   }
   renderUpdate();
-  if (upd.state === "available" && !manual && !upd.notified) {
+  if (upd.state === "available" && !upd.manual && !upd.notified) {
     upd.notified = true;
-    toast(`Hay una versión nueva de Translay: ${upd.info.version}.`, "ok", { label: "Ver", onClick: () => openPrefs("escritorio") });
+    toast(`Hay una versión nueva de Translay: ${m.version}.`, "ok", { label: "Ver", onClick: () => openPrefs("escritorio") });
   }
 }
 
-// con trabajo en curso (cola, descargas, exportaciones) espera a que termine, salvo «Actualizar ahora»:
-// la cola sigue sola al volver a abrir (cada video retoma desde donde quedó)
-async function installUpdate(now = false) {
-  if (desktopBusy() && !now) {
-    upd.whenIdle = true;
-    renderUpdate();
-    return;
-  }
-  if (now && desktopBusy() && !(await confirmDlg("¿Actualizar ahora?",
-    "La cola se detiene y sigue sola al volver a abrir Translay, desde donde quedó. Una exportación en curso se cancela.",
-    "Actualizar ahora"))) return;
-  upd.whenIdle = false;
-  upd.state = "downloading";
-  upd.pct = 0;
-  renderUpdate();
-  try {
-    await desktopCall("install_update");  // instala, cierra Translay y lo vuelve a abrir
-  } catch (e) {
-    upd.state = "error";
-    upd.error = String(e);
-    renderUpdate();
-  }
+// el instalador se baja y se ejecuta desde el navegador, como cualquier descarga
+function openDownload() {
+  desktopCall("open_download", { url: upd.info.download })
+    .then(() => { upd.state = "opened"; renderUpdate(); })
+    .catch((e) => { upd.state = "error"; upd.error = String(e); renderUpdate(); });
 }
 
 function renderUpdate() {
   const b = $("#update-btn");
   if (b) {
-    b.hidden = !(upd.state === "available" || upd.state === "downloading" || upd.state === "installing");
-    const label = upd.info?.version ? `Translay ${upd.info.version} disponible` : "Actualización disponible";
+    b.hidden = !(upd.state === "available" || upd.state === "opened");
+    const label = upd.info?.version ? `Translay ${upd.info.version} disponible` : "Versión nueva disponible";
     b.title = label;
     b.setAttribute("aria-label", label);
   }
   desktop.renderPrefs?.();
 }
 
-// notas de la versión (Markdown de CHANGELOG.es.md, en latest.json): títulos y viñetas, en texto
+// notas de la versión (Markdown de CHANGELOG.es.md, en la versión de GitHub): títulos y viñetas, en texto
 function updateNotes(md) {
   const box = el("div", { class: "upd-notes" });
   for (const raw of String(md || "").split("\n")) {
@@ -170,33 +149,18 @@ function updateNotes(md) {
 function updateRows(row) {
   const info = desktop.info || {};
   const v = upd.info?.version;
-  const busy = upd.state === "checking" || upd.state === "downloading" || upd.state === "installing";
-  const working = upd.state === "available" && desktopBusy();  // la cola o una exportación trabajan
   const status = {
-    idle: "Las versiones nuevas llegan firmadas desde GitHub.",
+    idle: "Translay busca las versiones nuevas en GitHub.",
     checking: "Buscando…",
     latest: "Tienes la última versión.",
-    available: upd.whenIdle ? `Translay ${v} se instala cuando termine lo que está procesando.`
-      : working ? `Translay ${v} está disponible. Hay trabajo en curso: puedes esperar a que termine o actualizar ahora.`
-        : `Translay ${v} está disponible.`,
-    downloading: `Descargando Translay ${v}…`,
-    installing: "Instalando: Translay se cierra y vuelve a abrirse.",
+    available: `Translay ${v} está disponible.`,
+    opened: `Se abrió la descarga de Translay ${v} en tu navegador: ejecuta el instalador. Tu biblioteca y tus preferencias se mantienen.`,
     error: upd.error,
   }[upd.state] || "";
-  let actions;
-  if (upd.state === "downloading" || upd.state === "installing") {
-    actions = [btn(upd.state === "downloading" ? (upd.pct != null ? `Descargando ${upd.pct} %` : `Descargando ${upd.mb ?? 0} MB`) : "Instalando…", { icon: "update", disabled: true })];
-  } else if (upd.state === "available" && (working || upd.whenIdle)) {
-    actions = [
-      upd.whenIdle ? null : btn("Actualizar al terminar", { icon: "clock", onClick: () => installUpdate() }),
-      btn("Actualizar ahora", { icon: "update", onClick: () => installUpdate(true) }),
-    ];
-  } else if (upd.state === "available") {
-    actions = [btn(`Actualizar a ${v}`, { icon: "update", onClick: () => installUpdate() })];
-  } else {
-    actions = [btn(upd.state === "checking" ? "Buscando…" : "Buscar actualizaciones", { icon: "reload", disabled: busy,
+  const actions = upd.state === "available" || upd.state === "opened"
+    ? [btn(`Descargar ${v}`, { icon: "download", onClick: openDownload })]
+    : [btn(upd.state === "checking" ? "Buscando…" : "Buscar actualizaciones", { icon: "reload", disabled: upd.state === "checking",
       onClick: () => checkUpdate(true) })];
-  }
   const auto = (value, ic, text) => el("button", { type: "button", class: "seg" + (!!info.auto_update === value ? " on" : ""),
     on: { click: () => desktopCall("set_auto_update", { enabled: value }).then(() => { info.auto_update = value; renderUpdate(); }) } },
     icon(ic), text);
@@ -204,7 +168,7 @@ function updateRows(row) {
     row("Buscar actualizaciones", info.auto_update ? "Al abrir Translay y cada 6 horas." : "Solo cuando lo pidas.",
       el("div", { class: "segs" }, auto(true, "reload", "Automáticamente"), auto(false, "x", "Solo a mano"))),
     row(`Translay ${info.version || ""}`, status, ...actions),
-    upd.state === "available" || upd.state === "downloading" ? updateNotes(upd.info?.notes) : null,
+    upd.state === "available" || upd.state === "opened" ? updateNotes(upd.info?.notes) : null,
   ];
 }
 
@@ -224,7 +188,6 @@ let desktopIdle = 0;
 setInterval(() => {
   if (!DESKTOP || typeof lib === "undefined") return;
   desktopIdle = desktopBusy() ? 0 : desktopIdle + 1;
-  if (desktopIdle >= 2 && upd.whenIdle) return installUpdate();  // «Actualizar al terminar»
   if (desktopIdle >= 2) desktopCall("quit_if_in_tray");
 }, 15000);
 

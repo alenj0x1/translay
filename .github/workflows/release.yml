@@ -25,40 +25,21 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: desktop/src-tauri
-      # sin la clave de firma: npm y cargo corren código de terceros (scripts de instalación, build.rs)
       - name: Instalador (Tauri + NSIS)
         run: |
           npm --prefix desktop ci
           npm --prefix desktop run build
-      # la clave solo existe en este paso, que corre únicamente el firmador de Tauri. La app instala solo
-      # actualizaciones con esta firma, ligada a su versión (desktop/src-tauri/src/updates.rs;
-      # la clave pública y requireSignedVersion están en tauri.conf.json)
-      - name: Firma del instalador para las actualizaciones
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          v="${GITHUB_REF_NAME#v}"
-          test -n "$TAURI_SIGNING_PRIVATE_KEY"  # sin secretos, falla en vez de publicar sin firma
-          npx --prefix desktop --no-install tauri signer sign --app-version "$v" \
-            "desktop/src-tauri/target/release/bundle/nsis/Translay_${v}_x64-setup.exe"
       - name: Notas desde los dos changelogs (inglés y, debajo, español)
         run: |
           v="${GITHUB_REF_NAME#v}"
           section() { awk -v v="$v" '$0 ~ "^## "v" " {on=1; next} /^## / && on {exit} on' "$1"; }
           { section CHANGELOG.md; printf '\n---\n\n### Español\n\n'; section CHANGELOG.es.md; } > notas.md
-          section CHANGELOG.es.md > notas-es.md
-          test -s notas.md && test -s notas-es.md
-      - name: Feed de actualizaciones (latest.json, con las notas en español que muestra la app)
-        run: |
-          node desktop/scripts/update-feed.mjs --version "${GITHUB_REF_NAME#v}" --notes notas-es.md --out latest.json \
-            --base "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          test -s notas.md
       - name: Crear la versión con el instalador
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # una versión con guion (1.7.0-beta.1) es de prueba: no queda como «latest», así las apps no la instalan
+          # una versión con guion (1.7.0-beta.1) es de prueba: no queda como «latest», así las apps no la avisan
           pre=""; case "$GITHUB_REF_NAME" in *-*) pre="--prerelease";; esac
           gh release create "$GITHUB_REF_NAME" $pre --title "Translay ${GITHUB_REF_NAME#v}" --notes-file notas.md \
-            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe \
-            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe.sig latest.json
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe

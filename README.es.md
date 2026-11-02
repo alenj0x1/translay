@@ -73,7 +73,7 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 
 ### App de escritorio
 
-- **Instalador para Windows**, sin permisos de administrador. Al abrir por primera vez, la app instala sola el servidor y el motor de voz (paquetes fijados con su huella SHA-256) y muestra el avance en el botón; luego abre Translay en su propia ventana. Se actualiza sola desde GitHub (actualizaciones firmadas; la búsqueda automática se puede apagar).
+- **Instalador para Windows**, sin permisos de administrador. Al abrir por primera vez, la app instala sola el servidor y el motor de voz (paquetes fijados con su huella SHA-256) y muestra el avance en el botón; luego abre Translay en su propia ventana. Te avisa cuando hay una versión nueva en GitHub y abre su descarga (la búsqueda automática se puede apagar).
 - **Barra de título propia** que sigue el tema claro u oscuro, con Preferencias y el cambio de tema como íconos.
 - **Bandeja del sistema** opcional para que la cola siga trabajando con la ventana cerrada (al terminar, Translay se cierra); una sola instancia; el servidor, sus modelos y todo lo que lanza se cierran con la app, así nada sigue usando la GPU ni la RAM.
 - **Tu biblioteca donde quieras** (por defecto `Videos\Translay`), elegida al instalar y cambiable después.

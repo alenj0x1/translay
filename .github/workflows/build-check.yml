@@ -1,0 +1,41 @@
+name: Build check
+
+# Lab: builds the desktop app exactly like a release (same runner and toolchain) on a lab/** branch and
+# uploads translay.exe and the installer as artifacts, so they can be checked (e.g. scanned by Windows
+# Defender) before releasing. Publishes nothing.
+
+on:
+  push:
+    branches: ["lab/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Installer (Tauri + NSIS)
+        run: |
+          npm --prefix desktop ci
+          npm --prefix desktop run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: translay-${{ github.sha }}
+          path: |
+            desktop/src-tauri/target/release/translay.exe
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          retention-days: 7

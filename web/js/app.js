@@ -242,6 +242,9 @@ function onMessage(m) {
     case "partial":
       state.live = m;
       break;
+    case "update":  // versión nueva en GitHub (web/js/desktop.js)
+      if (DESKTOP) onUpdateInfo(m);
+      break;
     case "lang":  // idioma detectado (o cambiado) del video abierto
       if (lib.videos[state.videoId]) Object.assign(lib.videos[state.videoId], { lang: m.lang, mode: m.mode });
       applyLang(m.lang, m.translates);

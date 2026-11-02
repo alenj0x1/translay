@@ -229,8 +229,7 @@ fn open_page(app: &AppHandle, url: &str) {
         .permission("allow-close-window")
         .permission("allow-set-theme")
         .permission("allow-quit-if-in-tray")
-        .permission("allow-check-update")
-        .permission("allow-install-update")
+        .permission("allow-open-download")
         .permission("allow-set-auto-update");
     let _ = app.add_capability(capability);
     let _ = app.emit("server", json!({ "state": "ready", "url": url }));

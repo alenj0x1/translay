@@ -299,6 +299,8 @@ class Session:
                     elif m.get("type") == "video_lang":
                         await self._video_lang(str(m.get("video", "")), str(m.get("lang") or ""),
                                                str(m.get("mode") or ""))
+                    elif m.get("type") == "update_check":
+                        asyncio.create_task(self._update_check(bool(m.get("force"))))
                     elif m.get("type") == "yt_batch":
                         asyncio.create_task(self._batch(list(m.get("urls", [])), str(m.get("coll") or ""),
                                                         bool(m.get("quiet")), bool(m.get("front")),
@@ -431,6 +433,16 @@ class Session:
             if self._backfill:
                 self._backfill.cancel()
             self._backfill = asyncio.create_task(self._translate_stale(tr))
+
+    async def _update_check(self, force: bool):
+        """¿Hay una versión nueva? (vt/updates.py; solo avisa, no descarga nada)"""
+        from . import updates
+        try:
+            info = await asyncio.get_running_loop().run_in_executor(None, updates.check, force)
+            await self.ws.send_json({"type": "update", **info})
+        except Exception as e:  # sin conexión o GitHub no respondió
+            print(f"[actualizaciones] {e}", flush=True)
+            await self.ws.send_json({"type": "update", "error": "No se pudo consultar GitHub. Revisa la conexión a internet."})
 
     def _own_lang(self) -> str | None:
         """Idioma propio (Preferencias): lo que se habla en él solo se transcribe."""
