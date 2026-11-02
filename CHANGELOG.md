@@ -9,6 +9,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 ### Fixed
 
 - Docs site: the menu button only shows on phones, with one icon (three lines closed, X open) and room next to the language selector; the page outline on the right is narrower.
+- Docs site: code blocks with a terminal or title bar join it without rounded corners in between, and two-column tables without titles no longer show an empty first row.
 
 ## 1.7.0 · 2026-11-01
 

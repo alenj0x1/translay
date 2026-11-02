@@ -9,6 +9,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 ### Corregido
 
 - Sitio de documentación: el botón de menú solo aparece en el celular, con un solo ícono (tres líneas cerrado, X abierto) y con espacio junto al selector de idioma; el índice de la derecha es más angosto.
+- Sitio de documentación: los bloques de código con barra de terminal o de título se unen a ella sin esquinas redondeadas en medio, y las tablas de dos columnas sin títulos ya no muestran una primera fila vacía.
 
 ## 1.7.0 · 2026-11-01
 

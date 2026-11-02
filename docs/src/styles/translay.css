@@ -76,6 +76,9 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 /* bloques de código y tablas: superficies por tono, sin bordes */
 .sl-markdown-content .expressive-code .frame,
 .sl-markdown-content .expressive-code pre { border-radius: 10px; }
+/* con encabezado (terminal o título), el código se une a él: sin esquinas arriba */
+.sl-markdown-content .expressive-code .frame:is(.is-terminal, .has-title) pre { border-start-start-radius: 0; border-start-end-radius: 0; }
+.sl-markdown-content .expressive-code .frame:is(.is-terminal, .has-title) .header { border-start-start-radius: 10px; border-start-end-radius: 10px; }
 .sl-markdown-content :not(pre) > code {
   border-radius: 6px;
   padding: .1em .38em;
@@ -93,6 +96,9 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 }
 .sl-markdown-content :is(th, td) { border: 0; border-top: 1px solid var(--sl-color-hairline); padding: .55rem .8rem; vertical-align: top; }
 .sl-markdown-content thead th { border-top: 0; font-weight: 700; background: transparent; }
+/* tablas de dos columnas sin títulos (| | |): sin la fila vacía de arriba ni la línea de la primera fila */
+.sl-markdown-content thead:not(:has(th:not(:empty))) { display: none; }
+.sl-markdown-content table:has(thead:not(:has(th:not(:empty)))) tbody tr:first-child > * { border-top: 0; }
 .sl-markdown-content tr:nth-child(2n) { background: transparent; }
 
 /* avisos (aside) sin borde lateral de color: solo el tono */
