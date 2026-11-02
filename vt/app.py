@@ -14,7 +14,8 @@ from .capture import Captures
 from .asr import WhisperASR
 from .httpws import AppServer
 from .session import Session
-from .translate import MODELS as MT_MODELS, load_translator
+from . import langs
+from .translate import MODELS as MT_MODELS, Translators
 from .prefs import Prefs
 from .processor import Processor
 from .exporter import Exporter
@@ -25,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def main():
-    p = argparse.ArgumentParser(description="Translay: traduce y dobla videos del inglés al español")
+    p = argparse.ArgumentParser(description="Translay: traduce y dobla videos al español (inglés, portugués…)")
     p.add_argument("--version", action="version", version=f"Translay {__version__}")
     p.add_argument("--host", default="127.0.0.1",
                    help="Dirección donde escucha el servidor (0.0.0.0 para todas, p. ej. en Docker)")
@@ -37,7 +38,8 @@ def main():
     p.add_argument("--compute-type", default=None, help="Precisión de Whisper en CTranslate2: float16, int8_float16, int8…")
     p.add_argument("--beam", type=int, default=None, help="Ancho de búsqueda de Whisper (5 segmenta mejor que 1)")
     p.add_argument("--translator", default=None,
-                   help="none | " + " | ".join(MT_MODELS) + " | repo de HF (Marian CT2) (por defecto, el del perfil)")
+                   help="none | " + " | ".join(MT_MODELS) + " | repo de HF (Marian CT2): uno para todos los "
+                        "idiomas que traduce (por defecto, el de cada idioma según el perfil)")
     p.add_argument("--voice", default=None, help="none | omnivoice | chatterbox (por defecto, según el perfil)")
     p.add_argument("--owner-password", default=os.environ.get("TRANSLAY_OWNER_PASSWORD", ""),
                    help="Contraseña del dueño al arrancar (o TRANSLAY_OWNER_PASSWORD); hace falta cuando "
@@ -78,7 +80,6 @@ def main():
     a.compute_type = a.compute_type or (prof["asr_ct"] if a.device == "cuda" else "int8")
     a.beam = a.beam or prof["beam"]
     mt_ct = None if a.translator else prof["mt_ct"]
-    a.translator = a.translator or prof["mt"]
     a.voice = a.voice or ("omnivoice" if prof["voice"] else "none")
     g = hw.get("gpu")
     unified = bool(g and g.get("unified"))  # memoria unificada, como DGX Spark (vt/hardware.py)
@@ -90,8 +91,10 @@ def main():
     print(f"Preparando {a.model} en {a.device} ({a.compute_type})…", flush=True)
     asr = WhisperASR(a.model, a.device, a.compute_type, a.beam)
     asr.warmup()
-    print(f"Preparando traductor {a.translator}…", flush=True)
-    translator = load_translator(a.translator, a.device, mt_ct)
+    # un traductor por idioma de origen (vt/translate.py): el del inglés se prepara ahora,
+    # los demás la primera vez que llega un video en ese idioma
+    translator = Translators(prof["mt"], a.device, mt_ct, force=a.translator)
+    print(f"Preparando traductor {translator.name}…", flush=True)
     translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
     # bibliotecas (vt/vaults.py): Principal es data/; las demás, cada una en su carpeta
@@ -316,7 +319,8 @@ def main():
         dubber.tts_params = {"num_step": prof["steps"] or 16}
     tts_exec = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
     info = {"model": a.model, "device": "GPU" if a.device == "cuda" else a.device.upper(),
-            "translator": translator.name, "voice": a.voice, "profile": active}
+            "translator": translator.name, "voice": a.voice, "profile": active,
+            "langs": {c: langs.name(c) for c in langs.SOURCES}}  # idiomas que se reconocen (la vista los nombra)
 
     # avisos para todas las pestañas abiertas (cola, reposo, avance en segundo plano)
     sessions: set = set()
@@ -346,7 +350,9 @@ def main():
     perf = Perf(prefs, res, active, cli, device=a.device)
     processor = Processor(DATA, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
                           youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
-                          order=lambda: prefs.values.get("download_order", "orden"))
+                          order=lambda: prefs.values.get("download_order", "orden"),
+                          own_lang=lambda: prefs.values.get("transcribe_lang") if langs.is_source(
+                              prefs.values.get("transcribe_lang")) else None)
     exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults)
 
     # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)

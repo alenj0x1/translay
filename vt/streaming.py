@@ -25,26 +25,80 @@ _SENT_END = re.compile(r"[.!?…][\"')\]]*$")
 _CLAUSE_END = re.compile(r"[,;:—–-][\"')\]]*$")
 _NORM = re.compile(r"[^\w']+")
 
-# palabras con las que una oración inglesa casi nunca termina: tras ellas, una
-# pausa + mayúscula es un nombre propio ("translated into Spanish"), no un corte
-_NO_END = {
-    "a", "an", "the", "to", "of", "in", "into", "on", "onto", "at", "by", "for", "from",
-    "with", "about", "as", "and", "or", "but", "nor", "so", "than", "that", "if", "my",
-    "your", "our", "their", "his", "her", "its", "is", "are", "was", "were", "be", "been",
-    "am", "will", "would", "can", "could", "should", "has", "have", "had", "do", "does",
-    "did", "not", "very", "like", "called", "named", "visit", "visited", "use", "using",
+# Reglas por idioma (código de vt/langs.py). Un idioma sin reglas propias usa solo lo
+# que no depende del idioma (puntuación y pausas).
+#
+# NO_END: palabras con las que una oración casi nunca termina: tras ellas, una pausa +
+# mayúscula es un nombre propio ("translated into Spanish"), no un corte.
+NO_END = {
+    "en": {
+        "a", "an", "the", "to", "of", "in", "into", "on", "onto", "at", "by", "for", "from",
+        "with", "about", "as", "and", "or", "but", "nor", "so", "than", "that", "if", "my",
+        "your", "our", "their", "his", "her", "its", "is", "are", "was", "were", "be", "been",
+        "am", "will", "would", "can", "could", "should", "has", "have", "had", "do", "does",
+        "did", "not", "very", "like", "called", "named", "visit", "visited", "use", "using",
+    },
+    "pt": {
+        "o", "a", "os", "as", "um", "uma", "uns", "umas", "de", "do", "da", "dos", "das", "em",
+        "no", "na", "nos", "nas", "ao", "à", "para", "pra", "pro", "por", "pelo", "pela", "com",
+        "sem", "sobre", "entre", "até", "e", "ou", "mas", "que", "se", "meu", "minha", "seu",
+        "sua", "nosso", "nossa", "é", "são", "foi", "era", "ser", "está", "estão", "vai", "vou",
+        "tem", "não", "muito", "como", "chamado", "chamada", "usar", "usando", "visitar",
+    },
+    "es": {
+        "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en", "a", "al",
+        "para", "por", "con", "sin", "sobre", "entre", "hasta", "y", "o", "pero", "que", "si",
+        "mi", "tu", "su", "nuestro", "nuestra", "es", "son", "fue", "era", "ser", "está",
+        "están", "va", "voy", "tiene", "no", "muy", "como", "llamado", "llamada", "usar",
+        "usando", "visitar",
+    },
 }
+# palabras que siempre van con mayúscula (no indican oración nueva)
+ALWAYS_CAP = {"en": {"I"}}
 # palabras comunes que tras una coma van en minúscula ("watching, see you")
-_LOWER_AFTER_COMMA = {
-    "see", "the", "and", "but", "so", "we", "you", "it", "that", "this", "then", "they",
-    "he", "she", "there", "what", "how", "a", "an", "in", "on", "to", "for", "or", "which",
+LOWER_AFTER_COMMA = {
+    "en": {
+        "see", "the", "and", "but", "so", "we", "you", "it", "that", "this", "then", "they",
+        "he", "she", "there", "what", "how", "a", "an", "in", "on", "to", "for", "or", "which",
+    },
+    "pt": {
+        "e", "mas", "então", "o", "a", "os", "as", "que", "eu", "você", "vocês", "ele", "ela",
+        "isso", "isto", "aí", "porque", "se", "um", "uma", "no", "na", "em", "para", "pra", "com",
+        "tipo", "né", "depois", "agora",
+    },
+    "es": {
+        "y", "pero", "entonces", "el", "la", "los", "las", "que", "yo", "usted", "ustedes", "él",
+        "ella", "eso", "esto", "porque", "si", "un", "una", "en", "para", "con", "después", "ahora",
+    },
+}
+# frases que Whisper inventa sobre silencio o ruido en los bordes del audio (normalizadas:
+# minúsculas, sin puntuación). Las de pt/es son las conocidas de sus datos de entrenamiento
+# (créditos de subtítulos y cierres de video).
+HALLUCINATIONS = {
+    "en": {
+        "you", "thank", "thank you", "thanks", "thank you very much", "thanks for watching",
+        "thank you for watching", "bye", "okay", "so", "the end", "uh", "um",
+    },
+    "pt": {
+        "obrigado", "obrigada", "obrigado por assistir", "obrigada por assistir", "tchau",
+        "legendas pela comunidade amaraorg", "inscrevase no canal", "até a próxima", "ok", "é",
+    },
+    "es": {
+        "gracias", "muchas gracias", "gracias por ver", "gracias por ver el video", "adiós",
+        "chao", "suscríbete", "subtítulos realizados por la comunidad de amaraorg",
+        "subtítulos por la comunidad de amaraorg", "ok", "eh",
+    },
 }
 
-# frases que Whisper inventa sobre silencio o ruido en los bordes del audio
-_HALLUCINATIONS = {
-    "you", "thank", "thank you", "thanks", "thank you very much", "thanks for watching",
-    "thank you for watching", "bye", "okay", "so", "the end", "uh", "um",
-}
+
+def speech_sample(audio: np.ndarray, seconds: float = 15.0, scan_s: float = 300.0) -> np.ndarray:
+    """Los primeros `seconds` de voz de un audio (VAD de energía, en los primeros `scan_s`):
+    para detectar el idioma sin que una intro musical o un silencio lo confundan."""
+    flags = EnergyVAD().process(audio[: int(scan_s * SR)])
+    idx = np.flatnonzero(flags)[: int(seconds * SR / FRAME)]
+    if len(idx) == 0:
+        return audio[: 30 * SR]
+    return np.concatenate([audio[i * FRAME:(i + 1) * FRAME] for i in idx])
 
 
 def _norm(w: Word) -> str:
@@ -66,6 +120,10 @@ class Config:
     max_buffer_s: float = 24.0   # Whisper procesa ventanas de 30 s
     prompt_chars: int = 200      # contexto previo pasado como prompt
     gap_s: float = 0.5           # salto de tiempo que se considera discontinuidad
+    detect_speech_s: float = 3.0   # voz mínima para detectar el idioma
+    detect_prob: float = 0.7       # confianza para darlo por detectado (si no, se espera más voz)
+    detect_max_s: float = 15.0     # con esta voz se decide aunque la confianza sea menor
+    detect_final_s: float = 1.5    # al cerrar (pausa, otro video), voz mínima para decidir; si no, se espera
 
 
 @dataclass
@@ -82,10 +140,17 @@ class Partial:
     tentative: str
 
 
+@dataclass
+class Detected:
+    """Idioma detectado en lo primero que se reconoció (cuando el video no lo tenía)."""
+    lang: str
+    prob: float
+
+
 class StreamingTranscriber:
     def __init__(self, asr, cfg: Config | None = None, vad: EnergyVAD | None = None, language: str = "en"):
         self.asr = asr
-        self.language = language  # el que se habla en el video (Transcript.lang)
+        self.language = language  # el que se habla en el video (Transcript.lang); "" = detectarlo
         self.cfg = cfg or Config()
         self.vad = vad or EnergyVAD()
         self.context = ""
@@ -145,6 +210,13 @@ class StreamingTranscriber:
             self.final_t = max(self.final_t, self.t0)
             return events + [Partial("", "")]
 
+        if not self.language:
+            # búfer lleno sin decidir: se decide con lo que hay (Whisper mira hasta 30 s)
+            det = self._detect(final=self.duration > self.cfg.max_buffer_s)
+            if not det:
+                return [Partial("", "")]  # se espera más voz para saber el idioma
+            events.append(det)
+
         last_speech_t = self.t0 + (speech[-1] + 1) * FRAME / SR
         trailing = self.end_t - last_speech_t
 
@@ -190,14 +262,18 @@ class StreamingTranscriber:
     def flush(self) -> list:
         """Cierra todo lo pendiente (pausa, salto, fin del video)."""
         events: list = []
-        if len(self.audio) >= 0.3 * SR and self.flags.any():
+        if not self.language and self.flags.any():
+            events += [d for d in [self._detect(final=True)] if d]
+        if len(self.audio) >= 0.3 * SR and self.flags.any() and self.language:
             hyp = self._hypothesis()
             self._refresh(hyp)
             events += self._close(self._uncommitted(hyp))
         else:
             events += self._close([])
+        if self.language:
+            self.final_t = max(self.final_t, self.end_t)
+        # sin idioma (muy poca voz para saberlo) el tramo no queda cubierto: se reconoce al volver
         self._trim_to(self.end_t)
-        self.final_t = max(self.final_t, self.end_t)
         return events + [Partial("", "")]
 
     def abort(self) -> list:
@@ -210,6 +286,18 @@ class StreamingTranscriber:
         return [Partial("", "")]
 
     # ---------------------------------------------------------------- internos
+    def _detect(self, final: bool = False) -> Detected | None:
+        """Idioma de la voz del búfer. Espera a tener voz suficiente; con poca confianza,
+        más voz (hasta detect_max_s). Medido en tools/lab/langs_asr.py."""
+        speech_s = self.flags.sum() * FRAME / SR
+        if speech_s < (self.cfg.detect_final_s if final else self.cfg.detect_speech_s):
+            return None
+        code, prob = self.asr.detect(self.audio[-30 * SR:])
+        if prob < self.cfg.detect_prob and speech_s < self.cfg.detect_max_s and not final:
+            return None
+        self.language = code
+        return Detected(code, round(prob, 3))
+
     def _hypothesis(self) -> list[Word]:
         prompt = self.context[-self.cfg.prompt_chars:] if self.context else None
         words = [w.shifted(self.t0) for w in self.asr.transcribe(self.audio, prompt, self.language)]
@@ -277,8 +365,8 @@ class StreamingTranscriber:
                     continue
                 gap = nxt.start - w.end
                 head = nxt.text.strip()
-                capital = (head[:1].isupper() and head.split("'")[0] != "I"
-                           and _norm(w) not in _NO_END)
+                capital = (head[:1].isupper() and head.split("'")[0] not in ALWAYS_CAP.get(self.language, ())
+                           and _norm(w) not in NO_END.get(self.language, ()))
                 if (capital and gap >= self.cfg.pause_cut_s / 2) or gap >= self.cfg.pause_cut_s:
                     if capital:
                         w.text += "."
@@ -310,11 +398,12 @@ class StreamingTranscriber:
 
     def _emit(self, words: list[Word]) -> list[Segment]:
         for a, b in zip(words, words[1:]):
-            if a.text.endswith(",") and _norm(b) in _LOWER_AFTER_COMMA and b.text.strip()[:1].isupper():
+            if (a.text.endswith(",") and _norm(b) in LOWER_AFTER_COMMA.get(self.language, ())
+                    and b.text.strip()[:1].isupper()):
                 b.text = b.text.lower()
         text = _text(words)
         key = " ".join(_norm(w) for w in words)
-        if key in _HALLUCINATIONS and float(np.mean([w.prob for w in words])) < 0.9:
+        if key in HALLUCINATIONS.get(self.language, ()) and float(np.mean([w.prob for w in words])) < 0.9:
             return []
         if text[:1].islower() and (not self.context or _SENT_END.search(self.context)):
             text = text[0].upper() + text[1:]

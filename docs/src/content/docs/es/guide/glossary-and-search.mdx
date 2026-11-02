@@ -1,6 +1,6 @@
 ---
 title: Glosario y búsqueda
-description: Términos con traducción fija o que se dejan en inglés, y la búsqueda en todas las transcripciones de una biblioteca.
+description: Términos con traducción fija o que se dejan como en el original, y la búsqueda en los videos, colecciones y transcripciones de una biblioteca.
 sidebar:
   order: 9
 ---
@@ -9,11 +9,11 @@ import { Aside } from "@astrojs/starlight/components";
 
 ## Glosario
 
-El glosario está en Preferencias › Glosario. Cada fila es un término en inglés y, a la derecha, cómo se traduce siempre:
+El glosario está en Preferencias › Glosario. Cada fila es un término tal como se dice en el video (en cualquier idioma que Translay traduce) y, a la derecha, cómo se traduce siempre:
 
-| En inglés | Traducción | Resultado |
+| Término | Traducción | Resultado |
 |---|---|---|
-| `Jupyter Notebook` | (vacío) | Queda en inglés. Sirve para nombres, marcas y siglas. |
+| `Jupyter Notebook` | (vacío) | Queda como en el original. Sirve para nombres, marcas y siglas. |
 | `prompt` | `instrucción` | Siempre se traduce como «instrucción». |
 
 «Agregar término» suma una fila, «Quitar» la borra y «Guardar glosario» lo aplica. Cada biblioteca tiene su propio glosario.
@@ -24,16 +24,25 @@ Los términos se reconocen como palabras completas y sin importar mayúsculas: `
 
 El glosario se aplica a lo ya traducido, no solo a lo nuevo. Al guardarlo, las frases de la biblioteca que contienen un término agregado, cambiado o quitado se traducen de nuevo, y la voz de esas frases se rehace en la cola. Al terminar, un aviso dice cuántas frases y videos cambiaron.
 
-## Búsqueda en las transcripciones
+## Búsqueda
 
 ![Resultados de buscar «solar» en las transcripciones, con la frase y el momento exacto](../../../../assets/capturas/busqueda.webp)
 
-El campo «Buscar en las transcripciones» del encabezado busca en todos los videos de la biblioteca abierta: en el inglés, en el español y en los [comentarios](../transcript-and-people/#comentarios). En la biblioteca, la tecla <kbd>/</kbd> lleva directo al campo; desde otra pantalla, al tocarlo vuelves a la biblioteca.
+El campo «Buscar videos y lo que se dice» del encabezado busca en la biblioteca abierta. En la biblioteca, la tecla <kbd>/</kbd> lleva directo al campo; desde otra pantalla, al tocarlo vuelves a la biblioteca.
+
+Los resultados llegan en hasta tres grupos:
+
+| Grupo | Qué muestra |
+|---|---|
+| «Videos» | Los videos cuyo título o canal coincide, como tarjetas normales (hasta 12). |
+| «Colecciones y canales» | Las colecciones, playlists, categorías y canales cuyo nombre coincide (hasta 24); un clic la abre. |
+| «En lo que se dice» | Las frases que coinciden en lo que se dice, en la traducción y en los [comentarios](../transcript-and-people/#comentarios), agrupadas por video, con el que tiene más coincidencias primero. Cada una muestra la hora de la frase; un clic abre el video justo antes de ese momento. |
+
+El encabezado cuenta lo encontrado, por ejemplo «2 videos · 5 frases · 1 colección». Si nada coincide, dice que ningún video, colección o canal se llama así y que nadie lo dice.
 
 - No importan las tildes ni las mayúsculas: «cancion» encuentra «canción».
 - Busca mientras escribes, a partir de dos letras.
-- Los resultados se agrupan por video, con el que tiene más coincidencias primero, y la coincidencia aparece subrayada.
-- Cada resultado muestra la hora de la frase; un clic abre el video justo antes de ese momento.
+- La coincidencia aparece subrayada.
 
 <kbd>Esc</kbd> o «Cerrar búsqueda» vuelve a la colección donde estabas.
 

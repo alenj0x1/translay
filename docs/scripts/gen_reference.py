@@ -3,7 +3,8 @@
 Lo que la documentación muestra como tabla (opciones de línea de comandos,
 preferencias, eventos de webhooks, rutas de la API, tipos de exportación y la
 versión) se lee directo de `vt/` con `ast`, sin importar los módulos (no hace
-falta GPU, torch ni faster-whisper). Así esas tablas no se desactualizan: si el
+falta GPU, torch ni faster-whisper); solo se carga `vt/langs.py`, que son datos, para
+las tablas que se arman con el registro de idiomas. Así esas tablas no se desactualizan: si el
 código cambia, la documentación cambia al compilarla.
 
     python docs/scripts/gen_reference.py          # escribe docs/src/data/*.json
@@ -24,11 +25,39 @@ def parse(name: str) -> ast.Module:
     return ast.parse((VT / name).read_text(encoding="utf-8"))
 
 
+def langs_module():
+    """vt/langs.py (solo datos y dataclasses): algunas tablas se arman con el registro de idiomas."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("vt_langs", VT / "langs.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod  # dataclasses busca el módulo por nombre
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def evaluate(expr: ast.expr, env: dict):
+    """Una expresión que no es literal (p. ej. una lista armada con `langs`), con solo `env`."""
+    code = compile(ast.Expression(expr), "<vt>", "eval")
+    return eval(code, {"__builtins__": {"sorted": sorted, "len": len}, **env})  # noqa: S307 — código de vt/
+
+
 def literal(mod: ast.Module, name: str):
-    """Valor de una asignación de nivel superior (`NOMBRE = <literal>`)."""
+    """Valor de una asignación de nivel superior (`NOMBRE = <literal>`). Si no es literal
+    pero solo usa el registro de idiomas (`langs.…`), se evalúa con él."""
     for node in mod.body:
         if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
-            return ast.literal_eval(node.value)
+            try:
+                return ast.literal_eval(node.value)
+            except ValueError:
+                return evaluate(node.value, {"langs": langs_module()})
+    raise KeyError(f"{name} no está en el módulo")
+
+
+def dict_keys(mod: ast.Module, name: str) -> list:
+    """Las claves de un dict de nivel superior, aunque sus valores no sean literales."""
+    for node in mod.body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            return [ast.literal_eval(k) for k in node.value.keys]
     raise KeyError(f"{name} no está en el módulo")
 
 
@@ -56,9 +85,9 @@ def cli_options() -> list[dict]:
             if "help" in kw:
                 try:
                     item["help"] = ast.literal_eval(kw["help"])
-                except ValueError:  # texto armado con los modelos de vt/translate.py
-                    models = literal(parse("translate.py"), "MODELS")
-                    item["help"] = "none | " + " | ".join(models) + " | repo de HF (Marian CT2) (por defecto, el del perfil)"
+                except ValueError:  # texto armado con los modelos de vt/translate.py (MT_MODELS)
+                    models = dict.fromkeys(dict_keys(parse("translate.py"), "MODELS"))
+                    item["help"] = evaluate(kw["help"], {"MT_MODELS": models})
             out.append(item)
     return out
 

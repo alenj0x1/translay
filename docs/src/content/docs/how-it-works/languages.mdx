@@ -1,0 +1,119 @@
+---
+title: Languages
+description: The language registry, automatic detection, translate or only transcribe, a translator per source language, text rules and how to add a language.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import Diagram from "../../../components/Diagram.astro";
+import { languages } from "../../../diagrams";
+
+Translay recognizes videos in English, Portuguese and Spanish and translates them into Latin American Spanish. Any video can also be only transcribed, in its own language.
+
+<Diagram {...languages("en")} />
+
+## The registry
+
+`vt/langs.py` holds everything that changes from one language to another, as data; the rest of the code doesn't name languages.
+
+| Field | What it is | Portuguese |
+|---|---|---|
+| `code` | ISO 639-1: Whisper's, the API's and the saved data's. | `pt` |
+| `name` | Name in the interface, in Spanish. | `portugués` |
+| `iso3` | ISO 639-2: FFmpeg track tags and the target tag of multilingual Opus-MT (`>>spa<<`). | `por` |
+| `nllb` | NLLB-200 token, script included. | `por_Latn` |
+| `tts` | Name the voice engines expect. | `Portuguese` |
+
+`SOURCES` are the languages that can be recognized and chosen by hand (`en`, `pt`, `es`); `TARGET` is the language it translates into (`es`). A video is translated when its language isn't the target, is in the registry and the person didn't choose to only transcribe it.
+
+## Automatic detection
+
+A new video (imported link, local file or screen recording) has no language: Whisper detects it from the first seconds of speech, before recognizing anything (`WhisperASR.detect`).
+
+- **Queue.** It uses the first ~15 s of speech found by the energy VAD (`speech_sample`, within the first 5 minutes), so a musical intro or a silence doesn't mislead it.
+- **Live.** `StreamingTranscriber` waits for 3 s of speech and accepts the language if its probability is 0.7 or more; otherwise it waits for more speech, up to 15 s, and then decides anyway. The language arrives before the first sentence (`lang` message).
+
+A detected language that Translay can't translate yet is only transcribed, in that language. A video from before there were languages, without `lang`, stays in English. A `.en` model passed with `--model` doesn't detect: everything is English to it.
+
+Measured with `tools/lab/langs_asr.py` on FLEURS clips in English, Portuguese and Spanish: 100 % correct with large-v3-turbo, also with chatter in other languages at 5 dB and pink noise at 5 dB, in about 250 ms per detection on an RTX 4060. Whisper `small` got 97.5–100 % with chatter.
+
+## Translate or only transcribe
+
+Each video has a mode, independent of its language (`mode` in its [transcript](../data/#per-video-transcript)):
+
+- `translate`: translated and dubbed into Spanish.
+- `transcribe`: only transcribed, in its own language and without voice.
+
+If the person didn't choose a mode, a video detected in the language of the **Solo transcribir lo que está en** (Only transcribe what is in) preference (`transcribe_lang`, Spanish by default) is only transcribed. Changing the mode deletes nothing: the recognized text works for both and translations are kept, so going back to translating only fills in what's missing. Changing the language does delete what was recognized and processes the video again. In the interface: [Add videos › Language](../../guide/import/#language-and-transcribe-only).
+
+## A translator per language
+
+`Translators` (`vt/translate.py`) creates the translator for each source language the first time it is needed, according to `ROUTES` and the profile's tier:
+
+| Source | `big` (quality profiles) | `base` (light profiles) |
+|---|---|---|
+| English | Opus-MT tc-big en-es (`opus-big`) | `opus-base` |
+| Portuguese | Opus-MT tc-big itc-itc (`opus-itc`) | `opus-itc` |
+| Any other | NLLB-200 1.3B (`FALLBACK`) | NLLB-200 1.3B |
+
+- **One on the GPU.** Switching language moves the previous translator to RAM (about 1 s to come back), so the memory measured for each [profile](../../guide/performance/) doesn't grow with languages.
+- **Download outside the GPU thread.** A translator missing on disk is downloaded without blocking recognition or voice of another video. Live, sentences stay untranslated and are filled in when it's ready.
+- **`--translator`** forces one model for every language it supports; the others keep their route.
+
+itc-itc is a multilingual model for Romance languages: it needs the target tag (`>>spa<<`, from `iso3`) at the start of each sentence.
+
+### Preparing the Portuguese model
+
+itc-itc isn't published in CTranslate2 format, so `vt/opusmt.py` prepares it from the official OPUS-MT release (Helsinki-NLP, Tatoeba Challenge) the first time a Portuguese video is translated:
+
+<Steps>
+
+1. Downloads the release at a pinned URL (789 MB) and checks its SHA-256; if it doesn't match, it is discarded.
+2. Converts it with CTranslate2's converter, which only needs numpy, not torch (about 3 s), to `float16` (about 430 MB).
+3. Leaves it in `translay/opus-itc-itc` next to the Hugging Face cache (or in `TRANSLAY_MODELS`), with the original `LICENSE` and `README`, and deletes the intermediate files. The final folder only appears when it is complete.
+
+</Steps>
+
+The model's license is CC-BY-4.0.
+
+### Measurements
+
+With `tools/lab/langs_mt.py` on FLEURS (the same sentences in each language, with Latin American Spanish as the reference), RTX 4060. Portuguese → Spanish, test, 347 sentences:
+
+| Translator | chrF | Per sentence | Sentences/s (batches) | VRAM |
+|---|---|---|---|---|
+| **Opus-MT itc-itc** | 54.3 | 137 ms | 69 | ~0.7 GB |
+| NLLB-200 1.3B | 53.2 (54.3 with the text rules) | 953 ms | 11.7 | ~2 GB |
+| MADLAD-400 3B | 54.5 | 1458 ms | 6.3 | ~3.5 GB |
+
+itc-itc is as good as MADLAD and ten times faster. As a reference, English → Spanish: opus-big 56.7, opus-base 55.2, NLLB 55.1, MADLAD 56.7.
+
+Whisper's word error rate with `tools/lab/langs_asr.py` (FLEURS dev, 120 clips per language):
+
+| Model | English | Portuguese | Spanish |
+|---|---|---|---|
+| large-v3-turbo `float16` | 5.2 % | 4.2 % | 3.4 % |
+| large-v3-turbo `int8_float16` | 4.9 % | 4.2 % | 3.3 % |
+| small `int8` | 6.3 % | 7.7 % | 6.3 % |
+| large-v3-turbo `int8`, chatter at 5 dB | 17.0 % | 11.1 % | 7.9 % |
+| small, chatter at 5 dB | 28.8 % | 24.1 % | 17.6 % |
+
+## Text rules
+
+Rules that depend on the language are keyed by its code; a language without its own only gets what doesn't depend on the language (punctuation and pauses).
+
+- **Before translating** (`vt/textproc.py`): abbreviations that don't end a sentence ("Mr.", "Sra.") and idioms rewritten to their meaning. In Portuguese, idioms that the translator would render literally ("pisou na bola" → "errou", "custou os olhos da cara" → "custou muito caro", "moleza" → "muito fácil", "fica ligado" → "fique atento", "fala, galera" → "olá, pessoal") and colloquial forms that Whisper writes as they are spoken ("pra" → "para", "tá" → "está", "bora" → "vamos", "tô", "cê", "né").
+- **Live recognition** (`vt/streaming.py`): words a sentence rarely ends with, words written in lowercase after a comma, and the phrases Whisper makes up on silence in each language ("Legendas pela comunidade Amara.org", "Obrigado por assistir", "Subtítulos realizados por la comunidad de Amara.org", "Gracias por ver el video"). Before, there were only English rules; Spanish videos also benefit.
+
+## Add a language
+
+<Steps>
+
+1. Add its entry to `LANGS` in `vt/langs.py` and its code to `SOURCES`. With that it can be detected, chosen in the interface and in the API, and transcribed.
+2. Measure translators for the pair with `tools/lab/langs_mt.py` and `tools/lab/langs_asr.py` for recognition and detection.
+3. If one wins over NLLB, add it to `MODELS` and its route to `ROUTES` in `vt/translate.py`; without a route, NLLB-200 1.3B translates it. If it isn't published for CTranslate2, add its official release to `PUBLISHED` in `vt/opusmt.py`.
+4. Optional: its text rules in `ABBR` and `IDIOMS` (`vt/textproc.py`) and in `NO_END`, `LOWER_AFTER_COMMA` and `HALLUCINATIONS` (`vt/streaming.py`), checked against the lab's typical sentences.
+5. Add its cases to `tests/test_langs.py`.
+
+</Steps>

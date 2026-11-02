@@ -19,11 +19,15 @@ On machines with **unified memory**, such as NVIDIA DGX Spark, the GPU uses syst
 
 | Profile | Recognition | Translator | Voice | For |
 |---|---|---|---|---|
-| **Máxima calidad** (Maximum quality) | large-v3-turbo, fp16 | opus-big | Cloned, 16 steps | GPU with 8 GB or more |
-| **Equilibrado** (Balanced) | large-v3-turbo, int8 | opus-big, int8 | Cloned, 8 steps | GPU with 6 GB |
-| **Ligero** (Light) | small, int8 | opus-base | Cloned, 8 steps | GPU with 4 GB |
-| **Solo subtítulos** (Subtitles only) | large-v3-turbo, int8 | opus-big | No voice | GPU with 2 GB |
-| **Subtítulos ligeros** (Light subtitles) | small, int8 | opus-base | No voice | No GPU |
+| **Máxima calidad** (Maximum quality) | large-v3-turbo, fp16 | big | Cloned, 16 steps | GPU with 8 GB or more |
+| **Equilibrado** (Balanced) | large-v3-turbo, int8 | big, int8 | Cloned, 8 steps | GPU with 6 GB |
+| **Ligero** (Light) | small, int8 | base | Cloned, 8 steps | GPU with 4 GB |
+| **Solo subtítulos** (Subtitles only) | large-v3-turbo, int8 | big | No voice | GPU with 2 GB |
+| **Subtítulos ligeros** (Light subtitles) | small, int8 | base | No voice | No GPU |
+
+The translator is a tier, and each language has its own model in it: in English, `big` is Opus-MT tc-big and `base` is opus-base; Portuguese uses Opus-MT itc-itc in every profile. Only one translator is on the GPU at a time, so a profile's memory doesn't grow with the number of languages. See [Languages](../../how-it-works/languages/#a-translator-per-language).
+
+The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which loses more accuracy in Portuguese than in English: on clean speech it makes 7.7 % word errors in Portuguese and 6.3 % in English, against 4.2 % and 5.2 % with large-v3-turbo; with background chatter, 24 % and 29 % against 11 % and 17 %.
 
 **Automático** (Automatic; the default) picks the most complete profile that can be watched live on your machine. Each card says how that profile performs here:
 

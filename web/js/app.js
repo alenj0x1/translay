@@ -19,7 +19,8 @@ const state = {
   audio: null,         // {ctx, node, orig, dub}
   userScrollAt: 0,
   dubMode: true,       // escuchar en español (voz doblada) u original
-  lang: "en",          // idioma en que se habla el video abierto ("es": solo se transcribe, sin voz)
+  lang: "en",          // idioma en que se habla el video abierto ("" mientras se detecta)
+  translates: true,    // se traduce y dobla; si no, solo se transcribe (en su idioma, sin voz)
   ahead: false,        // audio del archivo procesado por delante de la reproducción
   downloads: {},       // descargas de YouTube en curso: id → {title, stage, pct}
   comments: {},        // id de frase → [{id, text, created, updated}]
@@ -28,7 +29,7 @@ const state = {
 };
 
 // preferencias guardadas en el servidor (vt/prefs.py); valores por defecto hasta recibirlas
-let prefs = { theme_mode: "sistema", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_en: true, ready_chip: "auto",
+let prefs = { theme_mode: "sistema", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_orig: true, ready_chip: "auto",
   autoplay: true, autoplay_next: true };
 let prefsSchema = [];
 let prefsSections = [];
@@ -55,8 +56,16 @@ function connect() {
 const OPTIMISTIC = {};
 // YouTube o un enlace compartido (Dropbox): el servidor lo descarga
 const isRemote = (v) => v?.source === "youtube" || v?.source === "link";
-// ¿se espera voz en español? (un video que ya está en español solo se transcribe)
-const wantsVoice = () => !!state.voice && state.voice !== "none" && state.lang !== "es";
+// ¿se espera voz en español? (un video que solo se transcribe no lleva voz)
+const wantsVoice = () => !!state.voice && state.voice !== "none" && state.translates;
+// idiomas que reconoce el servidor (vt/langs.py): código → nombre; llegan con «ready»
+let LANGS = { en: "inglés", pt: "portugués", es: "español" };
+const langName = (c) => LANGS[c] || (c ? c.toUpperCase() : "el original");
+// ¿se traduce y dobla este video de la biblioteca? (como Transcript.translates en vt/store.py)
+function translatesV(v) {
+  const l = v?.lang || "en";
+  return (v?.mode || (l === "es" ? "transcribe" : "translate")) === "translate" && l !== "es" && l in LANGS;
+}
 
 function send(obj) {
   try { OPTIMISTIC[obj.type]?.(obj); } catch (e) { console.error(e); }
@@ -70,6 +79,7 @@ function onMessage(m) {
       state.models = `${m.device} · ${m.model}${m.translator !== "none" ? " · " + m.translator : ""}`;
       renderPower();
       state.voice = m.voice;
+      if (m.langs) LANGS = m.langs;
       // al reconectar, la pestaña sigue en su biblioteca (la responde con todo: lista, prefs, videos)
       if (typeof vaults !== "undefined" && vaults.current) send({ type: "vault_open", id: vaults.current });
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
@@ -209,7 +219,7 @@ function onMessage(m) {
       state.comments = m.comments || {};
       state.people = { names: m.speaker_names || {}, voices: m.voice_map || {}, refs: m.voice_refs || {} };
       state.prefix = m.prefix || "";      // archivos de su biblioteca (/v/<id>/…; Principal sin prefijo)
-      applyLang(m.lang);
+      applyLang(m.lang, m.translates);
       state.videoVault = m.vault;
       send({ type: "people_get", vault: m.vault });
       state.editing = null;
@@ -231,6 +241,11 @@ function onMessage(m) {
     }
     case "partial":
       state.live = m;
+      break;
+    case "lang":  // idioma detectado (o cambiado) del video abierto
+      if (lib.videos[state.videoId]) Object.assign(lib.videos[state.videoId], { lang: m.lang, mode: m.mode });
+      applyLang(m.lang, m.translates);
+      renderTranscript();
       break;
     case "translations": {
       const byId = new Map(m.items.map((x) => [x.id, x.translation]));
@@ -387,7 +402,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   readiness.hist = [];
   readiness.need = null;
   readiness.ok = false;
-  applyLang(lib.videos[id]?.lang);  // al llegar su transcripción se confirma
+  applyLang(lib.videos[id]?.lang, translatesV(lib.videos[id]));  // al llegar su transcripción se confirma
   libOnOpen({ id, name, ...opts });
   setView("player");
   $("#file-name").textContent = name;
@@ -471,7 +486,7 @@ function importVideos(urls) {
   const found = urls.map((u) => classify(u)).filter((c) => c?.kind === "video");
   const ids = [...new Set(found.filter((c) => !c.link).map((c) => "yt_" + c.key))].filter((id) => id !== state.videoId);
   if (found.some((c) => c.link)) lib.pendingImport = mode;  // sigue al responder el servidor (batch_added)
-  send({ type: "yt_batch", urls, coll: $("#multi-coll").value || "", quiet: true, front: mode === "abrir", lang: takeImportLang() });
+  send({ type: "yt_batch", urls, coll: $("#multi-coll").value || "", quiet: true, front: mode === "abrir", ...takeImportOpts() });
   $("#yt-url").value = ""; updateImportBtn();
   if (!lib.pendingImport) afterImport(ids, mode);
 }
@@ -514,12 +529,12 @@ function openVideoLink(url) {
 }
 function addPlaylist(url) {
   setStatus("busy", "leyendo la playlist", false);
-  send({ type: "playlist", url, lang: takeImportLang() });
+  send({ type: "playlist", url, ...takeImportOpts() });
 }
-// «Importar ▾ → Está en español»: vale solo para la próxima importación
-let importLang = "en";
-function takeImportLang() { const l = importLang; importLang = "en"; return l; }
-// un solo botón «Importar»: con un enlace lo importa; vacío, ofrece varios enlaces o archivos
+// «Agregar ▾ → Solo transcribir»: vale solo para lo próximo que se agregue. El idioma se detecta.
+let importTask = "";
+function takeImportOpts() { const mode = importTask; importTask = ""; return { lang: "auto", mode }; }
+// un solo botón «Agregar»: con un enlace lo agrega; vacío, ofrece varios enlaces o archivos
 $("#yt").addEventListener("submit", (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -527,24 +542,25 @@ $("#yt").addEventListener("submit", (e) => {
   if (!ytLinks(text).length && !/^[\w-]{11}$/.test(text)) return;
   if (ytLinks(text).length > 1) return openMulti(text);
   if (/dropbox\.com\//i.test(text) && !classify(text)) {
-    importLang = "en";
+    importTask = "";
     return toast("Ese enlace de Dropbox no es de un video: abre el video en Dropbox y copia su enlace.", "warn");
   }
-  if (!openYouTube(text)) importLang = "en";
+  if (!openYouTube(text)) importTask = "";
   updateImportBtn();
 });
-// «Importar» solo se habilita con un enlace de YouTube en el campo
+// «Agregar» solo se habilita con un enlace de YouTube o Dropbox en el campo
 function updateImportBtn() {
   const text = $("#yt-url").value.trim();
   $("#import-go").disabled = $("#import-more").disabled = !(ytLinks(text).some((u) => classify(u) || /dropbox\.com\//i.test(u)) || /^[\w-]{11}$/.test(text));
 }
 $("#yt-url").addEventListener("input", updateImportBtn);
-// «Importar ▾»: el video ya está en español → solo se transcribe
+// «Agregar ▾»: traducir y doblar (lo que está en el idioma propio de Preferencias solo se
+// transcribe) o solo transcribir, en cualquier idioma
 function importMenu(more, form) {
-  const go = (lang) => { importLang = lang; form.requestSubmit(); };
+  const go = (mode) => { importTask = mode; form.requestSubmit(); };
   openMenu([
-    { label: "Importar y traducir", icon: "import", onClick: () => go("en") },
-    { label: "Está en español: solo transcribir", icon: "comment", onClick: () => go("es") },
+    { label: "Agregar y traducir", icon: "plus", onClick: () => go("") },
+    { label: "Agregar y solo transcribir", icon: "comment", onClick: () => go("transcribe") },
   ], more.getBoundingClientRect());
 }
 $("#import-more").addEventListener("click", (e) => { e.stopPropagation(); importMenu($("#import-more"), $("#yt")); });
@@ -689,7 +705,7 @@ $("#multi-csv").addEventListener("change", (e) => {
 });
 $("#multi-dlg").addEventListener("close", () => {
   if ($("#multi-dlg").returnValue !== "ok") {
-    importLang = "en";
+    importTask = "";
     $("#multi-coll").value = "";  // cancelado: la colección elegida no queda para la próxima importación
     return;
   }
@@ -1135,19 +1151,26 @@ setInterval(() => {
 }, 80);
 
 function setMode(dub) {
-  dub = dub && state.lang !== "es";
+  dub = dub && state.translates;
   state.dubMode = dub;
   for (const b of $("#c-lang").querySelectorAll("button")) b.classList.toggle("on", (b.dataset.v === "es") === dub);
   if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
   if (!dub) stopDub();
 }
-// video que ya está en español: se escucha el original, con un solo subtítulo y una columna
-function applyLang(lang) {
-  state.lang = lang === "es" ? "es" : "en";
-  document.body.classList.toggle("native", state.lang === "es");
-  setMode(state.lang === "es" ? false : prefs.audio !== "original");
+// idioma del video abierto. Si solo se transcribe: se escucha el original, con un solo
+// subtítulo (en su idioma) y una columna
+function applyLang(lang, translates) {
+  state.lang = lang || "";
+  state.translates = translates ?? translatesV({ lang });
+  const code = state.lang ? state.lang.toUpperCase() : "Original";
+  const orig = $("#c-lang button[data-v='en']");
+  orig.textContent = state.lang ? code : "Orig";
+  orig.title = `Escuchar el original${state.lang ? ` (${langName(state.lang)})` : ""}`;
+  $("#pane-en .tag").textContent = state.lang ? `${code} · original` : "Original";
+  document.body.classList.toggle("native", !state.translates);
+  setMode(state.translates && prefs.audio !== "original");
   // dividida mostraría el mismo video dos veces: siempre ampliada (sin cambiar la preferencia)
-  setLayout(state.lang === "es" || prefs.layout !== "dividida", false);
+  setLayout(!state.translates || prefs.layout !== "dividida", false);
 }
 $("#c-lang").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -1233,7 +1256,8 @@ function renderCaptions() {
     }
     if (seg) {
       c = chunkAt(seg.text, seg.start, seg.end, at);
-      es = seg.translation ? chunkAt(seg.translation, seg.start, seg.end, at) : "";
+      const shown = state.translates ? seg.translation : seg.text;  // solo transcribir: en su idioma
+      es = shown ? chunkAt(shown, seg.start, seg.end, at) : "";
     }
   }
   capEn.querySelector(".c").textContent = c;
@@ -1273,8 +1297,9 @@ function renderTranscript() {
     li.innerHTML = `<div class="cell">${time1}<p></p></div><div class="cell">${time}<p></p></div>`;
     const [en, es] = li.querySelectorAll("p");
     en.textContent = s.text;
-    es.textContent = s.translation || "—";
-    es.classList.toggle("pending", !s.translation);
+    const shown = state.translates ? s.translation : s.text;  // solo transcribir: una columna, en su idioma
+    es.textContent = shown || "—";
+    es.classList.toggle("pending", !shown);
     const notes = state.comments[String(s.id)] || [];
     const editingHere = state.editing?.seg === s.id;
     li.classList.toggle("has-notes", notes.length > 0);
@@ -1585,6 +1610,7 @@ OPTIMISTIC.people_set = (m) => {
 function setPref(key, value) {
   prefs[key] = value;
   send({ type: "prefs_set", key, value });
+  if (key === "add_button" && typeof syncAddButton === "function") syncAddButton();  // al instante
 }
 
 function applyPrefs(m) {
@@ -1594,10 +1620,11 @@ function applyPrefs(m) {
   prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
+  if (typeof syncAddButton === "function") syncAddButton();  // «Botón Agregar» (web/js/home.js)
   if (typeof applyAccent === "function" && typeof vaults !== "undefined") applyAccent(prefs.accent_lib ? currentVault().color : null);
-  setLayout(state.lang === "es" || prefs.layout !== "dividida", false);
+  setLayout(!state.translates || prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
-  document.body.classList.toggle("no-sub-en", !prefs.sub_en);
+  document.body.classList.toggle("no-sub-en", !prefs.sub_orig);
   if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
   renderPrefs();
   if (typeof renderLibrary === "function") renderLibrary();
@@ -1611,7 +1638,7 @@ const YT_ACCOUNT = $("#yt-account");
 const PREF_BLOCKS = {
   escritorio: () => desktopPrefsBlocks(),
   bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
-  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
+  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda como en el original (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
   youtube: () => [[YT_ACCOUNT, "Cuenta de YouTube", "Inicias sesión una vez en una ventana aparte del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva solo. Mejor con una cuenta secundaria."],
     [YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
   rendimiento: () => {
@@ -1962,7 +1989,7 @@ document.addEventListener("keydown", (e) => {
 // texto del campo de enlaces según el ancho: nunca cortado
 const narrowMQ = window.matchMedia("(max-width: 760px)");
 function fitLinkHint() {
-  $("#yt-url").placeholder = narrowMQ.matches ? "Enlaces de YouTube" : "Pega uno o varios enlaces de YouTube";
+  $("#yt-url").placeholder = narrowMQ.matches ? "Pega un enlace" : "Pega un enlace de YouTube o Dropbox";
 }
 narrowMQ.addEventListener("change", fitLinkHint);
 fitLinkHint();
@@ -2049,7 +2076,7 @@ function renderGlossary(entries) {
   const ctl = GLOSSARY_BLOCK.querySelector(".pref-ctl");
   const rows = el("div", { class: "grows" });
   const addRow = (e = { src: "", dst: "" }) => {
-    const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "En inglés", value: e.src });
+    const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Como en el original", value: e.src });
     const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Igual (no traducir)", value: e.dst });
     const row = el("div", { class: "grow" }, src, el("span", { class: "arrow", text: "→" }), dst,
       btn("Quitar", { icon: "x", size: "xs", variant: "ghost", onClick: () => { row.remove(); glossary.dirty = true; } }));
@@ -2070,7 +2097,7 @@ function renderGlossary(entries) {
   } });
   ctl.replaceChildren(rows, el("div", { class: "acts" },
     btn("Agregar término", { icon: "plus", onClick: () => addRow().focus() }), save),
-    el("small", { class: "label", text: "Vacío a la derecha: el término queda en inglés (nombres, marcas, siglas)." }));
+    el("small", { class: "label", text: "Vacío a la derecha: el término queda como en el original (nombres, marcas, siglas)." }));
 }
 renderGlossary([]);
 

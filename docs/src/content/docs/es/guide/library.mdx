@@ -15,7 +15,7 @@ La biblioteca es la pantalla con la que abre Translay. A la izquierda está la b
 
 ## Portada
 
-**Inicio** muestra arriba el último video que estabas viendo, con la frase donde quedaste en español y en inglés, y los botones «Continuar», «Desde el inicio» y «Exportar». Si no hay ninguno a medias, aparece el último agregado.
+**Inicio** muestra arriba el último video que estabas viendo, con la frase donde quedaste en español y en el idioma original, y los botones «Continuar», «Desde el inicio» y «Exportar». Si no hay ninguno a medias, aparece el último agregado.
 
 Debajo van las filas, cada una con su «Ver todo» cuando tiene más de cuatro videos:
 
@@ -24,7 +24,7 @@ Debajo van las filas, cada una con su «Ver todo» cuando tiene más de cuatro v
 - Hasta ocho de tus colecciones y playlists.
 - Los cuatro canales con más videos y las dos categorías con más videos (solo las que tienen más de uno).
 
-Con la biblioteca vacía, la portada se cambia por «Traduce tu primer video»: un campo para pegar un enlace, «Importar archivos» y la opción de arrastrar un video a la página.
+Con la biblioteca vacía, la portada se cambia por «Traduce tu primer video»: un campo para pegar un enlace con «Agregar ▾», «Agregar archivos» y la opción de arrastrar un video a la página.
 
 <div class="capturas-par">
   <Image src={movil} alt="La portada en un celular, con las colecciones como pestañas" width={390} />
@@ -41,7 +41,7 @@ Se arman solas a partir de los videos; no se pueden renombrar ni eliminar.
 |---|---|
 | Recientes | Los videos que ya están en el equipo y lo recién importado (aunque aún se esté descargando), del último abierto o agregado al primero. Lo pendiente de una playlist aparece solo en su playlist. |
 | Todos | Cada video de la biblioteca, también lo que falta descargar, del último agregado al primero. |
-| Canales | Una por canal de YouTube, con el avatar y el banner reales del canal. Se pueden ocultar en Preferencias › Importar y descargas › «Canales en la barra lateral». |
+| Canales | Una por canal de YouTube, con el avatar y el banner reales del canal. Se pueden ocultar en Preferencias › Agregar y descargar › «Canales en la barra lateral». |
 | Categorías | Una por categoría de YouTube, con su nombre en español (Educación, Ciencia y tecnología, Música…). |
 
 Las categorías y los canales se calculan con los videos de Recientes. La lista completa de categorías está en `vt/library.py`.
@@ -58,11 +58,11 @@ Un video puede estar en varias colecciones. Para sacarlo de una, usa la **×** d
 
 Una playlist de YouTube importada se guarda como colección, con el número de orden en cada tarjeta y los botones «Reproducir» y «Abrir en YouTube». Sus videos entran a la cola y se descargan y procesan en orden. Volver a importar la misma playlist la actualiza con su orden actual.
 
-Al eliminar una playlist, los videos descargados se quedan en la biblioteca; los que faltaba descargar salen de la cola y de la biblioteca. Cómo importarlas: [Importar](../import/#playlists).
+Al eliminar una playlist, los videos descargados se quedan en la biblioteca; los que faltaba descargar salen de la cola y de la biblioteca. Cómo agregarlas: [Agregar videos](../import/#playlists).
 
 ## Tarjetas
 
-Cada tarjeta muestra la miniatura, la duración, el canal y lo que falta: «En cola · sin descargar», «Descargando 40 % · 2,3 MB/s · quedan 0:12», «Procesando · 42 %», «Descargado, sin traducir» o «Listo en español». El anillo sobre la miniatura muestra cuánto está traducido y cuánto doblado; la barra fina de abajo, hasta dónde lo viste.
+Cada tarjeta muestra la miniatura, la duración, el canal y lo que falta: «En cola · sin descargar», «Descargando 40 % · 2,3 MB/s · quedan 0:12», «Procesando · 42 %», «Descargado, sin traducir» y «Listo en español», o «Descargado, sin transcribir» y «Transcrito» si [solo se transcribe](../import/#idioma-y-solo-transcribir). El anillo sobre la miniatura muestra cuánto está traducido y cuánto doblado; la barra fina de abajo, hasta dónde lo viste.
 
 Un clic en la miniatura o en el título abre el video. Los botones de la tarjeta cambian según su estado:
 
@@ -107,12 +107,12 @@ El clic derecho abre un menú que depende de dónde hagas clic:
 
 | Dónde | Qué ofrece |
 |---|---|
-| Tarjeta de video | Ver o Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (o Transcribir), Idioma del video, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
-| Colección (barra lateral, fila de la portada o banner) | Abrir, Reproducir, Importar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
+| Tarjeta de video | Ver o Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (o Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
+| Colección (barra lateral, fila de la portada o banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
 | Trabajo de la cola | Ver, Priorizar, Traducir y doblar, Copiar enlace, Quitar de la cola. |
-| Frase de la transcripción | Ir a este momento, Copiar en español o en inglés, Copiar enlace a este momento, Comentar. |
-| Video | Reproducir o Pausar, Escuchar el original o en español, Pantalla completa, Mostrar u Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
-| Espacio libre | Importar enlaces…, Importar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
+| Frase de la transcripción | Ir a este momento, Copiar en español y en el idioma del original (o solo Copiar si solo se transcribe), Copiar enlace a este momento, Comentar. |
+| Video | Reproducir o Pausar, Escuchar el original o en español (si se traduce), Pantalla completa, Mostrar u Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
+| Espacio libre | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
 
 En campos de texto, sobre un enlace o con texto seleccionado queda el menú del navegador. El código está en `web/js/contextmenu.js`.
 

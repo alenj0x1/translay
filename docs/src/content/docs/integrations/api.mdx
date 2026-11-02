@@ -82,11 +82,13 @@ To walk through all of it, add `limit` to `offset` until you pass `total`.
 `POST /libraries/{lib}/import` requires **write**.
 
 ```json
-{ "urls": ["https://www.youtube.com/watch?v=…", "https://www.youtube.com/playlist?list=…"], "mode": "traducir", "priority": false }
+{ "urls": ["https://www.youtube.com/watch?v=…", "https://www.youtube.com/playlist?list=…"], "mode": "traducir", "lang": "auto", "task": "translate", "priority": false }
 ```
 
 - `urls` accepts YouTube links to videos or playlists (or an 11-character id). `"url": "…"` also works for a single one. Anything that isn't from YouTube is ignored.
-- `mode`: `traducir` (translate and dub) or `descargar` (just download the video). If you omit it, it uses that library's **Al importar** (On import) preference.
+- `mode`: `traducir` (translate and dub) or `descargar` (just download the video). If you omit it, it uses that library's **Al agregar** (On add) preference.
+- `lang`: `auto` (default: detected from the first seconds of speech), `en`, `pt` or `es`.
+- `task`: `translate` (translate and dub) or `transcribe` (only transcribe, in its own language). If you omit it, a video in the language of the **Solo transcribir lo que está en** preference is only transcribed and the rest are translated.
 - `priority: true` puts them first in the queue, and then they are processed even if `mode` is `descargar`.
 - Each playlist is imported as a collection of the library.
 
@@ -94,12 +96,12 @@ It responds `202` with `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2
 
 ## Videos
 
-- `GET /videos/{id}` (**read**) gives the video's data (`title`, `duration`, `channel`, `categories`, `added`, `library`), the URLs of its files (`media`, `audio`, `thumb`), the progress and its queue state:
+- `GET /videos/{id}` (**read**) gives the video's data (`title`, `duration`, `channel`, `categories`, `added`, `library`, `lang` and `mode`: `translate` or `transcribe`), the URLs of its files (`media`, `audio`, `thumb`), the progress and its queue state:
   - `progress.asr`: fraction of the video recognized and translated (0 to 1).
   - `progress.dub`: fraction dubbed (0 to 1).
   - `queue`: `{state, prio, error, dl}` or `null` if the video isn't in the queue. `state` is `en cola` (queued), `procesando` (processing), `descargado` (downloaded), `listo` (done) or `error`; `dl` is the download progress.
-- `GET /videos/{id}/transcript` (**read**) gives the sentences with `start`, `end`, `text` (English), `translation` (Spanish) and `speaker`, plus `speaker_names` and `comments`.
-- `GET /videos/{id}/subtitles?lang=es` (**read**) returns an SRT file (`application/x-subrip`). `lang=es` is Spanish (the default); any other value gives English.
+- `GET /videos/{id}/transcript` (**read**) gives the sentences with `start`, `end`, `text` (in the video's language), `translation` (Spanish) and `speaker`, plus `speaker_names`, `comments`, `lang` and `mode`.
+- `GET /videos/{id}/subtitles?lang=es` (**read**) returns an SRT file (`application/x-subrip`). `lang=es` is the Spanish translation (the default); `orig` or the video's code (`en`, `pt`…) gives the original. On a video that is only transcribed and isn't in Spanish, `lang=es` responds with an error that asks for `lang=orig`.
 - `PATCH /videos/{id}` (**write**) with `{"title": "…"}` renames the video; the name stays even if the video is downloaded again.
 - `DELETE /videos/{id}` (**write**) deletes the video with its files.
 

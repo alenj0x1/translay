@@ -3,9 +3,11 @@
 //! - Every launch: starts the local server hidden (server.rs) and opens its page in the window.
 //! - Custom title bar in both pages (the Windows one takes the system accent color instead of the theme's),
 //!   tray icon when "Al cerrar la ventana" keeps Translay running (until the queue is empty), single instance.
+//! - Updates itself from GitHub releases, signed with Translay's key (updates.rs).
 
 mod runtime;
 mod server;
+mod updates;
 
 use runtime::{Paths, Settings};
 use serde_json::{json, Value};
@@ -67,12 +69,13 @@ async fn pick_folder(app: AppHandle) -> Option<String> {
 
 /// Desktop details for Translay's Preferences (App de escritorio).
 #[tauri::command]
-fn desktop_info(state: State<'_, AppState>) -> Value {
+fn desktop_info(app: AppHandle, state: State<'_, AppState>) -> Value {
     let settings = state.settings();
     json!({
-        "version": env!("CARGO_PKG_VERSION"),
+        "version": app.package_info().version.to_string(),
         "data_dir": settings.data_dir,
         "close_to_tray": settings.close_to_tray,
+        "auto_update": settings.auto_update(),
         "logs": state.paths.logs(),
     })
 }
@@ -260,7 +263,9 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Server::default())
+        .manage(updates::Updates::default())
         .setup(|app| {
             let paths = Paths::resolve(app)?;
             let settings = Settings::load(&paths);
@@ -288,7 +293,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             status, install, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
-            close_window, quit_app, quit_if_in_tray, server_tail, set_theme
+            close_window, quit_app, quit_if_in_tray, server_tail, set_theme,
+            updates::check_update, updates::install_update, updates::set_auto_update
         ])
         .build(tauri::generate_context!())
         .expect("failed to start Translay");

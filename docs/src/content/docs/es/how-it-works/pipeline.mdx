@@ -28,9 +28,9 @@ Es deliberadamente simple: cambiarlo por un VAD neuronal no toca el resto.
 
 ## Reconocimiento en streaming
 
-`vt/asr.py` envuelve faster-whisper (pesos en CTranslate2). Por defecto usa `large-v3-turbo` en `float16`, búsqueda de ancho 5, el idioma del video (inglés salvo que se haya marcado como español), tiempos por palabra, temperatura 0, sin condicionar al texto anterior y sin el VAD propio de Whisper. Descarta los tramos típicos de alucinación: `no_speech_prob > 0.6` con `avg_logprob < -1.0`, o `compression_ratio > 2.4`. Otros modelos disponibles con `--model`: `large-v3`, `medium.en`, `small.en`, `small` y `base.en` (los `.en` solo reconocen inglés).
+`vt/asr.py` envuelve faster-whisper (pesos en CTranslate2). Por defecto usa `large-v3-turbo` en `float16`, búsqueda de ancho 5, el idioma del video (detectado con los primeros segundos de voz si todavía no lo tiene; ver [Idiomas](../languages/#detección-automática)), tiempos por palabra, temperatura 0, sin condicionar al texto anterior y sin el VAD propio de Whisper. Descarta los tramos típicos de alucinación: `no_speech_prob > 0.6` con `avg_logprob < -1.0`, o `compression_ratio > 2.4`. Otros modelos disponibles con `--model`: `large-v3`, `medium.en`, `small.en`, `small` y `base.en` (los `.en` solo reconocen inglés).
 
-Un video que ya está en español (`lang: "es"` en su transcripción) solo pasa por el reconocimiento: la traducción de cada frase es su mismo texto (`tr_model: "original"`), se saltan el traductor y la voz, y el glosario no lo toca. Cambiar el idioma de un video borra sus frases y tramos cubiertos para volver a procesarlo.
+Un video que solo se transcribe (`mode: "transcribe"`, o en español o en un idioma que Translay todavía no traduce) solo pasa por el reconocimiento: se saltan el traductor y la voz, y el glosario no lo toca. Cambiar el modo no borra nada; cambiar el idioma de un video borra sus frases y tramos cubiertos para volver a procesarlo ([Idiomas › Modos](../languages/#traducir-o-solo-transcribir)).
 
 `vt/streaming.py` (`StreamingTranscriber`) convierte ese reconocedor por bloques en uno continuo, sincronizado con el tiempo del video:
 
@@ -48,8 +48,8 @@ Reglas que evitan errores medidos:
 
 - **Sin voz nueva, sin consulta.** Si después de lo confirmado hay menos de 0,3 s de voz, no se llama a Whisper: tiende a repetir el contexto («episode.», «day.»). Un búfer de puro silencio cierra lo pendiente y no usa la GPU.
 - **Palabras fuera de la voz.** Se descarta cada palabra que cae donde el VAD no oyó voz (con 0,2 s de margen).
-- **Alucinaciones de borde.** Una frase que es solo «Thank you», «Thanks for watching», «Bye» o similar se descarta si la probabilidad media de sus palabras es menor que 0,9.
-- **Cortes sin punto.** Whisper suele omitir el punto en el borde del búfer: una pausa de 0,4 s, o de 0,2 s seguida de mayúscula, también cierra la oración (salvo tras palabras como «the», «to», «with», con las que una oración inglesa casi nunca termina).
+- **Alucinaciones de borde.** Una frase que es solo una de las que Whisper inventa sobre silencio en ese idioma («Thank you», «Thanks for watching», «Obrigado por assistir», «Subtítulos realizados por la comunidad de Amara.org»…) se descarta si la probabilidad media de sus palabras es menor que 0,9.
+- **Cortes sin punto.** Whisper suele omitir el punto en el borde del búfer: una pausa de 0,4 s, o de 0,2 s seguida de mayúscula, también cierra la oración (salvo tras palabras con las que una oración casi nunca termina en ese idioma, como «the», «to», «with» en inglés o «de», «para», «com» en portugués). Estas listas y las palabras que van en minúscula después de una coma son de cada idioma (`vt/streaming.py`); un idioma sin las suyas solo usa la puntuación y las pausas.
 - **Búfer largo.** Whisper trabaja con ventanas de 30 s; el búfer se recorta a partir de 24 s, y si en ese tiempo no se confirmó nada, la frase se cierra a la fuerza.
 - **Saltos.** Un salto en el tiempo de más de 0,5 s descarta la frase abierta en vez de guardarla cortada; ese tramo se vuelve a transcribir completo la próxima vez.
 
@@ -57,12 +57,12 @@ Cada frase cerrada (`Segment`) lleva su audio original (desde 0,05 s antes hasta
 
 ## Traducción
 
-`vt/translate.py` corre los traductores sobre CTranslate2, en la misma GPU que Whisper. `CT2Translator.translate_many` hace, para cada frase:
+`vt/translate.py` corre los traductores sobre CTranslate2, en la misma GPU que Whisper; `Translators` elige el del idioma del video ([Idiomas](../languages/#un-traductor-por-idioma)). `CT2Translator.translate_many` hace, para cada frase:
 
 <Steps>
 
-1. **`split_sentences`** (`textproc.py`): separa las oraciones. Con dos oraciones juntas los modelos a veces omiten una («Are you ready? Because…» → solo la segunda).
-2. **`preedit`**: reescribe modismos ingleses a su sentido literal antes de traducir (37 reglas, p. ej. «call it a day» → «stop for today», «let me know» → «tell me»). Varias salieron de los errores que mostró `tools/eval_translation.py`.
+1. **`split_sentences`** (`textproc.py`): separa las oraciones, sin cortar en las abreviaturas del idioma («Mr.», «Sra.»). Con dos oraciones juntas los modelos a veces omiten una («Are you ready? Because…» → solo la segunda).
+2. **`preedit`**: reescribe modismos del idioma de origen a su sentido literal antes de traducir (37 reglas en inglés, p. ej. «call it a day» → «stop for today», «let me know» → «tell me»; 37 en portugués, ver [Idiomas](../languages/#reglas-de-texto)). Varias salieron de los errores que mostraron `tools/eval_translation.py` y `tools/lab/langs_mt.py`.
 3. **Glosario** (`glossary.py`): cada término del glosario de la biblioteca se cambia por un marcador `ZQXJ1`, `ZQXJ2`… que el modelo deja intacto, y después se repone con su traducción fija o el término original.
 4. **Traducción** por lotes de 24 oraciones: búsqueda de ancho 4, hasta 256 tokens, `repetition_penalty` 1,1 y `no_repeat_ngram_size` 4.
 5. **`polish`**: espacios y signos, y convenciones latinoamericanas sobre salidas típicas de Opus-MT, entrenado con mucho español peninsular («vídeo» → «video», «ordenador» → «computadora», «móvil» → «celular», «coche» → «auto», «vosotros» → «ustedes»).
@@ -74,7 +74,7 @@ Cada frase guarda el modelo con que se tradujo (`tr_model`). Al abrir un video, 
 
 ### Elección del traductor
 
-Medido con `tools/eval_translation.py` (39 frases típicas de video, una a la vez como en vivo):
+Para el inglés, medido con `tools/eval_translation.py` (39 frases típicas de video, una a la vez como en vivo). El portugués tiene su propia medición en [Idiomas](../languages/#un-traductor-por-idioma).
 
 | Modelo (`--translator`) | Precisión | Mediana por frase | Notas |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Medido con `tools/eval_translation.py` (39 frases típicas de video, una a la ve
 | `nllb-1.3b` | `int8_float16` | 347 ms | Natural en giros, con errores propios («darme un like», trato de usted). |
 | `madlad-3b` | `int8_float16` | 557 ms | Calidad similar, 10 veces más lento. |
 
-También existe `opus-base` (Marian más pequeño) y se acepta el repositorio de Hugging Face de cualquier Marian convertido a CTranslate2. Con `--translator none` no se traduce.
+También existe `opus-base` (Marian más pequeño) y se acepta el repositorio de Hugging Face de cualquier Marian convertido a CTranslate2. `--translator` fuerza un modelo para todos los idiomas que traduce; con `--translator none` no se traduce.
 
 ## Diarización
 

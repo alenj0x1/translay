@@ -7,7 +7,7 @@
 
 [English](README.md) | Español
 
-Traduce y dobla videos del inglés al español **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en español: subtítulos, transcripción alineada EN | ES y voz clonada sincronizada con la imagen. Nada sale de tu equipo salvo las descargas de YouTube.
+Traduce y dobla videos al español, del inglés o del portugués, **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en español: subtítulos, transcripción alineada con el original y el español, y voz clonada sincronizada con la imagen. O solo transcríbelo, en cualquier idioma. Nada sale de tu equipo salvo las descargas de YouTube.
 
 [![Versión](https://img.shields.io/github/v/release/alenj0x1/translay?label=versi%C3%B3n)](https://github.com/alenj0x1/translay/releases/latest)
 [![Documentación](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/es/)
@@ -34,7 +34,8 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 ### Traducción y doblaje
 
 - **Reconocimiento** con Whisper large-v3-turbo en streaming: el video se procesa mientras lo ves, desde tu punto de reproducción, y si saltas, el procesamiento salta contigo.
-- **Traducción** con Opus-MT big y capas propias para **español latinoamericano**: separa oraciones, reescribe modismos ingleses antes de traducir («call it a day», «let me know») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»). NLLB-1.3B y MADLAD-3B como alternativas.
+- **Idiomas**: inglés, portugués y español, **detectados solos** con los primeros segundos de voz. Cualquier video se puede **solo transcribir**, en su idioma, y una preferencia decide qué idioma solo se transcribe al detectarlo (español, si no la cambias).
+- **Traducción** con un traductor por idioma, elegido en el laboratorio: Opus-MT big para el inglés y Opus-MT itc-itc para el portugués (tan bueno como MADLAD-3B y diez veces más rápido), NLLB-1.3B para el resto. Capas propias para **español latinoamericano**: separa oraciones, reescribe modismos antes de traducir («call it a day», «pisou na bola») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
 - **Quién habla**: diarización propia (huella de voz WeSpeaker en ONNX + agrupamiento en línea). 97,6 % de frases con la persona correcta en 12 videos de prueba con 2 a 4 personas, con y sin ruido.
 - **Doblaje con la voz de cada persona**: OmniVoice clona su voz a partir de sus mejores frases (hasta 8 s, limpiadas con DeepFilterNet si tienen ruido). Cada frase calza en su espacio (duración pedida al motor y WSOLA de respaldo, sin cambiar el tono) y suena al mismo volumen que el original.
 - **Sincronizada**: desfase mediano de 0,08 s entre la voz y la imagen.
@@ -42,19 +43,20 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 
 ### Reproductor
 
-- Vista **ampliada** (subtítulo en español abajo, inglés arriba) o **dividida** (original y traducido lado a lado).
-- **ES / EN** para pasar de la voz en español al original; el original queda de fondo bajo la voz al volumen que elijas.
+- Vista **ampliada** (subtítulo en español abajo, el del original arriba) o **dividida** (original y traducido lado a lado).
+- **ES / EN** (o PT…) para pasar de la voz en español al original; el original queda de fondo bajo la voz al volumen que elijas.
 - Velocidad de 0,75× a 2× sin cambiar el tono, pantalla completa, atajos de teclado.
 - Indicador **«Preparando NN %» / «Listo para reproducir»** calculado con la velocidad real del doblaje; puede pausar solo hasta que haya voz por delante y seguir solo.
-- **Transcripción alineada** EN | ES con quién habla cada frase, **comentarios** por frase (marcados en la línea de avance) y clic para saltar.
+- **Transcripción alineada** (original | español) con quién habla cada frase, **comentarios** por frase (marcados en la línea de avance) y clic para saltar.
 - **Personas**: ponle nombre a cada una, elige su voz (la suya, la de otra persona del video o una **persona guardada** en la biblioteca) y escucha su referencia.
 - **Siguientes** (la colección o playlist desde donde abriste) con reproducción automática del próximo, y **miniatura flotante** al volver a la biblioteca.
 
-### Importar y cola
+### Agregar y cola
 
 - **YouTube**: videos, `shorts/`, `live/`, playlists (se importan como colección y se actualizan al volver a pegarlas), varios enlaces mezclados con texto o un **CSV con miles de enlaces**. Pega un enlace en cualquier parte de la página.
 - **Archivos de tu equipo**: videos y audios, arrastrándolos a la página.
-- Importar **directo a una colección o categoría**, «Solo descargar» (sin usar la GPU) o «Solo el audio» (más rápido; el video se baja después si hace falta).
+- **Un solo botón «Agregar»** que aprende lo que más usas en este navegador (pegar un enlace, subir archivos, grabar la pantalla o pegar varios enlaces); su ▾ siempre muestra todas las formas de agregar.
+- Agregar **directo a una colección o categoría**, «Solo descargar» (sin usar la GPU) o «Solo el audio» (más rápido; el video se baja después si hace falta).
 - **Una sola cola en el servidor** que sobrevive a recargar o cerrar la pestaña: primero el video que ves, después lo priorizado, después el resto. Pausa, «Priorizar», pantalla propia con estados (Descargando, Procesando, En cola, Con error, Listos…).
 - **Descargas cuidadosas**: una a la vez, espaciadas, en orden o al azar; si YouTube pide verificar que no eres un bot, pausa 20 min sin marcar errores y sigue en modo cuidadoso. Conecta tu cuenta de YouTube una vez (perfil de navegador propio, cookies cifradas, se renueva sola), o usa `cookies.txt` o el navegador instalado.
 - **Avisos del navegador** al terminar una descarga, un video, la cola o una exportación.
@@ -63,7 +65,7 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 
 - **Portada** con «Seguir viendo» y filas por colección; **colecciones** propias y automáticas (Recientes, Todos, una por canal y por categoría de YouTube) con avatar y banner reales de cada canal.
 - **Varias bibliotecas**, cada una en su carpeta (otro disco, por ejemplo), con sus videos, colecciones, glosario, personas, tema y forma de importar. «Mover a…» lleva los archivos; «Abrir carpeta» agrega una biblioteca existente.
-- **Búsqueda** en todas las transcripciones (inglés, español y comentarios, sin importar tildes).
+- **Búsqueda** de videos por título o canal, de colecciones y canales por nombre, y de todo lo que se dice (original, traducción y comentarios, sin importar tildes), en grupos separados.
 - **Glosario** por biblioteca: términos que no se traducen o que siempre se traducen igual; al cambiarlo, se re-traduce lo ya hecho y se rehace la voz.
 - **Selección múltiple** para abrir, procesar, exportar, mover o eliminar; menú contextual en todo.
 - **Papelera de 30 días**: eliminar videos, vaciar o eliminar una biblioteca se puede deshacer al momento o restaurar después, con sus traducciones, voces, descargas y colecciones. Vaciar y eliminar una biblioteca piden escribir su nombre.
@@ -71,7 +73,7 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 
 ### App de escritorio
 
-- **Instalador para Windows**, sin permisos de administrador. Al abrir por primera vez, la app instala sola el servidor y el motor de voz (paquetes fijados con su huella SHA-256) y muestra el avance en el botón; luego abre Translay en su propia ventana.
+- **Instalador para Windows**, sin permisos de administrador. Al abrir por primera vez, la app instala sola el servidor y el motor de voz (paquetes fijados con su huella SHA-256) y muestra el avance en el botón; luego abre Translay en su propia ventana. Se actualiza sola desde GitHub (actualizaciones firmadas; la búsqueda automática se puede apagar).
 - **Barra de título propia** que sigue el tema claro u oscuro, con Preferencias y el cambio de tema como íconos.
 - **Bandeja del sistema** opcional para que la cola siga trabajando con la ventana cerrada (al terminar, Translay se cierra); una sola instancia; el servidor, sus modelos y todo lo que lanza se cierran con la app, así nada sigue usando la GPU ni la RAM.
 - **Tu biblioteca donde quieras** (por defecto `Videos\Translay`), elegida al instalar y cambiable después.
@@ -80,10 +82,10 @@ Traduce y dobla videos del inglés al español **con la voz de cada persona**, e
 
 | Opción | Formato |
 |---|---|
-| Video traducido | MP4 con la voz en español como pista principal, el inglés como segunda pista y subtítulos ES/EN |
+| Video traducido | MP4 con la voz en español como pista principal, el original como segunda pista (marcado con su idioma) y subtítulos en español y del original |
 | Audio traducido / original | M4A |
 | Video original | MP4 |
-| Subtítulos en español / inglés | SRT |
+| Subtítulos en español / del original | SRT |
 | Transcripción bilingüe con personas y comentarios | TXT |
 
 Desde el reproductor, una tarjeta, una colección entera o una selección; varios archivos van en un `.zip`. Si el video aún no está listo, la exportación espera (y lo manda a la cola si hace falta).
@@ -101,6 +103,8 @@ Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi
 | **Ligero** | small int8, beam 3 | opus-base int8 | Clonada, 8 pasos | ~3,3 GB | ~10,7 GB | GPU de 4 GB |
 | **Solo subtítulos** | large-v3-turbo int8 | opus-big | Sin voz | ~1,9 GB | ~3,5 GB | GPU de 2 GB |
 | **Subtítulos ligeros** | small int8, beam 3 | opus-base int8 | Sin voz | ~0,6 GB | ~2,2 GB | Sin GPU |
+
+El traductor que se muestra es el del inglés; el portugués usa Opus-MT itc-itc en todos los perfiles y solo un traductor está en la GPU a la vez. Los perfiles ligeros (Whisper `small`) pierden más precisión en portugués que en inglés.
 
 La voz clonada necesita GPU: en la CPU va de 0,01× a 0,04× (inviable). Sin GPU, Translay hace subtítulos y transcripción.
 
@@ -147,7 +151,7 @@ Reconocimiento, traducción y voz se turnan en la GPU por orden de llegada (suma
 ## Cómo funciona
 
 ```text
-audio 16 kHz → detección de voz → Whisper en streaming → Opus-MT + glosario → quién habla → OmniVoice → voz en su lugar
+audio 16 kHz → detección de voz → Whisper en streaming (detecta el idioma) → traductor de ese idioma + glosario → quién habla → OmniVoice → voz en su lugar
 ```
 
 - **Servidor** en Python (`vt/`) con HTTP + WebSocket propios sobre asyncio, sin framework. Whisper y el traductor corren sobre CTranslate2; la voz, en su propio proceso con torch (`.venvs/omnivoice`).
@@ -163,7 +167,7 @@ El detalle (VAD, acuerdo local del streaming, reglas contra alucinaciones, refer
 | ![Portada de una biblioteca](docs/src/assets/capturas/inicio.webp) | ![Varias bibliotecas, cada una con su banner](docs/src/assets/capturas/bibliotecas.webp) |
 | ![Colección de un canal de YouTube](docs/src/assets/capturas/coleccion.webp) | ![Vista dividida: original y traducido](docs/src/assets/capturas/dividido.webp) |
 | ![Personas del video con su voz](docs/src/assets/capturas/personas.webp) | ![Cola con estados y descargas](docs/src/assets/capturas/cola.webp) |
-| ![Importar varios enlaces](docs/src/assets/capturas/importar.webp) | ![Exportar video, audio y subtítulos](docs/src/assets/capturas/exportar.webp) |
+| ![Agregar varios enlaces](docs/src/assets/capturas/importar.webp) | ![Exportar video, audio y subtítulos](docs/src/assets/capturas/exportar.webp) |
 | ![Búsqueda en las transcripciones](docs/src/assets/capturas/busqueda.webp) | ![Modo claro](docs/src/assets/capturas/inicio-claro.webp) |
 
 Capturas de una instancia de prueba con videos de dominio público de la NASA y la NOAA.
@@ -175,7 +179,7 @@ Capturas de una instancia de prueba con videos de dominio público de la NASA y 
 1. Descarga `Translay_<versión>_x64-setup.exe` de la [última versión](https://github.com/alenj0x1/translay/releases/latest) y ábrelo.
 2. Abre **Translay**, elige dónde guardar tu biblioteca y pulsa **Instalar**.
 
-La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre). Detalle: [Instalación](https://alenj0x1.github.io/translay/es/getting-started/install/).
+La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre; el traductor del portugués, unos 0,8 GB, se descarga la primera vez que se traduce un video en portugués). Detalle: [Instalación](https://alenj0x1.github.io/translay/es/getting-started/install/).
 
 | | |
 |---|---|
@@ -259,7 +263,7 @@ npm --prefix desktop ci && npm --prefix desktop run build   # instalador (Node.j
 
 ## Créditos
 
-Translay usa como motores modelos y herramientas de terceros, cada uno con su licencia: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) y Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) y [yt-dlp](https://github.com/yt-dlp/yt-dlp). El instalador incluye [uv](https://github.com/astral-sh/uv) (MIT o Apache-2.0), Python de [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (compilación de [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) y [Node.js](https://nodejs.org/) (MIT), con sus licencias en la carpeta `tools` de la instalación. La app usa [Tauri](https://tauri.app/) y la fuente [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) (SIL OFL 1.1).
+Translay usa como motores modelos y herramientas de terceros, cada uno con su licencia: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) y Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) (el modelo del portugués, [OPUS-MT itc-itc](https://github.com/Helsinki-NLP/Tatoeba-Challenge) de Helsinki-NLP, es CC-BY-4.0), NLLB-200, [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) y [yt-dlp](https://github.com/yt-dlp/yt-dlp). El instalador incluye [uv](https://github.com/astral-sh/uv) (MIT o Apache-2.0), Python de [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (compilación de [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) y [Node.js](https://nodejs.org/) (MIT), con sus licencias en la carpeta `tools` de la instalación. La app usa [Tauri](https://tauri.app/) y la fuente [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) (SIL OFL 1.1).
 
 ## Licencia
 

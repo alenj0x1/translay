@@ -42,9 +42,17 @@ Translay uses [semantic versioning](https://semver.org/): `major.minor.patch`. T
    git push --follow-tags
    ```
 
-   When the tag arrives, `.github/workflows/release.yml` builds the Windows installer (`npm --prefix desktop run build`) and creates the release on [Releases](https://github.com/alenj0x1/translay/releases) with the notes from both changelogs (English, and Spanish below) and `Translay_<version>_x64-setup.exe` attached.
+   When the tag arrives, `.github/workflows/release.yml` builds the Windows installer (`npm --prefix desktop run build`), signs it for updates and creates the release on [Releases](https://github.com/alenj0x1/translay/releases) with the notes from both changelogs (English, and Spanish below), `Translay_<version>_x64-setup.exe`, its `.sig` and `latest.json` (made by `desktop/scripts/update-feed.mjs`, with the Spanish notes the app shows). Installed apps find the new version in that `latest.json` (see [Desktop app › Updates](../../guide/desktop-app/#updates)).
 
 </Steps>
+
+## Update signing key
+
+The app only installs updates signed with Translay's key: the public key is in `desktop/src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) and the private key signs in the workflow, from the repository secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Without them the release fails instead of publishing an unsigned update. Keep a copy of the private key and its password: if they are lost, installed apps can't receive updates any more (a new key needs a manual reinstall).
+
+The workflow signs in a step of its own (`tauri signer sign --app-version`): the key never reaches the steps where npm and cargo run third-party code. The signature carries the version and the app requires it (`requireSignedVersion`), so a tampered `latest.json` can't pass an older signed installer off as a newer one. A tag with a hyphen (`v1.7.0-beta.1`) is published as a prerelease, which installed apps don't take.
+
+To test an update locally, build with `--features update-url-override` and `--config` turning on `createUpdaterArtifacts` and `plugins.updater.dangerousInsecureTransportProtocol`, serve the installer, its `.sig` and a `latest.json` on `127.0.0.1`, and open the app with `TRANSLAY_UPDATE_URL` pointing to that feed. Release builds ignore that variable, don't allow `http`, and the signature check is always on.
 
 ## Build the installer by hand
 

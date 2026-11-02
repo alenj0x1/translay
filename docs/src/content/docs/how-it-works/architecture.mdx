@@ -37,7 +37,7 @@ Translay is three processes on the same computer: the Python server (`vt/`), the
 
 <Steps>
 
-1. Loads Whisper (`large-v3-turbo` by default) and warms it up with one second of silence; then the translator (`opus-big`) with a test sentence.
+1. Loads Whisper (`large-v3-turbo` by default) and warms it up with one second of silence; then the English translator of the profile (`opus-big`) with a test sentence. The other languages' translators load the first time a video in that language arrives (see [Languages](../languages/)).
 2. Opens the libraries (`vt/vaults.py`) and registers in each one the YouTube videos already in its `youtube/` folder.
 3. Creates the voice client in lazy mode: the voice process starts the first time it is needed.
 4. Returns Whisper and the translator to RAM: the server starts idle (see [GPU and idle](../gpu-and-idle/)).
@@ -85,10 +85,12 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 | `session.py` | One session per tab: WebSocket protocol, permissions, live processing and the tab's voice queue. |
 | `processor.py` | Server queue: processes saved videos and downloads YouTube ones. State in `data/queue.json`. |
 | `vad.py` | Energy-based voice detector with an adaptive noise floor. |
-| `asr.py` | Whisper (faster-whisper on CTranslate2): audio → words with timestamps. |
-| `streaming.py` | Streaming transcription with local agreement: confirms words and closes sentences. |
-| `translate.py` | Translators on CTranslate2 (Opus-MT, NLLB, MADLAD) with the same interface. |
-| `textproc.py` | Text before and after translating: sentences, idioms, form and Latin American conventions. |
+| `langs.py` | Language registry: codes and names of each language for Whisper, NLLB, Opus-MT, FFmpeg and the interface. |
+| `asr.py` | Whisper (faster-whisper on CTranslate2): audio → words with timestamps, and language detection. |
+| `streaming.py` | Streaming transcription with local agreement: detects the language, confirms words and closes sentences, with rules per language. |
+| `translate.py` | Translators on CTranslate2 (Opus-MT, NLLB, MADLAD) with the same interface, and one per source language (`Translators`). |
+| `opusmt.py` | Prepares official OPUS-MT releases that aren't published for CTranslate2 (download, check, conversion). |
+| `textproc.py` | Text before and after translating: sentences and idioms per source language, form and Latin American conventions. |
 | `glossary.py` | Each library's glossary: terms that aren't translated or have a fixed translation. |
 | `speakers.py` | Online diarization: voiceprint (WeSpeaker in ONNX) and each person's references. |
 | `dub.py` | Per-sentence dubbing: person, reference, synthesis, duration and loudness adjustment. |
@@ -120,12 +122,12 @@ A YouTube link, end to end:
 
 <Steps>
 
-1. **Import.** The browser sends `youtube`, `playlist` or `yt_batch` over WebSocket. The session registers the video in the library (without `media` yet) and adds it to the queue.
+1. **Add.** With the «Agregar» button (or a pasted link), the browser sends `youtube`, `playlist` or `yt_batch` over WebSocket. The session registers the video in the library (without `media` yet) and adds it to the queue.
 2. **Download.** `Processor`'s download thread fetches it with yt-dlp to `<library>/youtube/<id>.mp4` and `<id>.m4a`, with its thumbnail and metadata, and completes the `library.json` entry.
 3. **Take its turn.** The queue thread takes the first downloaded job; if someone is watching a video, that one goes first and starts from its playback position.
 4. **Decode.** PyAV converts the audio to 16 kHz mono. It is read in 3 s blocks.
-5. **Recognize.** `StreamingTranscriber` accumulates the blocks, queries Whisper and delivers closed sentences (`Segment`) with their original audio.
-6. **Translate.** Each sentence goes through `textproc.py` and Opus-MT with the library's glossary. `Transcript.add_segment` saves it.
+5. **Recognize.** If the video has no language yet, Whisper detects it from its first seconds of speech. `StreamingTranscriber` accumulates the blocks, queries Whisper and delivers closed sentences (`Segment`) with their original audio.
+6. **Translate.** Each sentence goes through `textproc.py` and the translator for its language with the library's glossary (skipped if the video is only transcribed). `Transcript.add_segment` saves it.
 7. **Identify the person.** `Dubber.identify` computes the voiceprint, assigns the person and improves their reference; `Dubber.relabel` corrects earlier short sentences.
 8. **Dub.** The sentence goes to the `tts` thread: OmniVoice clones the person's voice, duration and loudness are adjusted, and the WAV ends up in `<library>/audio/<video>/<sentence>.wav`.
 9. **Notify.** Each step emits a `bg` message (`segment`, `translations`, `dub`, `covered`) that the server forwards only to the tabs that have that video open.

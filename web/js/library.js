@@ -307,7 +307,7 @@ function renderShelf() {
       el("h3", { text: c.kind === "propia" ? "Todavía no tiene videos" : "Sin videos" }),
       el("p", { text: c.kind === "propia" ? "Importa enlaces de YouTube directo a esta colección, o guarda aquí un video desde el reproductor." : "Aquí aparecerán los videos que le correspondan." }),
       c.kind === "propia" || c.kind === "categoría" ? el("div", { class: "acts" },
-        btn("Importar", { icon: "import", variant: "dark", cls: "import-only", onClick: () => openMulti("", c.id) })) : null));
+        btn("Agregar", { icon: "plus", variant: "dark", cls: "import-only", onClick: () => openMulti("", c.id) })) : null));
     return;
   }
   // de a 200 tarjetas (con miles de videos, dibujarlas todas trabaría la página)
@@ -372,7 +372,7 @@ function renderShelfHead(c) {
   }
   const acts = el("div", { class: "acts" });
   if ((c.kind === "propia" || c.kind === "categoría" || c.kind === "playlist") && c.items.length) {  // importar directo aquí
-    acts.append(btn("Importar", { icon: "import", variant: c.kind === "playlist" ? "" : "dark", cls: "import-only", onClick: () => openMulti("", c.id) }));
+    acts.append(btn("Agregar", { icon: "plus", variant: c.kind === "playlist" ? "" : "dark", cls: "import-only", onClick: () => openMulti("", c.id) }));
   }
   if (c.kind === "playlist") {
     acts.append(
@@ -441,11 +441,11 @@ function welcome() {
   return el("div", { class: "welcome" },
     patternEl("translay", "welcome-band", 24, 2),
     el("h2", { text: "Traduce tu primer video" }),
-    el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (!openYouTube(input.value.trim())) importLang = "en"; } } },
-      icon("link"), input, el("div", { class: "split sm" }, btn("Importar", { icon: "import", variant: "dark", type: "submit" }),
-        btn("Más opciones de Importar", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
+    el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (!openYouTube(input.value.trim())) importTask = ""; } } },
+      icon("link"), input, el("div", { class: "split sm" }, btn("Agregar", { icon: "plus", variant: "dark", type: "submit" }),
+        btn("Más opciones de Agregar", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
           onClick: (e) => { e.stopPropagation(); importMenu(e.currentTarget, e.currentTarget.closest("form")); } }))),
-    el("label", { class: "btn", "data-icon": "upload" }, icon("upload"), document.createTextNode("Importar archivos"), file),
+    el("label", { class: "btn", "data-icon": "upload" }, icon("upload"), document.createTextNode("Agregar archivos"), file),
     el("small", { text: "o arrastra un video aquí" }));
 }
 
@@ -455,10 +455,10 @@ function progressBar(v) {
   const j = jobOf(v.id);
   const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
   const pct = Math.round(p.dub * 100);
-  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), v.lang === "es" ? "Transcrito" : "Listo en español"));
-  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: v.lang === "es" ? "Descargado, sin transcribir" : "Descargado, sin traducir" }));
+  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), translatesV(v) ? "Listo en español" : "Transcrito"));
+  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: translatesV(v) ? "Descargado, sin traducir" : "Descargado, sin transcribir" }));
   const label = j?.state === "procesando" ? `procesando · ${pct} %`
-    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `${v.lang === "es" ? "transcrito" : "doblado"} ${pct} %` : "";
+    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `${translatesV(v) ? "doblado" : "transcrito"} ${pct} %` : "";
   if (!label) return null;
   return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") }, meter(pct), el("span", { text: cap(label) }));
 }
@@ -639,7 +639,7 @@ function renderUpNext(scroll) {
   items.forEach((id, i) => {
     const v = lib.videos[id];
     const now = id === state.videoId;
-    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? (v.lang === "es" ? "Transcrito" : "Listo en español") : "")]
+    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? (translatesV(v) ? "Listo en español" : "Transcrito") : "")]
       .filter(Boolean).join(" · ");
     frag.append(el("li", { class: now ? "now" : "", "data-id": id, on: { click: () => { if (!now) playItem(id); } } },
       el("span", { class: "n", text: String(i + 1) }),
@@ -959,10 +959,10 @@ function updateExportNote() {
   $("#export-audio").hidden = !kinds.some((k) => k.endsWith("_audio"));
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
-    ? vs.filter((v) => !(v.progress && v.progress.dub >= 0.99)).length : 0;
-  const onlyText = kinds.every((k) => ["srt_es", "srt_en", "txt"].includes(k));
+    ? vs.filter((v) => translatesV(v) && !(v.progress && v.progress.dub >= 0.99)).length : 0;
+  const onlyText = kinds.every((k) => ["srt_es", "srt_orig", "txt"].includes(k));
   const needDl = onlyText ? 0 : vs.filter((v) => !v.media).length;
-  const needText = !needDub && kinds.some((k) => ["srt_es", "srt_en", "txt"].includes(k))
+  const needText = !needDub && kinds.some((k) => ["srt_es", "srt_orig", "txt"].includes(k))
     ? vs.filter((v) => !(v.progress && v.progress.asr >= 0.99)).length : 0;
   const parts = [];
   if (needDl) parts.push(exportVideos.length === 1 ? "se descarga primero" : `${needDl} se descargan primero`);
@@ -1115,7 +1115,7 @@ $("#mini-close").addEventListener("click", (e) => {
 });
 
 
-/* ------------------------------------------------------------ búsqueda en las transcripciones */
+/* ------------------------------------------------------------ búsqueda: videos, lo que se dice y colecciones */
 let searchTimer = null;
 $("#lib-q").addEventListener("input", () => {
   clearTimeout(searchTimer);
@@ -1163,25 +1163,55 @@ function openAt(v, t) {
   setView("player");
 }
 
+// lo que coincide en la biblioteca abierta (sin ir al servidor): títulos y canales de videos, y
+// colecciones (propias, playlists, categorías y canales)
+function searchLibrary(q) {
+  const norm = (t) => (t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const n = norm(q);
+  const videos = Object.values(lib.videos).filter((v) => norm(v.title).includes(n) || norm(v.channel).includes(n))
+    .sort((a, b) => (b.opened || b.added || 0) - (a.opened || a.added || 0));
+  const colls = lib.collections.filter((c) => c.items?.length && norm(c.name).includes(n));
+  return { videos, colls };
+}
+
 function renderSearch() {
   const m = lib.search;
+  const found = searchLibrary(m.q);
+  const lines = m.total;
   const head = $("#shelf-head");
   head.classList.remove("has-banner");
+  const count = [found.videos.length && `${found.videos.length} ${found.videos.length === 1 ? "video" : "videos"}`,
+    lines && `${lines} ${lines === 1 ? "frase" : "frases"}`,
+    found.colls.length && `${found.colls.length} ${found.colls.length === 1 ? "colección" : "colecciones"}`].filter(Boolean).join(" · ");
   head.replaceChildren(
     el("h2", { text: `Resultados para «${m.q}»` }),
-    el("span", { class: "label", text: m.total ? `${m.total} ${m.total === 1 ? "coincidencia" : "coincidencias"} en ${m.results.length} ${m.results.length === 1 ? "video" : "videos"}` : "sin coincidencias" }),
+    el("span", { class: "label", text: count || "sin coincidencias" }),
     el("div", { class: "acts" }, btn("Cerrar búsqueda", { icon: "x", variant: "ghost", onClick: () => closeSearch(true) })));
   const grid = $("#grid");
   grid.classList.add("results");
   grid.replaceChildren();
-  if (!m.results.length) {
-    grid.append(emptyState("search", "Sin coincidencias", "Nadie dice eso en las transcripciones ni en los comentarios. Prueba con otra palabra, en inglés o en español."));
+  if (!m.results.length && !found.videos.length && !found.colls.length) {
+    grid.append(emptyState("search", "Sin coincidencias", "Ningún video, colección o canal se llama así, y nadie lo dice en las transcripciones ni en los comentarios. Prueba con otra palabra."));
     return;
   }
+  const group = (title, ...content) => el("section", { class: "res-group" }, el("h3", { text: title }), ...content);
+  if (found.videos.length) {
+    grid.append(group("Videos", el("div", { class: "res-cards" }, ...found.videos.slice(0, 12).map((v, i, all) =>
+      card(v, { id: "", name: `Búsqueda «${m.q}»`, kind: "búsqueda", items: all.map((x) => x.id) }, i)))));
+  }
+  if (found.colls.length) {
+    grid.append(group("Colecciones y canales", el("div", { class: "res-colls" }, ...found.colls.slice(0, 24).map((c) =>
+      el("button", { type: "button", class: "res-coll", on: { click: () => goColl(c.id) } },
+        collBadge(c), el("span", { class: "res-coll-name" }, highlight(c.name, m.q)),
+        el("small", { text: `${KIND_NAME[c.kind] || "Colección"} · ${c.items.length} ${c.items.length === 1 ? "video" : "videos"}` }))))));
+  }
+  if (!m.results.length) return;
+  const hits = el("div", { class: "res-hits" });
+  grid.append(group("En lo que se dice", hits));
   for (const r of m.results) {
     const v = lib.videos[r.video];
     if (!v) continue;
-    grid.append(el("article", { class: "hitcard" },
+    hits.append(el("article", { class: "hitcard" },
       el("div", { class: "qthumb", on: { click: () => openAt(v, r.hits[0].t) } }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
       el("div", { class: "hitbody" },
         el("h3", { text: v.title || v.id }),

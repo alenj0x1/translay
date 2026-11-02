@@ -2,7 +2,7 @@
 title: Interface
 description: How the interface is built without a framework, how it talks to the server, and how to add a new preference.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 import { Aside, Steps, FileTree } from "@astrojs/starlight/components";
@@ -31,7 +31,7 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
     - patterns.js Bauhaus patterns and collection icons
     - library.js library, collections, selection, queue and exports; `setView`
     - vaults.js libraries: selector, create, edit, move
-    - home.js library home, accent color and cinema-style player
+    - home.js library home, the «Agregar» (Add) button, accent color and cinema-style player
     - access.js sign-in, guest view, Preferencias → Acceso y API (Preferences → Access and API)
     - route.js the current view in the address hash
     - contextmenu.js context menu depending on where you click
@@ -64,6 +64,10 @@ Typography is a single family, Plus Jakarta Sans, with sizes from 12 to 28 px de
 `tokens.css` has two blocks of colors: `[data-theme="light"]` (also `:root`) and `[data-theme="dark"]`, the dark "graphite" one. The `theme_mode` preference (`sistema`, `claro`, `oscuro`: system, light, dark) decides which one applies; with `sistema`, `theme.js` follows `prefers-color-scheme` and switches live if the system changes.
 
 So that there is no light flash when loading in dark mode, a script in the `<head>` applies the last block used, which `applyTheme` saves in `localStorage` (`vt-theme-block`). Then the preference that arrives from the server takes over. With "Color de cada biblioteca" (Color of each library, `accent_lib`), `home.js` replaces the accent color with that of the open library.
+
+### The «Agregar» button
+
+The header's split button (`#import-split`) has a main part whose action changes: `addAction()` in `home.js` picks the most used one (`link`, `files`, `capture` or `multi`) from a count kept in `localStorage` (`translay.add-uses`), only once it has at least 3 uses; with a tie it stays `link`, and `capture` only counts where the browser can record the screen. With the `add_button` preference set to `agregar` it is always `link`. The ▾ part always opens the full panel (`#import-pop`).
 
 ## JS components
 
@@ -123,7 +127,8 @@ Live audio goes over the same WebSocket as a binary message: little-endian `floa
 | `seek`, `stop`, `end` | Discards or confirms the open sentence. |
 | `pos {t}` | Playback position, every second: orders the voice and the queue's jumps. |
 | `watch {video, t}`, `unwatch` | The saved video being watched: the queue processes it first. |
-| `youtube`, `playlist`, `yt_batch` | Import one or several links. |
+| `youtube`, `playlist`, `yt_batch` | Import one or several links; `playlist` and `yt_batch` take `lang` (`auto` detects it) and `mode`. |
+| `video_lang {video, lang?, mode?}` | Changes the language spoken (redoes what was recognized) and/or the mode: `translate` or `transcribe` (deletes nothing). |
 | `library`, `lib_*`, `coll_*` | Library and collections. |
 | `vault_*` | Libraries: open, create, edit, move videos. |
 | `queue_*` | Queue: add, remove, pause, resume, clear, download the full video. |
@@ -131,7 +136,7 @@ Live audio goes over the same WebSocket as a binary message: little-endian `floa
 | `comment_add`, `comment_edit`, `comment_delete` | Per-sentence comments. |
 | `people_set`, `people_save`, `people_forget` | The video's people and saved people. |
 | `glossary_get`, `glossary_set` | Glossary. |
-| `search {q}` | Search across transcripts. |
+| `search {q}` | Search what is said (transcripts, translation and comments). Titles, channels and collections are matched in the browser (`searchLibrary` in `library.js`) and `renderSearch` shows the three groups together. |
 | `prefs_set {key, value}` | Change a preference. |
 | `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | YouTube session and account, access, keys and webhooks (owner only; connecting the account, only from the machine running Translay). |
 
@@ -142,6 +147,7 @@ Live audio goes over the same WebSocket as a binary message: little-endian `floa
 | `auth`, `ready`, `power` | Who you are and what you can do; loaded models; idle state. |
 | `transcript` | The full transcript when opening a video, with the voice references. |
 | `partial` | Open sentence: what is confirmed, what is tentative and its live translation. |
+| `lang {lang, mode, translates}` | The video's language was detected or changed. |
 | `segment`, `translations`, `speaker`, `dub`, `covered` | New sentence, translations, corrected person, voice ready (with its URL) and processed ranges. |
 | `stats` | Inference time and buffer; also confirms each block of audio sent ahead. |
 | `library`, `library_changed`, `vaults`, `prefs`, `glossary` | State of the library, the libraries, the preferences and the glossary. |

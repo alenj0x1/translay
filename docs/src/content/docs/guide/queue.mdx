@@ -35,7 +35,7 @@ The Queue screen has the states on the left, with their counts, and the list on 
 | **Descargando** (Downloading) | What is being downloaded, with percentage, speed and time remaining. |
 | **Procesando** (Processing) | The job in progress ("Viendo · N %", meaning Watching, if it is the open video). |
 | **En cola** (Queued) | What is waiting for its turn. |
-| **Descargados sin traducir** (Downloaded, not translated) | What was imported with **Solo descargar** (Download only). They have **Procesar** (Process). |
+| **Descargados sin traducir** (Downloaded, not translated) | What was added with **Solo descargar** (Download only). They have **Procesar** (Process). |
 | **Con error** (Failed) | What failed, with the reason. |
 | **Listos** (Done) | What is finished. |
 
@@ -47,7 +47,7 @@ The header has **Pausar procesamiento** (Pause processing) or **Reanudar procesa
 
 Downloads run on a separate thread, one at a time and with a short random pause between them, so they don't look like a burst to YouTube. To avoid filling the disk, only a few videos ahead of what has already been processed are downloaded; prioritized videos, ones you ask to open and ones imported with **Solo descargar** don't wait for that turn.
 
-With Preferences › Importar y descargas › **Orden de las descargas** › **Aleatorio (variado)** (Preferences › Import and downloads › Download order › Random (varied)), downloads come from anywhere in the queue; prioritized ones still go first.
+With Preferences › Agregar y descargar › **Orden de las descargas** › **Aleatorio (variado)** (Preferences › Add and download › Download order › Random (varied)), downloads come from anywhere in the queue; prioritized ones still go first.
 
 Each download shows its stage: first the video and then the audio (with percentage, speed and time remaining), then "uniendo" (merging) and "preparando" (preparing), while the tracks are joined and the audio to be processed is separated.
 
@@ -68,5 +68,5 @@ The models use the GPU only while there is something to process. After a while w
 The details on timing and memory are in [GPU and idle](../../how-it-works/gpu-and-idle/).
 
 <Aside>
-With **Avisos del navegador** (Browser notifications; Preferences › Importar y descargas) you get a system notification when a download, a video, the whole queue or an export finishes, only if the tab is in the background. Several notifications in a row are merged into one.
+With **Avisos del navegador** (Browser notifications; Preferences › Agregar y descargar) you get a system notification when a download, a video, the whole queue or an export finishes, only if the tab is in the background. Several notifications in a row are merged into one.
 </Aside>

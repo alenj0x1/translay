@@ -1,6 +1,6 @@
 ---
 title: Desktop app
-description: The Translay window on Windows, its title bar, the tray, the library folder and logs.
+description: The Translay window on Windows, its title bar, the tray, the library folder, logs and updates.
 sidebar:
   order: 13
 ---
@@ -12,7 +12,8 @@ The desktop app is the same Translay interface inside its own window: everything
 ## The window
 
 - The Translay header is the title bar: drag it to move the window and double-click to maximize or restore it. It follows the light or dark theme, like the window border.
-- On the right, **Preferencias** (Preferences) and the light/dark switch appear as icons, next to minimize, maximize and close.
+- On the right, **Preferencias** (Preferences) and the light/dark switch appear as icons, next to minimize, maximize and close. When the window is narrow, the buttons switch to icons and the search box shrinks, so the window buttons are always visible.
+- When a new version is available, an extra icon appears there; it opens the updates section.
 - Translay opens only once: if you open it again from the Start menu, the window that was already open comes back.
 - On launch you see **Abriendo Translay** (Opening Translay) while the models load, with the theme you used last time.
 
@@ -25,6 +26,15 @@ This page only appears in the app.
 | **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray while the queue has work: it keeps downloading, translating and exporting; when it finishes, Translay quits by itself and frees everything. From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
 | **Biblioteca Principal** (Main library) | The folder where the Main library is stored. **Abrir carpeta** (Open folder) opens it in Explorer; **Cambiar…** (Change…) picks another and Translay restarts with it. Other libraries can be in any folder (see [Libraries](../libraries/)). |
 | **Registros** (Logs) | Opens the folder with `setup.log` (the installation) and `server.log` (what the server writes). Useful for reporting a problem. |
+
+## Updates
+
+Translay looks for new versions on [GitHub Releases](https://github.com/alenj0x1/translay/releases) and updates itself; you don't need to download anything by hand.
+
+- **Buscar actualizaciones** (Check for updates): **Automáticamente** (Automatically; when Translay opens and every 6 hours) or **Solo a mano** (Only manually). With a new version you get a notice and an icon in the title bar.
+- The **Buscar actualizaciones** button checks right away. If there is a new version, it shows its notes and **Actualizar a …** (Update to …, with the version): it downloads it (with progress on the button), closes Translay, installs it and opens it again. Your libraries, preferences and installed runtime stay as they were; if the new version needs other packages, they are installed on the next launch.
+- It never updates in the middle of a job: while the queue, a download or an export is working, the button says **Actualizar al terminar** (Update when done) and the update starts once there is nothing left.
+- Only installers signed with Translay's key are installed: the app carries the public key and rejects any download whose signature doesn't match.
 
 <Aside type="caution">
 **Cambiar…** does not move your files: it points Translay at another folder. To take your library with you, copy the old folder to the new one before changing it. Don't use the same folder from the app and from `python run.py` at the same time.

@@ -57,6 +57,14 @@ class WhisperASR:
     def warmup(self):
         self.transcribe(np.zeros(16000, np.float32))
 
+    def detect(self, audio: np.ndarray) -> tuple[str, float]:
+        """Idioma que se habla (código de Whisper) y su probabilidad, con hasta 30 s de audio.
+        Medido en tools/lab/langs_asr.py: ~250 ms con large-v3-turbo."""
+        if self.name.endswith(".en"):
+            return "en", 1.0
+        code, prob, _ = self.model.detect_language(audio)
+        return code, float(prob)
+
     def transcribe(self, audio: np.ndarray, prompt: str | None = None, language: str | None = None) -> list[Word]:
         """language: el del video (por defecto, el del motor)."""
         language = language or self.language

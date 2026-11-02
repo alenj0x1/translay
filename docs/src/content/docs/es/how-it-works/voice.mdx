@@ -2,12 +2,12 @@
 title: Voz y clonación
 description: Cómo se arma la voz de referencia de cada persona, cómo se clona en español y cómo cada frase calza en su espacio con la sonoridad del original.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Cada frase se dobla con la voz de quien la dice. `vt/dub.py` (`Dubber`) toma la persona que asignó la [diarización](../pipeline/#diarización), busca su voz de referencia y le pide al proceso de voz la frase en español con esa voz:
+Cada frase se dobla con la voz de quien la dice. `vt/dub.py` (`Dubber`) toma la persona que asignó la [diarización](../pipeline/#diarización), busca su voz de referencia y le pide al proceso de voz la frase en español con esa voz (un video que [solo se transcribe](../languages/#traducir-o-solo-transcribir) nunca se dobla):
 
 <Steps>
 

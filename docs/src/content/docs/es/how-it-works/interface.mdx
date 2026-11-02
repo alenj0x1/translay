@@ -2,7 +2,7 @@
 title: Interfaz
 description: Cómo está hecha la interfaz sin framework, cómo habla con el servidor y cómo se agrega una preferencia nueva.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 import { Aside, Steps, FileTree } from "@astrojs/starlight/components";
@@ -31,7 +31,7 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
     - patterns.js patrones Bauhaus e íconos de colecciones
     - library.js biblioteca, colecciones, selección, cola y exportaciones; `setView`
     - vaults.js bibliotecas: selector, crear, editar, mover
-    - home.js portada de la biblioteca, color de acento y reproductor tipo cine
+    - home.js portada de la biblioteca, el botón «Agregar», color de acento y reproductor tipo cine
     - access.js inicio de sesión, vista de invitado, Preferencias → Acceso y API
     - route.js la vista actual en el hash de la dirección
     - contextmenu.js menú contextual según dónde se hace clic
@@ -64,6 +64,10 @@ La tipografía es una sola familia, Plus Jakarta Sans, con tamaños de 12 a 28 p
 `tokens.css` tiene dos bloques de colores: `[data-theme="light"]` (también `:root`) y `[data-theme="dark"]`, el oscuro «grafito». La preferencia `theme_mode` (`sistema`, `claro`, `oscuro`) decide cuál; con `sistema`, `theme.js` sigue a `prefers-color-scheme` y cambia en vivo si cambia el sistema.
 
 Para que no haya un destello claro al cargar en modo oscuro, un script en el `<head>` aplica el último bloque usado, que `applyTheme` guarda en `localStorage` (`vt-theme-block`). Después manda la preferencia que llega del servidor. Con «Color de cada biblioteca» (`accent_lib`), `home.js` reemplaza el color de acento por el de la biblioteca abierta.
+
+### El botón «Agregar»
+
+El botón dividido del encabezado (`#import-split`) tiene una parte principal cuya acción cambia: `addAction()` en `home.js` elige la más usada (`link`, `files`, `capture` o `multi`) con un conteo guardado en `localStorage` (`translay.add-uses`), solo cuando tiene al menos 3 usos; con un empate queda `link`, y `capture` solo cuenta donde el navegador puede grabar la pantalla. Con la preferencia `add_button` en `agregar` siempre es `link`. La parte ▾ siempre abre el panel completo (`#import-pop`).
 
 ## Componentes JS
 
@@ -123,7 +127,8 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `seek`, `stop`, `end` | Descarta o confirma la frase abierta. |
 | `pos {t}` | Punto de reproducción, cada segundo: ordena la voz y los saltos de la cola. |
 | `watch {video, t}`, `unwatch` | El video guardado que se está viendo: la cola lo procesa primero. |
-| `youtube`, `playlist`, `yt_batch` | Importar uno o varios enlaces. |
+| `youtube`, `playlist`, `yt_batch` | Importar uno o varios enlaces; `playlist` y `yt_batch` aceptan `lang` (`auto` lo detecta) y `mode`. |
+| `video_lang {video, lang?, mode?}` | Cambia el idioma en que se habla (rehace lo reconocido) y/o el modo: `translate` o `transcribe` (no borra nada). |
 | `library`, `lib_*`, `coll_*` | Biblioteca y colecciones. |
 | `vault_*` | Bibliotecas: abrir, crear, editar, mover videos. |
 | `queue_*` | Cola: agregar, quitar, pausar, reanudar, limpiar, bajar el video completo. |
@@ -131,7 +136,7 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `comment_add`, `comment_edit`, `comment_delete` | Comentarios por frase. |
 | `people_set`, `people_save`, `people_forget` | Personas del video y personas guardadas. |
 | `glossary_get`, `glossary_set` | Glosario. |
-| `search {q}` | Búsqueda en las transcripciones. |
+| `search {q}` | Busca en lo que se dice (transcripciones, traducción y comentarios). Los títulos, canales y colecciones se buscan en el navegador (`searchLibrary` en `library.js`) y `renderSearch` muestra los tres grupos juntos. |
 | `prefs_set {key, value}` | Cambiar una preferencia. |
 | `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | Sesión y cuenta de YouTube, acceso, claves y webhooks (solo el dueño; conectar la cuenta, solo desde el equipo donde corre Translay). |
 
@@ -142,6 +147,7 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `auth`, `ready`, `power` | Quién eres y qué puedes hacer; modelos cargados; estado de reposo. |
 | `transcript` | La transcripción completa al abrir un video, con las referencias de voz. |
 | `partial` | Frase abierta: lo confirmado, lo tentativo y su traducción en vivo. |
+| `lang {lang, mode, translates}` | Se detectó o cambió el idioma del video. |
 | `segment`, `translations`, `speaker`, `dub`, `covered` | Frase nueva, traducciones, persona corregida, voz lista (con su URL) y tramos procesados. |
 | `stats` | Tiempo de inferencia y búfer; también confirma cada bloque de audio adelantado. |
 | `library`, `library_changed`, `vaults`, `prefs`, `glossary` | Estado de la biblioteca, las bibliotecas, las preferencias y el glosario. |

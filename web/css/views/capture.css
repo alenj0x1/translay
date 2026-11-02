@@ -1,7 +1,19 @@
 /* Grabar pantalla (web/js/capture.js): elegir la zona sobre la vista previa y la
    barra mientras se graba. La vista previa va sobre fondo de video (siempre oscuro). */
 
-.import-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+/* «Agregar»: las otras fuentes (archivos, grabar pantalla, varios enlaces) como tarjetas iguales */
+.import-acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--s2); }
+/* compactas: una sola línea, el ícono al lado del texto */
+.src-card {
+  display: flex; align-items: center; gap: var(--s2); min-width: 0; height: var(--h-md); padding: 0 var(--s3) 0 var(--s1);
+  border: 0; border-radius: var(--r-md, 10px); background: transparent; color: var(--fg);
+  font: 600 var(--fs-sm)/1 var(--font); white-space: nowrap; cursor: pointer;
+}
+.src-card:hover { background: var(--surface-2); }
+.src-card[hidden] { display: none; }
+.src-ic { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--surface-2); color: var(--fg); }
+.src-card:hover .src-ic { background: var(--surface-3); }
+.src-ic svg { display: block; width: 16px; height: 16px; }
 
 .cap-dlg { width: min(760px, calc(100vw - 32px)); --cap-mark: #4c8dff; }
 /* la vista previa toma el alto que queda: el diálogo entero cabe en la ventana */

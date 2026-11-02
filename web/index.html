@@ -74,23 +74,30 @@
   </div>
   <form class="field search" id="lib-search" role="search">
     <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
-    <input id="lib-q" type="search" placeholder="Buscar en las transcripciones" spellcheck="false" aria-label="Buscar en las transcripciones">
+    <input id="lib-q" type="search" placeholder="Buscar videos y lo que se dice" spellcheck="false" aria-label="Buscar videos, colecciones y lo que se dice">
   </form>
   <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
   <div class="import-wrap">
-    <button class="btn dark" id="import-btn" type="button" data-icon="import" aria-haspopup="true">Importar</button>
+    <!-- botón dividido: la acción (la que más usas, salvo que Preferencias diga «Siempre Agregar») y ▾ con todas -->
+    <div class="split" id="import-split">
+      <button class="btn dark" id="import-btn" type="button" data-icon="plus">Agregar</button>
+      <button class="btn dark icon split-more" id="import-pop-btn" type="button" data-icon="chevron" aria-haspopup="true"
+        aria-label="Todas las formas de agregar" title="Todas las formas de agregar"></button>
+    </div>
     <div class="popover import-pop" id="import-pop" hidden>
       <form class="field" id="yt">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
-        <input id="yt-url" type="text" placeholder="Pega enlaces de YouTube o Dropbox" spellcheck="false" aria-label="Enlaces de YouTube o Dropbox">
+        <input id="yt-url" type="text" placeholder="Pega un enlace de YouTube o Dropbox" spellcheck="false" aria-label="Enlace de YouTube o Dropbox">
         <div class="split sm">
-          <button class="btn sm dark" id="import-go" type="submit" data-icon="import" disabled>Importar</button>
-          <button class="btn sm dark icon split-more" id="import-more" type="button" data-icon="chevron" aria-label="Más opciones de Importar" title="Más opciones" disabled></button>
+          <button class="btn sm dark" id="import-go" type="submit" data-icon="plus" disabled>Agregar</button>
+          <button class="btn sm dark icon split-more" id="import-more" type="button" data-icon="chevron" aria-label="Más opciones de Agregar" title="Más opciones" disabled></button>
         </div>
       </form>
+      <!-- las otras fuentes, como tarjetas -->
       <div class="import-acts">
-        <label class="btn sm ghost files-btn" id="file-btn" data-icon="upload" title="Importar videos, audios o un .csv con enlaces">Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
-        <button class="btn sm ghost" id="cap-btn" type="button" data-icon="record" title="Grabar una pestaña, una ventana o la pantalla y traducirla" hidden>Grabar pantalla</button>
+        <label class="src-card" id="file-btn" title="Videos o audios de este equipo"><span class="src-ic" data-icon="folder"></span>Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
+        <button class="src-card" id="cap-btn" type="button" title="Una pestaña, una ventana o la pantalla, traducida en vivo" hidden><span class="src-ic" data-icon="record"></span>Grabar pantalla</button>
+        <button class="src-card" id="multi-btn" type="button" title="Muchos enlaces a la vez, pegados o en un .csv"><span class="src-ic" data-icon="queue"></span>Varios enlaces</button>
       </div>
     </div>
   </div>
@@ -237,7 +244,7 @@
       <label><input class="check" type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
       <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small class="audio-fmt">M4A</small></label>
       <label><input class="check" type="checkbox" name="kind" value="srt_es"><span>Subtítulos en español</span><small>SRT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="srt_en"><span>Subtítulos en inglés</span><small>SRT</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span><small>SRT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe con comentarios</span><small>TXT</small></label>
     </div>
     <div class="dlg-row" id="export-audio" hidden><span class="label">Formato del audio</span>
@@ -263,7 +270,7 @@
 
 <dialog class="dlg wide" id="multi-dlg">
   <form method="dialog" id="multi-form">
-    <h3>Importar varios enlaces</h3>
+    <h3>Agregar varios enlaces</h3>
     <textarea class="area" id="multi-text" rows="8" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…&#10;https://www.youtube.com/playlist?list=…"></textarea>
     <div class="dlg-line">
       <p class="dlg-sub" id="multi-sum"></p>
@@ -272,7 +279,7 @@
     <label class="dlg-field"><span class="label">Guardar en</span><select class="select" id="multi-coll"></select></label>
     <div class="dlg-actions">
       <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
-      <button class="btn dark" value="ok" type="submit" id="multi-go" data-icon="import">Importar</button>
+      <button class="btn dark" value="ok" type="submit" id="multi-go" data-icon="plus">Agregar</button>
     </div>
   </form>
 </dialog>

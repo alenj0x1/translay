@@ -15,10 +15,12 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - session.py one session per tab: WebSocket protocol and permissions
   - processor.py processing queue and downloads
   - vad.py energy-based voice detector
-  - asr.py Whisper on CTranslate2
-  - streaming.py streaming recognition with local agreement
-  - translate.py translators on CTranslate2
-  - textproc.py text before and after translating
+  - langs.py language registry (what changes from one language to another, as data)
+  - asr.py Whisper on CTranslate2 and language detection
+  - streaming.py streaming recognition with local agreement, rules per language
+  - translate.py translators on CTranslate2, one per source language
+  - opusmt.py prepares official OPUS-MT releases for CTranslate2
+  - textproc.py text before and after translating, rules per source language
   - glossary.py each library's glossary
   - speakers.py diarization and voice references
   - dub.py per-sentence dubbing
@@ -62,7 +64,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - js/ components, connection, views, menus and routes (`desktop.js`: the title bar in the desktop app)
   - fonts/ Plus Jakarta Sans (OFL), served by Translay itself
 - tools/ measurement and testing tools, no browser (see [Testing and evaluation](../testing/))
-  - lab/ hardware labs: VRAM ballast, benchmark and per-machine runs
+  - lab/ hardware labs (VRAM ballast, benchmark and per-machine runs) and language labs (`langs_mt.py` translators per language pair, `langs_asr.py` Whisper per language and detection)
   - dub_file.py dubs a whole video and exports `<name>.es.mp4`
   - eval_tts.py compares voice engines
   - eval_pipeline.py measures recognition and diarization
@@ -73,6 +75,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - samples/ scripts of the test videos
 - tests/
   - test_core.py tests without a GPU
+  - test_langs.py language registry, detection, modes, translator routes and per-language text rules
 - docs/ this documentation (Astro + Starlight; see [Documentation](../docs/))
   - astro.config.mjs site and sidebar configuration
   - scripts/

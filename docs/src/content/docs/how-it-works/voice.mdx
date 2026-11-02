@@ -2,12 +2,12 @@
 title: Voice and cloning
 description: How each person's reference voice is built, how it is cloned into Spanish, and how each sentence fits its slot with the loudness of the original.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Each sentence is dubbed with the voice of whoever says it. `vt/dub.py` (`Dubber`) takes the person assigned by [diarization](../pipeline/#diarization), looks up their reference voice and asks the voice process for the sentence in Spanish with that voice:
+Each sentence is dubbed with the voice of whoever says it. `vt/dub.py` (`Dubber`) takes the person assigned by [diarization](../pipeline/#diarization), looks up their reference voice and asks the voice process for the sentence in Spanish with that voice (a video that is [only transcribed](../languages/#translate-or-only-transcribe) is never dubbed):
 
 <Steps>
 

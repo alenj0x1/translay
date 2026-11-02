@@ -12,12 +12,15 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   GET    /api/v1/libraries/{lib}/collections
   GET    /api/v1/libraries/{lib}/search?q=        en las transcripciones
   POST   /api/v1/libraries/{lib}/import           {"urls": [...], "mode": "traducir|descargar", "priority": false,
-                                                   "lang": "en|es"}  YouTube o Dropbox; "es": solo se transcribe
+                                                   "lang": "auto|en|pt|es", "task": "translate|transcribe"}
+                                                   YouTube o Dropbox; lang "auto" (por defecto): se detecta;
+                                                   task: traducir y doblar, o solo transcribir (si falta, lo
+                                                   que está en el idioma propio de Preferencias solo se transcribe)
   GET    /api/v1/libraries/{lib}/glossary         ·  PUT {"entries": [{"src", "dst"}]}
-  GET    /api/v1/videos/{id}                      datos, avance y estado en la cola
+  GET    /api/v1/videos/{id}                      datos (idioma y modo incluidos), avance y estado en la cola
   PATCH  /api/v1/videos/{id}                      {"title": "…"}  le cambia el nombre
-  GET    /api/v1/videos/{id}/transcript           frases con inglés y español
-  GET    /api/v1/videos/{id}/subtitles?lang=es    SRT (es | en)
+  GET    /api/v1/videos/{id}/transcript           frases en su idioma (text) y traducidas (translation)
+  GET    /api/v1/videos/{id}/subtitles?lang=es    SRT: es (traducción) | orig o el código del idioma del video
   DELETE /api/v1/videos/{id}                      lo borra con sus archivos
   GET    /api/v1/queue?library=                   cola
   POST   /api/v1/queue                            {"video": id, "priority": false}
@@ -35,7 +38,7 @@ import json
 import socket
 import time
 
-from . import events
+from . import events, langs
 from .auth import is_local
 from .exporter import KINDS, srt
 
@@ -182,7 +185,8 @@ class Api:
         e = v.library.data["videos"][vid]
         out = {"id": vid, "library": v.id, **{k: e.get(k) for k in ("title", "duration", "source", "channel",
                                                                      "categories", "added", "url")},
-               "lang": e.get("lang") or "en"}
+               "lang": e.get("lang") or langs.DEFAULT_SOURCE,
+               "mode": e.get("mode") or ("transcribe" if e.get("lang") == langs.TARGET else "translate")}
         out.update({k: v.url(e[k]) for k in ("media", "audio", "thumb") if e.get(k)})
         try:
             out["progress"] = self.processor.progress(vid)
@@ -244,11 +248,14 @@ class Api:
                 mode = str(body.get("mode", ""))
                 if mode not in ("", "traducir", "descargar"):
                     raise ValueError("mode: traducir o descargar")
-                lang = str(body.get("lang") or "en")
-                if lang not in ("en", "es"):
-                    raise ValueError("lang: en o es")
+                lang = str(body.get("lang") or "auto")
+                if lang != "auto" and not langs.is_source(lang):
+                    raise ValueError("lang: auto o " + ", ".join(langs.SOURCES))
+                task = str(body.get("task") or "")
+                if task not in ("", "translate", "transcribe"):
+                    raise ValueError("task: translate o transcribe")
                 sess = await self._session(v, acc)
-                await sess._batch(urls, "", True, bool(body.get("priority")), mode, lang=lang)
+                await sess._batch(urls, "", True, bool(body.get("priority")), mode, lang=lang, tmode=task)
                 r = sess.ws.last("batch_added") or {}
                 return 202, {"videos": r.get("videos", 0), "playlists": r.get("playlists", 0),
                              "elsewhere": r.get("elsewhere", {})}, {}
@@ -283,10 +290,14 @@ class Api:
             if p[2] == "transcript":
                 return 200, {"id": vid, "segments": [{k: s.get(k) for k in ("id", "start", "end", "text", "translation",
                                                                              "speaker")} for s in tr.segments],
-                             "speaker_names": tr.data.get("speaker_names") or {}, "comments": tr.comments}, {}
+                             "speaker_names": tr.data.get("speaker_names") or {}, "comments": tr.comments,
+                             "lang": tr.lang, "mode": tr.mode}, {}
             if p[2] == "subtitles":
-                lang = req.query.get("lang", "es")
-                return 200, srt(tr.segments, "translation" if lang == "es" else "text"), {
+                lang = req.query.get("lang", langs.TARGET)
+                if lang == langs.TARGET and tr.lang != langs.TARGET and not tr.translates:
+                    raise LookupError("este video solo se transcribe: pide lang=orig")
+                field = "translation" if lang == langs.TARGET and tr.lang != langs.TARGET else "text"
+                return 200, srt(tr.segments, field), {
                     "Content-Type": "application/x-subrip; charset=utf-8"}
             raise LookupError("no existe")
         # ------------------------------------------------------------------ cola

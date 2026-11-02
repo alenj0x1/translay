@@ -6,8 +6,11 @@ navegador). Se guarda un JSON por video con:
 * `segments`: frases con tiempo de inicio/fin, texto y traducción.
 * `covered`: rangos del video ya procesados (incluye silencios), para no
   volver a transcribirlos al retroceder o reabrir el video.
-* `lang`: idioma en que se habla ("en" si no está). Un video que ya está en
-  español solo se transcribe: su "traducción" es el mismo texto y no lleva voz.
+* `lang`: idioma en que se habla (código de `vt/langs.py`; "en" si no está, como
+  antes de los idiomas). Vacío con `detect`: se detecta al empezar a reconocerlo.
+* `mode`: "translate" (traducir y doblar) o "transcribe" (solo transcribir, en su
+  idioma y sin voz). Lo elige la persona; si falta, un video en el idioma de destino
+  solo se transcribe. Cambiar de modo no borra nada: las traducciones quedan guardadas.
 """
 
 import json
@@ -17,10 +20,11 @@ import time
 import uuid
 from pathlib import Path
 
+from . import langs
+
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
-LANGS = ("en", "es")  # idiomas que se reconocen; se traduce de inglés a español
-TARGET = "es"
-SAME = "original"     # tr_model de las frases que ya estaban en español (sin traducir)
+_LANG_CODE = re.compile(r"^[a-z]{2,3}$")  # código de Whisper (un idioma detectado puede no estar en el registro)
+MODES = ("translate", "transcribe")
 
 
 def merge_ranges(ranges: list[list[float]], tol: float = 0.25) -> list[list[float]]:
@@ -42,20 +46,69 @@ class Transcript:
 
     @property
     def lang(self) -> str:
-        return self.data.get("lang") or "en"
+        return self.data.get("lang") or ("" if self.detecting else langs.DEFAULT_SOURCE)
 
     @property
-    def native(self) -> bool:
-        """¿Ya está en español? Entonces solo se transcribe."""
-        return self.lang == TARGET
+    def detecting(self) -> bool:
+        """¿Falta detectar el idioma? (se detecta con lo primero que se reconoce)"""
+        return bool(self.data.get("detect")) and not self.data.get("lang")
 
-    def set_lang(self, lang: str) -> bool:
-        """Cambia el idioma del video. Lo reconocido en el otro idioma no sirve: se borra
-        (frases, tramos cubiertos y comentarios) para volver a procesarlo. True si cambió."""
-        if lang not in LANGS or lang == self.lang:
+    @property
+    def mode(self) -> str:
+        m = self.data.get("mode")
+        if m in MODES:
+            return m
+        return "transcribe" if self.lang == langs.TARGET else "translate"
+
+    @property
+    def translates(self) -> bool:
+        """¿Se traduce y dobla? No si la persona eligió solo transcribir, si ya está en el
+        idioma de destino o si es un idioma que todavía no se traduce."""
+        return self.mode == "translate" and self.lang != langs.TARGET and langs.is_source(self.lang)
+
+    @property
+    def transcribe_only(self) -> bool:
+        return not self.translates
+
+    def set_lang(self, lang: str, mode: str | None = None, detected: bool = False) -> bool:
+        """Cambia el idioma del video. Lo reconocido en otro idioma no sirve: se borra
+        (frases, tramos cubiertos y comentarios) para volver a procesarlo. True si cambió.
+
+        detected: lo detectó Whisper en lo primero que se reconoció; no se borra nada
+        (ya se reconoció en ese idioma) y puede ser uno fuera del registro."""
+        ok = _LANG_CODE.fullmatch(lang or "") if detected else langs.is_source(lang)
+        changed = False
+        with self._lock:
+            if ok and lang != self.lang:  # detectando, lang es ""
+                if not detected:
+                    self.data.update(segments=[], covered=[], comments={})
+                self.data.update(lang=lang)
+                self.data.pop("detect", None)
+                changed = True
+            if mode in MODES and mode != self.data.get("mode"):
+                self.data["mode"] = mode
+                changed = True
+        return changed
+
+    def set_detected(self, code: str, own: str | None = None) -> bool:
+        """Idioma que detectó Whisper. Si la persona no eligió el modo, lo que está en su
+        idioma (`own`, de Preferencias) solo se transcribe. True si cambió algo.
+        Solo vale mientras se detecta: la cola y una pestaña pueden detectar a la vez y la
+        segunda no debe cambiar un idioma ya decidido."""
+        if not self.detecting:
+            return False
+        changed = self.set_lang(code, detected=True)
+        if code == own and "mode" not in self.data:
+            self.data["mode"] = "transcribe"
+            changed = True
+        return changed
+
+    def set_mode(self, mode: str) -> bool:
+        """Traducir o solo transcribir. No borra nada: lo reconocido sirve en los dos modos."""
+        if mode not in MODES or mode == self.data.get("mode"):
             return False
         with self._lock:
-            self.data.update(lang=lang, segments=[], covered=[], comments={})
+            self.data["mode"] = mode
         return True
 
     @property
@@ -69,8 +122,8 @@ class Transcript:
     def add_segment(self, start: float, end: float, text: str,
                     translation: str | None, tr_model: str | None = None) -> tuple[dict, list[int]]:
         """Inserta una frase; reemplaza las que se solapan. Devuelve (nueva, ids borrados)."""
-        if self.native:
-            translation, tr_model = text, SAME
+        if self.transcribe_only:
+            translation, tr_model = None, None
         removed = []
         keep = []
         for s in self.segments:
@@ -89,8 +142,8 @@ class Transcript:
         return seg, removed
 
     def stale(self, tr_model: str) -> list[dict]:
-        """Frases sin traducir o traducidas con otro modelo (ninguna si ya está en español)."""
-        if self.native:
+        """Frases sin traducir o traducidas con otro modelo (ninguna si solo se transcribe)."""
+        if self.transcribe_only:
             return []
         return [s for s in self.segments if s.get("tr_model") != tr_model]
 
@@ -116,7 +169,8 @@ class Transcript:
 
     def public(self) -> dict:
         return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
-                "comments": self.comments, "lang": self.lang, "speaker_names": self.data.get("speaker_names") or {},
+                "comments": self.comments, "lang": self.lang, "mode": self.mode, "translates": self.translates,
+                "detecting": self.detecting, "speaker_names": self.data.get("speaker_names") or {},
                 "voice_map": self.data.get("voice_map") or {}}
 
     # ------------------------------------------------- comentarios por frase
@@ -165,8 +219,9 @@ class Store:
             if path.exists():
                 data = json.loads(path.read_text(encoding="utf-8"))
             else:
+                # el idioma se detecta con lo primero que se reconoce (o lo elige quien importa)
                 data = {"id": vid, "name": name, "segments": [], "covered": [],
-                        "next_id": 0, "created": time.time()}
+                        "next_id": 0, "created": time.time(), "detect": True}
             t = Transcript(path, data)
             self._cache[vid] = t
             return t

@@ -9,7 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from vt import links  # noqa: E402
-from vt.store import SAME, Store  # noqa: E402
+from vt.store import Store  # noqa: E402
 
 FOLDER_FILE = ("https://www.dropbox.com/scl/fo/abc123def456ghi789jkl/AAAbbbCCCdddEEEfffGGG/21_10.mp4"
                "?rlkey=fakekey0123456789abcdefg&st=st000000&e=1&dl=0")
@@ -40,16 +40,17 @@ def test_dropbox_folder_or_other_sites_are_rejected():
 
 def test_spanish_video_only_transcribes(tmp_path):
     tr = Store(tmp_path).open("lk_0123456789abcdef")
-    assert tr.lang == "en" and not tr.native
+    assert tr.detecting and tr.lang == "" and tr.transcribe_only  # nuevo: el idioma se detecta
+    assert tr.set_lang("en") and tr.translates and not tr.detecting
     tr.add_segment(0, 1, "Hello", "Hola", "opus")
     tr.add_covered(0, 1)
     assert tr.set_lang("es")
-    assert tr.native and tr.segments == [] and tr.covered == []  # lo reconocido en inglés no sirve
+    assert tr.transcribe_only and tr.segments == [] and tr.covered == []  # lo reconocido en inglés no sirve
     seg, _ = tr.add_segment(0, 1, "Hola a todos", None, "opus")
-    assert seg["translation"] == "Hola a todos" and seg["tr_model"] == SAME
+    assert seg["translation"] is None and seg["tr_model"] is None
     assert tr.stale("opus") == []  # nunca pasa por el traductor
     assert not tr.set_lang("es") and not tr.set_lang("fr")
-    assert tr.public()["lang"] == "es"
+    assert tr.public()["lang"] == "es" and tr.public()["mode"] == "transcribe"
 
 
 def test_fetch_from_local_server(tmp_path, monkeypatch):

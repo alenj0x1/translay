@@ -1,11 +1,15 @@
 """Exportar: video o audio traducido (y el original) de uno o varios videos.
 
 Tipos
-  es_video    MP4 con la voz en español (pista principal), el inglés como segunda
-              pista y subtítulos ES/EN (se activan en el reproductor)
+  es_video    MP4 con la voz en español (pista principal), el original como segunda
+              pista y subtítulos en español y en el idioma original (se activan en el reproductor)
   es_audio    M4A (o MP3) con la voz en español
   orig_video  el video original
   orig_audio  el audio original, M4A (o MP3)
+  srt_es · srt_orig · txt   subtítulos traducidos, subtítulos en el idioma original y transcripción
+
+Un video que solo se transcribe no tiene traducción ni voz: sus tipos traducidos se
+omiten (si no queda nada, el video va a «omitidos.txt»).
 
 La mezcla en español es la misma que se escucha en la vista: cada frase doblada
 en su momento y el original bajo la voz (nivel de Preferencias). Donde no hay
@@ -32,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import events
+from . import events, langs
 from .audiofx import read_wav, resample
 
 SR = 48000
@@ -41,9 +45,11 @@ WORKERS = max(1, min(6, (os.cpu_count() or 2) // 2))
 BLOCK = SR * 10
 DUCK_LEVELS = {"silencio": 0.0, "bajo": 0.14, "medio": 0.3}
 # texto: subtítulos (SRT) y transcripción bilingüe con comentarios (TXT); no necesitan el doblaje
-TEXT_KINDS = ("srt_es", "srt_en", "txt")
+TEXT_KINDS = ("srt_es", "srt_orig", "txt")
+TRANSLATED = ("es_video", "es_audio", "srt_es")  # necesitan traducción (y voz)
+ALIASES = {"srt_en": "srt_orig"}  # nombre de antes de los idiomas (la API lo sigue aceptando)
 KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
-         "srt_es": ("subtítulos español", "srt"), "srt_en": ("subtítulos inglés", "srt"),
+         "srt_es": ("subtítulos español", "srt"), "srt_orig": ("subtítulos originales", "srt"),
          "txt": ("transcripción", "txt"),
          "orig_video": ("original", "mp4"), "orig_audio": ("audio original", "m4a")}
 AUDIO_CODEC = {"m4a": ["-c:a", "aac", "-b:a", "160k"], "mp3": ["-c:a", "libmp3lame", "-b:a", "192k"]}
@@ -98,6 +104,7 @@ class Exporter:
     # ------------------------------------------------------------------ API
     def add(self, videos: list[str], kinds: list[str], name: str = "", audio: str = "m4a") -> dict:
         videos = [v for v in dict.fromkeys(videos) if v in self.library.data["videos"]]
+        kinds = [ALIASES.get(k, k) for k in kinds]
         kinds = [k for k in KINDS if k in kinds]
         if not videos or not kinds:
             raise ValueError("nada que exportar")
@@ -178,9 +185,17 @@ class Exporter:
 
         def one(vid, v, title):  # en un hilo del grupo: todos los tipos de un video, en orden
             out = []
+            tr = self.store.open(vid) if any(k in TRANSLATED for k in job["kinds"]) else None
+            only_text = bool(tr and tr.transcribe_only)  # sin traducción ni voz
+            # ya en español: sus subtítulos en español son el mismo texto
+            skip = {k for k in TRANSLATED if not (k == "srt_es" and tr and tr.lang == langs.TARGET)}
+            if only_text and all(k in skip for k in job["kinds"]):
+                raise ValueError("solo se transcribe: no tiene traducción ni voz en español")
             for i, kind in enumerate(job["kinds"]):
                 if job not in self.jobs:
                     return out
+                if only_text and kind in skip:
+                    continue
                 label, ext = KINDS[kind]
                 if kind in ("es_audio", "orig_audio"):
                     ext = job.get("audio", "m4a")
@@ -354,8 +369,9 @@ class Exporter:
         if kind == "es_audio":
             return es
         tr = self.store.open(vid)
+        orig = langs.get(tr.lang).iso3 if langs.is_source(tr.lang) else "und"
         subs = []
-        for key, lang in (("translation", "spa"), ("text", "eng")):
+        for key, lang in (("translation", langs.get(langs.TARGET).iso3), ("text", orig)):
             f = out_dir / f"{vid}.{lang}.srt"
             f.write_text(srt(tr.segments, key), encoding="utf-8")
             subs.append((f, lang))
@@ -366,8 +382,8 @@ class Exporter:
         cmd += ["-map", "0:v:0", "-map", "1:a", "-map", "0:a?", "-map", "2", "-map", "3",
                 "-c:v", "copy", "-c:a:0", "copy", "-c:a:1", "aac", "-b:a:1", "128k", "-c:s", "mov_text",
                 "-metadata:s:a:0", "language=spa", "-metadata:s:a:0", "title=Español",
-                "-metadata:s:a:1", "language=eng", "-metadata:s:a:1", "title=Original",
-                "-metadata:s:s:0", "language=spa", "-metadata:s:s:1", "language=eng",
+                "-metadata:s:a:1", f"language={orig}", "-metadata:s:a:1", "title=Original",
+                "-metadata:s:s:0", "language=spa", "-metadata:s:s:1", f"language={orig}",
                 "-disposition:a:0", "default", "-disposition:a:1", "0", "-disposition:s:0", "0",
                 "-disposition:s:1", "0", "-movflags", "+faststart", str(out)]
         r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -394,11 +410,12 @@ class Exporter:
 
     def _make_text(self, kind, vid, v, out_dir: Path) -> Path:
         tr = self.store.open(vid)
-        if kind in ("srt_es", "srt_en"):
-            out = out_dir / f"{vid}.{kind}.srt"
-            out.write_text(srt(tr.segments, "translation" if kind == "srt_es" else "text"), encoding="utf-8")
+        if kind in ("srt_es", "srt_orig"):
+            out = out_dir / f"{vid}.{langs.TARGET if kind == 'srt_es' else tr.lang or 'orig'}.srt"
+            translated = kind == "srt_es" and tr.lang != langs.TARGET
+            out.write_text(srt(tr.segments, "translation" if translated else "text"), encoding="utf-8")
             return out
-        # transcripción bilingüe: hora · persona · inglés / español, y los comentarios de cada frase
+        # transcripción: hora · persona · lo que se dice / su traducción, y los comentarios de cada frase
         names = tr.data.get("speaker_names") or {}
         order: dict = {}
         for s in tr.segments:
@@ -412,7 +429,7 @@ class Exporter:
             if len(order) > 1 and s.get("speaker") is not None:
                 who = " " + (names.get(str(s["speaker"])) or f"P{order[s['speaker']]}") + ":"
             lines.append(f"[{stamp}]{who} {s.get('text', '').strip()}")
-            if s.get("translation"):
+            if s.get("translation") and tr.translates:
                 lines.append(f"    {s['translation'].strip()}")
             for c in (tr.data.get("comments") or {}).get(str(s["id"]), []):
                 lines.append(f"    » Comentario: {c['text']}")

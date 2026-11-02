@@ -221,16 +221,67 @@ for (const b of document.querySelectorAll(".bar .brand")) {
   b.addEventListener("keydown", (e) => { if (e.key === "Enter") goHome(); });
 }
 const importPop = $("#import-pop");
+function toggleImportPop(open = importPop.hidden) {
+  importPop.hidden = !open;
+  if (open) $("#yt-url").focus();
+}
+// «Agregar ▾»: la parte principal hace lo que más usas (pegar un enlace, subir archivos, capturar la
+// pantalla o pegar varios enlaces); ▾ abre todas. Preferencias › Agregar y descargar › «Botón Agregar»
+// puede dejarlo siempre en «Agregar». Lo usado se cuenta en este navegador.
+const ADD_ACTIONS = {
+  link: { label: "Agregar", icon: "plus", title: "Pegar un enlace", run: () => toggleImportPop(true) },
+  files: { label: "Subir", icon: "upload", title: "Subir videos o audios de este equipo", run: () => $("#file").click() },
+  capture: { label: "Capturar", icon: "record", title: "Grabar una pestaña, una ventana o la pantalla",
+    run: () => { addUsed("capture"); openCapture(); }, ok: () => !$("#cap-btn").hidden },
+  multi: { label: "Pegar enlaces", icon: "queue", title: "Agregar muchos enlaces a la vez", run: () => { addUsed("multi"); openMulti(""); } },
+};
+function addUses() {
+  try { return JSON.parse(localStorage.getItem("translay.add-uses") || "{}"); } catch { return {}; }
+}
+function addUsed(kind) {
+  const uses = addUses();
+  uses[kind] = (uses[kind] || 0) + 1;
+  try { localStorage.setItem("translay.add-uses", JSON.stringify(uses)); } catch { /* sin almacenamiento: queda «Agregar» */ }
+  syncAddButton();
+}
+// la acción del botón: la más usada (al menos 3 veces); empate o pocas veces, pegar un enlace
+function addAction() {
+  if (prefs.add_button === "agregar") return "link";
+  const uses = addUses();
+  let best = "link";
+  for (const [k, a] of Object.entries(ADD_ACTIONS)) {
+    if ((a.ok ? a.ok() : true) && (uses[k] || 0) >= 3 && (uses[k] || 0) > (uses[best] || 0)) best = k;
+  }
+  return best;
+}
+function syncAddButton() {
+  const a = ADD_ACTIONS[addAction()];
+  const b = $("#import-btn");
+  setBtn(b, a.label, a.icon);
+  b.title = a.title;
+}
 $("#import-btn").addEventListener("click", (e) => {
   e.stopPropagation();
-  importPop.hidden = !importPop.hidden;
-  if (!importPop.hidden) $("#yt-url").focus();
+  const kind = addAction();
+  if (kind === "link") return toggleImportPop();
+  importPop.hidden = true;
+  ADD_ACTIONS[kind].run();
 });
+$("#import-pop-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleImportPop();
+});
+$("#cap-btn").addEventListener("click", () => addUsed("capture"));
+syncAddButton();
 importPop.addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("click", () => { importPop.hidden = true; });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") importPop.hidden = true; });
 // al importar, el panel se cierra solo
-$("#yt").addEventListener("submit", () => setTimeout(() => { importPop.hidden = true; }, 0));
-$("#file").addEventListener("change", () => { importPop.hidden = true; });
+$("#yt").addEventListener("submit", () => {
+  if ($("#yt-url").value.trim()) addUsed("link");
+  setTimeout(() => { importPop.hidden = true; }, 0);
+});
+$("#file").addEventListener("change", (e) => { importPop.hidden = true; if (e.target.files.length) addUsed("files"); });
+$("#multi-btn").addEventListener("click", () => { importPop.hidden = true; addUsed("multi"); openMulti(""); });
 // buscar desde cualquier vista lleva a la biblioteca
 $("#lib-q").addEventListener("focus", () => { if (currentView() !== "library") setView("library"); });

@@ -5,6 +5,9 @@ de la cola, con límites reales de VRAM, RAM y CPU, en GPUs de 8, 6, 4 y 2 GB y 
 «speed» es cuántos segundos de video se procesan por segundo de reloj: con más de 1×
 se puede ver en vivo (con la voz sincronizada, si el perfil tiene voz).
 
+«mt» es la gama del traductor («big» o «base»): el modelo de cada idioma de origen sale
+de `vt/translate.py` (ROUTES).
+
   recommend(hw, limits)        el mejor perfil que va bien en ese equipo
   evaluate(hw, limits)         cada perfil con su estado, velocidad, espera y tiempos
   effective(hw, limits)        el equipo que queda con los límites que puso la persona
@@ -14,29 +17,29 @@ PROFILES = {
     "calidad": {
         "name": "Máxima calidad", "voice": True,
         "desc": "Reconocimiento grande en fp16 y voz clonada con 16 pasos.",
-        "asr": "large-v3-turbo", "asr_ct": "float16", "beam": 5, "mt": "opus-big", "mt_ct": None, "steps": 16,
+        "asr": "large-v3-turbo", "asr_ct": "float16", "beam": 5, "mt": "big", "mt_ct": None, "steps": 16,
     },
     "equilibrado": {
         "name": "Equilibrado", "voice": True,
         "desc": "El mismo reconocimiento en int8 y voz clonada con 8 pasos: la mitad de memoria y de tiempo.",
-        "asr": "large-v3-turbo", "asr_ct": "int8_float16", "beam": 5, "mt": "opus-big", "mt_ct": "int8_float16",
+        "asr": "large-v3-turbo", "asr_ct": "int8_float16", "beam": 5, "mt": "big", "mt_ct": "int8_float16",
         "steps": 8,
     },
     "ligero": {
         "name": "Ligero", "voice": True,
         "desc": "Reconocimiento small y traductor base, con voz clonada de 8 pasos. Algo menos preciso con ruido.",
-        "asr": "small", "asr_ct": "int8_float16", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 8,
+        "asr": "small", "asr_ct": "int8_float16", "beam": 3, "mt": "base", "mt_ct": "int8", "steps": 8,
     },
     "texto": {
         "name": "Solo subtítulos", "voice": False,
         "desc": "Reconocimiento grande y traducción, sin voz en español.",
-        "asr": "large-v3-turbo", "asr_ct": "int8_float16", "beam": 5, "mt": "opus-big", "mt_ct": "int8_float16",
+        "asr": "large-v3-turbo", "asr_ct": "int8_float16", "beam": 5, "mt": "big", "mt_ct": "int8_float16",
         "steps": 0,
     },
     "texto-ligero": {
         "name": "Subtítulos ligeros", "voice": False,
         "desc": "Reconocimiento small y traductor base, sin voz. Funciona hasta sin GPU.",
-        "asr": "small", "asr_ct": "int8", "beam": 3, "mt": "opus-base", "mt_ct": "int8", "steps": 0,
+        "asr": "small", "asr_ct": "int8", "beam": 3, "mt": "base", "mt_ct": "int8", "steps": 0,
     },
 }
 ORDER = list(PROFILES)  # de más a menos exigente

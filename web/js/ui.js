@@ -37,6 +37,7 @@ const ICONS = {
   check: '<path d="M3 8.5l3.2 3L13 4.5"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   up: '<path d="M8 13V3M4 7l4-4 4 4"/>',
+  update: '<circle cx="8" cy="8" r="5.5"/><path d="M8 10.6V5.6M5.8 7.6L8 5.4l2.2 2.2"/>',
   pencil: '<path d="M10.5 2.8l2.7 2.7-7.7 7.7H2.8v-2.7z"/>',
   comment: '<path d="M2.5 3h11v7.5h-6l-3 2.5v-2.5h-2z"/>',
   spark: '<path d="M8 2v3M8 11v3M2 8h3M11 8h3M4 4l2 2M10 10l2 2M12 4l-2 2M6 10l-2 2"/>',

@@ -9,14 +9,16 @@ import json
 import threading
 from pathlib import Path
 
+from . import langs
+
 # [clave, título, descripción, ícono] — cada sección es una página de Preferencias
 SECTIONS = [
     ["bibliotecas", "Bibliotecas", "Tus bibliotecas: cada una con sus videos, colecciones, glosario y forma de importar.", "library"],
     ["apariencia", "Apariencia", "Cómo se ve Translay en esta biblioteca.", "sun"],
     ["video", "Reproducción", "Qué pasa al abrir, terminar o agregar videos mientras miras.", "video"],
     ["audio", "Audio y subtítulos", "Qué escuchas y qué textos aparecen sobre el video.", "speaker"],
-    ["biblioteca", "Importar y descargas", "Qué se hace con lo que importas y cómo se descarga.", "download"],
-    ["glosario", "Glosario", "Términos con traducción fija o que se dejan en inglés.", "book"],
+    ["biblioteca", "Agregar y descargar", "Qué se hace con lo que agregas y cómo se descarga.", "download"],
+    ["glosario", "Glosario", "Términos con traducción fija o que se dejan como en el original.", "book"],
     ["youtube", "YouTube", "La sesión que se usa para descargar.", "play"],
     ["acceso", "Acceso y API", "Quién entra desde otros equipos, claves de API y webhooks.", "lock"],
     ["rendimiento", "Rendimiento", "Tu equipo, qué modelos usa Translay y cuánto de la GPU, la RAM y la CPU puede ocupar.", "spark"],
@@ -56,11 +58,18 @@ SCHEMA = [
     {"key": "duck", "section": "audio", "label": "Original bajo la voz en español", "type": "choice",
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
     {"key": "sub_es", "section": "audio", "label": "Subtítulos en español", "type": "bool", "default": True},
-    {"key": "sub_en", "section": "audio", "label": "Subtítulos en inglés", "type": "bool", "default": True},
-    {"key": "import_mode", "section": "biblioteca", "label": "Al importar", "type": "choice", "default": "traducir",
+    {"key": "sub_orig", "section": "audio", "label": "Subtítulos del original", "type": "bool", "default": True},
+    {"key": "import_mode", "section": "biblioteca", "label": "Al agregar", "type": "choice", "default": "traducir",
      "options": [["traducir", "Descargar y traducir"], ["descargar", "Solo descargar"]]},
+    {"key": "add_button", "section": "biblioteca", "label": "Botón Agregar", "type": "choice", "default": "auto",
+     "options": [["auto", "Lo que más usas"], ["agregar", "Siempre «Agregar»"]]},
     {"key": "download_what", "section": "biblioteca", "label": "Qué descargar", "type": "choice", "default": "video",
      "options": [["video", "Video y audio"], ["audio", "Solo el audio (más rápido)"]]},
+    {"key": "transcribe_lang", "section": "biblioteca", "label": "Solo transcribir lo que está en",
+     "type": "choice", "default": "es",
+     # del registro de idiomas (vt/langs.py): el de destino primero
+     "options": [[c, langs.name(c).capitalize()] for c in sorted(langs.SOURCES, key=lambda c: c != langs.TARGET)]
+                + [["ninguno", "Ningún idioma"]]},
     {"key": "download_order", "section": "biblioteca", "label": "Orden de las descargas", "type": "choice",
      "default": "orden", "options": [["orden", "En el orden de la cola"], ["aleatorio", "Aleatorio (variado)"]]},
     {"key": "notify", "section": "biblioteca", "label": "Avisos del navegador", "type": "bool", "default": False},
@@ -81,12 +90,16 @@ DETAILS = {
     "add_while_watching": ("Mientras miras", "Qué hacer con un enlace que importas mientras ves otro video."),
     "layout": ("Vista", "Ampliada: un solo video grande y la transcripción al lado. Dividida: original y traducido lado a lado."),
     "ready_chip": ("Vista", "El aviso «listo para reproducir» sobre el video."),
-    "audio": ("Voz", "Con qué audio empieza cada video; se cambia en cualquier momento con ES / EN."),
+    "audio": ("Voz", "Con qué audio empieza cada video; se cambia en cualquier momento sobre el video."),
     "duck": ("Voz", "Qué tan fuerte queda el audio original debajo de la voz en español."),
     "sub_es": ("Subtítulos", "La traducción, abajo del video."),
-    "sub_en": ("Subtítulos", "Lo que se dice en inglés, arriba del video."),
-    "import_mode": ("Al importar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
-    "download_what": ("Al importar", "Solo el audio es mucho más rápido y ocupa menos; el video se puede bajar después."),
+    "sub_orig": ("Subtítulos", "Lo que se dice, en su idioma, arriba del video."),
+    "transcribe_lang": ("Al agregar", "Un video en este idioma se transcribe sin traducir ni doblar. Translay detecta "
+                        "el idioma de cada video; en cada uno se puede cambiar."),
+    "import_mode": ("Al agregar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
+    "add_button": ("Al agregar", "El botón de arriba hace lo que más usas (pegar un enlace, subir archivos, capturar la pantalla) "
+                   "y su flecha muestra todas las formas de agregar. O siempre «Agregar»."),
+    "download_what": ("Al agregar", "Solo el audio es mucho más rápido y ocupa menos; el video se puede bajar después."),
     "download_order": ("Descargas", "Aleatorio descarga variado de toda la cola; lo priorizado siempre va primero."),
     "notify": ("Avisos y vista", "Un aviso del sistema cuando termina una descarga, un video o una exportación."),
     "lib_channels": ("Avisos y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
@@ -111,13 +124,17 @@ class Prefs:
 
     @staticmethod
     def _migrate(saved: dict) -> dict:
-        """La preferencia vieja "theme" (un solo valor) pasa al modo claro u oscuro."""
+        """Preferencias de antes con otro nombre: "theme" (un solo valor) pasa al modo claro u
+        oscuro; "sub_en" (subtítulos en inglés) a "sub_orig" (los del idioma del video)."""
+        out = {}
+        if "sub_en" in saved and "sub_orig" not in saved:
+            out["sub_orig"] = saved["sub_en"]
         old = saved.get("theme")
-        if not old or "theme_mode" in saved:
-            return {}
-        dark = old in ("oscuro", "claude-oscuro", "pink-noche", "cyberpunk", "cyberpunk-electrico", "matrix",
-                       "matrix-ambar", "code", "contraste")
-        return {"theme_mode": "oscuro" if dark else "claro"}
+        if old and "theme_mode" not in saved:
+            dark = old in ("oscuro", "claude-oscuro", "pink-noche", "cyberpunk", "cyberpunk-electrico", "matrix",
+                           "matrix-ambar", "code", "contraste")
+            out["theme_mode"] = "oscuro" if dark else "claro"
+        return out
 
     @staticmethod
     def _valid(key, value) -> bool:

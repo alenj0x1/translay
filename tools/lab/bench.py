@@ -132,6 +132,7 @@ def main():
         tts_exec = ThreadPoolExecutor(1, thread_name_prefix="voz")
         store = Store(data / "transcripts")
         tr = store.open("lab_bench", "lab")
+        tr.set_lang("en")  # banco en inglés (sin detectar el idioma)
 
         times = {"asr": 0.0, "mt": 0.0, "tts": 0.0}
         waits = {"asr": 0.0, "mt": 0.0, "tts": 0.0}

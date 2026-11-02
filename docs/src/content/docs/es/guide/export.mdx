@@ -15,13 +15,13 @@ En el cuadro de exportar marcas cualquier combinación de:
 
 | Opción | Formato | Contenido |
 |---|---|---|
-| Video traducido | MP4 | La voz en español como pista principal, el inglés como segunda pista y subtítulos en español e inglés que se activan en el reproductor. |
+| Video traducido | MP4 | La voz en español como pista principal, el original como segunda pista (marcada con su idioma real, p. ej. `por`) y subtítulos en español y en el idioma original que se activan en el reproductor. |
 | Audio traducido | M4A o MP3 | La mezcla en español. |
 | Video original | MP4 | El video tal como se descargó o importó. |
 | Audio original | M4A o MP3 | La pista de audio original. |
 | Subtítulos en español | SRT | La traducción, con sus tiempos. |
-| Subtítulos en inglés | SRT | Lo que se dice en inglés. |
-| Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), el inglés, el español y los comentarios. |
+| Subtítulos del original | SRT | Lo que se dice, en el idioma del video; el archivo lleva su código (`.en.srt`, `.pt.srt`…). |
+| Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), lo que se dice, su traducción (solo si el video se traduce) y los comentarios. |
 
 La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Preferencias › Audio y subtítulos › «Original bajo la voz en español». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
 
@@ -50,6 +50,7 @@ El cuadro avisa antes de exportar qué va a tener que esperar:
 - **Lo traducido** (video o audio) espera a que el doblaje termine. Si el video no estaba en la cola, entra solo; mientras tanto el panel muestra cuánto lleva el doblaje.
 - **Los subtítulos y el TXT** solo esperan la transcripción completa, no el doblaje.
 - **Un video sin descargar** se descarga primero.
+- **Un video que solo se transcribe** no tiene traducción ni voz: sus opciones traducidas se omiten y, si no marcaste nada más, va a `omitidos.txt`.
 - **Un video del que solo se bajó el audio**: si pides un video (original o traducido), se descarga el video completo primero.
 
 Si un video de un lote no se puede exportar (por ejemplo, lo borraron de YouTube y no tiene copia en tu equipo), se omite y el resto sigue: el `.zip` trae `omitidos.txt` con cada video omitido y el motivo, y el panel dice cuántos quedaron fuera. Solo si es un único video, o no se pudo exportar ninguno, la exportación termina en error, con el motivo en palabras claras.

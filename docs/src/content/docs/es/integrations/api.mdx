@@ -82,11 +82,13 @@ Para recorrerla entera, suma `limit` a `offset` hasta pasar `total`.
 `POST /libraries/{lib}/import` pide **escritura**.
 
 ```json
-{ "urls": ["https://www.youtube.com/watch?v=…", "https://www.youtube.com/playlist?list=…"], "mode": "traducir", "priority": false }
+{ "urls": ["https://www.youtube.com/watch?v=…", "https://www.youtube.com/playlist?list=…"], "mode": "traducir", "lang": "auto", "task": "translate", "priority": false }
 ```
 
 - `urls` acepta enlaces de YouTube a videos o playlists (o un id de 11 caracteres). También vale `"url": "…"` para uno solo. Lo que no es de YouTube se ignora.
-- `mode`: `traducir` (traducir y doblar) o `descargar` (solo bajar el video). Si lo omites, usa la preferencia **Al importar** de esa biblioteca.
+- `mode`: `traducir` (traducir y doblar) o `descargar` (solo bajar el video). Si lo omites, usa la preferencia **Al agregar** de esa biblioteca.
+- `lang`: `auto` (por omisión: se detecta con los primeros segundos de voz), `en`, `pt` o `es`.
+- `task`: `translate` (traducir y doblar) o `transcribe` (solo transcribir, en su idioma). Si lo omites, un video en el idioma de la preferencia **Solo transcribir lo que está en** solo se transcribe y el resto se traduce.
 - `priority: true` los pone primero en la cola, y entonces se procesan aunque `mode` sea `descargar`.
 - Cada playlist se importa como colección de la biblioteca.
 
@@ -94,12 +96,12 @@ Responde `202` con `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2}}`:
 
 ## Videos
 
-- `GET /videos/{id}` (**lectura**) da los datos del video (`title`, `duration`, `channel`, `categories`, `added`, `library`), las URL de sus archivos (`media`, `audio`, `thumb`), el avance y su estado en la cola:
+- `GET /videos/{id}` (**lectura**) da los datos del video (`title`, `duration`, `channel`, `categories`, `added`, `library`, `lang` y `mode`: `translate` o `transcribe`), las URL de sus archivos (`media`, `audio`, `thumb`), el avance y su estado en la cola:
   - `progress.asr`: fracción del video reconocida y traducida (0 a 1).
   - `progress.dub`: fracción doblada (0 a 1).
   - `queue`: `{state, prio, error, dl}` o `null` si el video no está en la cola. `state` es `en cola`, `procesando`, `descargado`, `listo` o `error`; `dl` es el avance de la descarga.
-- `GET /videos/{id}/transcript` (**lectura**) da las frases con `start`, `end`, `text` (inglés), `translation` (español) y `speaker`, más `speaker_names` y `comments`.
-- `GET /videos/{id}/subtitles?lang=es` (**lectura**) devuelve un archivo SRT (`application/x-subrip`). `lang=es` es el español (por omisión); cualquier otro valor da el inglés.
+- `GET /videos/{id}/transcript` (**lectura**) da las frases con `start`, `end`, `text` (en el idioma del video), `translation` (español) y `speaker`, más `speaker_names`, `comments`, `lang` y `mode`.
+- `GET /videos/{id}/subtitles?lang=es` (**lectura**) devuelve un archivo SRT (`application/x-subrip`). `lang=es` es la traducción al español (por omisión); `orig` o el código del video (`en`, `pt`…) da el original. En un video que solo se transcribe y no está en español, `lang=es` responde con un error que pide `lang=orig`.
 - `PATCH /videos/{id}` (**escritura**) con `{"title": "…"}` le cambia el nombre al video; el nombre se queda aunque el video se vuelva a descargar.
 - `DELETE /videos/{id}` (**escritura**) borra el video con sus archivos.
 

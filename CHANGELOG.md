@@ -4,6 +4,29 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Desktop app: Translay updates itself. It looks for new versions on GitHub when it opens and every 6 hours (Preferencias › App de escritorio › «Buscar actualizaciones»: automatically or only manually), shows the notes and installs with «Actualizar a» and the new version, then opens again. It waits for the queue, downloads and exports to finish, and only installs updates signed with Translay's key.
+- Portuguese → Spanish: Portuguese videos are translated and dubbed like English ones, with Opus-MT itc-itc (as good as MADLAD-3B in the lab and ten times faster) and rules that rewrite Brazilian idioms and colloquial forms («pisou na bola», «pra», «tá») before translating.
+- Automatic language detection: new videos (links, files and screen recordings) have no language to choose; Whisper detects it from the first seconds of speech (100 % correct in the lab in English, Portuguese and Spanish, also with background noise). A language Translay can't translate yet is only transcribed, in that language.
+- «Solo transcribir» (Transcribe only) for any language: «Agregar ▾» › «Agregar y solo transcribir», or «Idioma y traducción» in the video's menu; switching between translating and transcribing deletes nothing. The new preference «Solo transcribir lo que está en» (Only transcribe what is in; Spanish by default) decides which detected language is only transcribed. The API takes `"lang": "auto|en|pt|es"` and `"task": "translate|transcribe"` when importing.
+- Search finds more than what is said: the box («Buscar videos y lo que se dice») groups results into «Videos» (title or channel of the library's videos, as normal cards), «Colecciones y canales» (collections, playlists, categories and channels by name; a click opens it) and «En lo que se dice» (transcripts, translation and comments, as before), with a count such as «2 videos · 5 frases · 1 colección».
+- A translator per source language: each one loads the first time a video in its language arrives and only one is on the GPU at a time, so memory doesn't grow with languages. The Portuguese one is prepared from the official OPUS-MT release (pinned and SHA-256 verified) the first time it is needed, without stopping other videos.
+
+### Changed
+
+- «Subtítulos en inglés» is now «Subtítulos del original» (Original subtitles), in Preferences and in Export: the SRT is named with the video's language (`.pt.srt`) and the MP4 tags the original track with its real language. Your preference carries over and the API still accepts `srt_en`.
+- Performance profiles say the translator tier (`big` or `base`) instead of a model name, since each language has its own.
+- «Agregar ▾» offers «Agregar y traducir» and «Agregar y solo transcribir» in place of «Está en español: solo transcribir»; the language is always detected.
+- «Importar» is now «Agregar» (Add), a split button whose main part does what you use most in this browser (from 3 uses; otherwise «Agregar»): paste a link, «Subir» files, «Capturar» the screen or «Pegar enlaces». Its ▾ always opens the full panel: the link field with «Agregar y traducir» / «Agregar y solo transcribir» and the cards «Archivos», «Grabar pantalla» and «Varios enlaces». The new preference «Botón Agregar» (Preferencias › Agregar y descargar, formerly «Importar y descargas») can keep it always as «Agregar». Everything that adds content says «Agregar» too (collection headers, empty library, context menus, «Agregar varios enlaces»); «Importar sesión» and the API's `import` route and `import_mode` key don't change.
+
+### Fixed
+
+- Desktop app: the window buttons (minimize, maximize, close) no longer get cut off on narrower windows; the title bar switches to icons earlier and the search box gives up its space.
+- Live recognition has rules for each language (words a sentence rarely ends with, and the phrases Whisper makes up on silence, such as «Subtítulos realizados por la comunidad de Amara.org»): before, only English ones existed, so Spanish videos now get cleaner sentences too.
+
 ## 1.6.0 · 2026-11-01
 
 ### Added

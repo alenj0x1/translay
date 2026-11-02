@@ -108,9 +108,15 @@ pub struct Settings {
     /// Last theme Translay showed ("light" or "dark"): the setup and loading screens open with it.
     #[serde(default)]
     pub theme: Option<String>,
+    /// Look for updates by itself (Preferencias › App de escritorio); None = yes.
+    #[serde(default)]
+    pub check_updates: Option<bool>,
 }
 
 impl Settings {
+    pub fn auto_update(&self) -> bool {
+        self.check_updates.unwrap_or(true)
+    }
     pub fn load(paths: &Paths) -> Self {
         std::fs::read_to_string(paths.settings_file())
             .ok()

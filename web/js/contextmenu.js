@@ -9,22 +9,32 @@ const isOwner = () => !document.body.classList.contains("guest");
 const canImport = () => document.body.classList.contains("can-import");
 const ytUrl = (v) => (v?.source === "youtube" ? `https://www.youtube.com/watch?v=${v.id.slice(3)}` : "");
 const shareUrl = (v) => ytUrl(v) || (v?.source === "link" ? v.url || "" : "");
-// idioma en que se habla: en español solo se transcribe (lo ya reconocido se rehace)
+// idioma en que se habla (lo ya reconocido en otro idioma se rehace)
 async function setVideoLang(v, lang) {
-  if ((v.lang || "en") === lang) return;
+  if (v.lang === lang) return;
   if (v.progress?.asr > 0 && !(await confirmDlg("¿Cambiar el idioma del video?",
     "Lo transcrito hasta ahora se borra y el video se vuelve a procesar.", "Cambiar"))) return;
   v.lang = lang;
-  if (v.id === state.videoId) applyLang(lang);
+  if (v.id === state.videoId) applyLang(lang, translatesV(v));
   send({ type: "video_lang", video: v.id, lang });
+}
+// traducir y doblar, o solo transcribir: no borra nada (lo reconocido sirve en los dos)
+function setVideoMode(v, mode) {
+  v.mode = mode;
+  if (v.id === state.videoId) { applyLang(v.lang, translatesV(v)); renderTranscript(); }
+  send({ type: "video_lang", video: v.id, mode });
 }
 async function renameVideo(v) {
   const title = (await promptDlg("Renombrar video", v.title || v.id, "Guardar"))?.trim();
   if (title && title !== v.title) send({ type: "lib_rename", video: v.id, title });
 }
-const langMenu = (v) => ({ label: "Idioma del video", icon: "globe", sub: [
-  { label: "Inglés: traducir y doblar", icon: "spark", check: (v.lang || "en") !== "es", onClick: () => setVideoLang(v, "en") },
-  { label: "Español: solo transcribir", icon: "comment", check: v.lang === "es", onClick: () => setVideoLang(v, "es") },
+const langMenu = (v) => ({ label: "Idioma y traducción", icon: "globe", sub: [
+  { head: "Se habla en" },
+  ...Object.keys(LANGS).map((c) => ({ label: cap(LANGS[c]), check: (v.lang || "en") === c, onClick: () => setVideoLang(v, c) })),
+  "sep",
+  (v.lang || "en") !== "es" && (v.lang || "en") in LANGS && { label: "Traducir y doblar", icon: "spark", check: translatesV(v),
+    onClick: () => setVideoMode(v, "translate") },
+  { label: "Solo transcribir", icon: "comment", check: !translatesV(v), onClick: () => setVideoMode(v, "transcribe") },
 ] });
 // copiar: el portapapeles moderno solo existe en conexiones seguras (no desde otro equipo por http)
 function copyText(text, what) {
@@ -60,7 +70,7 @@ function videoMenu(v, coll) {
     canDownload(v) && { label: "Descargar sin abrir", icon: "download", onClick: () => downloadOnly(v) },
     "sep",
     canImport() && job?.state === "en cola" && !job.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: v.id, front: true }) },
-    canImport() && canProcess(v) && { label: v.lang === "es" ? "Transcribir" : "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
+    canImport() && canProcess(v) && { label: translatesV(v) ? "Traducir y doblar" : "Transcribir", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
     canImport() && langMenu(v),
     isOwner() && { label: "Renombrar…", icon: "pencil", onClick: () => renameVideo(v) },
     canImport() && v.audio_only && isRemote(v) && !job?.fetch_video && { label: "Bajar el video completo", icon: "film", onClick: () => fetchVideo(v.id) },
@@ -107,7 +117,7 @@ function collMenu(c) {
       setContext({ name: c.name, coll: c.id, auto: true });
       playItem(first);
     } },
-    canImport() && ["propia", "categoría", "playlist"].includes(c.kind) && { label: "Importar aquí…", icon: "import", onClick: () => openMulti("", c.id) },
+    canImport() && ["propia", "categoría", "playlist"].includes(c.kind) && { label: "Agregar aquí…", icon: "plus", onClick: () => openMulti("", c.id) },
     c.items?.length && { label: "Exportar todo…", icon: "download", onClick: () => openExport(c.items, c.name) },
     "sep",
     !auto && c.kind !== "canal" && { label: "Otro patrón", icon: "shuffle", onClick: () => { reshufflePattern(c.id); renderLibrary(); } },
@@ -136,7 +146,7 @@ function jobMenu(j) {
       playItem(v.id);
     } },
     canImport() && j.state === "en cola" && !j.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: j.id, front: true }) },
-    canImport() && j.state === "descargado" && { label: v.lang === "es" ? "Transcribir" : "Traducir y doblar", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
+    canImport() && j.state === "descargado" && { label: translatesV(v) ? "Traducir y doblar" : "Transcribir", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
     shareUrl(v) && { label: "Copiar enlace", icon: "link", onClick: () => copyText(shareUrl(v), "Enlace") },
     "sep",
     isOwner() && { label: "Quitar de la cola", icon: "x", danger: true, onClick: () => send({ type: "queue_remove", video: j.id }) },
@@ -150,8 +160,8 @@ function lineMenu(li) {
   return [
     { label: "Ir a este momento", icon: "play", kbd: fmt(s.start), onClick: () => { vEn.currentTime = s.start; } },
     "sep",
-    s.translation && { label: state.lang === "es" ? "Copiar" : "Copiar en español", icon: "copy", onClick: () => copyText(s.translation, "Texto") },
-    state.lang !== "es" && { label: "Copiar en inglés", icon: "copy", onClick: () => copyText(s.text, "Texto") },
+    state.translates && s.translation && { label: "Copiar en español", icon: "copy", onClick: () => copyText(s.translation, "Texto") },
+    { label: state.translates ? `Copiar en ${langName(state.lang)}` : "Copiar", icon: "copy", onClick: () => copyText(s.text, "Texto") },
     ytUrl(lib.videos[state.videoId]) && { label: "Copiar enlace a este momento", icon: "link",
       onClick: () => copyText(`${ytUrl(lib.videos[state.videoId])}&t=${Math.floor(s.start)}s`, "Enlace") },
     "sep",
@@ -167,7 +177,7 @@ function playerMenu() {
   const dub = !!$("#c-lang button.on[data-v='es']");
   return [
     { label: vEn.paused ? "Reproducir" : "Pausar", icon: vEn.paused ? "play" : "pause", kbd: "Espacio", onClick: togglePlay },
-    state.lang !== "es" && { label: dub ? "Escuchar el original" : "Escuchar en español", icon: "speaker", onClick: () => $(`#c-lang button[data-v='${dub ? "en" : "es"}']`)?.click() },
+    state.translates && { label: dub ? "Escuchar el original" : "Escuchar en español", icon: "speaker", onClick: () => $(`#c-lang button[data-v='${dub ? "en" : "es"}']`)?.click() },
     { label: "Pantalla completa", icon: "fullscreen", onClick: toggleFull },
     "sep",
     { label: document.body.classList.contains("side-off") ? "Mostrar la transcripción" : "Ocultar la transcripción", icon: "comment", onClick: () => $("#side-toggle").click() },
@@ -185,8 +195,8 @@ function playerMenu() {
 function generalMenu() {
   const mini = document.body.classList.contains("side-mini");
   return [
-    canImport() && { label: "Importar enlaces…", icon: "import", onClick: () => openMulti("", lib.collections.some((c) => c.id === lib.sel && ["propia", "categoría", "playlist"].includes(c.kind)) ? lib.sel : "") },
-    canImport() && { label: "Importar archivos…", icon: "upload", onClick: () => $("#file").click() },
+    canImport() && { label: "Agregar enlaces…", icon: "plus", onClick: () => openMulti("", lib.collections.some((c) => c.id === lib.sel && ["propia", "categoría", "playlist"].includes(c.kind)) ? lib.sel : "") },
+    canImport() && { label: "Agregar archivos…", icon: "upload", onClick: () => $("#file").click() },
     isOwner() && { label: "Nueva colección…", icon: "plus", onClick: async () => {
       const name = await promptDlg("Nueva colección", "", "Crear");
       if (name) send({ type: "coll_create", name });

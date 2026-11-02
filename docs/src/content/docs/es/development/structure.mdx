@@ -15,10 +15,12 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - session.py una sesión por pestaña: protocolo WebSocket y permisos
   - processor.py cola de procesamiento y descargas
   - vad.py detector de voz por energía
-  - asr.py Whisper sobre CTranslate2
-  - streaming.py reconocimiento en streaming con acuerdo local
-  - translate.py traductores sobre CTranslate2
-  - textproc.py texto antes y después de traducir
+  - langs.py registro de idiomas (lo que cambia de un idioma a otro, como datos)
+  - asr.py Whisper sobre CTranslate2 y detección del idioma
+  - streaming.py reconocimiento en streaming con acuerdo local, reglas de cada idioma
+  - translate.py traductores sobre CTranslate2, uno por idioma de origen
+  - opusmt.py prepara publicaciones oficiales de OPUS-MT para CTranslate2
+  - textproc.py texto antes y después de traducir, reglas de cada idioma de origen
   - glossary.py glosario de cada biblioteca
   - speakers.py diarización y referencias de voz
   - dub.py doblaje por frase
@@ -62,7 +64,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - js/ componentes, conexión, vistas, menús y rutas (`desktop.js`: la barra de título en la app de escritorio)
   - fonts/ Plus Jakarta Sans (OFL), servida por el propio Translay
 - tools/ herramientas de medición y prueba, sin navegador (ver [Pruebas y evaluación](../testing/))
-  - lab/ labs de hardware: lastre de VRAM, banco de pruebas y corridas por equipo
+  - lab/ labs de hardware (lastre de VRAM, banco de pruebas y corridas por equipo) y de idiomas (`langs_mt.py` traductores por par de idiomas, `langs_asr.py` Whisper por idioma y detección)
   - dub_file.py dobla un video completo y exporta `<nombre>.es.mp4`
   - eval_tts.py compara motores de voz
   - eval_pipeline.py mide reconocimiento y diarización
@@ -73,6 +75,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
   - samples/ guiones de los videos de prueba
 - tests/
   - test_core.py pruebas sin GPU
+  - test_langs.py registro de idiomas, detección, modos, rutas de traductores y reglas de texto por idioma
 - docs/ esta documentación (Astro + Starlight; ver [Documentación](../docs/))
   - astro.config.mjs configuración del sitio y de la barra lateral
   - scripts/

@@ -54,6 +54,7 @@ def main():
     for f in (data / "transcripts").glob(f"{vid}.json"):
         f.unlink()  # cada corrida empieza limpia
     tr = store.open(vid, media.name)
+    tr.set_lang("en")  # en inglés (sin detectar el idioma)
 
     t0 = time.perf_counter()
     audio16 = decode(media, 16000)

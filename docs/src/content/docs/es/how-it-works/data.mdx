@@ -2,7 +2,7 @@
 title: Datos en disco
 description: Qué guarda Translay, dónde, en qué formato, por qué rutas HTTP se sirve y qué conviene respaldar.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 import { Aside, FileTree } from "@astrojs/starlight/components";
@@ -100,7 +100,7 @@ La huella no cambia si renombras el archivo: al abrirlo otra vez, todo sale del 
 
 `vt/library.py` guarda:
 
-- `videos`: id → `title`, `duration`, `source` (`file` o `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (en español), `added`, `opened`, `position` y `audio_only` si solo se bajó el audio. `media`, `audio` y `thumb` son rutas HTTP (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). Un video de playlist aún sin descargar no tiene `media`.
+- `videos`: id → `title`, `duration`, `source` (`file` o `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (en español), `added`, `opened`, `position`, `lang` y `mode` (copia de los de la transcripción, para las tarjetas) y `audio_only` si solo se bajó el audio. `media`, `audio` y `thumb` son rutas HTTP (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). Un video de playlist aún sin descargar no tiene `media`.
 - `collections`: las que crea la persona (`id`, `name`, `items`, `created`) y las playlists importadas (además `kind: "playlist"`, `playlist`, `url`, `channel`).
 
 Las colecciones automáticas (recientes, todos, canales, categorías) no se guardan: se calculan al pedir la biblioteca. El punto de reproducción se guarda como máximo cada 5 s.
@@ -112,7 +112,9 @@ Las colecciones automáticas (recientes, todos, canales, categorías) no se guar
 | Campo | Contenido |
 |---|---|
 | `id`, `name`, `created`, `updated`, `next_id` | Datos del video y contador de frases. |
-| `segments` | Frases en orden: `id`, `start`, `end`, `text` (inglés), `translation`, `tr_model`, `speaker`, `orig_db` (sonoridad del original) y `dub` (voz: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
+| `lang`, `detect` | Idioma que se habla (código de `vt/langs.py`). Un video nuevo tiene `detect: true` y no tiene `lang` hasta que Whisper lo detecta; un video de antes sin `lang` está en inglés. |
+| `mode` | `translate` o `transcribe` (solo transcribir). Si falta, un video en español solo se transcribe y cualquier otro se traduce. |
+| `segments` | Frases en orden: `id`, `start`, `end`, `text` (en el idioma del video), `translation`, `tr_model`, `speaker`, `orig_db` (sonoridad del original) y `dub` (voz: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
 | `covered` | Rangos `[inicio, fin]` ya procesados, silencios incluidos; se unen si están a menos de 0,25 s. |
 | `speakers` | Estado de la diarización: centroides de cada persona, alias de las que se unieron y el siguiente id. |
 | `speaker_names` | Nombre de cada persona («Personas»). |

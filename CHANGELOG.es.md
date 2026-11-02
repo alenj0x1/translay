@@ -4,6 +4,29 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- App de escritorio: Translay se actualiza solo. Busca versiones nuevas en GitHub al abrir y cada 6 horas (Preferencias › App de escritorio › «Buscar actualizaciones»: automáticamente o solo a mano), muestra las notas e instala con «Actualizar a» con la versión nueva, y vuelve a abrirse. Espera a que terminen la cola, las descargas y las exportaciones, y solo instala actualizaciones firmadas con la clave de Translay.
+- Portugués → español: los videos en portugués se traducen y doblan igual que los en inglés, con Opus-MT itc-itc (tan bueno como MADLAD-3B en el laboratorio y diez veces más rápido) y reglas que reescriben modismos y formas coloquiales de Brasil («pisou na bola», «pra», «tá») antes de traducir.
+- Detección automática del idioma: los videos nuevos (enlaces, archivos y grabaciones de pantalla) no piden idioma; Whisper lo detecta con los primeros segundos de voz (100 % de aciertos en el laboratorio en inglés, portugués y español, también con ruido de fondo). Un idioma que Translay todavía no traduce solo se transcribe, en ese idioma.
+- «Solo transcribir» para cualquier idioma: «Agregar ▾» › «Agregar y solo transcribir», o «Idioma y traducción» en el menú del video; pasar de traducir a transcribir no borra nada. La preferencia nueva «Solo transcribir lo que está en» (español, si no la cambias) decide qué idioma detectado solo se transcribe. La API acepta `"lang": "auto|en|pt|es"` y `"task": "translate|transcribe"` al importar.
+- La búsqueda encuentra más que lo que se dice: el campo («Buscar videos y lo que se dice») agrupa los resultados en «Videos» (título o canal de los videos de la biblioteca, como tarjetas normales), «Colecciones y canales» (colecciones, playlists, categorías y canales por nombre; un clic la abre) y «En lo que se dice» (transcripciones, traducción y comentarios, como antes), con un conteo como «2 videos · 5 frases · 1 colección».
+- Un traductor por idioma de origen: cada uno se carga la primera vez que llega un video en su idioma y solo uno está en la GPU a la vez, así la memoria no crece con los idiomas. El del portugués se prepara desde la publicación oficial de OPUS-MT (versión fija y SHA-256 verificado) la primera vez que hace falta, sin frenar otros videos.
+
+### Cambiado
+
+- «Subtítulos en inglés» ahora es «Subtítulos del original», en Preferencias y en Exportar: el SRT lleva el idioma del video en el nombre (`.pt.srt`) y el MP4 marca la pista original con su idioma real. Tu preferencia se conserva y la API sigue aceptando `srt_en`.
+- Los perfiles de rendimiento dicen el nivel del traductor (`big` o `base`) en vez del nombre de un modelo, porque cada idioma tiene el suyo.
+- «Agregar ▾» ofrece «Agregar y traducir» y «Agregar y solo transcribir» en lugar de «Está en español: solo transcribir»; el idioma siempre se detecta.
+- «Importar» ahora es «Agregar», un botón dividido cuya parte principal hace lo que más usas en este navegador (desde 3 usos; si no, «Agregar»): pegar un enlace, «Subir» archivos, «Capturar» la pantalla o «Pegar enlaces». Su ▾ siempre abre el panel completo: el campo del enlace con «Agregar y traducir» / «Agregar y solo transcribir» y las tarjetas «Archivos», «Grabar pantalla» y «Varios enlaces». La preferencia nueva «Botón Agregar» (Preferencias › Agregar y descargar, antes «Importar y descargas») puede dejarlo siempre en «Agregar». Todo lo que agrega contenido también dice «Agregar» (cabeceras de colección, biblioteca vacía, menús contextuales, «Agregar varios enlaces»); «Importar sesión» y la ruta `import` y la clave `import_mode` de la API no cambian.
+
+### Corregido
+
+- App de escritorio: los botones de la ventana (minimizar, maximizar, cerrar) ya no se cortan en ventanas más angostas; la barra de título pasa antes a solo íconos y la búsqueda cede su lugar.
+- El reconocimiento en vivo tiene reglas de cada idioma (palabras con las que una oración casi nunca termina y las frases que Whisper inventa sobre silencio, como «Subtítulos realizados por la comunidad de Amara.org»): antes solo existían las del inglés, así que los videos en español también salen con frases más limpias.
+
 ## 1.6.0 · 2026-11-01
 
 ### Agregado

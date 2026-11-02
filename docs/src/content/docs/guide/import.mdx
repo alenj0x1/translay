@@ -1,5 +1,5 @@
 ---
-title: Import
+title: Add videos
 description: How to add YouTube videos, playlists, Dropbox links, CSV lists and files from your machine, and what happens with each.
 sidebar:
   order: 3
@@ -7,66 +7,80 @@ sidebar:
 
 import { Aside } from "@astrojs/starlight/components";
 
-Everything you import goes straight to the server's queue: it appears instantly in the library, dimmed and with its status, and keeps downloading and processing even if you reload or close the page.
+Everything you add goes straight to the server's queue: it appears instantly in the library, dimmed and with its status, and keeps downloading and processing even if you reload or close the page.
 
-![The «Importar varios enlaces» (Import several links) dialog with four YouTube links, one of them a playlist](../../../assets/capturas/importar.webp)
+![The «Agregar varios enlaces» (Add several links) dialog with four YouTube links, one of them a playlist](../../../assets/capturas/importar.webp)
+
+## The «Agregar» button
+
+The «Agregar» (Add) button in the header, with a plus icon, is a split button:
+
+- **The main part** does what you use most in this browser: «Agregar» (opens the panel with the link field), «Subir» (Upload: picks videos or audio files from your machine), «Capturar» (Capture: records the screen, only in browsers that support it) or «Pegar enlaces» (Paste links: opens the several-links dialog). Uses are counted in this browser only; an action needs at least 3 uses to take over the button, and with a tie or fewer uses it stays «Agregar».
+- **The ▾ part** always opens the full panel: the «Pega un enlace de YouTube o Dropbox» (Paste a YouTube or Dropbox link) field with its «Agregar ▾» button, and three cards for the other sources: «Archivos» (Files), «Grabar pantalla» (Record screen) and «Varios enlaces» (Several links).
+
+To keep the button as «Agregar» all the time, choose Preferencias › Agregar y descargar › «Botón Agregar» › «Siempre «Agregar»» (Preferences › Add and download › "Add button" › "Always Add"); the default is «Lo que más usas» (What you use most).
 
 ## YouTube links
 
-The «Importar» (Import) button in the header opens a field to paste links and the «Archivos» (Files) button. «Importar» becomes active when the field has a valid link: a video (`watch?v=`, `youtu.be/`, `shorts/`, `live/`), a playlist or an 11-character id.
+In the panel, «Agregar» becomes active when the field has a valid link: a video (`watch?v=`, `youtu.be/`, `shorts/`, `live/`), a playlist or an 11-character id.
 
 You can also paste a link anywhere on the page, outside a text field, or open the app with `?yt=<link or id>` in the address.
 
-Outside the player, an imported video doesn't open: it enters the queue and appears in Recientes (Recent). When you want to watch it, open it from its card.
+Outside the player, an added video doesn't open: it enters the queue and appears in Recientes (Recent). When you want to watch it, open it from its card.
 
 ## Dropbox links
 
-A Dropbox shared link to a video or audio file is imported like a YouTube video: it enters the queue, downloads with its progress on the card and the card says «Dropbox». It works with a single file (`dropbox.com/scl/fi/…/clase.mp4`) and with a file inside a shared folder (`dropbox.com/scl/fo/…/21_10.mp4`); a link to the whole folder is rejected, because Dropbox would hand over a zip. The link has to be public («Anyone with the link»).
+A Dropbox shared link to a video or audio file is added like a YouTube video: it enters the queue, downloads with its progress on the card and the card says «Dropbox». It works with a single file (`dropbox.com/scl/fi/…/clase.mp4`) and with a file inside a shared folder (`dropbox.com/scl/fo/…/21_10.mp4`); a link to the whole folder is rejected, because Dropbox would hand over a zip. The link has to be public («Anyone with the link»).
 
 Translay changes `dl=0` to `dl=1` to get the file directly and drops the tracking parameters (`st`, `e`), so the same link pasted twice is the same video. The file is stored in the library's `library/` folder, next to its audio track and a thumbnail taken from the video. With «Solo el audio» (Audio only) the whole file is still downloaded (Dropbox can't send just the audio) but only the audio is kept.
 
-## Videos already in Spanish
+## Language and transcribe only
 
-If the video is already in Spanish, open the arrow next to «Importar» and choose «Está en español: solo transcribir» (It's in Spanish: transcribe only). It applies to what you're importing right now (YouTube or Dropbox, one link or several). The video is transcribed in Spanish and that's it: no translation, no Spanish voice, it plays with the original audio and a single subtitle, the transcript shows one column and the card says «Transcrito» (Transcribed) when it's done.
+You don't say what language a video is in: Translay detects it from the first seconds of speech (English, Portuguese or Spanish; see [Languages](../../how-it-works/languages/)). The arrow next to «Agregar» in the panel has two options for what you're adding right now (YouTube or Dropbox, one link or several):
 
-To change it later, use «Idioma del video» (Video language) in the video's context menu: «Inglés: traducir y doblar» (English: translate and dub) or «Español: solo transcribir» (Spanish: transcribe only). What was already transcribed in the other language is deleted and the video is processed again, so it asks first.
+- «Agregar y traducir» (Add and translate): translated and dubbed into Spanish. A video detected in the language set in Preferences › Agregar y descargar › «Solo transcribir lo que está en» (Only transcribe what is in; Spanish by default) is only transcribed.
+- «Agregar y solo transcribir» (Add and only transcribe): transcribed in its own language and that's it, whatever the language: no translation or voice, it plays with the original audio and a single subtitle, the transcript shows one column and the card says «Transcrito» (Transcribed) when it's done.
+
+A language Translay can't translate yet is only transcribed in that language.
+
+To change it later, use «Idioma y traducción» (Language and translation) in the video's context menu. «Se habla en» (Spoken in) corrects the language: what was transcribed in the other one is deleted and the video is processed again, so it asks first. «Traducir y doblar» (Translate and dub) and «Solo transcribir» (Transcribe only) switch the mode without deleting anything: the recognized text works for both and translations are kept.
 
 <Aside>
-The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which also recognizes Spanish. A `.en` model passed with `--model` only recognizes English: a Spanish video ends with an error that tells you to change the profile.
+The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which recognizes every language but makes more mistakes in Portuguese than in English (see [Performance](../performance/)). A `.en` model passed with `--model` only recognizes English: a video in another language ends with an error that tells you to change the profile.
 </Aside>
 
 ## Several links
 
-If you paste text with more than one link, the «Importar varios enlaces» dialog opens so you can review them first. It takes YouTube and Dropbox links from anywhere in the text (one per line, separated by commas, or mixed with other text) and shows a summary: how many videos, how many playlists and how many are already in the library. Duplicates count only once.
+If you paste text with more than one link (or use «Varios enlaces» in the panel), the «Agregar varios enlaces» (Add several links) dialog opens so you can review them first; its «Agregar» button adds them. It takes YouTube and Dropbox links from anywhere in the text (one per line, separated by commas, or mixed with other text) and shows a summary: how many videos, how many playlists and how many are already in the library. Duplicates count only once.
 
-In «Guardar en» (Save to) you choose one of your collections or a category for what you import; all YouTube categories appear even if you don't have videos in them yet.
+In «Guardar en» (Save to) you choose one of your collections or a category for what you add; all YouTube categories appear even if you don't have videos in them yet.
 
 With thousands of links, videos appear right away with their id and titles are filled in gradually, with few requests at a time so it doesn't look like a burst to YouTube.
 
 ## Playlists
 
-A playlist link (`list=…`) is imported as a collection, marked «Playlist», and all its videos enter the queue in order. Pasting it again updates it.
+A playlist link (`list=…`) is added as a collection, marked «Playlist», and all its videos enter the queue in order. Pasting it again updates it.
 
-If the link is for a video inside a playlist, Translay asks «Este enlace es de una playlist» (This link is from a playlist) with two options: «Solo este video» (Only this video) or «Agregar playlist» (Add playlist). While you are watching a video it doesn't ask: only that video is imported.
+If the link is for a video inside a playlist, Translay asks «Este enlace es de una playlist» (This link is from a playlist) with two options: «Solo este video» (Only this video) or «Agregar playlist» (Add playlist). While you are watching a video it doesn't ask: only that video is added.
 
 YouTube's automatic mixes (lists that start with `RD` or `UL`) have no end, so they are treated as a single video.
 
 ## From a CSV
 
-«Archivos» accepts a `.csv`, and you can also drag it onto the page or use «Subir CSV» (Upload CSV) inside the several-links dialog. Translay takes:
+«Archivos» in the panel accepts a `.csv`, and you can also drag it onto the page or use «Subir CSV» (Upload CSV) inside the several-links dialog. Translay takes:
 
 - YouTube and Dropbox links from any column.
 - Loose 11-character ids from a column named `id`, `video_id`, `youtube_id` or `yt_id`.
 
-The separator can be a comma, semicolon or tab. The links found open in the several-links dialog so you can review them before importing.
+The separator can be a comma, semicolon or tab. The links found open in the several-links dialog so you can review them before adding them.
 
 ## Files from your machine
 
-«Archivos» (or dragging onto the page) accepts videos and audio files. Each file is copied to the open library's `library/` folder, with a thumbnail taken from the video, and enters the queue. It is recognized by a fingerprint of its content, so renaming it doesn't duplicate it.
+«Archivos» in the panel (or «Subir» when the button shows it, or dragging onto the page) accepts videos and audio files. Each file is copied to the open library's `library/` folder, with a thumbnail taken from the video, and enters the queue. It is recognized by a fingerprint of its content, so renaming it doesn't duplicate it.
 
 ## Record the screen
 
-«Grabar pantalla» (Record screen), in the «Importar» menu, records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`.
+«Grabar pantalla» (Record screen), in the «Agregar» panel (or «Capturar» when the button shows it), records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`.
 
 1. The browser asks what to share. To have something to translate, the source must carry sound: a tab, or the whole screen with «Compartir audio» (Share audio) turned on. A single window usually has no sound on Windows; if so, the dialog says so and «Elegir otra» (Choose another) opens the picker again.
 2. In the preview, moving the cursor highlights the boxes it finds: where the picture keeps moving (a video, even one that only takes up part of a page) and boxes with straight edges (windows, panels, players). A click picks the highlighted box, the mouse wheel jumps to the box that contains it, and dragging marks a zone by hand. «Toda la imagen» (Whole picture) goes back to recording everything.
@@ -89,15 +103,15 @@ When it stops, the server puts the file together (cropped to the zone and compre
 Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión: se guarda en este equipo», No connection: saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
 </Aside>
 
-## Import into a collection
+## Add to a collection
 
-In a custom collection or a category, the «Importar» button in its header (or «Importar aquí…» (Import here…) in the context menu) opens the several-links dialog with that collection already chosen in «Guardar en». If the collection is empty, the button appears in the center.
+In a custom collection or a category, the «Agregar» button in its header (or «Agregar aquí…» (Add here…) in the context menu) opens the several-links dialog with that collection already chosen in «Guardar en». If the collection is empty, the button appears in the center.
 
-A video imported into a category appears in it even if YouTube has it in another.
+A video added to a category appears in it even if YouTube has it in another.
 
 ## Download only or translate
 
-Preferencias › Importar y descargas › «Al importar» (Preferences › Import and downloads › "On import") decides what is done with new items:
+Preferencias › Agregar y descargar › «Al agregar» (Preferences › Add and download › "On add") decides what is done with new items:
 
 - **Descargar y traducir** (Download and translate) (default): it is downloaded, translated and dubbed.
 - **Solo descargar** (Download only): it is downloaded without using the GPU and stays «Descargado, sin traducir» (Downloaded, not translated). Useful for watching or exporting the original. When you want to translate it, use «Procesar» (Process) on its card or in the Cola; opening it to watch also processes it.
@@ -106,7 +120,7 @@ On a YouTube or Dropbox video not yet downloaded, «Ver ▾» › «Descargar si
 
 ## Audio only
 
-Preferencias › Importar y descargas › «Qué descargar» › «Solo el audio (más rápido)» (What to download › Audio only (faster)) downloads only the audio track. It is translated and dubbed all the same; the player shows the thumbnail instead of the picture and the card carries the «Solo audio» (Audio only) label.
+Preferencias › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» (What to download › Audio only (faster)) downloads only the audio track. It is translated and dubbed all the same; the player shows the thumbnail instead of the picture and the card carries the «Solo audio» (Audio only) label.
 
 To get the picture afterward, use «Bajar video» (Download video) on the card (or in the selection): the full video is downloaded without translating again. If you export a video, original or translated, the full video is downloaded first.
 
@@ -114,7 +128,7 @@ These two preferences are specific to each [library](../libraries/).
 
 ## While you watch a video
 
-The «Importar» button remains available in the player. What happens with what you import is decided by Preferencias › Reproducción › «Al agregar un video mientras ves otro» (Preferences › Playback › "When adding a video while watching another"):
+The «Agregar» button remains available in the player. What happens with what you add is decided by Preferencias › Reproducción › «Al agregar un video mientras ves otro» (Preferences › Playback › "When adding a video while watching another"):
 
 | Option | What it does |
 |---|---|

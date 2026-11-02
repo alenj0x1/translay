@@ -2,7 +2,7 @@
 title: Data on disk
 description: What Translay stores, where, in what format, which HTTP routes serve it, and what is worth backing up.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 import { Aside, FileTree } from "@astrojs/starlight/components";
@@ -100,7 +100,7 @@ The fingerprint doesn't change if you rename the file: when you open it again, e
 
 `vt/library.py` stores:
 
-- `videos`: id → `title`, `duration`, `source` (`file` or `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (in Spanish), `added`, `opened`, `position` and `audio_only` if only the audio was downloaded. `media`, `audio` and `thumb` are HTTP paths (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). A playlist video not yet downloaded has no `media`.
+- `videos`: id → `title`, `duration`, `source` (`file` or `youtube`), `media`, `audio`, `thumb`, `channel`, `categories` (in Spanish), `added`, `opened`, `position`, `lang` and `mode` (a copy of the transcript's, for the cards) and `audio_only` if only the audio was downloaded. `media`, `audio` and `thumb` are HTTP paths (`/media/yt/…`, `/media/lib/…`, `/thumb/yt/…`). A playlist video not yet downloaded has no `media`.
 - `collections`: those the person creates (`id`, `name`, `items`, `created`) and imported playlists (additionally `kind: "playlist"`, `playlist`, `url`, `channel`).
 
 Automatic collections (recent, all, channels, categories) aren't stored: they are computed when the library is requested. The playback position is saved at most every 5 s.
@@ -112,7 +112,9 @@ Automatic collections (recent, all, channels, categories) aren't stored: they ar
 | Field | Content |
 |---|---|
 | `id`, `name`, `created`, `updated`, `next_id` | The video's data and the sentence counter. |
-| `segments` | Sentences in order: `id`, `start`, `end`, `text` (English), `translation`, `tr_model`, `speaker`, `orig_db` (loudness of the original) and `dub` (voice: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
+| `lang`, `detect` | Language spoken (code from `vt/langs.py`). A new video has `detect: true` and no `lang` until Whisper detects it; an older video without `lang` is English. |
+| `mode` | `translate` or `transcribe` (only transcribe). If missing, a video in Spanish is only transcribed and any other is translated. |
+| `segments` | Sentences in order: `id`, `start`, `end`, `text` (in the video's language), `translation`, `tr_model`, `speaker`, `orig_db` (loudness of the original) and `dub` (voice: `file`, `dur`, `rate`, `gpu`, `engine`, `voice`, `text`). |
 | `covered` | `[start, end]` ranges already processed, silences included; they merge if they are less than 0.25 s apart. |
 | `speakers` | Diarization state: each person's centroids, aliases of those that merged and the next id. |
 | `speaker_names` | Each person's name ("Personas", People). |

@@ -1,11 +1,16 @@
 """Procesamiento de texto alrededor del traductor.
 
+Las reglas de antes de traducir son de cada idioma de origen (código de `vt/langs.py`);
+un idioma sin reglas propias se traduce tal cual.
+
 Antes de traducir:
   * `split_sentences`: los modelos MT a veces omiten una oración cuando reciben
     dos juntas ("Are you ready? Because…" → solo la segunda). Se traducen por
-    separado.
-  * `preedit`: reescribe modismos ingleses a su sentido literal; ningún modelo
-    probado traduce bien "raining cats and dogs" o "call it a day".
+    separado, sin cortar en abreviaturas del idioma ("Mr.", "Sra.").
+  * `preedit`: reescribe modismos a su sentido literal; ningún modelo probado
+    traduce bien "raining cats and dogs" ni "pisou na bola". En portugués también
+    se escribe completo lo coloquial ("pra", "tá", "bora"), que Opus-MT confunde
+    (medido con tools/lab/langs_mt.py).
 
 Después:
   * `match_shape`: las frases de Whisper pueden ser fragmentos (cortadas por
@@ -16,12 +21,25 @@ Después:
 
 import re
 
-_ABBR = "".join(rf"(?<!\b{a}\.)" for a in ("Mr", "Mrs", "Ms", "Dr", "St", "vs", "Jr", "Sr", "[A-Z]"))
-_SPLIT = re.compile(r"(?<=[.!?…])" + _ABBR + r"[\"')\]]*\s+(?=[\"'(\[]?[A-Z0-9¿¡])")
+# abreviaturas que terminan en punto sin cerrar la oración
+ABBR = {
+    "en": ("Mr", "Mrs", "Ms", "Dr", "St", "vs", "Jr", "Sr", "[A-Z]"),
+    "pt": ("Sr", "Sra", "Srta", "Dr", "Dra", "Prof", "Profa", "vs", "[A-Z]"),
+}
 _END = re.compile(r"[.!?…][\"')\]]*$")
 
-# modismo → sentido literal (en inglés, antes de traducir). Ampliable.
-IDIOMS: list[tuple[str, str]] = [
+
+def _splitter(abbr) -> re.Pattern:
+    look = "".join(rf"(?<!\b{a}\.)" for a in abbr)
+    return re.compile(r"(?<=[.!?…])" + look + r"[\"')\]]*\s+(?=[\"'(\[]?[A-ZÀ-Ý0-9¿¡])")
+
+
+_SPLIT = {lang: _splitter(a) for lang, a in ABBR.items()}
+_SPLIT_ANY = _splitter(("[A-Z]",))
+
+# modismo → sentido literal, en el idioma de origen, antes de traducir. Ampliable.
+IDIOMS: dict[str, list[tuple[str, str]]] = {}
+IDIOMS["en"] = [
     (r"raining cats and dogs", "raining very heavily"),
     (r"call it a day", "stop for today"),
     (r"call it a night", "stop for tonight"),
@@ -61,7 +79,50 @@ IDIOMS: list[tuple[str, str]] = [
     (r",? if I'?m being real", ", honestly"),
     (r"super legit", "very trustworthy"),
 ]
-_IDIOMS = [(re.compile(r"\b" + p + r"\b", re.I), r) for p, r in IDIOMS]
+IDIOMS["pt"] = [
+    # modismos que Opus-MT traduce literal ("pisó la pelota", "los ojos a la cara")
+    (r"pisou na bola", "errou"),
+    (r"pisei na bola", "errei"),
+    (r"pisaram na bola", "erraram"),
+    (r"pisar na bola", "errar"),
+    (r"(custa|custou|custam|custaram|custar) os olhos da cara", r"\1 muito caro"),
+    (r"(é )?(uma )?moleza", r"\1muito fácil"),
+    (r"(fica|fique) ligado", "fique atento"),
+    (r"(fiquem|ficam) ligados", "fiquem atentos"),
+    (r"fala,? galera", "olá, pessoal"),
+    (r"e aí,? (galera|pessoal|gente)", "olá, pessoal"),
+    (r"galera", "pessoal"),
+    (r"(colocar|botar|pôr) a mão na massa", "começar a trabalhar"),
+    (r"(chutou|chutar|chuta) o balde", "desistiu de tudo"),
+    (r"(enfiou|enfiar) o pé na jaca", "exagerou"),
+    (r"encher linguiça", "falar sem dizer nada"),
+    (r"show de bola", "excelente"),
+    (r"(pagou|pagar|paguei) mico", "passou vergonha"),
+    (r"quebrar o galho", "ajudar"),
+    (r"quebra-galho", "solução temporária"),
+    (r"deixa pra lá", "esquece"),
+    (r"do nada", "de repente"),
+    (r"de boa", "tranquilo"),
+    (r"sem noção", "sem bom senso"),
+    # lo coloquial, escrito completo (Whisper lo transcribe como se dice)
+    (r"dá pra", "é possível"),
+    (r"bora", "vamos"),
+    (r"valeu(?!( muito)? a pena)", "obrigado"),
+    (r"pras", "para as"),
+    (r"pros", "para os"),
+    (r"pra", "para"),
+    (r"tá", "está"),
+    (r"tão(?= \w+ndo\b)", "estão"),
+    (r"tô", "estou"),
+    (r"tava", "estava"),
+    (r"tavam", "estavam"),
+    (r"cê", "você"),
+    (r"vc", "você"),
+    (r"né(?=[?,.!])", "certo"),
+]
+# los bordes con letras Unicode: \b no siempre corta bien junto a una tilde ("tá", "né")
+_IDIOMS = {lang: [(re.compile(r"(?<!\w)" + p + r"(?!\w)", re.I), r) for p, r in rules]
+           for lang, rules in IDIOMS.items()}
 
 # convenciones latinoamericanas sobre salidas típicas de Opus-MT (entrenado con
 # mucho español peninsular)
@@ -82,19 +143,19 @@ _LATAM = [
 ]
 
 
-def split_sentences(text: str) -> list[str]:
-    parts = [p.strip() for p in _SPLIT.split(text.strip())]
+def split_sentences(text: str, lang: str = "en") -> list[str]:
+    parts = [p.strip() for p in _SPLIT.get(lang, _SPLIT_ANY).split(text.strip())]
     return [p for p in parts if p]
 
 
-def preedit(text: str) -> str:
+def preedit(text: str, lang: str = "en") -> str:
     def sub(rx, rep, t):
         def f(m):
             out = m.expand(rep)
             return out[:1].upper() + out[1:] if m.group(0)[:1].isupper() else out
         return rx.sub(f, t)
 
-    for rx, rep in _IDIOMS:
+    for rx, rep in _IDIOMS.get(lang, ()):
         text = sub(rx, rep, text)
     return text
 

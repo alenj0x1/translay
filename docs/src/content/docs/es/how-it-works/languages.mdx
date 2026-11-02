@@ -1,0 +1,119 @@
+---
+title: Idiomas
+description: El registro de idiomas, la detección automática, traducir o solo transcribir, un traductor por idioma de origen, las reglas de texto y cómo agregar un idioma.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import Diagram from "../../../../components/Diagram.astro";
+import { languages } from "../../../../diagrams";
+
+Translay reconoce videos en inglés, portugués y español y los traduce al español latinoamericano. Cualquier video también se puede solo transcribir, en su idioma.
+
+<Diagram {...languages("es")} />
+
+## El registro
+
+`vt/langs.py` reúne todo lo que cambia de un idioma a otro, como datos; el resto del código no nombra idiomas.
+
+| Campo | Qué es | Portugués |
+|---|---|---|
+| `code` | ISO 639-1: el de Whisper, la API y los datos guardados. | `pt` |
+| `name` | Nombre en la interfaz, en español. | `portugués` |
+| `iso3` | ISO 639-2: etiquetas de las pistas en FFmpeg y etiqueta de destino de Opus-MT multilingüe (`>>spa<<`). | `por` |
+| `nllb` | Token de NLLB-200, con la escritura. | `por_Latn` |
+| `tts` | Nombre que esperan los motores de voz. | `Portuguese` |
+
+`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `es`); `TARGET`, el idioma al que se traduce (`es`). Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
+
+## Detección automática
+
+Un video nuevo (enlace importado, archivo de tu equipo o grabación de pantalla) no tiene idioma: Whisper lo detecta con los primeros segundos de voz, antes de reconocer nada (`WhisperASR.detect`).
+
+- **Cola.** Usa los primeros ~15 s de voz que encuentra el VAD de energía (`speech_sample`, dentro de los primeros 5 minutos), así una intro musical o un silencio no lo confunden.
+- **En vivo.** `StreamingTranscriber` espera 3 s de voz y acepta el idioma si su probabilidad es 0,7 o más; si no, espera más voz, hasta 15 s, y entonces decide igual. El idioma llega antes que la primera frase (mensaje `lang`).
+
+Un idioma detectado que Translay todavía no traduce solo se transcribe, en ese idioma. Un video de antes de los idiomas, sin `lang`, sigue en inglés. Un modelo `.en` elegido con `--model` no detecta: para él todo es inglés.
+
+Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y español: 100 % de aciertos con large-v3-turbo, también con murmullo en otros idiomas a 5 dB y ruido rosa a 5 dB, en unos 250 ms por detección en una RTX 4060. Whisper `small` acertó entre el 97,5 % y el 100 % con murmullo.
+
+## Traducir o solo transcribir
+
+Cada video tiene un modo, independiente de su idioma (`mode` en su [transcripción](../data/#transcripción-por-video)):
+
+- `translate`: se traduce y dobla al español.
+- `transcribe`: solo se transcribe, en su idioma y sin voz.
+
+Si la persona no eligió el modo, un video detectado en el idioma de la preferencia «Solo transcribir lo que está en» (`transcribe_lang`, español si no la cambias) solo se transcribe. Cambiar el modo no borra nada: lo reconocido sirve para los dos y las traducciones quedan guardadas, así que volver a traducir solo completa lo que falta. Cambiar el idioma sí borra lo reconocido y vuelve a procesar el video. En la interfaz: [Agregar videos › Idioma](../../guide/import/#idioma-y-solo-transcribir).
+
+## Un traductor por idioma
+
+`Translators` (`vt/translate.py`) crea el traductor de cada idioma de origen la primera vez que hace falta, según `ROUTES` y el nivel del perfil:
+
+| Origen | `big` (perfiles de calidad) | `base` (perfiles ligeros) |
+|---|---|---|
+| Inglés | Opus-MT tc-big en-es (`opus-big`) | `opus-base` |
+| Portugués | Opus-MT tc-big itc-itc (`opus-itc`) | `opus-itc` |
+| Cualquier otro | NLLB-200 1.3B (`FALLBACK`) | NLLB-200 1.3B |
+
+- **Uno en la GPU.** Al pasar a otro idioma, el traductor anterior va a la RAM (vuelve en ~1 s), así la memoria medida en cada [perfil](../../guide/performance/) no crece con los idiomas.
+- **Descarga fuera del hilo de la GPU.** Un traductor que falta en disco se descarga sin frenar el reconocimiento ni la voz de otro video. En vivo, las frases quedan sin traducir y se completan cuando está listo.
+- **`--translator`** fuerza un modelo para todos los idiomas que traduce; los demás siguen con su ruta.
+
+itc-itc es un modelo multilingüe de lenguas romances: necesita la etiqueta del destino (`>>spa<<`, de `iso3`) al inicio de cada oración.
+
+### Preparación del modelo del portugués
+
+itc-itc no está publicado en formato CTranslate2, así que `vt/opusmt.py` lo prepara a partir de la publicación oficial de OPUS-MT (Helsinki-NLP, Tatoeba Challenge) la primera vez que se traduce un video en portugués:
+
+<Steps>
+
+1. Descarga la publicación en una URL fija (789 MB) y verifica su SHA-256; si no coincide, se descarta.
+2. La convierte con el conversor de CTranslate2, que solo necesita numpy, no torch (unos 3 s), a `float16` (unos 430 MB).
+3. La deja en `translay/opus-itc-itc` junto a la caché de Hugging Face (o en `TRANSLAY_MODELS`), con el `LICENSE` y el `README` originales, y borra lo intermedio. La carpeta final solo aparece cuando está completa.
+
+</Steps>
+
+La licencia del modelo es CC-BY-4.0.
+
+### Mediciones
+
+Con `tools/lab/langs_mt.py` sobre FLEURS (las mismas frases en cada idioma, con el español latinoamericano como referencia), RTX 4060. Portugués → español, test, 347 frases:
+
+| Traductor | chrF | Por frase | Frases/s (lotes) | VRAM |
+|---|---|---|---|---|
+| **Opus-MT itc-itc** | 54,3 | 137 ms | 69 | ~0,7 GB |
+| NLLB-200 1.3B | 53,2 (54,3 con las reglas de texto) | 953 ms | 11,7 | ~2 GB |
+| MADLAD-400 3B | 54,5 | 1458 ms | 6,3 | ~3,5 GB |
+
+itc-itc traduce tan bien como MADLAD y diez veces más rápido. Como referencia, inglés → español: opus-big 56,7, opus-base 55,2, NLLB 55,1, MADLAD 56,7.
+
+Palabras mal reconocidas por Whisper con `tools/lab/langs_asr.py` (FLEURS dev, 120 audios por idioma):
+
+| Modelo | Inglés | Portugués | Español |
+|---|---|---|---|
+| large-v3-turbo `float16` | 5,2 % | 4,2 % | 3,4 % |
+| large-v3-turbo `int8_float16` | 4,9 % | 4,2 % | 3,3 % |
+| small `int8` | 6,3 % | 7,7 % | 6,3 % |
+| large-v3-turbo `int8`, murmullo a 5 dB | 17,0 % | 11,1 % | 7,9 % |
+| small, murmullo a 5 dB | 28,8 % | 24,1 % | 17,6 % |
+
+## Reglas de texto
+
+Las reglas que dependen del idioma van por su código; un idioma sin las suyas solo recibe lo que no depende del idioma (puntuación y pausas).
+
+- **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»).
+- **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando.
+
+## Agregar un idioma
+
+<Steps>
+
+1. Agrega su entrada a `LANGS` en `vt/langs.py` y su código a `SOURCES`. Con eso ya se detecta, se elige en la interfaz y en la API, y se transcribe.
+2. Mide traductores para el par con `tools/lab/langs_mt.py` y el reconocimiento y la detección con `tools/lab/langs_asr.py`.
+3. Si uno le gana a NLLB, agrégalo a `MODELS` y su ruta a `ROUTES` en `vt/translate.py`; sin ruta, lo traduce NLLB-200 1.3B. Si no está publicado para CTranslate2, agrega su publicación oficial a `PUBLISHED` en `vt/opusmt.py`.
+4. Opcional: sus reglas de texto en `ABBR` e `IDIOMS` (`vt/textproc.py`) y en `NO_END`, `LOWER_AFTER_COMMA` y `HALLUCINATIONS` (`vt/streaming.py`), comprobadas con las frases típicas del lab.
+5. Agrega sus casos a `tests/test_langs.py`.
+
+</Steps>

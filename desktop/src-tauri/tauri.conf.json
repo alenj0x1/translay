@@ -22,7 +22,7 @@
     ],
     "publisher": "alenj0x1",
     "homepage": "https://alenj0x1.github.io/translay/",
-    "shortDescription": "Traduce y dobla videos del inglés al español",
+    "shortDescription": "Traduce y dobla videos al español",
     "resources": {
       "../.stage/translay/": "translay/",
       "../locks/": "locks/",
@@ -46,5 +46,17 @@
     ],
     "copyright": "Copyright (c) 2026 alenj0x1 · MIT License",
     "license": "MIT"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdERkJFQ0JBMDE3OTdBNzkKUldSNWVua0J1dXo3ZlJNNnF2Mk5xeGd3ZXlQK09zckp1TFp3dnhFUjU5UGZQRk56QjNYcUZrVGYK",
+      "endpoints": [
+        "https://github.com/alenj0x1/translay/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

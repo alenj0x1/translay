@@ -7,7 +7,7 @@
 
 English | [Español](README.es.md)
 
-Translate and dub videos from English into Spanish **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in Spanish: subtitles, an aligned EN | ES transcript, and a cloned voice synced to the picture. Nothing leaves your machine except the YouTube downloads.
+Translate and dub videos into Spanish, from English or Portuguese, **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in Spanish: subtitles, an aligned transcript with the original and the Spanish, and a cloned voice synced to the picture. Or only transcribe it, in any language. Nothing leaves your machine except the YouTube downloads.
 
 [![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
 [![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/)
@@ -34,7 +34,8 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 ### Translation and dubbing
 
 - **Recognition** with Whisper large-v3-turbo in streaming mode: the video is processed while you watch, starting from your playback position, and if you skip ahead, processing skips with you.
-- **Translation** with Opus-MT big and custom layers for **Latin American Spanish**: it splits sentences, rewrites English idioms before translating («call it a day», «let me know») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»). NLLB-1.3B and MADLAD-3B as alternatives.
+- **Languages**: English, Portuguese and Spanish, **detected automatically** from the first seconds of speech. Any video can be **only transcribed**, in its own language, and a preference decides which language is only transcribed when detected (Spanish by default).
+- **Translation** with a translator per language, chosen in the lab: Opus-MT big for English and Opus-MT itc-itc for Portuguese (as good as MADLAD-3B and ten times faster), NLLB-1.3B for the rest. Custom layers for **Latin American Spanish**: it splits sentences, rewrites idioms before translating («call it a day», «pisou na bola») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
 - **Who is speaking**: custom diarization (WeSpeaker voiceprint in ONNX + online clustering). 97.6% of sentences assigned to the right person across 12 test videos with 2 to 4 people, with and without noise.
 - **Dubbing in each person's voice**: OmniVoice clones their voice from their best sentences (up to 8 s, cleaned with DeepFilterNet if noisy). Each sentence fits its slot (duration requested from the engine with WSOLA as a fallback, without changing pitch) and plays at the same volume as the original.
 - **In sync**: median offset of 0.08 s between voice and picture.
@@ -42,19 +43,20 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 
 ### Player
 
-- **Expanded** view (Spanish subtitle below, English above) or **split** view (original and translated side by side).
-- **ES / EN** to switch from the Spanish voice to the original; the original stays in the background under the voice at the volume you choose.
+- **Expanded** view (Spanish subtitle below, the original's above) or **split** view (original and translated side by side).
+- **ES / EN** (or PT…) to switch from the Spanish voice to the original; the original stays in the background under the voice at the volume you choose.
 - Speed from 0.75× to 2× without changing pitch, fullscreen, keyboard shortcuts.
 - **«Preparando NN %» / «Listo para reproducir»** (Preparing NN% / Ready to play) indicator, computed from the real dubbing speed; it can pause by itself until there is voice ahead and resume on its own.
-- **Aligned EN | ES transcript** showing who speaks each sentence, per-sentence **comments** (marked on the progress bar) and click to jump.
+- **Aligned transcript** (original | Spanish) showing who speaks each sentence, per-sentence **comments** (marked on the progress bar) and click to jump.
 - **People**: name each one, choose their voice (their own, another person's from the video, or a **saved person** from the library) and listen to their reference.
 - **Up next** (the collection or playlist you opened it from) with autoplay of the next video, and a **floating thumbnail** when you go back to the library.
 
-### Import and queue
+### Add and queue
 
 - **YouTube**: videos, `shorts/`, `live/`, playlists (imported as a collection and updated when you paste them again), several links mixed with text, or a **CSV with thousands of links**. Paste a link anywhere on the page.
 - **Files from your machine**: videos and audio, by dragging them onto the page.
-- Import **straight into a collection or category**, **«Solo descargar»** (Download only; doesn't use the GPU) or **«Solo el audio»** (Audio only; faster, and the video is downloaded later if needed).
+- **One «Agregar» (Add) button** that learns what you use most in this browser (paste a link, upload files, record the screen or paste several links); its ▾ always shows every way to add.
+- Add **straight into a collection or category**, **«Solo descargar»** (Download only; doesn't use the GPU) or **«Solo el audio»** (Audio only; faster, and the video is downloaded later if needed).
 - **A single server-side queue** that survives reloading or closing the tab: first the video you are watching, then prioritized items, then the rest. Pause, **«Priorizar»** (Prioritize), and a dedicated screen with states (Descargando, Procesando, En cola, Con error, Listos… — Downloading, Processing, Queued, Failed, Done).
 - **Careful downloads**: one at a time, spaced out, in order or at random; if YouTube asks you to verify you're not a bot, it pauses for 20 min without flagging errors and continues in careful mode. Connect your YouTube account once (its own browser profile, encrypted cookies, renewed automatically), or use `cookies.txt` or the installed browser.
 - **Browser notifications** when a download, a video, the queue or an export finishes.
@@ -63,7 +65,7 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 
 - **Home page** with **«Seguir viendo»** (Continue watching) and a row per collection; custom and automatic **collections** (Recientes, Todos, one per channel and per YouTube category — Recent, All) with each channel's real avatar and banner.
 - **Multiple libraries**, each in its own folder (another drive, for example), with its own videos, collections, glossary, people, theme and import settings. **«Mover a…»** (Move to…) moves the files; **«Abrir carpeta»** (Open folder) adds an existing library.
-- **Search** across all transcripts (English, Spanish and comments, ignoring accents).
+- **Search** videos by title or channel, collections and channels by name, and everything that is said (original, translation and comments, ignoring accents), in separate groups.
 - **Glossary** per library: terms that are not translated or are always translated the same way; when you change it, what is already done is re-translated and the voice is redone.
 - **Multi-select** to open, process, export, move or delete; context menu everywhere.
 - **30-day trash**: deleting videos, or emptying or deleting a library, can be undone right away or restored later, with their translations, voices, downloads and collections. Emptying and deleting a library require typing its name.
@@ -71,7 +73,7 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 
 ### Desktop app
 
-- **Windows installer**, no administrator rights needed. The first time you open it, the app installs the server and the voice engine by itself (packages pinned with their SHA-256 hash) and shows progress on the button; then it opens Translay in its own window.
+- **Windows installer**, no administrator rights needed. The first time you open it, the app installs the server and the voice engine by itself (packages pinned with their SHA-256 hash) and shows progress on the button; then it opens Translay in its own window. It updates itself from GitHub (signed updates; automatic checking can be turned off).
 - **Custom title bar** that follows the light or dark theme, with Preferences and the theme switch as icons.
 - Optional **system tray** so the queue keeps working with the window closed (when it finishes, Translay quits); a single instance; the server, its models and everything it launches close with the app, so nothing keeps using the GPU or RAM.
 - **Your library wherever you want** (by default `Videos\Translay`), chosen at install time and changeable later.
@@ -80,10 +82,10 @@ Translate and dub videos from English into Spanish **in each person's own voice*
 
 | Option | Format |
 |---|---|
-| Translated video | MP4 with the Spanish voice as the main track, English as the second track, and ES/EN subtitles |
+| Translated video | MP4 with the Spanish voice as the main track, the original as the second track (tagged with its language), and Spanish and original subtitles |
 | Translated / original audio | M4A |
 | Original video | MP4 |
-| Spanish / English subtitles | SRT |
+| Spanish / original subtitles | SRT |
 | Bilingual transcript with people and comments | TXT |
 
 From the player, a card, an entire collection or a selection; several files go in a `.zip`. If the video isn't ready yet, the export waits (and sends it to the queue if needed).
@@ -101,6 +103,8 @@ Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvi
 | **Ligero** (Light) | small int8, beam 3 | opus-base int8 | Cloned, 8 steps | ~3.3 GB | ~10.7 GB | 4 GB GPU |
 | **Solo subtítulos** (Subtitles only) | large-v3-turbo int8 | opus-big | No voice | ~1.9 GB | ~3.5 GB | 2 GB GPU |
 | **Subtítulos ligeros** (Light subtitles) | small int8, beam 3 | opus-base int8 | No voice | ~0.6 GB | ~2.2 GB | No GPU |
+
+The translator shown is the one for English; Portuguese uses Opus-MT itc-itc in every profile and only one translator is on the GPU at a time. The light profiles (Whisper `small`) lose more accuracy in Portuguese than in English.
 
 The cloned voice needs a GPU: on the CPU it runs at 0.01× to 0.04× (unusable). Without a GPU, Translay produces subtitles and transcripts.
 
@@ -147,7 +151,7 @@ Recognition, translation and voice take turns on the GPU in order of arrival (ad
 ## How it works
 
 ```text
-16 kHz audio → voice detection → streaming Whisper → Opus-MT + glossary → who speaks → OmniVoice → voice in place
+16 kHz audio → voice detection → streaming Whisper (detects the language) → translator for that language + glossary → who speaks → OmniVoice → voice in place
 ```
 
 - **Server** in Python (`vt/`) with its own HTTP + WebSocket on asyncio, no framework. Whisper and the translator run on CTranslate2; the voice runs in its own process with torch (`.venvs/omnivoice`).
@@ -163,7 +167,7 @@ The details (VAD, streaming local agreement, anti-hallucination rules, voice ref
 | ![Home page of a library](docs/src/assets/capturas/inicio.webp) | ![Several libraries, each with its own banner](docs/src/assets/capturas/bibliotecas.webp) |
 | ![A YouTube channel's collection](docs/src/assets/capturas/coleccion.webp) | ![Split view: original and translated](docs/src/assets/capturas/dividido.webp) |
 | ![The video's people with their voice](docs/src/assets/capturas/personas.webp) | ![Queue with states and downloads](docs/src/assets/capturas/cola.webp) |
-| ![Importing several links](docs/src/assets/capturas/importar.webp) | ![Exporting video, audio and subtitles](docs/src/assets/capturas/exportar.webp) |
+| ![Adding several links](docs/src/assets/capturas/importar.webp) | ![Exporting video, audio and subtitles](docs/src/assets/capturas/exportar.webp) |
 | ![Search across transcripts](docs/src/assets/capturas/busqueda.webp) | ![Light mode](docs/src/assets/capturas/inicio-claro.webp) |
 
 Screenshots from a test instance with public-domain videos from NASA and NOAA.
@@ -175,7 +179,7 @@ Screenshots from a test instance with public-domain videos from NASA and NOAA.
 1. Download `Translay_<version>_x64-setup.exe` from the [latest release](https://github.com/alenj0x1/translay/releases/latest) and open it.
 2. Open **Translay**, choose where to store your library and click **Instalar** (Install).
 
-The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens). Details: [Installation](https://alenj0x1.github.io/translay/getting-started/install/).
+The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens; the Portuguese translator, about 0.8 GB, is downloaded the first time a Portuguese video is translated). Details: [Installation](https://alenj0x1.github.io/translay/getting-started/install/).
 
 | | |
 |---|---|
@@ -259,7 +263,7 @@ npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js
 
 ## Credits
 
-Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT), [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).
+Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) (the Portuguese model, [OPUS-MT itc-itc](https://github.com/Helsinki-NLP/Tatoeba-Challenge) by Helsinki-NLP, is CC-BY-4.0), NLLB-200, [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).
 
 ## License
 

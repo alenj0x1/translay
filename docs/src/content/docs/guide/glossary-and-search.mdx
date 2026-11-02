@@ -1,6 +1,6 @@
 ---
 title: Glossary and search
-description: Terms with a fixed translation or left in English, and searching all the transcripts in a library.
+description: Terms with a fixed translation or kept as in the original, and searching a library's videos, collections and transcripts.
 sidebar:
   order: 9
 ---
@@ -9,11 +9,11 @@ import { Aside } from "@astrojs/starlight/components";
 
 ## Glossary
 
-The glossary is in Preferences › **Glosario** (Glossary). Each row is a term in English and, on the right, how it is always translated:
+The glossary is in Preferences › **Glosario** (Glossary). Each row is a term as it is said in the video (in any language Translay translates) and, on the right, how it is always translated:
 
-| In English | Translation | Result |
+| Term | Translation | Result |
 |---|---|---|
-| `Jupyter Notebook` | (empty) | Stays in English. Useful for names, brands and acronyms. |
+| `Jupyter Notebook` | (empty) | Stays as in the original. Useful for names, brands and acronyms. |
 | `prompt` | `instrucción` | Always translated as "instrucción". |
 
 **Agregar término** (Add term) adds a row, **Quitar** (Remove) deletes it and **Guardar glosario** (Save glossary) applies it. Each library has its own glossary.
@@ -24,16 +24,25 @@ Terms are matched as whole words and ignoring case: `prompt` does not change ins
 
 The glossary is applied to what is already translated, not only to new content. When you save it, the sentences in the library that contain an added, changed or removed term are translated again, and the voice for those sentences is redone in the queue. When it finishes, a notice says how many sentences and videos changed.
 
-## Searching transcripts
+## Search
 
 ![Results for searching "solar" in the transcripts, with the sentence and the exact moment](../../../assets/capturas/busqueda.webp)
 
-The **Buscar en las transcripciones** (Search transcripts) field in the header searches all the videos in the open library: in the English, in the Spanish and in the [comments](../transcript-and-people/#comments). In the library, the <kbd>/</kbd> key takes you straight to the field; from another screen, tapping it takes you back to the library.
+The **Buscar videos y lo que se dice** (Search videos and what is said) field in the header searches the open library. In the library, the <kbd>/</kbd> key takes you straight to the field; from another screen, tapping it takes you back to the library.
+
+Results come in up to three groups:
+
+| Group | What it shows |
+|---|---|
+| **Videos** | Videos whose title or channel matches, as normal cards (up to 12). |
+| **Colecciones y canales** (Collections and channels) | Collections, playlists, categories and channels whose name matches (up to 24); a click opens it. |
+| **En lo que se dice** (In what is said) | Sentences that match in what is said, in the translation and in the [comments](../transcript-and-people/#comments), grouped by video with the one that has the most matches first. Each one shows the time of the sentence; one click opens the video just before that moment. |
+
+The header counts what was found, for example "2 videos · 5 frases · 1 colección" (2 videos · 5 sentences · 1 collection). If nothing matches, it says that no video, collection or channel is called that and nobody says it.
 
 - Accents and case don't matter: "cancion" finds "canción".
 - It searches as you type, from two letters on.
-- Results are grouped by video, with the one that has the most matches first, and the match is underlined.
-- Each result shows the time of the sentence; one click opens the video just before that moment.
+- The match is underlined.
 
 <kbd>Esc</kbd> or **Cerrar búsqueda** (Close search) goes back to the collection you were in.
 

@@ -15,13 +15,13 @@ In the export dialog you check any combination of:
 
 | Option | Format | Content |
 |---|---|---|
-| **Video traducido** (Translated video) | MP4 | The Spanish voice as the main track, English as a second track, and Spanish and English subtitles that you switch on in the player. |
+| **Video traducido** (Translated video) | MP4 | The Spanish voice as the main track, the original as a second track (tagged with its real language, e.g. `por`), and Spanish and original subtitles that you switch on in the player. |
 | **Audio traducido** (Translated audio) | M4A or MP3 | The Spanish mix. |
 | **Video original** (Original video) | MP4 | The video as it was downloaded or imported. |
 | **Audio original** (Original audio) | M4A or MP3 | The original audio track. |
 | **Subtítulos en español** (Spanish subtitles) | SRT | The translation, with its timings. |
-| **Subtítulos en inglés** (English subtitles) | SRT | What is said in English. |
-| **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), the English, the Spanish and the comments. |
+| **Subtítulos del original** (Original subtitles) | SRT | What is said, in the video's language; the file is named with its code (`.en.srt`, `.pt.srt`…). |
+| **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
 
 The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Preferences › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
@@ -50,6 +50,7 @@ The dialog tells you before exporting what it will have to wait for:
 - **Translated content** (video or audio) waits for dubbing to finish. If the video wasn't in the queue, it is added automatically; meanwhile the panel shows how far dubbing has got.
 - **Subtitles and the TXT** only wait for the full transcription, not dubbing.
 - **A video that hasn't been downloaded** is downloaded first.
+- **A video that is only transcribed** has no translation or voice: the translated options are skipped for it, and if nothing else was checked it goes to `omitidos.txt`.
 - **A video of which only the audio was downloaded**: if you ask for a video (original or translated), the full video is downloaded first.
 
 If one video of a batch can't be exported (for example, it was removed from YouTube and has no copy on your computer), it is skipped and the rest continue: the `.zip` includes `omitidos.txt` with each skipped video and the reason, and the panel says how many were left out. Only when it's a single video, or none could be exported, does the export end in an error, with the reason in plain words.

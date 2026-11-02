@@ -10,9 +10,12 @@ Cliente → servidor
   {"type":"watch", "video":<id>, "t":<s>} / unwatch  video guardado que se está viendo: lo procesa
                                                      la cola (vt/processor.py) desde ese punto
   {"type":"youtube", "url":<enlace>}                 descarga y responde yt_progress / yt_ready
-  {"type":"playlist", "url":<enlace>}                la importa como colección y la manda a la cola
-  {"type":"yt_batch", "urls":[…], "lang"}            enlaces de YouTube o Dropbox (vt/links.py) a la cola; batch_added
-  {"type":"video_lang", "video", "lang":"en"|"es"}   idioma en que se habla (en español solo se transcribe)
+  {"type":"playlist", "url":<enlace>, "lang", "mode"}  la importa como colección y la manda a la cola
+  {"type":"yt_batch", "urls":[…], "lang", "mode"}    enlaces de YouTube o Dropbox (vt/links.py) a la cola; batch_added.
+                                                     lang: "auto" (se detecta) o uno de vt/langs.py;
+                                                     mode: "translate", "transcribe" o "" (según el idioma propio)
+  {"type":"video_lang", "video", "lang"?, "mode"?}   idioma en que se habla (rehace lo reconocido) y/o
+                                                     traducir o solo transcribir (no borra nada)
   {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3"}  exportar (vt/exporter.py) · export_remove
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
@@ -27,6 +30,7 @@ Cliente → servidor
 
 Servidor → cliente
   ready · transcript · partial (+ "es" en vivo) · segment · translations · dub · covered · stats
+  lang {lang, mode, translates}                      idioma detectado (o cambiado) del video abierto
 
 Doblaje: cada frase final pasa por una cola de voz que atiende primero lo que
 se va a escuchar (las frases desde el punto de reproducción en adelante, en
@@ -45,7 +49,7 @@ import numpy as np
 from functools import partial
 
 from .store import _SAFE_ID as _SAFE_VID, Store, Transcript
-from . import events
+from . import events, langs
 from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
 
@@ -55,7 +59,7 @@ OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete"}
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
-from .streaming import Partial, Segment, StreamingTranscriber
+from .streaming import Detected, Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
 
@@ -290,13 +294,16 @@ class Session:
                     elif m.get("type") == "youtube":
                         asyncio.create_task(self._youtube(m.get("url", ""), bool(m.get("queue"))))
                     elif m.get("type") == "playlist":
-                        asyncio.create_task(self._playlist(m.get("url", ""), str(m.get("lang") or "en")))
+                        asyncio.create_task(self._playlist(m.get("url", ""), str(m.get("lang") or "auto"),
+                                                           str(m.get("mode") or "")))
                     elif m.get("type") == "video_lang":
-                        await self._video_lang(str(m.get("video", "")), str(m.get("lang", "")))
+                        await self._video_lang(str(m.get("video", "")), str(m.get("lang") or ""),
+                                               str(m.get("mode") or ""))
                     elif m.get("type") == "yt_batch":
                         asyncio.create_task(self._batch(list(m.get("urls", [])), str(m.get("coll") or ""),
                                                         bool(m.get("quiet")), bool(m.get("front")),
-                                                        lang=str(m.get("lang") or "en")))
+                                                        lang=str(m.get("lang") or "auto"),
+                                                        tmode=str(m.get("mode") or "")))
                     elif m.get("type") in ("export", "export_remove") and self.exporter:
                         await self._export(m)
                     elif m.get("type", "").startswith("queue_") and self.processor:
@@ -337,7 +344,7 @@ class Session:
                 elif kind == "open":
                     await self._finish()
                     self.tr = self.store.open(str(op[1].get("id", "")), op[1].get("name", ""))
-                    self.st.language = self.tr.lang
+                    self.st.language = self.tr.lang  # "" = se detecta con la primera voz
                     vault = self._vault_of(self.tr.data["id"])
                     await self.ws.send_json({"type": "transcript", **self.tr.public(),
                                              "voice_refs": self._voice_refs(self.tr.data["id"]),
@@ -348,6 +355,8 @@ class Session:
                     # la voz que falte la completa la cola (vt/processor.py) al ver o
                     # procesar el video: hacerlo también aquí duplicaba el trabajo
             if self.tr is not None and self.st.ready():
+                if not self.st.language and self.tr.lang:
+                    self.st.language = self.tr.lang  # lo detectó la cola (o se eligió) mientras tanto
                 try:
                     await self._run(self.st.step)
                 except Exception:  # una falla no debe detener la sesión
@@ -375,12 +384,19 @@ class Session:
             return
         dirty = False
         for ev in events:
-            if isinstance(ev, Segment):
-                translation = None if tr.native else await loop.run_in_executor(
-                    self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(tr)), ev.text)
+            if isinstance(ev, Detected):
+                await self._detected(tr, ev)
+                dirty = True
+            elif isinstance(ev, Segment):
+                # traductor aún descargándose (primer video en ese idioma): la frase queda sin
+                # traducir y _translate_stale la completa cuando esté
+                ready = tr.translates and self.translator.ready(tr.lang)
+                translation = await loop.run_in_executor(
+                    self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(tr),
+                                                             src=tr.lang), ev.text) if ready else None
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, translation,
-                                              self.translator.name)
-                if self.dubber and not tr.native:  # ya en español: solo se transcribe
+                                              self.translator.name_for(tr.lang) if ready else None)
+                if self.dubber and tr.translates:  # solo transcribir: sin personas ni voz
                     seg["speaker"] = await loop.run_in_executor(None, self.dubber.identify, tr, seg, ev.audio)
                     self._queue_dub(0, tr, seg, self.dubber.loudness(ev.audio))
                     for fixed in self.dubber.relabel(tr):  # frases cortas con persona corregida
@@ -403,27 +419,54 @@ class Session:
         await self.ws.send_json({"type": "stats", "infer_ms": round(ms),
                                  "buffer_s": round(self.st.duration, 2)})
 
+    async def _detected(self, tr: Transcript, ev: Detected):
+        """Idioma detectado al reconocer en vivo: se guarda, decide el modo y avisa."""
+        print(f"[vivo] {tr.data['id']}: idioma detectado {ev.lang} ({ev.prob:.2f})", flush=True)
+        tr.set_detected(ev.lang, self._own_lang())  # si la cola ya lo había detectado, queda el suyo
+        if self.tr is tr:
+            self.st.language = tr.lang
+        if self.processor:
+            self.processor.lang_changed(tr.data["id"], tr)
+        if tr.translates:  # prepara el traductor de ese idioma y traduce lo que quede pendiente
+            if self._backfill:
+                self._backfill.cancel()
+            self._backfill = asyncio.create_task(self._translate_stale(tr))
+
+    def _own_lang(self) -> str | None:
+        """Idioma propio (Preferencias): lo que se habla en él solo se transcribe."""
+        v = self.prefs.values.get("transcribe_lang", langs.TARGET) if self.prefs else langs.TARGET
+        return v if langs.is_source(v) else None
+
     async def _live_translation(self, src: str) -> str:
         """Traduce la frase abierta para el subtítulo en vivo (solo si cambió)."""
         if not src:
             self._live_src = self._live_es = ""
-        elif self.tr is not None and self.tr.native:
+        elif self.tr is not None and self.tr.transcribe_only:
             self._live_src = self._live_es = src
+        elif self.tr is not None and not self.translator.ready(self.tr.lang):
+            self._live_src = self._live_es = ""  # traductor descargándose: nunca en el hilo de la GPU
         elif src != self._live_src:
             loop = asyncio.get_running_loop()
             self._live_es = await loop.run_in_executor(
-                self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(self.tr)),
-                src) or ""
+                self.gpu, self.res.run, ("mt",), partial(self.translator.translate, glossary=self._gl(self.tr),
+                                                         src=self.tr.lang), src) or ""
             self._live_src = src
         return self._live_es
 
     async def _translate_stale(self, tr: Transcript):
         """Traduce frases guardadas sin traducción (o con otro modelo), por lotes."""
-        name = self.translator.name
-        if name == "none":
+        name = self.translator.name_for(tr.lang)
+        if name == "none" or tr.transcribe_only:
             return
         loop = asyncio.get_running_loop()
-        tx = partial(self.translator.translate_many, glossary=self._gl(tr))
+        try:
+            await loop.run_in_executor(None, self.translator.prepare, tr.lang)  # fuera del hilo de la GPU
+        except Exception as e:  # sin conexión, por ejemplo: se avisa (la cola lo reintenta al procesar)
+            print(f"[traductor] {tr.lang}: {e}", flush=True)
+            await self.ws.send_json({"type": "yt_error", "error": "No se pudo preparar el traductor de "
+                                     f"{langs.name(tr.lang)}. Revisa la conexión; se reintenta al procesar el video."})
+            return
+        tx = partial(self.translator.translate_many, glossary=self._gl(tr), src=tr.lang)
         while self.tr is tr and (todo := tr.stale(name)[:16]):
             outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), tx, [s["text"] for s in todo])
             for seg, es in zip(todo, outs):
@@ -436,7 +479,7 @@ class Session:
     # ---------------------------------------------------------------- doblaje
     def _queue_dub(self, prio: int, tr: Transcript, seg: dict, orig_db: float | None):
         """prio 0: frase en vivo (modo intérprete, va primero); 1: por delante / guardada."""
-        if not self.dubber or not seg.get("translation") or tr.native:
+        if not self.dubber or not seg.get("translation") or tr.transcribe_only:
             return
         old = self.dub_pending.get(seg["id"])
         self.dub_pending[seg["id"]] = (min(prio, old[0]) if old else prio, tr, orig_db)
@@ -568,9 +611,10 @@ class Session:
         return bool(self.prefs) and self._pref("import_mode") == "descargar"
 
     async def _batch(self, urls: list[str], coll: str, quiet: bool = False, front: bool = False, mode: str = "",
-                     lang: str = "en"):
+                     lang: str = "auto", tmode: str = ""):
         """Varios enlaces a la vez: los videos entran a la cola sin descargar (se bajan en
-        orden) y cada playlist se importa como colección. lang: el idioma en que se hablan."""
+        orden) y cada playlist se importa como colección. lang: el idioma en que se hablan
+        ("auto": se detecta); tmode: "translate", "transcribe" o "" (según el idioma)."""
         from . import links
         from .youtube import playlist_id, video_id
 
@@ -611,7 +655,7 @@ class Session:
             if vid not in known:
                 lib.register(vid, source="link", url=lk["url"], title=lk["name"])
             ids.append(vid)
-        self._import_lang(ids, known, lang)
+        self._import_lang(ids, known, lang, tmode)
         if self.processor:  # los títulos se completan de a poco (Processor._titles_loop)
             self.processor.kick_titles()
         if coll:
@@ -628,46 +672,56 @@ class Session:
                                  "quiet": bool(quiet), "elsewhere": elsewhere, "errors": errors})
         self.notify({"type": "library_changed"})
         for u in lists:
-            await self._playlist(u, lang)
+            await self._playlist(u, lang, tmode)
 
-    def _import_lang(self, ids: list[str], known: set, lang: str):
-        """Idioma elegido al importar: para lo nuevo, y para lo que ya estaba solo si se pidió
-        «en español» (volver a importar en inglés no deshace lo que se cambió a mano)."""
+    def _import_lang(self, ids: list[str], known: set, lang: str, tmode: str = ""):
+        """Idioma y modo elegidos al importar: para lo nuevo; lo que ya estaba conserva lo que
+        se cambió a mano, salvo que se pida un idioma o un modo concreto."""
         for vid in ids:
-            if vid not in known or lang != "en":
-                self._set_lang(vid, lang)
+            if vid not in known or langs.is_source(lang) or tmode:
+                self._set_lang(vid, lang, tmode)
 
-    def _set_lang(self, vid: str, lang: str) -> bool:
-        """Idioma del video, en su transcripción (lo usa el procesamiento) y en la biblioteca."""
-        from .store import LANGS
+    def _set_lang(self, vid: str, lang: str, mode: str = "") -> bool:
+        """Idioma y modo del video, en su transcripción (lo usa el procesamiento) y en la
+        biblioteca. lang "auto" o vacío: se detecta, si aún no se conoce. True si cambió."""
+        from .store import MODES
 
-        if lang not in LANGS or not _SAFE_VID.fullmatch(vid):
+        if not _SAFE_VID.fullmatch(vid) or (lang not in ("auto", "") and not langs.is_source(lang)):
             return False
         vault = self._vault_of(vid)
         tr = vault.store.open(vid)
         had = bool(tr.covered)
-        changed = tr.set_lang(lang)
-        if changed:
+        lang_changed = langs.is_source(lang) and tr.set_lang(lang)
+        if mode not in MODES and lang_changed and lang == self._own_lang() and "mode" not in tr.data:
+            mode = "transcribe"  # en el idioma propio: solo se transcribe
+        mode_changed = tr.set_mode(mode)
+        if lang_changed or mode_changed:
             tr.save()
         if vid in vault.library.data["videos"]:
-            vault.library.set_field(vid, lang=lang)
-        if changed and had and self.processor:
-            self.processor.add(vid)  # lo reconocido en el otro idioma se rehace
-        return changed
+            vault.library.set_field(vid, lang=tr.lang, mode=tr.mode)
+        if (lang_changed or mode_changed) and had and self.processor:
+            self.processor.add(vid)  # lo reconocido en otro idioma se rehace; con otro modo, se completa
+        return lang_changed or mode_changed
 
-    async def _video_lang(self, vid: str, lang: str):
-        if not self._set_lang(vid, lang):
+    async def _video_lang(self, vid: str, lang: str, mode: str = ""):
+        if not self._set_lang(vid, lang, mode):
             return
-        if self.tr is not None and self.tr.data["id"] == vid:  # esta pestaña lo procesaba en vivo
-            self.q.put_nowait(("seek", {}))
         vault = self._vault_of(vid)
         tr = vault.store.open(vid)
-        # cada pestaña que lo tenga abierto vuelve a cargar su transcripción (ahora vacía)
-        self.notify({"type": "bg", "video": vid, "msg": {"type": "transcript", **tr.public(), "voice_refs": {},
+        if self.tr is not None and self.tr.data["id"] == vid:  # esta pestaña lo procesaba en vivo
+            self.q.put_nowait(("seek", {}))
+            self.st.language = tr.lang
+            if tr.translates:  # pasó a traducir: lo ya reconocido se traduce
+                if self._backfill:
+                    self._backfill.cancel()
+                self._backfill = asyncio.create_task(self._translate_stale(tr))
+        # cada pestaña que lo tenga abierto vuelve a cargar su transcripción (vacía si cambió el idioma)
+        self.notify({"type": "bg", "video": vid, "msg": {"type": "transcript", **tr.public(),
+                                                         "voice_refs": self._voice_refs(vid),
                                                          "prefix": vault.prefix, "vault": vault.id}})
         self.notify({"type": "library_changed"})
 
-    async def _playlist(self, url: str, lang: str = "en"):
+    async def _playlist(self, url: str, lang: str = "auto", tmode: str = ""):
         loop = asyncio.get_running_loop()
         sess = self.prefs.values.get("yt_session", "ninguna") if self.prefs else "ninguna"
         try:
@@ -683,7 +737,7 @@ class Session:
                  if (o := self.vaults.of("yt_" + e["id"])) is not None and o is not self.vault}
         known = set(lib.data["videos"])
         c = lib.import_playlist(info, exclude=other)  # los que ya están en otra biblioteca se quedan allá
-        self._import_lang([i for i in c["items"] if i in lib.data["videos"]], known, lang)
+        self._import_lang([i for i in c["items"] if i in lib.data["videos"]], known, lang, tmode)
         if self.processor:  # en orden: la cola descarga y procesa uno tras otro
             self.processor.add_many([i for i in c["items"] if i in lib.data["videos"]],
                                     download_only=self._download_only(), audio_only=self._audio_only())
@@ -767,21 +821,22 @@ class Session:
         loop = asyncio.get_running_loop()
         vault = self.vault
         gl = vault.glossary
-        tx = partial(self.translator.translate_many, glossary=gl)
         n_segs = n_vids = 0
         for f in sorted(vault.store.root.glob("*.json")):
             vid = f.stem
             if vid not in vault.library.data["videos"]:
                 continue
             tr = vault.store.open(vid)
-            if tr.native:  # en español: no pasa por el traductor
+            if tr.transcribe_only:  # no pasa por el traductor
                 continue
+            await loop.run_in_executor(None, self.translator.prepare, tr.lang)  # fuera del hilo de la GPU
             todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed)]
             if not todo:
                 continue
+            tx = partial(self.translator.translate_many, glossary=gl, src=tr.lang)
             outs = await loop.run_in_executor(self.gpu, self.res.run, ("mt",), tx, [s["text"] for s in todo])
             for s, es in zip(todo, outs):
-                tr.set_translation(s["id"], es, self.translator.name)
+                tr.set_translation(s["id"], es, self.translator.name_for(tr.lang))
             tr.save()
             n_segs += len(todo)
             n_vids += 1

@@ -15,7 +15,7 @@ The library is the screen Translay opens with. On the left is the sidebar with t
 
 ## Home page
 
-**Inicio** (Home) shows at the top the last video you were watching, with the sentence where you stopped in Spanish and English, and the buttons «Continuar» (Continue), «Desde el inicio» (From the start) and «Exportar» (Export). If none is half-watched, it shows the most recently added one.
+**Inicio** (Home) shows at the top the last video you were watching, with the sentence where you stopped in Spanish and in the original language, and the buttons «Continuar» (Continue), «Desde el inicio» (From the start) and «Exportar» (Export). If none is half-watched, it shows the most recently added one.
 
 Below are the rows, each with its «Ver todo» (See all) when it has more than four videos:
 
@@ -24,7 +24,7 @@ Below are the rows, each with its «Ver todo» (See all) when it has more than f
 - Up to eight of your collections and playlists.
 - The four channels with the most videos and the two categories with the most videos (only those with more than one).
 
-With an empty library, the home page is replaced by «Traduce tu primer video» (Translate your first video): a field to paste a link, «Importar archivos» (Import files) and the option to drag a video onto the page.
+With an empty library, the home page is replaced by «Traduce tu primer video» (Translate your first video): a field to paste a link with «Agregar ▾» (Add), «Agregar archivos» (Add files) and the option to drag a video onto the page.
 
 <div class="capturas-par">
   <Image src={movil} alt="The home page on a phone, with the collections as tabs" width={390} />
@@ -39,9 +39,9 @@ They are built from the videos themselves; they can't be renamed or deleted.
 
 | Collection | What it shows |
 |---|---|
-| Recientes | Videos already on the machine and what was just imported (even if it is still downloading), from the last opened or added to the first. What is pending in a playlist appears only in its playlist. |
+| Recientes | Videos already on the machine and what was just added (even if it is still downloading), from the last opened or added to the first. What is pending in a playlist appears only in its playlist. |
 | Todos (All) | Every video in the library, including those still to download, from the last added to the first. |
-| Canales (Channels) | One per YouTube channel, with the channel's real avatar and banner. They can be hidden in Preferencias › Importar y descargas › «Canales en la barra lateral» (Preferences › Import and downloads › "Channels in the sidebar"). |
+| Canales (Channels) | One per YouTube channel, with the channel's real avatar and banner. They can be hidden in Preferencias › Agregar y descargar › «Canales en la barra lateral» (Preferences › Add and download › "Channels in the sidebar"). |
 | Categorías (Categories) | One per YouTube category, with its Spanish name (Educación, Ciencia y tecnología, Música…). |
 
 Categories and channels are calculated from the videos in Recientes. The full list of categories is in `vt/library.py`.
@@ -58,11 +58,11 @@ A video can be in several collections. To remove it from one, use the **×** on 
 
 An imported YouTube playlist is saved as a collection, with the order number on each card and the buttons «Reproducir» (Play) and «Abrir en YouTube» (Open on YouTube). Its videos enter the queue and are downloaded and processed in order. Importing the same playlist again updates it with its current order.
 
-When you delete a playlist, downloaded videos stay in the library; those that were still to download leave the queue and the library. How to import them: [Import](../import/#playlists).
+When you delete a playlist, downloaded videos stay in the library; those that were still to download leave the queue and the library. How to add them: [Add videos](../import/#playlists).
 
 ## Cards
 
-Each card shows the thumbnail, the duration, the channel and what is left to do: «En cola · sin descargar» (Queued · not downloaded), «Descargando 40 % · 2,3 MB/s · quedan 0:12» (Downloading 40% · 2.3 MB/s · 0:12 left), «Procesando · 42 %» (Processing · 42%), «Descargado, sin traducir» (Downloaded, not translated) or «Listo en español» (Ready in Spanish). The ring over the thumbnail shows how much is translated and how much is dubbed; the thin bar at the bottom shows how far you have watched.
+Each card shows the thumbnail, the duration, the channel and what is left to do: «En cola · sin descargar» (Queued · not downloaded), «Descargando 40 % · 2,3 MB/s · quedan 0:12» (Downloading 40% · 2.3 MB/s · 0:12 left), «Procesando · 42 %» (Processing · 42%), «Descargado, sin traducir» (Downloaded, not translated) and «Listo en español» (Ready in Spanish), or «Descargado, sin transcribir» (Downloaded, not transcribed) and «Transcrito» (Transcribed) if it is [only transcribed](../import/#language-and-transcribe-only). The ring over the thumbnail shows how much is translated and how much is dubbed; the thin bar at the bottom shows how far you have watched.
 
 One click on the thumbnail or the title opens the video. The card's buttons change depending on its state:
 
@@ -107,12 +107,12 @@ Right-clicking opens a menu that depends on where you click:
 
 | Where | What it offers |
 |---|---|
-| Video card | Ver or Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (or Transcribir), Idioma del video, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
-| Collection (sidebar, home page row or banner) | Abrir, Reproducir, Importar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
+| Video card | Ver or Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (or Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
+| Collection (sidebar, home page row or banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
 | Queue job | Ver, Priorizar, Traducir y doblar, Copiar enlace, Quitar de la cola. |
-| Transcript sentence | Ir a este momento, Copiar en español or en inglés, Copiar enlace a este momento, Comentar. |
-| Video | Reproducir or Pausar, Escuchar el original or en español, Pantalla completa, Mostrar or Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
-| Empty space | Importar enlaces…, Importar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
+| Transcript sentence | Ir a este momento, Copiar en español and in the original's language (or just Copiar if it is only transcribed), Copiar enlace a este momento, Comentar. |
+| Video | Reproducir or Pausar, Escuchar el original or en español (if it is translated), Pantalla completa, Mostrar or Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
+| Empty space | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
 
 In text fields, on a link or with selected text, the browser's menu is kept. The code is in `web/js/contextmenu.js`.
 
@@ -135,5 +135,5 @@ The page address changes with each screen, so reloading leaves you in the same p
 While data arrives after a reload, you see the page's silhouette. The code is in `web/js/route.js`.
 
 <Aside>
-Anyone connecting from another machine as a guest doesn't see the actions they aren't allowed to do (delete, create collections, import). See [Access](../../integrations/access/).
+Anyone connecting from another machine as a guest doesn't see the actions they aren't allowed to do (delete, create collections, add videos). See [Access](../../integrations/access/).
 </Aside>

@@ -31,6 +31,7 @@ They also run without pytest: `python tests/test_core.py` runs them all and prin
 | `test_access_and_webhooks` | Owner from this machine but not through a tunnel; private, public and password-protected libraries; changing the password invalidates sessions; read-only API keys; webhooks filtered by library and event, signed with HMAC-SHA256. |
 | `test_hardware` (`tests/test_hardware.py`) | Shape of what is detected (GPU, RAM, CPU), no GPU, reading `nvidia-smi`, and a lab's machine with `TRANSLAY_EMULATE` (VRAM, RAM, threads, no GPU). |
 | `test_trash` (`tests/test_trash.py`) | Emptying and deleting videos moves them to the trash and restoring brings back videos, files and collections (with their videos); a deleted library comes back with `open_folder`; items older than 30 days and everything are purged. |
+| `test_langs` (`tests/test_langs.py`) | Language registry and translator per language; Portuguese text rules; streaming detects the language first and waits for enough confidence; modes and detection (the preferred language is only transcribed, switching mode deletes nothing); old transcripts without a language keep working; `sub_en` migrates to `sub_orig`. |
 | `test_security` (`tests/test_security.py`) | Saved JSON leaves a copy and recovers if damaged; signing in always gives a new token; an odd id never points outside the library; the WebSocket rejects unmasked frames, stray continuations, long control frames and unknown opcodes. |
 
 ## Measurement tools
@@ -186,6 +187,21 @@ Labs: `rtx4060-8g` (this machine, no limits), `gpu-6g`, `gpu-4g`, `gpu-2g` (ball
 <Aside type="caution">
 The labs need the GPU to themselves: with another Translay instance processing in parallel, the first run gave 0.33× on `calidad` where a clean run gives 2.2×. Close Translay and anything else that uses the GPU before running them.
 </Aside>
+
+### Language labs
+
+They measure each language with [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): the same sentences read in each language, with their text; the Spanish is Latin American (`es_419`), so it works as the reference translation. `python tools/lab/langs_data.py` downloads it to `data/labs/languages/fleurs/` (about 250 MB per language with audio) and results go in `data/labs/languages/`, outside git. The [translator per language](../../how-it-works/languages/#a-translator-per-language) and the light-profile warning in [Performance](../../guide/performance/) came out of these.
+
+| Tool | What it measures |
+|---|---|
+| `langs_mt.py` | Translators per language pair: chrF against the reference (alone and with Translay's text rules), ms per sentence one at a time, sentences per second in batches of 24, VRAM, and typical video sentences side by side for reading. |
+| `langs_asr.py` | Whisper per language: word error rate (WER), language-detection accuracy and latency, and speed; `--noise babble:5 pink:5` mixes in chatter in other languages or pink noise at that signal-to-noise ratio. |
+
+```sh
+python tools/lab/langs_mt.py --pair pt-es --models opus-itc nllb-1.3b madlad-3b
+python tools/lab/langs_asr.py --langs en pt es --models large-v3-turbo:float16 small:int8_float16 -n 120
+python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
+```
 
 <Aside>
 `samples/`, `data/` and `.venvs/` are not in git: the test videos are generated with `make_dialogue.py` or `make_sample.ps1`, and the engine environments are installed separately (see [Installation](../../getting-started/install/)).

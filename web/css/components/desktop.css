@@ -8,6 +8,20 @@
 .win-controls { flex: none; display: flex; align-items: center; gap: 2px; margin-left: var(--s2); padding-left: var(--s2); box-shadow: -1px 0 0 var(--line); }
 .btn.icon.win-btn svg, #theme-btn svg { display: block; }
 .win-btn#win-close:hover { background: var(--danger); color: #fff; }
+/* la barra de título suma ~210 px (Preferencias, tema y ventana): la búsqueda cede su lugar y los
+   botones pasan a solo íconos antes que en el navegador, así los controles de la ventana nunca se cortan */
+html.desktop .bar .search { min-width: 0; }
+html.desktop .bar .vault-btn { max-width: 220px; }
+html.desktop .bar .vault-btn .btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1440px) {
+  html.desktop .bar .status span { display: none; }
+  html.desktop .bar > .btn:not(.icon) .btn-text, html.desktop .queue-wrap > .btn .btn-text { display: none; }
+  html.desktop .bar > .btn:not(.icon), html.desktop .queue-wrap > .btn { min-width: var(--h-md); padding: 0 11px; gap: 4px; }
+}
+@media (max-width: 1000px) {
+  html.desktop .bar .import-wrap > .btn .btn-text { display: none; }
+  html.desktop .bar .import-wrap > .btn { min-width: var(--h-md); padding: 0 11px; }
+}
 /* íconos de la barra (Preferencias, claro/oscuro, ventana): todos iguales; lo activo y el foco se marcan
    solo con tono, sin anillos ni bordes */
 html.desktop .bar .btn.icon.on, html.desktop .bar .btn.icon.on:hover { background: var(--surface-2); color: var(--fg); box-shadow: none; }
@@ -23,3 +37,8 @@ html.desktop.maximized::after { content: none; }
 /* Preferencias › App de escritorio */
 .desk-rows .set-ctl { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); }
 .desk-rows .desk-path { overflow-wrap: anywhere; }
+/* notas de la versión nueva, bajo «Actualizar» */
+.upd-notes { display: grid; gap: var(--s1); padding: var(--s4) 0 0; border-top: 1px solid var(--line); }
+.upd-notes strong { margin-top: var(--s2); font: 700 var(--fs-sm)/1.4 var(--font); color: var(--fg); }
+.upd-notes strong:first-child { margin-top: 0; }
+.upd-notes p { margin: 0; max-width: 760px; font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
