@@ -4,6 +4,12 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Exporting several videos: the `.zip` uses folders like the sidebar. From a channel, collection, playlist or category everything goes in one folder with its name; from «Todos», «Recientes» or a search, «Carpetas» (Folders) chooses one folder per channel (the default), collection or playlist, or none. The API takes `"layout"` and `"folder"`.
+
 ## 1.7.1 · 2026-11-01
 
 ### Changed

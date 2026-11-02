@@ -39,6 +39,20 @@ Al marcar un audio, «Formato del audio» deja elegir **M4A** (AAC, 160 kbps) o 
 
 Si el resultado es un solo archivo, se descarga tal cual, con el título del video en el nombre. Si son varios (varios videos o varios tipos), van juntos en un `.zip`.
 
+Al exportar varios videos, el `.zip` usa carpetas como los grupos del aside:
+
+- **Desde un canal, colección, playlist o categoría** (su botón de exportar, «Exportar todo…» en su menú o los videos que elegiste dentro), todo va en una carpeta con su nombre: `Anthropic/…`. No hay nada que elegir.
+- **Desde Todos, Recientes o una búsqueda**, los videos pueden venir de muchos lados, así que «Carpetas» deja elegir, y el navegador recuerda lo que elegiste:
+
+| Opción | Dentro del `.zip` |
+| --- | --- |
+| Canales (la de siempre) | Una carpeta por canal: `Anthropic/…`, `Otro canal/…`. Los videos sin canal (archivos, grabaciones) van a `Sin canal`. |
+| Colecciones | Una carpeta por cada colección tuya. Un video que está en varias va a la primera; uno que no está en ninguna, a `Sin colección`. |
+| Playlists | Una carpeta por playlist importada; el resto va a `Sin playlist`. |
+| Sin carpetas | Todos los archivos en la raíz. |
+
+Solo aparecen los grupos a los que pertenecen los videos elegidos (sin playlists, no hay «Playlists»). Las categorías no son una opción: un video suele tener varias, y ningún archivo se repite. La API acepta `"layout": "flat|channel|collection|playlist|folder"` (flat, si no lo indicas) y, con `folder`, el nombre de la carpeta en `"folder"`.
+
 Un lote convierte varios videos a la vez (hasta seis, la mitad de los hilos de tu procesador) y cada archivo entra al `.zip` apenas está listo, así que en el disco queda solo el `.zip` y no además una copia suelta de cada archivo. Si cancelas, se borra lo que se había hecho.
 
 El avance se ve en el panel «Cola», en la sección «Exportar», y la descarga empieza sola al terminar en la pestaña que la pidió. Si la cerraste, el archivo queda en el panel con «Descargar» mientras el servidor siga corriendo. Al arrancar, el servidor borra las exportaciones de más de un día.

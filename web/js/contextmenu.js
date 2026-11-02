@@ -118,7 +118,7 @@ function collMenu(c) {
       playItem(first);
     } },
     canImport() && ["propia", "categoría", "playlist"].includes(c.kind) && { label: "Agregar aquí…", icon: "plus", onClick: () => openMulti("", c.id) },
-    c.items?.length && { label: "Exportar todo…", icon: "download", onClick: () => openExport(c.items, c.name) },
+    c.items?.length && { label: "Exportar todo…", icon: "download", onClick: () => openExport(c.items, c.name, c) },
     "sep",
     !auto && c.kind !== "canal" && { label: "Otro patrón", icon: "shuffle", onClick: () => { reshufflePattern(c.id); renderLibrary(); } },
     c.kind === "playlist" && c.url && { label: "Abrir en YouTube", icon: "external", onClick: () => window.open(c.url, "_blank", "noopener") },

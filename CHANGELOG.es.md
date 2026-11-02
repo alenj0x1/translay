@@ -4,6 +4,12 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Exportar varios videos: el `.zip` usa carpetas como el aside. Desde un canal, colección, playlist o categoría, todo va en una carpeta con su nombre; desde «Todos», «Recientes» o una búsqueda, «Carpetas» elige una carpeta por canal (la de siempre), colección o playlist, o ninguna. La API acepta `"layout"` y `"folder"`.
+
 ## 1.7.1 · 2026-11-01
 
 ### Cambiado

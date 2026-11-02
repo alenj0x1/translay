@@ -39,6 +39,20 @@ When you check an audio option, **Formato del audio** (Audio format) lets you ch
 
 If the result is a single file, it downloads as is, with the video title in the name. If there are several (several videos or several types), they come together in a `.zip`.
 
+When you export several videos, the `.zip` uses folders like the groups in the sidebar:
+
+- **From a channel, collection, playlist or category** (its export button, «Exportar todo…» in its menu, or videos you picked inside it), everything goes in one folder with its name: `Anthropic/…`. There's nothing to choose.
+- **From Todos, Recientes or a search**, the videos can come from many places, so **Carpetas** (Folders) lets you choose, and the browser remembers your choice:
+
+| Option | Inside the `.zip` |
+| --- | --- |
+| **Canales** (Channels, the default) | One folder per channel: `Anthropic/…`, `Another channel/…`. Videos without a channel (files, recordings) go to `Sin canal`. |
+| **Colecciones** (Collections) | One folder per collection of yours. A video in several goes to the first one; one in none goes to `Sin colección`. |
+| **Playlists** | One folder per imported playlist; the rest go to `Sin playlist`. |
+| **Sin carpetas** (No folders) | Every file at the top. |
+
+Only the groups the chosen videos belong to show up (no playlists, no **Playlists**). Categories aren't an option: a video usually has several, and no file is repeated. The API takes `"layout": "flat|channel|collection|playlist|folder"` (flat by default) and, with `folder`, the folder's name in `"folder"`.
+
 A batch converts several videos at once (up to six, half of your processor's threads), and each file goes into the `.zip` as soon as it's ready, so the disk only holds the `.zip` and not a loose copy of each file too. If you cancel, what had been made is deleted.
 
 Progress shows in the **Cola** panel, in the **Exportar** section, and the download starts on its own when it finishes in the tab that requested it. If you closed it, the file stays in the panel with **Descargar** (Download) as long as the server keeps running. On startup, the server deletes exports older than a day.

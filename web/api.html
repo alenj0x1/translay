@@ -63,7 +63,7 @@
       <tr><td>post</td><td>/api/v1/queue</td><td><code>{"video": "yt_…", "priority": true}</code></td></tr>
       <tr><td>delete</td><td>/api/v1/queue/{id}</td><td>Lo quita de la cola</td></tr>
       <tr><td>post</td><td>/api/v1/queue/pause · /resume</td><td>Pausa o reanuda el procesamiento (clave de escritura para todas)</td></tr>
-      <tr><td>post</td><td>/api/v1/exports</td><td><code>{"videos": ["yt_…"], "kinds": ["es_video", "es_audio", "orig_video", "orig_audio", "srt_es", "srt_orig", "txt"], "audio": "m4a | mp3"}</code></td></tr>
+      <tr><td>post</td><td>/api/v1/exports</td><td><code>{"videos": ["yt_…"], "kinds": ["es_video", "es_audio", "orig_video", "orig_audio", "srt_es", "srt_orig", "txt"], "audio": "m4a | mp3", "layout": "flat | channel | collection | playlist | folder", "folder": "…"}</code></td></tr>
       <tr><td>get</td><td>/api/v1/exports/{id}</td><td>Estado; al terminar, <code>url</code> para descargar</td></tr>
       <tr><td>get</td><td>/api/v1/events</td><td>Eventos disponibles para los webhooks</td></tr>
     </table></div>

@@ -353,7 +353,7 @@ function renderShelfHead(c) {
           lib.picked.clear();
           renderLibrary();
         } }),
-        btn("Exportar", { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`) }),
+        btn("Exportar", { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`, c) }),
         audioOnly(pickedIn(c)).length ? btn(`Bajar video (${audioOnly(pickedIn(c)).length})`, { icon: "film", cls: "import-only",
           title: "De los elegidos que solo tienen el audio, bajar el video completo",
           onClick: () => { send({ type: "queue_video", videos: audioOnly(pickedIn(c)) }); lib.picked.clear(); renderLibrary(); } }) : null,
@@ -388,8 +388,8 @@ function renderShelfHead(c) {
     // con parte sin bajar: solo lo descargado (exportar el resto lo bajaría de YouTube uno por uno);
     // la colección entera sigue en el menú contextual («Exportar todo…»)
     if (got.length && got.length < c.items.length) {
-      acts.append(btn(`Exportar descargados (${got.length})`, { icon: "download", onClick: () => openExport(got, `${c.name} (descargados)`) }));
-    } else acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name) }));
+      acts.append(btn(`Exportar descargados (${got.length})`, { icon: "download", onClick: () => openExport(got, `${c.name} (descargados)`, c) }));
+    } else acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name, c) }));
     const ao = audioOnly(c.items);
     if (ao.length) acts.append(btn(`Bajar video de ${ao.length === 1 ? "1 que" : `${ao.length} que`} solo ${ao.length === 1 ? "tiene" : "tienen"} audio`, {
       icon: "film", cls: "import-only", onClick: async () => {
@@ -942,8 +942,16 @@ $("#queue-clear").addEventListener("click", () => {
 
 /* ------------------------------------------------------------ exportar */
 let exportVideos = [];
-function openExport(ids, name = "") {
+let exportFolder = "";  // exportado desde un canal, colección o playlist: todo en una carpeta con su nombre
+function openExport(ids, name = "", coll = null) {
   exportVideos = ids.filter((id) => lib.videos[id]);
+  exportFolder = coll && coll.kind !== "auto" ? coll.name : "";
+  // solo los grupos que hay en el aside: sin colecciones o sin playlists, esa opción no aparece
+  for (const b of $("#export-layout").querySelectorAll(".seg")) {
+    const kind = { collection: "propia", playlist: "playlist" }[b.dataset.layout];
+    b.hidden = !!kind && !lib.collections.some((c) => c.kind === kind && c.items.some((i) => exportVideos.includes(i)));
+  }
+  setExportLayout(exportPref);
   if (!exportVideos.length) return;
   const one = exportVideos.length === 1;
   const first = lib.videos[exportVideos[0]];
@@ -957,6 +965,7 @@ function updateExportNote() {
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   $("#export-go").disabled = !kinds.length;
   $("#export-audio").hidden = !kinds.some((k) => k.endsWith("_audio"));
+  $("#export-layout").hidden = exportVideos.length < 2 || !!exportFolder;  // uno solo no lleva carpetas
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
     ? vs.filter((v) => translatesV(v) && !(v.progress && v.progress.dub >= 0.99)).length : 0;
@@ -990,10 +999,26 @@ $("#export-audio").addEventListener("click", (e) => {
   setExportAudio(b.dataset.fmt);
   try { localStorage.setItem("vt-export-audio", exportAudio); } catch {}
 });
+// carpetas del .zip (desde Todos, Recientes o una búsqueda), como los grupos del aside; se recuerda en este navegador
+let exportLayout = "channel", exportPref = "channel";  // la que se usa · la elegida (si ese grupo no está, Canales)
+function setExportLayout(v) {
+  exportLayout = ["flat", "collection", "playlist"].includes(v) ? v : "channel";
+  if ($(`#export-layout .seg[data-layout="${exportLayout}"]`)?.hidden) exportLayout = "channel";
+  for (const b of $("#export-layout").querySelectorAll(".seg")) b.classList.toggle("on", b.dataset.layout === exportLayout);
+}
+try { exportPref = localStorage.getItem("vt-export-layout") || "channel"; } catch {}
+setExportLayout(exportPref);
+$("#export-layout").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (!b) return;
+  setExportLayout(exportPref = b.dataset.layout);
+  try { localStorage.setItem("vt-export-layout", exportPref); } catch {}
+});
 $("#export-dlg").addEventListener("close", () => {
   if ($("#export-dlg").returnValue !== "ok") return;
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
-  if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name, audio: exportAudio });
+  if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name, audio: exportAudio,
+    layout: exportVideos.length < 2 ? "flat" : exportFolder ? "folder" : exportLayout, folder: exportFolder });
 });
 $("#export-btn").addEventListener("click", () => { if (state.videoId) openExport([state.videoId]); });
 

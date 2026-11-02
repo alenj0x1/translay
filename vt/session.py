@@ -16,7 +16,7 @@ Cliente → servidor
                                                      mode: "translate", "transcribe" o "" (según el idioma propio)
   {"type":"video_lang", "video", "lang"?, "mode"?}   idioma en que se habla (rehace lo reconocido) y/o
                                                      traducir o solo transcribir (no borra nada)
-  {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3"}  exportar (vt/exporter.py) · export_remove
+  {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder"}  exportar (vt/exporter.py) · export_remove
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
   trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}   papelera
@@ -768,7 +768,8 @@ class Session:
             vids = [str(v) for v in m.get("videos", [])
                     if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
             job = self.exporter.add(vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120],
-                                    str(m.get("audio") or "m4a"))
+                                    str(m.get("audio") or "m4a"), str(m.get("layout") or "flat"),
+                                    str(m.get("folder", ""))[:120])
             self._my_exports.add(job["id"])
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:

@@ -506,3 +506,53 @@ def test_export_mp3_and_skips_unavailable():
                 break
             time.sleep(0.1)
         assert one["state"] == "error" and "ya no está disponible" in one["error"]
+
+
+def test_export_folders_by_channel_and_collection():
+    """Un lote de varios canales: carpetas como los grupos del aside, o una sola con el nombre de lo exportado."""
+    import subprocess
+    import time
+    import zipfile
+
+    from vt.exporter import Exporter
+    from vt.library import Library
+
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        (root / "youtube").mkdir()
+        lib = Library(root / "library.json")
+        for vid, title, channel in (("yt_aaaaaaaaaaa", "Uno", "Anthropic"), ("yt_bbbbbbbbbbb", "Dos", "Otro: canal"),
+                                    ("yt_ccccccccccc", "Tres", "")):
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=d=1", "-c:a", "aac",
+                            str(root / "youtube" / f"{vid[3:]}.m4a")], check=True)
+            lib.data["videos"][vid] = {"id": vid, "source": "youtube", "title": title, "channel": channel,
+                                       "media": f"/media/yt/{vid[3:]}.m4a", "audio": f"/media/yt/{vid[3:]}.m4a"}
+        lib.data["collections"] = [{"id": "p1", "name": "Lista", "kind": "playlist", "items": ["yt_bbbbbbbbbbb"]},
+                                   {"id": "c1", "name": "Charlas", "items": ["yt_aaaaaaaaaaa", "yt_bbbbbbbbbbb"]},
+                                   {"id": "c2", "name": "Otra", "items": ["yt_aaaaaaaaaaa"]}]
+        ex = Exporter(root, None, lib, None, None, type("P", (), {"values": {}})(), lambda m: None)
+        vids = ["yt_aaaaaaaaaaa", "yt_bbbbbbbbbbb", "yt_ccccccccccc"]
+        names = {}
+        for layout in ("flat", "channel", "collection", "playlist", "folder"):
+            job = ex.add(vids, ["orig_audio"], "Todos (3)", layout=layout, folder="Todos" if layout == "folder" else "")
+            for _ in range(100):
+                if job["state"] in ("listo", "error"):
+                    break
+                time.sleep(0.1)
+            assert job["state"] == "listo", job["error"]
+            with zipfile.ZipFile(root / "exports" / job["id"] / "export.zip") as z:
+                names[layout] = sorted(z.namelist())
+        assert names["flat"] == ["Dos (audio original).m4a", "Tres (audio original).m4a", "Uno (audio original).m4a"]
+        assert names["channel"] == ["Anthropic/Uno (audio original).m4a", "Otro canal/Dos (audio original).m4a",
+                                    "Sin canal/Tres (audio original).m4a"]
+        assert names["collection"] == ["Charlas/Dos (audio original).m4a", "Charlas/Uno (audio original).m4a",
+                                       "Sin colección/Tres (audio original).m4a"]
+        assert names["playlist"] == ["Lista/Dos (audio original).m4a", "Sin playlist/Tres (audio original).m4a",
+                                     "Sin playlist/Uno (audio original).m4a"]
+        assert names["folder"] == ["Todos/Dos (audio original).m4a", "Todos/Tres (audio original).m4a",
+                                   "Todos/Uno (audio original).m4a"]
+        try:
+            ex.add(vids, ["orig_audio"], layout="carpetas")
+            raise AssertionError("debió rechazar el layout")
+        except ValueError:
+            pass

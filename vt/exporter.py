@@ -17,7 +17,8 @@ voz, el original queda a volumen normal. Se arma por bloques (un video largo no
 pasa entero por memoria) con ffmpeg en la CPU: no usa la GPU.
 
 Lo traducido espera a que el doblaje termine (el video entra a la cola si
-hace falta). Un solo archivo se entrega tal cual; varios, en un .zip. Si un
+hace falta). Un solo archivo se entrega tal cual; varios, en un .zip, sueltos
+o en carpetas como los grupos de la biblioteca (`layout`). Si un
 video de un lote no se puede exportar (p. ej. ya no está en YouTube y no tiene
 copia en el equipo), se omite y el resto sigue; el .zip lleva «omitidos.txt».
 """
@@ -54,6 +55,10 @@ KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
          "orig_video": ("original", "mp4"), "orig_audio": ("audio original", "m4a")}
 AUDIO_CODEC = {"m4a": ["-c:a", "aac", "-b:a", "160k"], "mp3": ["-c:a", "libmp3lame", "-b:a", "192k"]}
 AUDIO_FORMATS = tuple(AUDIO_CODEC)
+# carpetas del .zip, como los grupos de la biblioteca: ninguna, una por canal, por colección propia
+# o por playlist (la primera que tenga el video; las categorías no, un video suele tener varias)
+# y «folder»: todo en una sola carpeta (lo exportado desde un canal, colección o playlist)
+LAYOUTS = ("flat", "channel", "collection", "playlist", "folder")
 
 
 def reason(e: Exception) -> str:
@@ -102,7 +107,8 @@ class Exporter:
         threading.Thread(target=self._loop, daemon=True).start()
 
     # ------------------------------------------------------------------ API
-    def add(self, videos: list[str], kinds: list[str], name: str = "", audio: str = "m4a") -> dict:
+    def add(self, videos: list[str], kinds: list[str], name: str = "", audio: str = "m4a",
+            layout: str = "flat", folder: str = "") -> dict:
         videos = [v for v in dict.fromkeys(videos) if v in self.library.data["videos"]]
         kinds = [ALIASES.get(k, k) for k in kinds]
         kinds = [k for k in KINDS if k in kinds]
@@ -110,10 +116,12 @@ class Exporter:
             raise ValueError("nada que exportar")
         if audio not in AUDIO_FORMATS:
             raise ValueError("audio: " + ", ".join(AUDIO_FORMATS))
+        if layout not in LAYOUTS:
+            raise ValueError("layout: " + ", ".join(LAYOUTS))
         if not name:
             name = self.library.data["videos"][videos[0]].get("title", "video") if len(videos) == 1 else "videos"
         job = {"id": uuid.uuid4().hex[:10], "name": name, "videos": videos, "kinds": kinds, "audio": audio,
-               "state": "en espera", "pct": 0, "detail": "", "url": "", "error": "", "skipped": [],
+               "layout": layout, "folder": folder, "state": "en espera", "pct": 0, "detail": "", "url": "", "error": "", "skipped": [],
                "added": time.time()}
         with self._cond:
             self.jobs.append(job)
@@ -217,10 +225,12 @@ class Exporter:
                 got = fut.result()
             except Exception as e:
                 return skip(vid, v, e)
+            folder = self._folder(job, vid, v)
             for f, arc in got:
                 if z is None:
                     files.append((f, arc))
                     continue
+                arc = f"{folder}/{arc}" if folder else arc
                 stem, ext, n = arc.rsplit(".", 1)[0], arc.rsplit(".", 1)[1], 2
                 while arc in used:
                     arc, n = f"{stem} ({n}).{ext}", n + 1
@@ -295,6 +305,20 @@ class Exporter:
         self._set(job, state="listo", pct=100, detail="", url=f"{url}?dl={quote(name)}")
         events.emit("exportacion.lista", self._job_vault(job), job=job["id"], name=job["name"], url=job["url"],
                     videos=job["videos"], kinds=job["kinds"])
+
+    def _folder(self, job, vid, v) -> str:
+        """La carpeta del video dentro del .zip ("" = en la raíz)."""
+        layout = job.get("layout", "flat")
+        if layout == "channel":
+            return safe_name(v.get("channel") or "") if v.get("channel") else "Sin canal"
+        if layout in ("collection", "playlist"):
+            kind = "propia" if layout == "collection" else "playlist"
+            c = next((c for c in self.library.data.get("collections", [])
+                      if c.get("kind", "propia") == kind and vid in c.get("items", []) and c.get("name")), None)
+            return safe_name(c["name"]) if c else ("Sin colección" if kind == "propia" else "Sin playlist")
+        if layout == "folder":
+            return safe_name(job.get("folder") or job["name"])
+        return ""
 
     def _job_vault(self, job):
         v = self.vaults.of(job["videos"][0]) if self.vaults and job["videos"] else None
