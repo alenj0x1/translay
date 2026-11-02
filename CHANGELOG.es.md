@@ -9,9 +9,8 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 ### Agregado
 
 - Exportar: elegir la calidad del audio («Alta», «Media» o «Liviana», esta en mono) y Opus como tercer formato, además de M4A y MP3; el diálogo muestra cuánto va a pesar. Los videos se pueden exportar en 480p o 360p. La API acepta `"quality"` y `"video"`.
-- Exportar: «Guardar en» guarda directo en una carpeta de este equipo, también en otro disco, sin pasar por el disco de los datos ni dejar una segunda copia, y varios archivos van sueltos en carpetas en vez de un `.zip` (listos para un pendrive); «Mostrar en la carpeta» la abre en el Explorador. La API acepta `"dest"` (solo el dueño).
+- Exportar: «Guardar en» guarda directo en una carpeta de este equipo, también en otro disco, sin pasar por el disco de los datos ni dejar una segunda copia, y varios archivos van sueltos en carpetas en vez de un `.zip` (listos para un pendrive); «Mostrar en la carpeta» la abre en el Explorador. La API acepta `"dest"` (solo el dueño, desde este equipo).
 - Preferencias › Almacenamiento: cuánto ocupan las descargas, los modelos, la voz en español, la papelera y lo demás, con el espacio libre de cada disco; libera las descargas que nunca se tradujeron, las más pesadas una por una, los modelos (cada uno con para qué sirve, qué perfiles lo usan y cuándo se usó por última vez), los archivos sueltos, la papelera, las exportaciones y la caché de instalación de la app de escritorio.
-
 - Perfiles y modelos: el instalador de la app de escritorio pide el perfil después de instalar el servidor (con el recomendado marcado y cuánto descarga cada uno), instala el motor de voz solo si el perfil lo usa y baja sus modelos, así Translay abre listo. Al elegir otro perfil se dice qué modelos faltan y cuánto pesan antes de reiniciar, se bajan al reiniciar (y la app instala el motor de voz si hace falta) y se pueden borrar los que el perfil nuevo no usa.
 
 ### Arreglado
