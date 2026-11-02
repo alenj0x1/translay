@@ -23,13 +23,14 @@ JSON files are written atomically: first a `.tmp` next to it, then the original 
 
 - data/
   - prefs.json general preferences (`vt/prefs.py`)
+  - models.json when each model was last used, for Preferences › Storage (`vt/modelusage.py`)
   - queue.json processing queue: jobs, state, pause (`vt/processor.py`)
   - auth.json owner password (scrypt), sessions (SHA-256 of the token), API keys (SHA-256) and network access (`vt/auth.py`)
   - webhooks.json webhooks with their URL, events, library and signing secret (`vt/webhooks.py`)
   - cookies.txt YouTube session in Netscape format, only YouTube and Google cookies (`vt/cookies.py`)
   - yt-session/ connected YouTube account: Translay's own browser profile, the youtube.com cookies encrypted with DPAPI (`cookies.bin`) and when it was renewed (`session.json`) (`vt/ytsession.py`)
   - libraries.json list of libraries (id and absolute path) and the last one opened (`vt/vaults.py`)
-  - exports/ exports ready to download; at startup anything older than 24 h is deleted
+  - exports/ exports ready to download; deleted when removed from the Queue panel, or after 24 h (`vt/exporter.py`)
   - libraries/ default folder for new libraries
     - \<library\>/
   - youtube/

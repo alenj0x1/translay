@@ -16,16 +16,30 @@ En el cuadro de exportar marcas cualquier combinación de:
 | Opción | Formato | Contenido |
 |---|---|---|
 | Video traducido | MP4 | La voz en español como pista principal, el original como segunda pista (marcada con su idioma real, p. ej. `por`) y subtítulos en español y en el idioma original que se activan en el reproductor. |
-| Audio traducido | M4A o MP3 | La mezcla en español. |
+| Audio traducido | M4A, MP3 u Opus | La mezcla en español. |
 | Video original | MP4 | El video tal como se descargó o importó. |
-| Audio original | M4A o MP3 | La pista de audio original. |
+| Audio original | M4A, MP3 u Opus | La pista de audio original. |
 | Subtítulos en español | SRT | La traducción, con sus tiempos. |
 | Subtítulos del original | SRT | Lo que se dice, en el idioma del video; el archivo lleva su código (`.en.srt`, `.pt.srt`…). |
 | Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), lo que se dice, su traducción (solo si el video se traduce) y los comentarios. |
 
 La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Preferencias › Audio y subtítulos › «Original bajo la voz en español». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
 
-Al marcar un audio, «Formato del audio» deja elegir **M4A** (AAC, 160 kbps) o **MP3** (192 kbps, suena en cualquier equipo o radio del auto). El navegador recuerda lo que elegiste. El video traducido siempre lleva AAC dentro del MP4.
+Al marcar un audio, la fila «Audio» elige el formato y la calidad. El navegador recuerda los dos.
+
+| Calidad | M4A (AAC) | MP3 | Opus | Más o menos |
+| --- | --- | --- | --- | --- |
+| **Alta** (la de siempre) | 160 kbps | 192 kbps | 128 kbps | 58–86 MB por hora |
+| **Media** | 96 kbps | 128 kbps | 64 kbps | 29–58 MB por hora |
+| **Liviana** | 64 kbps, mono | 64 kbps, mono | 32 kbps, mono | 14–29 MB por hora |
+
+MP3 suena en cualquier equipo o radio del auto, pero es el que más pesa de los tres; Opus es el más chico y suena bien incluso en «Liviana», aunque algunos reproductores viejos no lo abren. Para una voz, «Liviana» alcanza. El audio original en «Alta» y en su mismo formato se entrega tal cual (el de YouTube es AAC a 128 kbps). El diálogo muestra cuánto va a pesar el audio, más o menos, antes de exportar.
+
+Al marcar un video, la fila «Video» elige **Original** (se copia tal cual, hasta 720p, rápido) o **480p** o **360p**, recodificado con H.264 en la CPU: mucho más chico, pero tarda más o menos lo que dura el video. Un video que ya es más bajo queda como está. El video traducido siempre lleva AAC dentro del MP4, en la calidad de audio elegida.
+
+## Dónde se guarda
+
+Desde el equipo donde corre Translay, «Guardar en» elige entre **Descargas** (el navegador lo descarga como siempre) y una carpeta: «Elegir carpeta» abre el cuadro de Windows y puede ser otro disco. Con una carpeta, todo se arma dentro de ella (en una carpeta temporal `.translay-exportando-…`) y el resultado se mueve ahí: no pasa por el disco de tus datos ni deja una segunda copia. Varios archivos no van en un `.zip` sino sueltos, en una carpeta con el nombre de lo exportado y las mismas subcarpetas que tendría el `.zip` (una por canal, colección…): se reproducen directo desde un pendrive, y uno en FAT32 no admite archivos de más de 4 GB. Si ya hay un archivo o carpeta con ese nombre, se guarda como `nombre (2)`. Al terminar, «Mostrar en la carpeta» abre el Explorador con el archivo marcado. Desde otros equipos la opción no está: el archivo se descarga. La API acepta `"dest"` (solo el dueño).
 
 ## Desde dónde
 
@@ -55,7 +69,7 @@ Solo aparecen los grupos a los que pertenecen los videos elegidos (sin playlists
 
 Un lote convierte varios videos a la vez (hasta seis, la mitad de los hilos de tu procesador) y cada archivo entra al `.zip` apenas está listo, así que en el disco queda solo el `.zip` y no además una copia suelta de cada archivo. Si cancelas, se borra lo que se había hecho.
 
-El avance se ve en el panel «Cola», en la sección «Exportar», y la descarga empieza sola al terminar en la pestaña que la pidió. Si la cerraste, el archivo queda en el panel con «Descargar» mientras el servidor siga corriendo. Al arrancar, el servidor borra las exportaciones de más de un día.
+El avance se ve en el panel «Cola», en la sección «Exportar», y la descarga empieza sola al terminar en la pestaña que la pidió. Si la cerraste, el archivo queda en el panel con «Descargar» mientras el servidor siga corriendo. Su copia en el servidor se borra al quitarla del panel (o con «Limpiar») y, si no, a las 24 horas; también se pueden borrar en [Almacenamiento](../storage/). Guardada en una carpeta, no queda nada en el servidor.
 
 ## Si el video aún no está listo
 

@@ -956,7 +956,7 @@ function openExport(ids, name = "", coll = null) {
   const one = exportVideos.length === 1;
   const first = lib.videos[exportVideos[0]];
   $("#export-title").textContent = one ? first.title || first.id : name || `${exportVideos.length} videos`;
-  $("#export-sub").textContent = one ? "" : `${exportVideos.length} videos · un archivo .zip`;
+  $("#export-sub").textContent = one ? "" : `${exportVideos.length} videos · ${exportUseDest && exportDest ? "en una carpeta" : "un archivo .zip"}`;
   $("#export-form").dataset.name = one ? "" : name || "videos";
   updateExportNote();
   $("#export-dlg").showModal();
@@ -965,6 +965,8 @@ function updateExportNote() {
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   $("#export-go").disabled = !kinds.length;
   $("#export-audio").hidden = !kinds.some((k) => k.endsWith("_audio"));
+  $("#export-video").hidden = !kinds.some((k) => k.endsWith("_video"));
+  $("#export-dest").hidden = !(state.access?.local && state.access?.owner);  // una carpeta de este equipo
   $("#export-layout").hidden = exportVideos.length < 2 || !!exportFolder;  // uno solo no lleva carpetas
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
@@ -982,23 +984,71 @@ function updateExportNote() {
     : `${needText} aún sin transcripción completa: se exportan al terminar`);
   if (needDub) parts.push(exportVideos.length === 1 ? "el doblaje aún no termina: se exporta al terminar"
     : `${needDub} aún sin doblaje completo: se exportan al terminar`);
+  // lo que más se achica con la calidad: el audio suelto (≈ kbps × 0,45 MB por hora)
+  const nAudio = kinds.filter((k) => k.endsWith("_audio")).length;
+  const secs = vs.reduce((n, v) => n + (v.duration || 0), 0);
+  if (nAudio && secs) parts.push(`audio ≈ ${fmtBytes(nAudio * secs * AUDIO_KBPS[exportAudio][exportQuality] * 125)}`);
   $("#export-note").textContent = parts.join(" · ");
+  $("#export-note").textContent = $("#export-note").textContent.replace(/^./, (c) => c.toUpperCase());
 }
 $("#export-form").addEventListener("change", updateExportNote);
-// formato del audio suelto (traducido y original); se recuerda en este navegador
-let exportAudio = "m4a";
-function setExportAudio(fmt) {
-  exportAudio = fmt === "mp3" ? "mp3" : "m4a";
-  for (const b of $("#export-audio").querySelectorAll(".seg")) b.classList.toggle("on", b.dataset.fmt === exportAudio);
-  for (const s of $("#export-form").querySelectorAll(".audio-fmt")) s.textContent = exportAudio.toUpperCase();
+// formato y calidad del audio suelto (traducido y original), calidad del video y carpeta donde
+// se guarda; se recuerdan en este navegador (vt/exporter.py: AUDIO_CODEC, VIDEO_HEIGHT)
+const AUDIO_KBPS = { m4a: { alta: 160, media: 96, liviana: 64 }, mp3: { alta: 192, media: 128, liviana: 64 },
+  opus: { alta: 128, media: 64, liviana: 32 } };
+let exportAudio = "m4a", exportQuality = "alta", exportVideoQ = "original", exportDest = "", exportUseDest = false;
+const rememberExport = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const recallExport = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+function syncExportOpts() {
+  const seg = (row, key, value) => { for (const b of $(row).querySelectorAll(".seg")) b.classList.toggle("on", b.dataset[key] === value); };
+  seg("#export-fmt", "fmt", exportAudio);
+  seg("#export-quality", "q", exportQuality);
+  seg("#export-video", "v", exportVideoQ);
+  for (const s of $("#export-form").querySelectorAll(".audio-fmt")) s.textContent = exportAudio === "opus" ? "Opus" : exportAudio.toUpperCase();
+  const folder = $("#export-dest-folder");
+  // la carpeta: sus dos últimas partes (la ruta entera al pasar el mouse)
+  setBtn(folder, exportDest ? exportDest.split(/[\\/]/).filter(Boolean).slice(-2).join("\\") : "Elegir carpeta", "folder");
+  folder.title = exportDest || "";
+  seg("#export-dest", "dest", exportUseDest && exportDest ? "folder" : "");
+  // a una carpeta, varios archivos van sueltos (sin .zip), en una carpeta con el nombre de lo exportado
+  if (exportVideos.length > 1) $("#export-sub").textContent = `${exportVideos.length} videos · ${exportUseDest && exportDest ? "en una carpeta" : "un archivo .zip"}`;
+  updateExportNote();
 }
-try { setExportAudio(localStorage.getItem("vt-export-audio")); } catch { setExportAudio("m4a"); }
-$("#export-audio").addEventListener("click", (e) => {
+exportAudio = AUDIO_KBPS[recallExport("vt-export-audio")] ? recallExport("vt-export-audio") : "m4a";
+exportQuality = AUDIO_KBPS.m4a[recallExport("vt-export-quality")] ? recallExport("vt-export-quality") : "alta";
+exportVideoQ = ["480p", "360p"].includes(recallExport("vt-export-video")) ? recallExport("vt-export-video") : "original";
+exportDest = recallExport("vt-export-dest");
+exportUseDest = !!exportDest && recallExport("vt-export-use-dest") === "1";
+syncExportOpts();
+$("#export-fmt").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (b) { exportAudio = b.dataset.fmt; rememberExport("vt-export-audio", exportAudio); syncExportOpts(); }
+});
+$("#export-quality").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (b) { exportQuality = b.dataset.q; rememberExport("vt-export-quality", exportQuality); syncExportOpts(); }
+});
+$("#export-video").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg");
+  if (b) { exportVideoQ = b.dataset.v; rememberExport("vt-export-video", exportVideoQ); syncExportOpts(); }
+});
+$("#export-dest").addEventListener("click", (e) => {
   const b = e.target.closest(".seg");
   if (!b) return;
-  setExportAudio(b.dataset.fmt);
-  try { localStorage.setItem("vt-export-audio", exportAudio); } catch {}
+  // «Elegir carpeta» (o la ya elegida, otra vez): el cuadro de Windows, en este equipo
+  if (b.dataset.dest === "folder" && (!exportDest || exportUseDest)) return send({ type: "export_pick_folder" });
+  exportUseDest = b.dataset.dest === "folder";
+  rememberExport("vt-export-use-dest", exportUseDest ? "1" : "0");
+  syncExportOpts();
 });
+function exportFolderPicked(m) {
+  if (!m.path) return;
+  exportDest = m.path;
+  exportUseDest = true;
+  rememberExport("vt-export-dest", exportDest);
+  rememberExport("vt-export-use-dest", "1");
+  syncExportOpts();
+}
 // carpetas del .zip (desde Todos, Recientes o una búsqueda), como los grupos del aside; se recuerda en este navegador
 let exportLayout = "channel", exportPref = "channel";  // la que se usa · la elegida (si ese grupo no está, Canales)
 function setExportLayout(v) {
@@ -1018,6 +1068,7 @@ $("#export-dlg").addEventListener("close", () => {
   if ($("#export-dlg").returnValue !== "ok") return;
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name, audio: exportAudio,
+    quality: exportQuality, video: exportVideoQ, dest: exportUseDest && !$("#export-dest").hidden ? exportDest : "",
     layout: exportVideos.length < 2 ? "flat" : exportFolder ? "folder" : exportLayout, folder: exportFolder });
 });
 $("#export-btn").addEventListener("click", () => { if (state.videoId) openExport([state.videoId]); });
@@ -1033,9 +1084,9 @@ function exportsUpdate(m) {
     // lo que pidió esta pestaña se descarga solo al terminar
     if (x.state === "listo" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
       lib.delivered.add(x.id);
-      download(x);
+      if (!x.path) download(x);
       toast(x.skipped ? `Exportación lista: ${x.name} · ${x.skipped} no se pudo exportar${x.skipped > 1 ? "n" : ""} (ver omitidos.txt)`
-        : `Exportación lista: ${x.name}`, "ok");
+        : `Exportación lista: ${x.name}`, "ok", x.path ? { label: "Mostrar en la carpeta", onClick: () => revealExport(x) } : undefined);
       notifyUser("Exportación lista", x.name);
     }
     if (x.state === "error" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
@@ -1045,6 +1096,9 @@ function exportsUpdate(m) {
     }
   }
   renderQueuePanel();
+}
+function revealExport(x) {
+  send({ type: "export_reveal", job: x.id });
 }
 function download(x) {
   const a = el("a", { href: x.url, download: "" });
@@ -1263,7 +1317,8 @@ function exportItem(x) {
       meter(x.pct),
       el("small", { text: label })),
     el("div", { class: "qactions" },
-      x.state === "listo" ? btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) }) : null,
+      x.state === "listo" ? (x.path ? btn("Mostrar", { icon: "folder", size: "xs", title: x.path, onClick: () => revealExport(x) })
+        : btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) })) : null,
       btn(done ? "Quitar" : "Cancelar", { icon: "x", variant: "ghost", size: "xs", title: done ? "Quitar" : "Cancelar",
         onClick: () => send({ type: "export_remove", job: x.id }) })));
 }

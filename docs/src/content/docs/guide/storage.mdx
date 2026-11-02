@@ -1,0 +1,59 @@
+---
+title: Storage
+description: How much each thing in Translay takes, what can be freed safely and what Translay cleans up on its own.
+sidebar:
+  order: 13
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+**Preferencias › Almacenamiento** (Preferences › Storage) shows how much space Translay uses and lets you free what you no longer need. Nothing is deleted without confirming, and what you free from a download stays in the library.
+
+## Espacio usado (Space used)
+
+The total, the free space of each drive Translay uses, and a bar split by type: downloads, models, Spanish voice, texts and thumbnails, trash and loose files, and the rest.
+
+## Libraries
+
+All your libraries together; with several, each row says how much is in each one.
+
+| Row | What it is | What you can do |
+| --- | --- | --- |
+| **Descargas** (Downloads) | What was downloaded from YouTube or a link, and the files you imported. | Nothing from here: free it below. |
+| **Sin traducir** (Not translated) | Downloads that were never transcribed or translated (only from YouTube or a link, and not in the queue). | **Liberar** (Free) deletes the copy on your computer. The videos stay in the library and are downloaded again when you open or export them. |
+| **Voz en español** (Spanish voice) | The dubbed sentences of each video. | It's part of the translation: it isn't deleted from here. |
+| **Textos y miniaturas** (Texts and thumbnails) | Transcripts, each video's voices, people, thumbnails and YouTube data. | Nothing: they weigh little. |
+| **Papelera** (Trash) | What you deleted in the last 30 days. | **Vaciar** (Empty) deletes it forever. See [Trash](../trash/). |
+| **Archivos sueltos** (Loose files) | Downloads that no longer belong to any video, a download cut halfway, dubs of videos that no longer exist, and `.tmp` files left by an interrupted write. | **Borrar** (Delete). |
+
+Transcripts are never loose files: a video you opened without saving it to the library also has one.
+
+## Lo que más ocupa (What takes the most)
+
+The 40 largest downloads, with their length and whether they're translated. **Liberar** frees one: it stays in the library and is downloaded again when you open it. If it was translated, the translation and the voice are kept.
+
+<Aside>
+A YouTube audio is AAC at 128 kbps: about 58 MB per hour. A thousand two-hour sets weigh more than a hundred gigabytes, even if each one looks small.
+</Aside>
+
+## Models
+
+The models Translay downloaded (recognition, translation, voice and speaker separation). Each one says what it's for, which [profiles](../performance/) use it and when it was last used: **En uso ahora** (In use now), **Usado por última vez hace 5 días** (Last used 5 days ago) or **Sin usar desde el 2 nov** (Unused since Nov 2, the day Translay started keeping track). First come the ones in use, then the ones used before (most recent first), and last the ones never used. Those in use can't be deleted. **Borrar los que tu perfil no usa** (Delete the ones your profile doesn't use) deletes all the others at once, with the total. Before deleting another one, the confirmation repeats what it's for, when it was last used and which profiles would download it again. Use is saved in `data/models.json` (`vt/modelusage.py`), at most every 10 minutes per model. Only Translay's models are listed; other apps' models in the Hugging Face cache are never touched.
+
+## Translay
+
+- **Exportaciones para descargar** (Exports to download): what you exported and the browser downloaded. It's deleted when you remove it from the Queue panel and, if not, after 24 hours. Exports saved to a folder leave nothing here.
+- **Caché de instalación** (Installer cache, desktop app only): the packages the installer downloaded. They only make the next update faster. It shares files with the installed environments (hard links), so it only counts what is actually freed, and it's measured in the background because it has hundreds of thousands of files.
+- **Mediciones de rendimiento** (Performance measurements): `data/labs`, from development tests. Translay doesn't use them.
+- **Sesión de YouTube** (YouTube session): the separate browser you sign in to YouTube with. It's needed to download.
+
+## What Translay cleans up on its own
+
+- **Exports** to download: when you remove them from the panel, or after 24 hours (checked every hour).
+- **`.tmp` files** left by an interrupted write: on startup.
+- **The trash**: after 30 days.
+- **An export that failed or was canceled**: right away.
+
+<Aside>
+The code is in `vt/storage.py`. Only the owner sees this page.
+</Aside>

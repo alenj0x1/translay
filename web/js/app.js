@@ -127,6 +127,7 @@ function onMessage(m) {
       break;
     case "vault_error":
       toast(m.error, "warn");
+      storageError();  // web/js/storage.js
       break;
     case "vault_moved":
       toast(m.moved ? `${m.moved === 1 ? "1 video movido" : `${m.moved} videos movidos`} a «${m.to}».`
@@ -164,9 +165,12 @@ function onMessage(m) {
       if (m.videos.includes(state.videoId)) closeVideo();
       break;
     case "perf": perfUpdate(m); break;              // web/js/perf.js
+    case "perf_plan": perfPlan(m); break;
     case "restarting": restarting(m); break;
     case "trashed": trashed(m); break;              // web/js/trash.js
     case "trash": trashUpdate(m); break;
+    case "storage": storageUpdate(m); break;         // web/js/storage.js
+    case "storage_freed": storageFreed(m); break;
     case "trash_restored": trashRestored(m); break;
     case "yt_blocked":
       if (canConnectYouTube(m.account) && m.session !== "cuenta")
@@ -204,6 +208,9 @@ function onMessage(m) {
       break;
     case "exports":
       exportsUpdate(m);
+      break;
+    case "export_folder":
+      exportFolderPicked(m);
       break;
     case "export_started":
       exportStarted(m.job);
@@ -1651,6 +1658,15 @@ const PREF_BLOCKS = {
       [PERF_LIMITS, "Límites", "Cuánto del equipo puede usar Translay. La RAM y la CPU se aplican al momento."],
       [PERF_ALERTS, "Avisos", ""]];
   },
+  almacenamiento: () => {
+    storageScan();
+    renderStorage();
+    return [[STORAGE_SUMMARY, "Espacio usado", ""],
+      [STORAGE_LIBS, "Bibliotecas", "Lo que liberes de una descarga sigue en la biblioteca y se vuelve a bajar al abrirlo."],
+      [STORAGE_LARGEST, "Lo que más ocupa", ""],
+      [STORAGE_MODELS, "Modelos", "Los del perfil que usas no se pueden borrar. Los demás se vuelven a descargar si los necesitas."],
+      [STORAGE_APP, "Translay", ""]];
+  },
   papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, "En la papelera", "Cada cosa se borra sola a los 30 días de borrarla."]]; },
   acceso: () => [
     [ACC.owner, "Contraseña del dueño", "Con ella entras como dueño desde otros equipos. Desde este equipo no se pide."],
@@ -1694,7 +1710,8 @@ function renderPrefs() {
     }
     return;
   }
-  $("#stash").append(YT_ACCOUNT, YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, TRASH_BLOCK, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
+  $("#stash").append(YT_ACCOUNT, YT_IMPORT, GLOSSARY_BLOCK, VAULTS_BLOCK, TRASH_BLOCK,
+    STORAGE_SUMMARY, STORAGE_LIBS, STORAGE_LARGEST, STORAGE_MODELS, STORAGE_APP, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
     ...Object.values(ACC));  // se vuelven a poner en su página
   if (!prefsSections.length) return;
   if (!prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = prefsSections[0][0];

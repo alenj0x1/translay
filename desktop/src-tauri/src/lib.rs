@@ -38,11 +38,50 @@ fn status(state: State<'_, AppState>) -> Value {
     runtime::status(&state.paths, &state.settings())
 }
 
-/// Installs what is missing (progress arrives as `setup` events).
+/// Installs what is missing (progress arrives as `setup` events). `voice`: the chosen profile has voice (saved);
+/// without it, the last choice (or, from before profiles were chosen at setup, whenever the GPU can run it).
 #[tauri::command]
-async fn install(app: AppHandle) -> Result<(), String> {
+async fn install(app: AppHandle, voice: Option<bool>) -> Result<(), String> {
     let state = app.state::<AppState>();
-    runtime::install(app.clone(), &state.paths).await
+    let wants = {
+        let mut settings = state.settings.lock().unwrap();
+        if let Some(v) = voice {
+            settings.voice = Some(v);
+            settings.save(&state.paths)?;
+        }
+        settings.wants_voice(&runtime::detect_gpu())
+    };
+    runtime::install(app.clone(), &state.paths, wants).await
+}
+
+/// The profiles for the setup screen: the recommended one and how much each downloads (`vt.modelset profiles`).
+#[tauri::command]
+async fn profiles(state: State<'_, AppState>, data_dir: String) -> Result<Value, String> {
+    runtime::profiles(&state.paths, std::path::Path::new(&data_dir)).await
+}
+
+/// Saves the chosen profile and downloads its models (progress as `setup` events, step "models").
+#[tauri::command]
+async fn prepare(app: AppHandle, data_dir: String, profile: String) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    runtime::prepare(&app, &state.paths, std::path::Path::new(&data_dir), &profile).await
+}
+
+/// A profile with voice chosen inside Translay when the voice engine isn't installed: stops the server and goes
+/// back to the setup screen, which installs it and opens Translay again.
+#[tauri::command]
+async fn reinstall(app: AppHandle, voice: bool) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    {
+        let mut settings = state.settings.lock().unwrap();
+        settings.voice = Some(voice);
+        settings.save(&state.paths)?;
+    }
+    app.state::<Server>().stop();
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.navigate(server::setup_url());
+    }
+    Ok(())
 }
 
 /// Confirms the library folder (first launch) and starts the server.
@@ -290,7 +329,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            status, install, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
+            status, install, profiles, prepare, reinstall, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
             close_window, quit_app, quit_if_in_tray, server_tail, set_theme,
             updates::open_download, updates::set_auto_update
         ])

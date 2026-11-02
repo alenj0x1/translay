@@ -64,6 +64,8 @@
 .dlg-row { display: grid; gap: var(--s2); }
 .dlg-row > .label, .dlg-field > .label { font: 700 var(--fs-sm)/1.2 var(--font); color: var(--fg-muted); }
 .dlg-row .input { width: 100%; }
+.dlg-segs { display: flex; flex-wrap: wrap; gap: var(--s2); }
+#export-dest-folder { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dlg-field { display: grid; gap: var(--s2); }
 .dlg-field .select { width: 100%; }
 /* fila de texto + acción (resumen y «Subir CSV») */

@@ -16,7 +16,12 @@ Cliente → servidor
                                                      mode: "translate", "transcribe" o "" (según el idioma propio)
   {"type":"video_lang", "video", "lang"?, "mode"?}   idioma en que se habla (rehace lo reconocido) y/o
                                                      traducir o solo transcribir (no borra nada)
-  {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder"}  exportar (vt/exporter.py) · export_remove
+  {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3"|"opus", "quality":"alta"|"media"|"liviana",
+   "video":"original"|"480p"|"360p", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder", "dest"}
+                                                     exportar (vt/exporter.py; «dest»: carpeta de este equipo, solo
+                                                     el dueño) · export_remove {job} · export_pick_folder · export_reveal {job}
+  storage_scan · storage_free {what, vault?, videos?, repo?}   Preferencias → Almacenamiento (vt/storage.py)
+  perf_plan {profile}                                qué modelos faltan para ese perfil (vt/modelset.py) · server_restart {prune?}
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
   trash_list · trash_restore {id, vault} · trash_purge {id | all, vault}   papelera
@@ -44,6 +49,7 @@ import struct
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import numpy as np
 from functools import partial
@@ -57,7 +63,8 @@ from .vaults import VAULT_PREFS, RoutedStore
 OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "yt_disconnect", "queue_pause", "queue_resume", "queue_clear",
               "queue_unblock", "queue_remove", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
-              "comment_add", "comment_edit", "comment_delete"}
+              "comment_add", "comment_edit", "comment_delete",
+              "export_pick_folder", "export_reveal"}
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
 from .streaming import Detected, Partial, Segment, StreamingTranscriber
 from .translate import Translator
@@ -67,9 +74,10 @@ class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
                  youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
-                 vaults=None, access: Access | None = None, admin=None, perf=None):
+                 vaults=None, access: Access | None = None, admin=None, perf=None, storage=None):
         self.ws = ws
         self.perf = perf  # equipo, perfil y límites (vt/perf.py)
+        self.storage = storage  # cuánto ocupa cada cosa y qué se puede liberar (vt/storage.py)
         self.gpu = gpu
         # quién es (vt/auth.py): el dueño o un invitado con permisos por biblioteca
         self.access = access or Access(owner=True, local=True)
@@ -173,7 +181,7 @@ class Session:
         a = self.access
         if a.owner:
             return True
-        if t in OWNER_ONLY or t.startswith(("admin_", "trash_", "perf_")) or t == "server_restart" or \
+        if t in OWNER_ONLY or t.startswith(("admin_", "trash_", "perf_", "storage_")) or t == "server_restart" or \
                 (t.startswith("vault_") and t != "vault_open"):
             return False
         if t == "vault_open":
@@ -267,7 +275,7 @@ class Session:
                         asyncio.create_task(self._vault(m))
                     elif m.get("type", "").startswith("trash_"):
                         asyncio.create_task(self._trash(m))
-                    elif m.get("type") in ("perf_get", "perf_set", "server_restart") and self.perf:
+                    elif m.get("type") in ("perf_get", "perf_set", "perf_plan", "perf_prune", "server_restart") and self.perf:
                         asyncio.create_task(self._perf(m))
                     elif self.library and m.get("type") in ("lib_delete", "lib_clear"):
                         asyncio.create_task(self._delete(m))
@@ -306,8 +314,10 @@ class Session:
                                                         bool(m.get("quiet")), bool(m.get("front")),
                                                         lang=str(m.get("lang") or "auto"),
                                                         tmode=str(m.get("mode") or "")))
-                    elif m.get("type") in ("export", "export_remove") and self.exporter:
-                        await self._export(m)
+                    elif m.get("type", "").startswith("export") and self.exporter:
+                        asyncio.create_task(self._export(m))  # el cuadro de carpetas espera a la persona
+                    elif m.get("type", "").startswith("storage_"):
+                        asyncio.create_task(self._storage(m))
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
                     else:
@@ -764,12 +774,29 @@ class Session:
             if self.access.owner or str(m.get("job", "")) in self._my_exports:
                 self.exporter.remove(str(m.get("job", "")))
             return
+        if m["type"] == "export_pick_folder":  # el cuadro nativo de Windows, en este equipo
+            if not self.access.local:
+                return
+            path = await asyncio.get_running_loop().run_in_executor(None, pick_folder, "Dónde guardar lo exportado")
+            return await self.ws.send_json({"type": "export_folder", "path": path})
+        if m["type"] == "export_reveal":  # el archivo exportado, marcado en el Explorador
+            if not self.access.local:
+                return
+            j = next((j for j in self.exporter.jobs if j["id"] == str(m.get("job", "")) and j.get("path")), None)
+            if j and Path(j["path"]).exists():
+                reveal(Path(j["path"]))
+            return
+        if m["type"] != "export":
+            return
         try:
             vids = [str(v) for v in m.get("videos", [])
                     if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
-            job = self.exporter.add(vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120],
-                                    str(m.get("audio") or "m4a"), str(m.get("layout") or "flat"),
-                                    str(m.get("folder", ""))[:120])
+            # una carpeta del equipo, solo desde este mismo equipo (desde otro, el resultado se descarga)
+            dest = str(m.get("dest") or "") if self.access.owner and self.access.local else ""
+            job = await asyncio.get_running_loop().run_in_executor(None, lambda: self.exporter.add(
+                vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120], str(m.get("audio") or "m4a"),
+                str(m.get("layout") or "flat"), str(m.get("folder", ""))[:120], str(m.get("quality") or "alta"),
+                str(m.get("video") or "original"), dest))
             self._my_exports.add(job["id"])
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
@@ -962,9 +989,22 @@ class Session:
 
     # ------------------------------------------------------------- rendimiento
     async def _perf(self, m: dict):
-        """perf_get · perf_set {profile?, vram_mb?, ram_mb?, threads?} · server_restart"""
+        """perf_get · perf_set {profile?, vram_mb?, ram_mb?, threads?} · perf_plan {profile} (qué falta bajar)
+        · server_restart {prune?} (prune: al volver, borra los modelos que el perfil nuevo no usa)"""
         loop = asyncio.get_running_loop()
+        if m["type"] == "perf_plan":
+            from . import modelset, profiles
+
+            pid = profiles.resolve(str(m.get("profile") or "auto"), self.perf.hw(), self.perf.limits())
+            plan = await loop.run_in_executor(None, modelset.plan, pid)
+            return await self.ws.send_json({"type": "perf_plan", "choice": m.get("profile"), **plan})
+        if m["type"] == "perf_prune":  # la app de escritorio reinicia por su cuenta (al instalar la voz)
+            if self.prefs:
+                self.prefs.set("models_prune", m.get("on") is True)
+            return
         if m["type"] == "server_restart":
+            if m.get("prune") is True and self.prefs:
+                self.prefs.set("models_prune", True)
             await self.ws.send_json({"type": "restarting"})
             self.notify({"type": "restarting"})
             tts = getattr(self.dubber, "tts", None)
@@ -979,6 +1019,33 @@ class Session:
             self.notify(msg)  # todas las pestañas del dueño
         else:
             await self.ws.send_json(msg)
+
+    # ------------------------------------------------------------- almacenamiento
+    async def _storage(self, m: dict):
+        """storage_scan · storage_free {what, vault?, videos?, repo?}: responde "storage" (y "storage_freed")."""
+        if not self.storage:
+            return
+        loop = asyncio.get_running_loop()
+        if m["type"] == "storage_free":
+            try:
+                freed = await loop.run_in_executor(None, lambda: self.storage.free(
+                    str(m.get("what", "")), str(m.get("vault") or ""), [str(v) for v in m.get("videos") or []],
+                    str(m.get("repo") or "")))
+                await self.ws.send_json({"type": "storage_freed", "what": m.get("what"), "bytes": freed})
+                if m.get("what") in ("untranslated", "videos"):
+                    self.notify({"type": "library_changed"})
+                if m.get("what") == "trash":
+                    await self._trash({"type": "trash_list"})
+            except (ValueError, OSError) as e:
+                await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+        try:
+            out = await loop.run_in_executor(None, self.storage.scan)
+        except OSError as e:
+            return await self.ws.send_json({"type": "vault_error", "error": f"no se pudo medir el espacio: {e}"})
+        await self.ws.send_json(out)
+        if out["has_install"] and out["install"] is None:  # lo lento, aparte
+            install = await loop.run_in_executor(None, self.storage.measure_install)
+            await self.ws.send_json({**out, "install": install})
 
     # ------------------------------------------------------------- papelera
     async def _trash(self, m: dict):
@@ -1323,7 +1390,20 @@ class Session:
             self.processor.unblock()
 
 
-def pick_folder() -> str:
+def reveal(path: Path):
+    """Abre el Explorador (o el gestor de archivos) con el archivo marcado."""
+    import subprocess
+    import sys
+
+    if sys.platform == "win32":
+        subprocess.Popen(["explorer", "/select,", str(path)])
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", "-R", str(path)])
+    else:
+        subprocess.Popen(["xdg-open", str(path.parent)])
+
+
+def pick_folder(title: str = "Carpeta de la biblioteca") -> str:
     """Cuadro nativo para elegir una carpeta (el servidor corre en este mismo equipo)."""
     try:
         import tkinter as tk
@@ -1337,6 +1417,6 @@ def pick_folder() -> str:
     root.withdraw()
     root.attributes("-topmost", True)  # delante del navegador
     try:
-        return filedialog.askdirectory(parent=root, title="Carpeta de la biblioteca", mustexist=False) or ""
+        return filedialog.askdirectory(parent=root, title=title, mustexist=False) or ""
     finally:
         root.destroy()

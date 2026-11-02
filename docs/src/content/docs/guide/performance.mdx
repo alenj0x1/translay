@@ -37,7 +37,7 @@ The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`,
 
 Each card also says how long a video of the length you choose takes ("10 min de video → ~5 min", meaning 10 min of video takes about 5 min), whether it can be watched live and how long you need to wait so the voice doesn't fall behind, and whether it has voice or only subtitles.
 
-Changing profile loads other models: **Reiniciar ahora** (Restart now) appears and Translay comes back on its own in a few seconds. What was being processed resumes.
+Changing profile loads other models: **Reiniciar ahora** (Restart now) appears and Translay comes back on its own. What was being processed resumes. If the new profile needs models you don't have, a dialog says which ones, what each is for and how much they weigh before restarting (**Descargar y reiniciar**, Download and restart), and they are downloaded on restart; in the desktop app, a profile with voice when the voice engine isn't installed also installs it. The same dialog offers **Borrar los modelos que este perfil no usa** (Delete the models this profile doesn't use), with how much it frees. See [Storage](../storage/#models).
 
 <Aside>
 If you start Translay with `--model`, `--compute-type`, `--beam`, `--translator`, `--voice` or `--device`, that takes precedence over the profile (see [Command line](../../reference/cli/)).

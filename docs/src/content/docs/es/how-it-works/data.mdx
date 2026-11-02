@@ -23,13 +23,14 @@ Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se 
 
 - data/
   - prefs.json preferencias generales (`vt/prefs.py`)
+  - models.json cuándo se usó por última vez cada modelo, para Preferencias › Almacenamiento (`vt/modelusage.py`)
   - queue.json cola de procesamiento: trabajos, estado, pausa (`vt/processor.py`)
   - auth.json contraseña del dueño (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)
   - webhooks.json webhooks con su URL, eventos, biblioteca y secreto de firma (`vt/webhooks.py`)
   - cookies.txt sesión de YouTube en formato Netscape, solo cookies de YouTube y Google (`vt/cookies.py`)
   - yt-session/ cuenta de YouTube conectada: el perfil de navegador propio de Translay, las cookies de youtube.com cifradas con DPAPI (`cookies.bin`) y cuándo se renovó (`session.json`) (`vt/ytsession.py`)
   - libraries.json lista de bibliotecas (id y ruta absoluta) y la última abierta (`vt/vaults.py`)
-  - exports/ exportaciones listas para descargar; al arrancar se borra lo que tenga más de 24 h
+  - exports/ exportaciones listas para descargar; se borran al quitarlas del panel «Cola» o a las 24 h (`vt/exporter.py`)
   - libraries/ carpeta por defecto de las bibliotecas nuevas
     - \<biblioteca\>/
   - youtube/

@@ -14,7 +14,7 @@ import threading
 from pathlib import Path
 from typing import Protocol
 
-from . import langs
+from . import langs, modelusage
 from .gpu import enable_cuda_dlls
 from .glossary import Glossary
 from .textproc import match_shape, polish, preedit, split_sentences
@@ -117,6 +117,7 @@ class CT2Translator:
             raise ValueError(f"el traductor {model} no traduce {src}→{tgt}")
         compute_type = compute_type or default_ct
         self.name = model
+        self.repo = repo
         self.family = family
         self.beam_size = beam_size
         self.src, self.tgt = langs.get(src), langs.get(tgt)
@@ -180,6 +181,7 @@ class CT2Translator:
 
     def translate_many(self, texts: list[str], batch: int = 24, glossary=None) -> list[str | None]:
         """Traduce varias frases; cada una se divide en oraciones y se re-arma."""
+        modelusage.mark(self.repo)
         sents, owner = [], []
         for i, t in enumerate(texts):
             for s in split_sentences(t or "", self.src.code):

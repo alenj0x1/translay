@@ -27,9 +27,13 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   DELETE /api/v1/queue/{id}
   POST   /api/v1/queue/pause  ·  /queue/resume    (clave para todas las bibliotecas)
   POST   /api/v1/exports                          {"videos": [...], "kinds": ["es_video", "srt_es", …],
-                                                   "audio": "m4a|mp3", "layout": "flat|channel|collection|playlist|folder",
-                                                   "folder": "nombre"}  formato de es_audio y orig_audio;
-                                                   carpetas del .zip («folder»: todo en una con ese nombre)
+                                                   "audio": "m4a|mp3|opus", "quality": "alta|media|liviana",
+                                                   "video": "original|480p|360p",
+                                                   "layout": "flat|channel|collection|playlist|folder",
+                                                   "folder": "nombre", "dest": "D:/Exportado"}  formato y calidad del
+                                                   audio, altura del video, carpetas del .zip («folder»: todo en
+                                                   una con ese nombre) y, solo el dueño desde este equipo, una carpeta
+                                                   donde dejar el resultado (sin «dest», se descarga)
   GET    /api/v1/exports/{id}                     estado y enlace de descarga
 
 Inicio de sesión (la vista): POST /api/auth/login {password, vault?} · POST /api/auth/logout · GET /api/auth/me
@@ -336,8 +340,12 @@ class Api:
                 kinds = [k for k in body.get("kinds", []) if k in KINDS]
                 if not kinds:
                     raise ValueError("kinds: " + ", ".join(KINDS))
+                if body.get("dest") and not (acc.owner and acc.local):
+                    raise PermissionError("solo el dueño, desde este equipo, exporta a una carpeta del equipo")
                 job = self.exporter.add(vids, kinds, str(body.get("name", ""))[:120], str(body.get("audio") or "m4a"),
-                                        str(body.get("layout") or "flat"), str(body.get("folder", ""))[:120])
+                                        str(body.get("layout") or "flat"), str(body.get("folder", ""))[:120],
+                                        str(body.get("quality") or "alta"), str(body.get("video") or "original"),
+                                        str(body.get("dest") or ""))
                 return 202, {"id": job["id"], "state": job["state"]}, {}
             if len(p) == 2 and m == "GET":
                 j = next((x for x in self.exporter.public()["jobs"] if x["id"] == p[1]), None)

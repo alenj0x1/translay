@@ -10,6 +10,7 @@
 
 import numpy as np
 
+from . import modelusage
 from .audiofx import denoise, snr_estimate, trim_silence
 
 SR = 16000
@@ -76,6 +77,7 @@ class SpeakerEmbedder:
         self.sess = ort.InferenceSession(path, opts, providers=["CPUExecutionProvider"])
 
     def embed(self, x: np.ndarray) -> np.ndarray | None:
+        modelusage.mark(self.REPO)
         if len(x) < SR * 0.6:
             return None
         f = fbank(x)

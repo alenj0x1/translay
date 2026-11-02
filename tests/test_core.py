@@ -508,6 +508,127 @@ def test_export_mp3_and_skips_unavailable():
         assert one["state"] == "error" and "ya no está disponible" in one["error"]
 
 
+def test_export_quality_and_destination_folder():
+    """Audio en Opus liviano (mono, más chico), directo a una carpeta elegida: sin copia en data/exports
+    ni carpeta de trabajo; al quitar una exportación para descargar se borra lo suyo."""
+    import json
+    import subprocess
+    import time
+
+    from vt.exporter import Exporter
+    from vt.library import Library
+
+    def wait(job):
+        for _ in range(150):
+            if job["state"] in ("listo", "error"):
+                return
+            time.sleep(0.1)
+
+    with tempfile.TemporaryDirectory() as d:
+        root, dest = Path(d).resolve() / "data", Path(d).resolve() / "otro disco" / "exportado"
+        (root / "youtube").mkdir(parents=True)
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=d=4", "-ac", "2", "-c:a", "aac",
+                        "-b:a", "192k", str(root / "youtube" / "qqqqqqqqqqq.m4a")], check=True)
+        lib = Library(root / "library.json")
+        lib.data["videos"]["yt_qqqqqqqqqqq"] = {"id": "yt_qqqqqqqqqqq", "source": "youtube", "title": "Charla",
+                                               "duration": 4, "media": "/media/yt/qqqqqqqqqqq.m4a",
+                                               "audio": "/media/yt/qqqqqqqqqqq.m4a"}
+        ex = Exporter(root, None, lib, None, None, type("P", (), {"values": {}})(), lambda m: None)
+        job = ex.add(["yt_qqqqqqqqqqq"], ["orig_audio"], audio="opus", quality="liviana", dest=str(dest))
+        wait(job)
+        assert job["state"] == "listo", job["error"]
+        out = Path(job["path"])
+        assert out == dest / "Charla (audio original).opus" and out.exists()
+        assert [p.name for p in dest.iterdir()] == [out.name]  # sin .translay-exportando-…
+        assert not any((root / "exports").iterdir())
+        info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_name,channels",
+                                          "-of", "json", str(out)], capture_output=True, text=True).stdout)
+        assert info["streams"][0] == {"codec_name": "opus", "channels": 1}
+        again = ex.add(["yt_qqqqqqqqqqq"], ["orig_audio"], audio="opus", quality="liviana", dest=str(dest))
+        wait(again)
+        assert Path(again["path"]).name == "Charla (audio original) (2).opus"  # no pisa lo anterior
+        # varios archivos a una carpeta: sueltos, en una carpeta con el nombre (sin .zip)
+        both = ex.add(["yt_qqqqqqqqqqq"], ["orig_audio", "orig_video"], "Lote", audio="mp3", quality="media",
+                      dest=str(dest))
+        wait(both)
+        assert both["state"] == "listo", both["error"]
+        assert sorted(p.name for p in Path(both["path"]).iterdir()) == ["Charla (audio original).mp3", "Charla.m4a"]
+        assert Path(both["path"]) == dest / "Lote" and not list(dest.glob(".translay-*"))
+        # alta y en su formato: el original tal cual; media: recodificado
+        dl = ex.add(["yt_qqqqqqqqqqq"], ["orig_audio"], quality="media")
+        wait(dl)
+        assert dl["state"] == "listo" and (root / "exports" / dl["id"]).exists()
+        ex.remove(dl["id"])
+        assert not (root / "exports" / dl["id"]).exists()
+        # borradas desde Almacenamiento: dejan el panel (ya no se pueden descargar); las de una carpeta quedan
+        dl2 = ex.add(["yt_qqqqqqqqqqq"], ["orig_audio"], quality="media")
+        wait(dl2)
+        assert ex.sweep(everything=True) > 0
+        assert dl2 not in ex.jobs and job in ex.jobs
+        for bad in ({"quality": "ultra"}, {"video": "4k"}, {"audio": "wav"}, {"dest": "relativa/sin/disco"},
+                    {"dest": "\\\\10.0.0.66\\share"}, {"dest": "\\\\?\\C:\\x"}, {"dest": "//host/share"},
+                    {"dest": str(root / "youtube" / "aqui")}):
+            try:
+                ex.add(["yt_qqqqqqqqqqq"], ["orig_audio"], **bad)
+                raise AssertionError(f"debió rechazar {bad}")
+            except ValueError:
+                pass
+
+
+def test_storage_scan_and_free():
+    """Almacenamiento: cuenta descargas, sueltos y .tmp; libera las no traducidas sin tocar las traducidas."""
+    import os
+    import time
+
+    from vt.storage import Storage
+    from vt.vaults import Vaults
+
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        vaults = Vaults(root)
+        v = vaults.main
+        (root / "youtube").mkdir(exist_ok=True)
+        old = time.time() - 7200
+        for name, size in (("aaaaaaaaaaa.m4a", 1000), ("bbbbbbbbbbb.m4a", 3000), ("huerfano123.m4a", 500)):
+            (root / "youtube" / name).write_bytes(b"x" * size)
+            os.utime(root / "youtube" / name, (old, old))
+        (root / "library.json.1a2b3c4d.tmp").write_text("{}")
+        os.utime(root / "library.json.1a2b3c4d.tmp", (old, old))
+        for vid in ("aaaaaaaaaaa", "bbbbbbbbbbb"):
+            v.library.data["videos"]["yt_" + vid] = {"id": "yt_" + vid, "source": "youtube", "title": vid,
+                                                     "media": f"/media/yt/{vid}.m4a", "audio": f"/media/yt/{vid}.m4a"}
+        v.library.save()
+        (root / "transcripts" / "yt_bbbbbbbbbbb.json").write_text("{}")  # traducido
+        st = Storage(root, vaults)
+        r = st.scan()
+        lib = r["libraries"][0]
+        assert lib["media"] == {"bytes": 4000, "count": 2}
+        assert lib["free"] == {"bytes": 1000, "count": 1}
+        assert lib["loose"]["count"] == 2  # el huérfano y el .tmp
+        assert [x["video"] for x in r["largest"]] == ["yt_bbbbbbbbbbb", "yt_aaaaaaaaaaa"]
+        assert st.free("untranslated") == 1000
+        assert not (root / "youtube" / "aaaaaaaaaaa.m4a").exists() and (root / "youtube" / "bbbbbbbbbbb.m4a").exists()
+        assert v.library.data["videos"]["yt_aaaaaaaaaaa"]["media"] == ""  # sigue en la biblioteca
+        assert st.free("loose") == 500 + 2
+        assert not (root / "library.json.1a2b3c4d.tmp").exists()
+        # el original de una exportación en curso no se borra
+        st.exporter = type("E", (), {"busy_videos": lambda self: {"yt_bbbbbbbbbbb"}})()
+        assert st.free("videos", videos=["yt_bbbbbbbbbbb"]) == 0
+        assert v.library.data["videos"]["yt_bbbbbbbbbbb"]["media"]
+        st.exporter = None
+        # abierto (en Windows no se puede borrar): sigue apuntando a su archivo
+        with open(root / "youtube" / "bbbbbbbbbbb.m4a", "rb"):
+            if os.name == "nt":
+                assert st.free("videos", videos=["yt_bbbbbbbbbbb"]) == 0
+                assert v.library.data["videos"]["yt_bbbbbbbbbbb"]["media"]
+        assert st.free("videos", videos=["yt_bbbbbbbbbbb"]) == 3000
+        try:
+            st.free("model", repo="otro/repo")
+            raise AssertionError("debió rechazar un repo que no es de Translay")
+        except ValueError:
+            pass
+
+
 def test_export_folders_by_channel_and_collection():
     """Un lote de varios canales: carpetas como los grupos del aside, o una sola con el nombre de lo exportado."""
     import subprocess
@@ -556,3 +677,53 @@ def test_export_folders_by_channel_and_collection():
             raise AssertionError("debió rechazar el layout")
         except ValueError:
             pass
+
+
+def test_model_usage_and_info():
+    """Último uso de cada modelo (data/models.json) y para qué sirve, con los perfiles que lo usan."""
+    from vt import modelusage
+    from vt.modelset import info as model_info
+
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "models.json"
+        modelusage.configure(f)
+        since = modelusage.snapshot()["since"]
+        assert since > 0 and modelusage.snapshot()["used"] == {}
+        modelusage.mark("Systran/faster-whisper-small")
+        first = modelusage.snapshot()["used"]["Systran/faster-whisper-small"]
+        modelusage.mark("Systran/faster-whisper-small")  # al rato: no vuelve a escribir
+        assert modelusage.snapshot()["used"]["Systran/faster-whisper-small"] == first
+        modelusage.configure(f)  # al reiniciar se conserva, con el mismo inicio del registro
+        assert modelusage.snapshot() == {"since": since, "used": {"Systran/faster-whisper-small": first}}
+        modelusage._path = None
+    info = model_info()
+    assert "Ligero" in info["Systran/faster-whisper-small"]["profiles"]
+    assert info["openbmb/VoxCPM2"]["profiles"] == [] and info["openbmb/VoxCPM2"]["purpose"]
+
+
+def test_modelset_plan_and_prune(monkeypatch):
+    """Cada perfil con sus modelos; el plan dice qué falta bajar y qué deja de usarse; Almacenamiento borra de una
+    vez los que el perfil no usa (nunca uno de otra app)."""
+    from vt import modelset
+    from vt.storage import Storage
+
+    assert modelset.VOICE_REPOS["omnivoice"] in modelset.repos("equilibrado")
+    assert modelset.VOICE_REPOS["omnivoice"] not in modelset.repos("texto")
+    assert "Systran/faster-whisper-small" in modelset.repos("ligero")
+    with tempfile.TemporaryDirectory() as d:
+        cache = Path(d)
+        monkeypatch.setattr(modelset, "path", lambda repo: cache / repo.replace("/", "--"))
+        monkeypatch.setattr(modelset, "have", lambda repo: modelset.path(repo).exists())
+        for repo in ("Systran/faster-whisper-small", "openbmb/VoxCPM2", "otra/app"):
+            (modelset.path(repo)).mkdir()
+            (modelset.path(repo) / "model.bin").write_bytes(b"x" * 1000)
+        plan = modelset.plan("ligero")
+        assert "Systran/faster-whisper-small" not in [m["repo"] for m in plan["missing"]]
+        assert "michaelfeil/ct2fast-opus-mt-en-es" in [m["repo"] for m in plan["missing"]]
+        assert plan["missing_bytes"] == sum(modelset.size(m["repo"]) for m in plan["missing"])
+        assert [u["repo"] for u in plan["unused"]] == ["openbmb/VoxCPM2"]  # «otra/app» no es de Translay
+        st = Storage(cache, type("V", (), {"all": lambda self: []})(), in_use=lambda: set(modelset.repos("ligero")))
+        monkeypatch.setattr("vt.storage.model_path", modelset.path)
+        assert st.free("unused_models") == 1000
+        assert not modelset.path("openbmb/VoxCPM2").exists()
+        assert modelset.path("Systran/faster-whisper-small").exists() and modelset.path("otra/app").exists()

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import modelusage
 from .ipc import read_msg, write_msg
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -119,6 +120,7 @@ class TTSClient:
     def synth(self, text: str, ref: str | None = None, ref_text: str | None = None,
               lang: str = "es", **params) -> tuple[np.ndarray, int, float]:
         """Devuelve (audio float32, sr, segundos de GPU)."""
+        modelusage.mark(modelusage.VOICE_REPOS.get(self.engine, ""))
         with self._lock:
             if not self._alive():
                 self._start()

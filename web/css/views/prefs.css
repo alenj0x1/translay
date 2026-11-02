@@ -113,3 +113,32 @@
 .alert.warn svg { color: var(--warn); }
 .alert.bad { background: color-mix(in srgb, var(--danger) 10%, var(--surface-2)); }
 .alert.bad svg { color: var(--danger); }
+
+/* almacenamiento (web/js/storage.js): total, barra por tipo (tonos del texto) y filas con tamaño */
+.st-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s3); }
+.st-total strong { font: 800 var(--fs-2xl)/1.1 var(--font); }
+.st-total span { font: 500 var(--fs-md)/1.4 var(--font); color: var(--fg-muted); }
+.st-bar { display: flex; gap: 2px; height: 12px; margin-top: var(--s3); border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
+.st-bar i { flex-basis: 0; min-width: 3px; }
+.st-legend { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: var(--s3); font: 500 var(--fs-sm)/1.4 var(--font); color: var(--fg-muted); }
+.st-legend span { display: inline-flex; align-items: center; gap: var(--s2); }
+.st-legend b { font-weight: 700; color: var(--fg); }
+.st-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.st-pref .c-media { --c: var(--st-media); } .st-pref .c-models { --c: var(--st-models); } .st-pref .c-voice { --c: var(--st-voice); }
+.st-pref .c-text { --c: var(--st-text); } .st-pref .c-trash { --c: var(--st-trash); } .st-pref .c-other { --c: var(--st-other); }
+.st-bar i, .st-legend i { background: var(--c); }
+.st-row .trow-ic[class*="c-"] { background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+.st-size { min-width: 72px; text-align: right; font: 700 var(--fs-md)/1.2 var(--font); font-variant-numeric: tabular-nums; }
+.st-row .vinfo strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-row .vacts .btn, .st-row .vacts .chip { min-width: 92px; justify-content: center; }
+.st-pref .acts { display: flex; margin-top: var(--s2); }
+.st-skel { display: grid; gap: var(--s3); }
+.st-skel i { height: 14px; border-radius: var(--r-pill); background: var(--surface-3); }
+.st-skel i:first-child { width: 30%; height: 28px; }
+.st-skel i:last-child { width: 70%; }
+@media (max-width: 760px) { .st-row .vacts { justify-content: space-between; } .st-size { text-align: left; min-width: 0; } }
+
+/* al cambiar de perfil: qué se baja (web/js/perf.js · perfPlan) */
+#plan-dlg .vrows { margin-top: var(--s2); }
+.plan-prune { display: flex; align-items: center; gap: var(--s2); font: 500 var(--fs-md)/1.4 var(--font); cursor: pointer; }
+#plan-dlg .st-row .vinfo strong { white-space: normal; }

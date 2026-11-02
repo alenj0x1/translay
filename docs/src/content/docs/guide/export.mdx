@@ -16,16 +16,30 @@ In the export dialog you check any combination of:
 | Option | Format | Content |
 |---|---|---|
 | **Video traducido** (Translated video) | MP4 | The Spanish voice as the main track, the original as a second track (tagged with its real language, e.g. `por`), and Spanish and original subtitles that you switch on in the player. |
-| **Audio traducido** (Translated audio) | M4A or MP3 | The Spanish mix. |
+| **Audio traducido** (Translated audio) | M4A, MP3 or Opus | The Spanish mix. |
 | **Video original** (Original video) | MP4 | The video as it was downloaded or imported. |
-| **Audio original** (Original audio) | M4A or MP3 | The original audio track. |
+| **Audio original** (Original audio) | M4A, MP3 or Opus | The original audio track. |
 | **Subtítulos en español** (Spanish subtitles) | SRT | The translation, with its timings. |
 | **Subtítulos del original** (Original subtitles) | SRT | What is said, in the video's language; the file is named with its code (`.en.srt`, `.pt.srt`…). |
 | **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
 
 The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Preferences › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
-When you check an audio option, **Formato del audio** (Audio format) lets you choose **M4A** (AAC, 160 kbps) or **MP3** (192 kbps, plays on any device or car stereo). The browser remembers your choice. The translated video always carries AAC inside the MP4.
+When you check an audio option, the **Audio** row chooses the format and the quality. The browser remembers both.
+
+| Quality | M4A (AAC) | MP3 | Opus | About |
+| --- | --- | --- | --- | --- |
+| **Alta** (High, the default) | 160 kbps | 192 kbps | 128 kbps | 58–86 MB per hour |
+| **Media** (Medium) | 96 kbps | 128 kbps | 64 kbps | 29–58 MB per hour |
+| **Liviana** (Light) | 64 kbps, mono | 64 kbps, mono | 32 kbps, mono | 14–29 MB per hour |
+
+MP3 plays on any device or car stereo but is the largest of the three; Opus is the smallest and sounds good even at **Liviana**, though some older players don't open it. For a voice, **Liviana** is enough. The original audio in **Alta** and in its own format is delivered as is (YouTube's is AAC at 128 kbps). The dialog shows the approximate size of the audio before you export.
+
+When you check a video option, the **Video** row chooses **Original** (copied as is, up to 720p, fast) or **480p** or **360p**, re-encoded with H.264 on the CPU: much smaller, but it takes about as long as the video. A video that is already shorter than that stays as it is. The translated video always carries AAC inside the MP4, at the chosen audio quality.
+
+## Where it's saved
+
+From the computer where Translay runs, **Guardar en** (Save to) chooses between **Descargas** (Downloads, the browser downloads it as usual) and a folder: **Elegir carpeta** (Choose folder) opens the Windows dialog, and you can pick another drive. With a folder, everything is built inside it (in a temporary `.translay-exportando-…` folder) and the result is moved there: it doesn't go through the drive of your data or leave a second copy. Several files don't go in a `.zip` but loose, in a folder with the export's name and the same subfolders the `.zip` would have (one per channel, collection…): they play straight from a USB drive, and a FAT32 drive doesn't take files over 4 GB. If a file or folder with that name already exists, it's saved as `name (2)`. When it's done, **Mostrar en la carpeta** (Show in folder) opens the Explorer with the file selected. From other devices the option isn't there: the file is downloaded. The API takes `"dest"` (owner only).
 
 ## From where
 
@@ -55,7 +69,7 @@ Only the groups the chosen videos belong to show up (no playlists, no **Playlist
 
 A batch converts several videos at once (up to six, half of your processor's threads), and each file goes into the `.zip` as soon as it's ready, so the disk only holds the `.zip` and not a loose copy of each file too. If you cancel, what had been made is deleted.
 
-Progress shows in the **Cola** panel, in the **Exportar** section, and the download starts on its own when it finishes in the tab that requested it. If you closed it, the file stays in the panel with **Descargar** (Download) as long as the server keeps running. On startup, the server deletes exports older than a day.
+Progress shows in the **Cola** panel, in the **Exportar** section, and the download starts on its own when it finishes in the tab that requested it. If you closed it, the file stays in the panel with **Descargar** (Download) as long as the server keeps running. Its copy on the server is deleted when you remove it from the panel (or **Limpiar**, Clear) and, if you don't, after 24 hours; you can also delete them in [Storage](../storage/). Saved to a folder, nothing is left on the server.
 
 ## If the video isn't ready yet
 

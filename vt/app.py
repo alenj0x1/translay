@@ -61,6 +61,9 @@ def main():
     from .limits import apply_self
 
     prefs = Prefs(DATA / "prefs.json")
+    from . import modelusage
+
+    modelusage.configure(DATA / "models.json")  # cuándo se usó cada modelo (Almacenamiento)
     hw = hardware.detect()
     lim = {"vram_mb": int(prefs.values.get("limit_vram_mb") or 0) or None,
            "ram_mb": int(prefs.values.get("limit_ram_mb") or 0) or None,
@@ -81,6 +84,12 @@ def main():
     a.beam = a.beam or prof["beam"]
     mt_ct = None if a.translator else prof["mt_ct"]
     a.voice = a.voice or ("omnivoice" if prof["voice"] else "none")
+    if a.voice != "none":
+        from .tts import venv_python
+
+        if not venv_python(a.voice).exists():  # perfil con voz sin su motor instalado: solo subtítulos
+            print(f"[voz] el motor {a.voice} no está instalado: Translay arranca sin voz", flush=True)
+            a.voice = "none"
     g = hw.get("gpu")
     unified = bool(g and g.get("unified"))  # memoria unificada, como DGX Spark (vt/hardware.py)
     mem = " de memoria unificada" if unified else ""
@@ -88,6 +97,15 @@ def main():
           f"{round((hw['ram']['total_mb'] or 0) / 1024)} GB de RAM · {hw['cpu']['usable_threads']} hilos · "
           f"perfil «{prof['name']}»" + (f" (con {', '.join(cli)} por línea de comandos)" if cli else ""), flush=True)
 
+    # los modelos del perfil que falten se bajan ahora, con su avance (la pantalla de carga lo muestra);
+    # con modelos fijados por línea de comandos, cada uno se baja al usarlo
+    if not cli:
+        from . import modelset
+
+        try:
+            modelset.prefetch(active, voice=a.voice != "none")
+        except Exception as e:  # sin conexión: lo que falte se intenta al usarlo
+            print(f"[modelos] no se pudieron bajar: {e}", flush=True)
     print(f"Preparando {a.model} en {a.device} ({a.compute_type})…", flush=True)
     asr = WhisperASR(a.model, a.device, a.compute_type, a.beam)
     asr.warmup()
@@ -355,6 +373,26 @@ def main():
                               prefs.values.get("transcribe_lang")) else None)
     exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults)
 
+    def models_in_use() -> set[str]:
+        """Repos de Hugging Face que usa lo que está corriendo (no se pueden borrar desde Almacenamiento)."""
+        from .asr import MODELS as ASR_MODELS
+        from .speakers import SpeakerEmbedder
+        from .storage import VOICE_REPOS
+
+        out = {ASR_MODELS.get(a.model, a.model), SpeakerEmbedder.REPO, VOICE_REPOS.get(a.voice, "")}
+        for src in langs.SOURCES:
+            if src != langs.TARGET and translator.name_for(src) in MT_MODELS:
+                out.add(MT_MODELS[translator.name_for(src)][1])
+        return out - {""}
+
+    from .storage import Storage
+
+    storage = Storage(DATA, vaults, processor, exporter, models_in_use)
+    storage.sweep_tmp()
+    if prefs.values.get("models_prune"):  # se pidió al cambiar de perfil: lo que el nuevo no usa, fuera
+        print(f"[modelos] se liberaron {round(storage.free('unused_models') / 1e9, 1)} GB de modelos que no se usan", flush=True)
+        prefs.set("models_prune", False)
+
     # acceso (vt/auth.py), webhooks (vt/webhooks.py) y API (vt/api.py)
     from .api import Admin, Api, CollectorWS, make_guard
     from .auth import Auth, check_pw, same_origin
@@ -369,7 +407,8 @@ def main():
 
     def make_session(vault, access):
         s = Session(CollectorWS(), asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
-                    processor, prefs, notify, exporter, vaults=vaults, access=access, admin=admin, perf=perf)
+                    processor, prefs, notify, exporter, vaults=vaults, access=access, admin=admin, perf=perf,
+                    storage=storage)
         s.vault = vault
         return s
 
@@ -382,7 +421,7 @@ def main():
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
                           processor, prefs, notify, exporter, vaults=vaults, access=auth.access(ws.request),
-                          admin=admin, perf=perf)
+                          admin=admin, perf=perf, storage=storage)
         sessions.add(session)
         try:
             await session.run()

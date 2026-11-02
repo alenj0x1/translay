@@ -4,6 +4,20 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Export: choose the audio quality («Alta», «Media» or «Liviana», the light one in mono) and Opus as a third format, besides M4A and MP3; the dialog shows the approximate size. Videos can be exported at 480p or 360p. The API takes `"quality"` and `"video"`.
+- Export: «Guardar en» (Save to) saves straight to a folder of this computer, another drive included, without going through the data drive or leaving a second copy, and several files go loose in folders instead of a `.zip` (ready for a USB drive); «Mostrar en la carpeta» opens it in the Explorer. The API takes `"dest"` (owner only).
+- Preferences › Storage: how much downloads, models, the Spanish voice, the trash and the rest take, with the free space of each drive; it frees downloads never translated, the largest ones one by one, models (each one with what it's for, which profiles use it and when it was last used), loose files, the trash, exports and the desktop installer cache.
+
+- Profiles and models: the desktop app installer asks for the profile after installing the server (with the recommended one marked and what each one downloads), installs the voice engine only if the profile uses it and downloads its models, so Translay opens ready. Choosing another profile says which models are missing and how much they weigh before restarting, downloads them on restart (and installs the voice engine in the app if needed), and can delete the ones the new profile doesn't use.
+
+### Fixed
+
+- Exports to download no longer stay on disk until the next restart: they're deleted when removed from the Queue panel, after 24 hours while the server runs, and right away if they fail. `.tmp` files left by an interrupted write are deleted on startup.
+
 ## 1.8.0 · 2026-11-02
 
 ### Added

@@ -6,7 +6,7 @@
 //! - "Reiniciar ahora" (Preferencias › Rendimiento) restarts the server from inside: the new process stays in
 //!   the job and inherits the output pipe, so the output only ends when every server process is gone.
 
-use crate::runtime::{Paths, Settings, CREATE_NO_WINDOW};
+use crate::runtime::{Paths, Settings};
 use serde_json::json;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -14,7 +14,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
-use tokio::process::Command;
 
 #[cfg(windows)]
 mod job {
@@ -126,31 +125,13 @@ impl Server {
         self.tail.lock().unwrap().clear();
 
         // ffmpeg, ffprobe and node (yt-dlp's JavaScript runtime) from the bundled tools, ahead of the PATH.
-        let path = std::env::var_os("PATH").unwrap_or_default();
-        let mut dirs = vec![paths.tools.clone()];
-        dirs.extend(std::env::split_paths(&path));
-        let path = std::env::join_paths(dirs).map_err(|e| e.to_string())?;
-
-        let mut cmd = Command::new(paths.server_python());
+        let mut cmd = crate::runtime::python(paths)?;
         cmd.arg("-u")
             .arg(paths.code.join("run.py"))
             .args(["--no-browser", "--port", &port.to_string(), "--data-dir"])
             .arg(&data)
-            .current_dir(&paths.code)
-            .env("PATH", path)
-            .env("TRANSLAY_VENVS", paths.venvs())
-            .env("TRANSLAY_DESKTOP", "1")
-            .env("PYTHONIOENCODING", "utf-8")
-            .env("PYTHONUTF8", "1")
-            .env("PYTHONDONTWRITEBYTECODE", "1")
-            .env("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
-            .env_remove("PYTHONHOME")
-            .env_remove("PYTHONPATH")
-            .env_remove("VIRTUAL_ENV")
-            .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .creation_flags(CREATE_NO_WINDOW);
+            .stderr(Stdio::piped());
         let mut child = cmd.spawn().map_err(|e| format!("No se pudo iniciar el servidor de Translay: {e}"))?;
         let job = job::Job::new();
         if let (Some(job), Some(pid)) = (&job, child.id()) {
@@ -224,6 +205,7 @@ fn open_page(app: &AppHandle, url: &str) {
         .permission("core:window:allow-hide")
         .permission("allow-desktop-info")
         .permission("allow-change-data-dir")
+        .permission("allow-reinstall")
         .permission("allow-open-folder")
         .permission("allow-set-close-to-tray")
         .permission("allow-close-window")

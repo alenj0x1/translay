@@ -45,3 +45,13 @@ h1 { font: 800 var(--fs-2xl)/var(--lh-tight) var(--font); letter-spacing: -.02em
   margin: 0; max-height: 260px; overflow: auto; padding: var(--s4); border-radius: var(--r-md); background: var(--surface);
   color: var(--fg-muted); font: 500 var(--fs-xs)/1.6 var(--font); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text;
 }
+
+/* the profile to install: one row each, the chosen one marked by tone and its radio */
+.row.pick { width: 100%; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; grid-template-columns: auto minmax(0, 1fr); }
+.row.pick:hover { background: var(--surface-2); }
+.row.pick.on { background: var(--surface-2); }
+.row.pick:disabled { opacity: .4; cursor: default; }
+.row.pick strong { display: flex; align-items: center; gap: var(--s2); }
+.row.pick .facts { color: var(--fg-faint); }
+.radio { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.row.pick.on .radio { box-shadow: inset 0 0 0 5px var(--accent); }

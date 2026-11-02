@@ -62,11 +62,8 @@ function renderPerf() {
     ...d.profiles.map((p) => card(p.id, p.name, p))];
   const restart = d.wanted !== d.active
     ? el("div", { class: "perf-apply" }, el("span", { text: `Para usar «${d.profiles.find((p) => p.id === d.wanted).name}» hay que reiniciar Translay (se cargan otros modelos).` }),
-      btn("Reiniciar ahora", { icon: "reload", variant: "dark", size: "sm", onClick: async () => {
-        if (await confirmDlg("¿Reiniciar Translay?", "Lo que se esté procesando se retoma solo al volver. Tarda unos segundos.", "Reiniciar")) {
-          send({ type: "server_restart" });
-        }
-      } }))
+      btn("Reiniciar ahora", { icon: "reload", variant: "dark", size: "sm",
+        onClick: () => send({ type: "perf_plan", profile: d.choice }) }))  // antes, qué hay que bajar (perfPlan)
     : null;
   const mins = el("select", { class: "select", "aria-label": "Largo del video" },
     ...[5, 10, 30, 60, 120].map((n) => el("option", { value: n, text: `${n} min`, selected: n === perf.minutes })));
@@ -118,3 +115,44 @@ function perfUpdate(m) {
 function restarting() {
   toast("Reiniciando Translay: vuelve solo en unos segundos.", "warn");
 }
+
+// Al reiniciar con otro perfil (vt/modelset.py · plan): si le faltan modelos (o, en la app de escritorio, el
+// motor de voz), se dice antes qué se baja y cuánto pesa; y se puede borrar lo que el perfil nuevo no usa.
+async function perfPlan(m) {
+  const needVoiceEnv = DESKTOP && m.voice_env;
+  const down = m.missing_bytes + (needVoiceEnv ? m.voice_env_bytes : 0);
+  if (!down && !m.unused_bytes) {
+    if (await confirmDlg("¿Reiniciar Translay?", "Lo que se esté procesando se retoma solo al volver. Tarda unos segundos.", "Reiniciar")) {
+      send({ type: "server_restart" });
+    }
+    return;
+  }
+  const dlg = $("#plan-dlg");
+  $("#plan-title").textContent = `Cambiar a «${m.name}»`;
+  $("#plan-sub").textContent = down
+    ? `Se descarga${m.missing.length + (needVoiceEnv ? 1 : 0) === 1 ? "" : "n"} ${fmtBytes(down)} y Translay se reinicia al terminar. Lo que se esté procesando se retoma solo.`
+    : "Translay se reinicia con los modelos de este perfil. Lo que se esté procesando se retoma solo.";
+  const row = (ic, title, detail, bytes) => el("div", { class: "trow st-row" }, el("span", { class: "trow-ic" }, icon(ic)),
+    el("div", { class: "vinfo" }, el("strong", { text: title }), detail ? el("small", { text: detail }) : null),
+    el("div", { class: "vacts" }, el("span", { class: "st-size", text: fmtBytes(bytes) })));
+  $("#plan-list").replaceChildren(...[
+    needVoiceEnv ? row("speaker", "Motor de voz", "Se instala una vez, para doblar al español", m.voice_env_bytes) : null,
+    ...m.missing.map((x) => row("download", x.label, x.purpose, x.bytes))].filter(Boolean));
+  $("#plan-list").hidden = !down;
+  $("#plan-prune-row").hidden = !m.unused_bytes;
+  $("#plan-prune").checked = false;
+  $("#plan-prune-text").textContent = `Borrar ${m.unused.length === 1 ? "el modelo" : `los ${m.unused.length} modelos`} que este perfil no usa (${fmtBytes(m.unused_bytes)})`;
+  $("#plan-ok").textContent = down ? "Descargar y reiniciar" : "Reiniciar";
+  dlg.returnValue = "";
+  dlg.showModal();
+  await new Promise((r) => dlg.addEventListener("close", r, { once: true }));
+  if (dlg.returnValue !== "ok") return;
+  const prune = $("#plan-prune").checked;
+  if (needVoiceEnv) {  // la app de escritorio instala el motor de voz y vuelve a abrir Translay
+    send({ type: "perf_prune", on: prune });
+    setTimeout(() => desktopCall("reinstall", { voice: true }), 300);
+    return;
+  }
+  send({ type: "server_restart", prune });
+}
+

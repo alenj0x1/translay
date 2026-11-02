@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from . import modelusage
 from .gpu import enable_cuda_dlls
 
 MODELS = {
@@ -67,6 +68,7 @@ class WhisperASR:
 
     def transcribe(self, audio: np.ndarray, prompt: str | None = None, language: str | None = None) -> list[Word]:
         """language: el del video (por defecto, el del motor)."""
+        modelusage.mark(MODELS.get(self.name, self.name))
         language = language or self.language
         if language != "en" and self.name.endswith(".en"):
             raise ValueError(f"el modelo {self.name} solo reconoce inglés: usa otro perfil de rendimiento")

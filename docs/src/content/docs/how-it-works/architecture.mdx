@@ -111,6 +111,9 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 | `ytsession.py` | Connected YouTube account: its own browser profile, encrypted cookies and automatic renewal. |
 | `capture.py` | Screen recordings: receives the parts in order (resumable after a cut) and puts the final file together, cropped and compressed. |
 | `exporter.py` | Exports translated or original video and audio, subtitles and transcript. |
+| `storage.py` | Preferences › Storage: how much each thing takes and what can be freed. |
+| `modelset.py` | Which models each profile uses, what's missing and downloading it (also `python -m vt.modelset` for the desktop installer). |
+| `modelusage.py` | When each model was last used (`data/models.json`). |
 | `auth.py` | Access: owner, private, password-protected or public libraries, and API keys. |
 | `api.py` | HTTP API v1, sign-in and the file guard (`make_guard`). |
 | `events.py` | Event catalog and emission. |

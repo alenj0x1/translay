@@ -247,11 +247,20 @@
       <label><input class="check" type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span><small>SRT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe con comentarios</span><small>TXT</small></label>
     </div>
-    <div class="dlg-row" id="export-audio" hidden><span class="label">Formato del audio</span>
-      <div class="segs"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button></div>
+    <div class="dlg-row" id="export-audio" hidden><span class="label">Audio</span>
+      <div class="dlg-segs">
+        <div class="segs" id="export-fmt"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button><button class="seg" type="button" data-fmt="opus">Opus</button></div>
+        <div class="segs" id="export-quality"><button class="seg on" type="button" data-q="alta">Alta</button><button class="seg" type="button" data-q="media">Media</button><button class="seg" type="button" data-q="liviana">Liviana</button></div>
+      </div>
+    </div>
+    <div class="dlg-row" id="export-video" hidden><span class="label">Video</span>
+      <div class="segs"><button class="seg on" type="button" data-v="original">Original</button><button class="seg" type="button" data-v="480p">480p</button><button class="seg" type="button" data-v="360p">360p</button></div>
     </div>
     <div class="dlg-row" id="export-layout" hidden><span class="label">Carpetas</span>
       <div class="segs"><button class="seg on" type="button" data-layout="channel">Canales</button><button class="seg" type="button" data-layout="collection">Colecciones</button><button class="seg" type="button" data-layout="playlist">Playlists</button><button class="seg" type="button" data-layout="flat">Sin carpetas</button></div>
+    </div>
+    <div class="dlg-row" id="export-dest" hidden><span class="label">Guardar en</span>
+      <div class="segs"><button class="seg on" type="button" data-dest="">Descargas</button><button class="seg" type="button" data-dest="folder" id="export-dest-folder" data-icon="folder">Elegir carpeta</button></div>
     </div>
     <p class="dlg-note" id="export-note"></p>
     <div class="dlg-actions">
@@ -344,6 +353,19 @@
   </form>
 </dialog>
 
+<dialog class="dlg" id="plan-dlg">
+  <form method="dialog">
+    <h3 id="plan-title"></h3>
+    <p class="dlg-sub" id="plan-sub"></p>
+    <div class="vrows" id="plan-list"></div>
+    <label class="plan-prune" id="plan-prune-row"><input class="check" type="checkbox" id="plan-prune"><span id="plan-prune-text"></span></label>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel" type="submit">Cancelar</button>
+      <button class="btn dark" value="ok" type="submit" id="plan-ok"></button>
+    </div>
+  </form>
+</dialog>
+
 <dialog class="dlg" id="confirm-dlg">
   <form method="dialog">
     <h3 id="confirm-title"></h3>
@@ -400,6 +422,7 @@
 <script src="js/home.js"></script>
 <script src="js/access.js"></script>
 <script src="js/trash.js"></script>
+<script src="js/storage.js"></script>
 <script src="js/perf.js"></script>
 <script src="js/route.js"></script>
 <script src="js/contextmenu.js"></script>

@@ -68,6 +68,8 @@
   --track-dub: #9196a0;
   --ok: #23955a;
   --warn: #c27a10;
+  /* almacenamiento: un color por tipo (barra, leyenda e ícono de su fila) */
+  --st-media: #3d7fd0; --st-models: #8a68c9; --st-voice: #22958a; --st-text: #c28a1e; --st-trash: #c25f8f; --st-other: #8a8f98;
   --danger: #c4402f;
 }
 
@@ -95,6 +97,7 @@
   --track-dub: #6f737b;
   --ok: #3fbf74;
   --warn: #e3a43f;
+  --st-media: #5c9ae6; --st-models: #a68ae0; --st-voice: #3fb8a8; --st-text: #dcae4f; --st-trash: #db82ad; --st-other: #8e939b;
   --danger: #e2654f;
 }
 

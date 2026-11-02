@@ -22,6 +22,7 @@ SECTIONS = [
     ["youtube", "YouTube", "La sesión que se usa para descargar.", "play"],
     ["acceso", "Acceso y API", "Quién entra desde otros equipos, claves de API y webhooks.", "lock"],
     ["rendimiento", "Rendimiento", "Tu equipo, qué modelos usa Translay y cuánto de la GPU, la RAM y la CPU puede ocupar.", "spark"],
+    ["almacenamiento", "Almacenamiento", "Cuánto ocupa cada cosa de Translay y qué puedes liberar.", "drive"],
     ["papelera", "Papelera", "Lo que borraste en los últimos 30 días: se puede devolver tal como estaba.", "trash"],
 ]
 SCHEMA = [
@@ -33,6 +34,7 @@ SCHEMA = [
      "options": [[0, "Sin límite"], [1024, "1 GB"], [2048, "2 GB"], [3072, "3 GB"], [4096, "4 GB"], [5120, "5 GB"], [6144, "6 GB"], [7168, "7 GB"], [8192, "8 GB"], [10240, "10 GB"], [12288, "12 GB"], [16384, "16 GB"], [24576, "24 GB"]]},
     {"key": "limit_ram_mb", "section": "_perf", "label": "RAM", "type": "choice", "default": 0,
      "options": [[0, "Sin límite"], [2048, "2 GB"], [3072, "3 GB"], [4096, "4 GB"], [6144, "6 GB"], [8192, "8 GB"], [10240, "10 GB"], [12288, "12 GB"], [16384, "16 GB"], [24576, "24 GB"], [32768, "32 GB"], [49152, "48 GB"], [65536, "64 GB"]]},
+    {"key": "models_prune", "section": "_perf", "label": "Borrar modelos que no se usan", "type": "bool", "default": False},
     {"key": "limit_threads", "section": "_perf", "label": "Hilos", "type": "choice", "default": 0,
      "options": [[0, "Sin límite"], [1, "1 hilo"], [2, "2 hilos"], [3, "3 hilos"], [4, "4 hilos"], [6, "6 hilos"], [8, "8 hilos"], [10, "10 hilos"], [12, "12 hilos"], [16, "16 hilos"], [20, "20 hilos"], [24, "24 hilos"], [32, "32 hilos"], [48, "48 hilos"], [64, "64 hilos"]]},
     # apariencia: claro u oscuro (web/css/tokens.css, web/js/theme.js)
@@ -82,6 +84,7 @@ SCHEMA = [
 ]
 # grupo (dentro de su página) y descripción de cada opción
 DETAILS = {
+    "models_prune": ("Rendimiento", "Al reiniciar con otro perfil, borra los modelos que ese perfil no usa (se apaga sola después)."),
     "theme_mode": ("Tema", "Claro, oscuro o el que use tu sistema. Cada biblioteca recuerda el suyo."),
     "accent_lib": ("Tema", "Usar el color de la biblioteca abierta en botones, avance y reproducción, en vez del color del tema."),
     "autoplay": ("Al abrir y terminar", "El video empieza solo cuando lo abres."),

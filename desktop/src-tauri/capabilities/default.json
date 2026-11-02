@@ -16,6 +16,8 @@
     "dialog:allow-open",
     "allow-status",
     "allow-install",
+    "allow-profiles",
+    "allow-prepare",
     "allow-start",
     "allow-pick-folder",
     "allow-close-window",

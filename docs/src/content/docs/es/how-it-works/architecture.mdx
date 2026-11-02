@@ -111,6 +111,9 @@ La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y l
 | `ytsession.py` | Cuenta de YouTube conectada: perfil de navegador propio, cookies cifradas y renovación automática. |
 | `capture.py` | Grabaciones de pantalla: recibe las partes en orden (reanudable tras un corte) y arma el archivo final, recortado y comprimido. |
 | `exporter.py` | Exporta video y audio traducidos u originales, subtítulos y transcripción. |
+| `storage.py` | Preferencias › Almacenamiento: cuánto ocupa cada cosa y qué se puede liberar. |
+| `modelset.py` | Qué modelos usa cada perfil, cuáles faltan y bajarlos (también `python -m vt.modelset` para el instalador de escritorio). |
+| `modelusage.py` | Cuándo se usó por última vez cada modelo (`data/models.json`). |
 | `auth.py` | Acceso: dueño, bibliotecas privadas, con contraseña o públicas, y claves de API. |
 | `api.py` | API HTTP v1, inicio de sesión y guardián de archivos (`make_guard`). |
 | `events.py` | Catálogo de eventos y su emisión. |

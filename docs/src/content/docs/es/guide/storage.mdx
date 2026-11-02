@@ -1,0 +1,59 @@
+---
+title: Almacenamiento
+description: Cuánto ocupa cada cosa de Translay, qué se puede liberar sin riesgo y qué limpia Translay por su cuenta.
+sidebar:
+  order: 13
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+**Preferencias › Almacenamiento** muestra cuánto espacio usa Translay y deja liberar lo que ya no necesitas. Nada se borra sin confirmar, y lo que liberas de una descarga sigue en la biblioteca.
+
+## Espacio usado
+
+El total, el espacio libre de cada disco que usa Translay y una barra por tipo: descargas, modelos, voz en español, textos y miniaturas, papelera y sueltos, y lo demás.
+
+## Bibliotecas
+
+Todas tus bibliotecas juntas; con varias, cada fila dice cuánto hay en cada una.
+
+| Fila | Qué es | Qué puedes hacer |
+| --- | --- | --- |
+| **Descargas** | Lo bajado de YouTube o de un enlace, y los archivos que importaste. | Nada desde aquí: se libera abajo. |
+| **Sin traducir** | Descargas que nunca se transcribieron ni tradujeron (solo de YouTube o de un enlace, y fuera de la cola). | «Liberar» borra la copia en el equipo. Los videos siguen en la biblioteca y se vuelven a bajar al abrirlos o exportarlos. |
+| **Voz en español** | Las frases dobladas de cada video. | Es parte de la traducción: no se borra desde aquí. |
+| **Textos y miniaturas** | Transcripciones, voces de cada video, personas, miniaturas y datos de YouTube. | Nada: pesan poco. |
+| **Papelera** | Lo que borraste en los últimos 30 días. | «Vaciar» lo borra para siempre. Ver [Papelera](../trash/). |
+| **Archivos sueltos** | Descargas que ya no son de ningún video, una descarga cortada a medias, doblajes de videos que ya no existen y `.tmp` de una escritura interrumpida. | «Borrar». |
+
+Las transcripciones nunca son archivos sueltos: también tiene una lo que abriste sin guardarlo en la biblioteca.
+
+## Lo que más ocupa
+
+Las 40 descargas más pesadas, con lo que duran y si están traducidas. «Liberar» libera una: sigue en la biblioteca y se vuelve a bajar al abrirla. Si estaba traducida, la traducción y la voz se conservan.
+
+<Aside>
+Un audio de YouTube es AAC a 128 kbps: unos 58 MB por hora. Mil sets de dos horas pesan más de cien gigas, aunque cada uno parezca poco.
+</Aside>
+
+## Modelos
+
+Los modelos que bajó Translay (reconocimiento, traducción, voz y separar quién habla). Cada uno dice para qué sirve, qué [perfiles](../performance/) lo usan y cuándo se usó por última vez: «En uso ahora», «Usado por última vez hace 5 días» o «Sin usar desde el 2 nov» (el día en que Translay empezó a llevar la cuenta). Primero van los que están en uso, después los que se usaron alguna vez (el más reciente arriba) y al final los que nunca se usaron. Los que están en uso no se pueden borrar. «Borrar los que tu perfil no usa» borra todos los demás de una vez, con el total. Antes de borrar otro, la confirmación repite para qué sirve, cuándo se usó y qué perfiles lo volverían a descargar. El uso se guarda en `data/models.json` (`vt/modelusage.py`), a lo sumo cada 10 minutos por modelo. Solo se listan los de Translay; los modelos de otras apps en la caché de Hugging Face nunca se tocan.
+
+## Translay
+
+- **Exportaciones para descargar**: lo que exportaste y el navegador descargó. Se borra al quitarlo del panel «Cola» y, si no, a las 24 horas. Lo exportado a una carpeta no deja nada aquí.
+- **Caché de instalación** (solo la app de escritorio): los paquetes que bajó el instalador. Solo aceleran la próxima actualización. Comparte archivos con los entornos instalados (enlaces duros), así que cuenta solo lo que de verdad se libera, y se mide en segundo plano porque son cientos de miles de archivos.
+- **Mediciones de rendimiento**: `data/labs`, de las pruebas de desarrollo. Translay no las usa.
+- **Sesión de YouTube**: el navegador aparte con el que entras a YouTube. Hace falta para descargar.
+
+## Lo que Translay limpia solo
+
+- **Las exportaciones** para descargar: al quitarlas del panel o a las 24 horas (se revisa cada hora).
+- **Los `.tmp`** de una escritura interrumpida: al arrancar.
+- **La papelera**: a los 30 días.
+- **Una exportación que falló o se canceló**: al momento.
+
+<Aside>
+El código está en `vt/storage.py`. Solo el dueño ve esta página.
+</Aside>

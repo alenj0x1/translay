@@ -30,9 +30,11 @@ No hace falta ser administrador: se instala para tu usuario.
 
 2. Abre **Translay** desde el menú Inicio. La pantalla **Preparar Translay** muestra tu GPU, si tendrás voz en español o solo subtítulos, y dónde se guarda tu biblioteca (por defecto `Videos\Translay`; **Cambiar…** elige otra carpeta, por ejemplo otro disco).
 
-3. Pulsa **Instalar**. El botón muestra el avance (`Instalando 42 %`) y debajo, cuánto va de la descarga. Tarda según tu conexión: son unos 4 GB comprimidos.
+3. Pulsa **Instalar**. Se instala el servidor (unos 2 GB); el botón muestra el avance (`Instalando 42 %`) y debajo, cuánto va de la descarga.
 
-4. Al terminar se abre **Abriendo Translay** mientras se cargan los modelos. La primera vez se bajan de Hugging Face (Whisper large-v3-turbo, Opus-MT, OmniVoice y WeSpeaker, unos 6 GB) y se ve su porcentaje. Después arranca en segundos.
+4. **Elige cómo usar Translay**: los [perfiles](../../guide/performance/#perfiles), con el que conviene a tu equipo marcado como **Recomendado**, si cada uno tiene voz en español o solo subtítulos, cómo andaría y cuánto descarga. Los perfiles con voz necesitan una GPU NVIDIA de al menos 4 GB. Pulsa **Instalar y abrir**: instala el motor de voz solo si el perfil lo usa (unos 4,8 GB) y baja de Hugging Face los modelos de ese perfil, nada más (de 1,1 GB en «Subtítulos ligeros» a 5,8 GB en «Equilibrado»). El recomendado queda como **Automático** (sigue a tu equipo si cambia).
+
+5. Aparece **Abriendo Translay** mientras se cargan los modelos, y Translay abre listo. Después arranca en segundos.
 
 </Steps>
 

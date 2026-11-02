@@ -3,10 +3,21 @@
 Tipos
   es_video    MP4 con la voz en español (pista principal), el original como segunda
               pista y subtítulos en español y en el idioma original (se activan en el reproductor)
-  es_audio    M4A (o MP3) con la voz en español
+  es_audio    M4A, MP3 u Opus con la voz en español
   orig_video  el video original
-  orig_audio  el audio original, M4A (o MP3)
+  orig_audio  el audio original, M4A, MP3 u Opus
   srt_es · srt_orig · txt   subtítulos traducidos, subtítulos en el idioma original y transcripción
+
+Calidad: el audio en «alta», «media» o «liviana» (AUDIO_CODEC: menos kbps y, la liviana,
+en mono, que para una voz alcanza); el video «original» (sin recodificar) o bajado a 480p
+o 360p con H.264 (VIDEO_HEIGHT: tarda más, usa la CPU). El audio original en «alta» y en
+su mismo formato se entrega tal cual.
+
+Destino: sin `dest`, el resultado queda en data/exports/<id>/ y el navegador lo descarga
+(se borra al quitarlo de la lista o a las 24 h). Con `dest` (una carpeta de este equipo,
+p. ej. en otro disco) todo se arma en `dest/.translay-exportando-<id>/` y el resultado se
+mueve ahí: no pasa por el disco de los datos ni queda una segunda copia. Varios archivos van
+sueltos en una carpeta con las mismas subcarpetas que el .zip (_Folder), no en un .zip.
 
 Un video que solo se transcribe no tiene traducción ni voz: sus tipos traducidos se
 omiten (si no queda nada, el video va a «omitidos.txt»).
@@ -53,8 +64,20 @@ KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
          "srt_es": ("subtítulos español", "srt"), "srt_orig": ("subtítulos originales", "srt"),
          "txt": ("transcripción", "txt"),
          "orig_video": ("original", "mp4"), "orig_audio": ("audio original", "m4a")}
-AUDIO_CODEC = {"m4a": ["-c:a", "aac", "-b:a", "160k"], "mp3": ["-c:a", "libmp3lame", "-b:a", "192k"]}
+# formato → calidad → (códec, kbps, canales); un MB por hora ≈ kbps × 0,45
+AUDIO_CODEC = {"m4a": {"alta": ("aac", 160, 2), "media": ("aac", 96, 2), "liviana": ("aac", 64, 1)},
+               "mp3": {"alta": ("libmp3lame", 192, 2), "media": ("libmp3lame", 128, 2), "liviana": ("libmp3lame", 64, 1)},
+               "opus": {"alta": ("libopus", 128, 2), "media": ("libopus", 64, 2), "liviana": ("libopus", 32, 1)}}
 AUDIO_FORMATS = tuple(AUDIO_CODEC)
+QUALITIES = ("alta", "media", "liviana")
+ORIG_TRACK_KBPS = {"alta": 128, "media": 96, "liviana": 64}  # el original como segunda pista del MP4
+VIDEO_HEIGHT = {"original": 0, "480p": 480, "360p": 360}
+SWEEP_AGE = 86400  # lo exportado para descargar se borra a las 24 h (si no se quitó antes de la lista)
+
+
+def audio_args(fmt: str, quality: str = "alta") -> list[str]:
+    codec, kbps, ch = AUDIO_CODEC[fmt][quality]
+    return ["-c:a", codec, "-b:a", f"{kbps}k", *(["-ac", "1"] if ch == 1 else [])]
 # carpetas del .zip, como los grupos de la biblioteca: ninguna, una por canal, por colección propia
 # o por playlist (la primera que tenga el video; las categorías no, un video suele tener varias)
 # y «folder»: todo en una sola carpeta (lo exportado desde un canal, colección o playlist)
@@ -74,6 +97,54 @@ def reason(e: Exception) -> str:
 def safe_name(text: str) -> str:
     text = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", text or "video")
     return re.sub(r"\s+", " ", text).strip(" .")[:110] or "video"
+
+
+class _Folder:
+    """Como el .zip, pero una carpeta: cada archivo se mueve a su lugar (o se copia, si es el original
+    de la biblioteca)."""
+
+    def __init__(self, root: Path, work: Path):
+        self.root, self.work = root, work
+        root.mkdir(parents=True, exist_ok=True)
+
+    def write(self, f: Path, arc: str):
+        dst = self.root / arc
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if f.is_relative_to(self.work):
+            os.replace(f, dst)
+        else:
+            shutil.copy2(f, dst)
+
+    def close(self):
+        pass
+
+
+def video_args(height: int) -> list[str]:
+    """H.264 recodificado; con height, a lo sumo esa altura (un video más bajo queda como está)."""
+    scale = ["-vf", f"scale=-2:'min({height},ih)'"] if height else []
+    return [*scale, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23" if height else "21", "-pix_fmt", "yuv420p"]
+
+
+def unique_path(p: Path) -> Path:
+    """p, o «nombre (2).ext», «nombre (3).ext»… si ya hay un archivo con ese nombre."""
+    n = 2
+    out = p
+    while out.exists():
+        out, n = p.with_name(f"{p.stem} ({n}){p.suffix}"), n + 1
+    return out
+
+
+def dir_size(p: Path) -> int:
+    if p.is_file():
+        return p.stat().st_size
+    total = 0
+    for root, _, files in os.walk(p):
+        for f in files:
+            try:
+                total += os.stat(os.path.join(root, f)).st_size
+            except OSError:
+                pass
+    return total
 
 
 def srt(segments: list[dict], key: str) -> str:
@@ -96,19 +167,41 @@ class Exporter:
         self.vaults = vaults
         self.dir = root / "exports"
         self.dir.mkdir(parents=True, exist_ok=True)
-        for old in self.dir.iterdir():  # lo de sesiones anteriores ya se descargó
-            if time.time() - old.stat().st_mtime > 86400:
-                shutil.rmtree(old, ignore_errors=True) if old.is_dir() else old.unlink(missing_ok=True)
         self.store, self.library, self.processor = store, library, processor
         self.youtube, self.prefs, self.notify = youtube, prefs, notify
         self.jobs: list[dict] = []
         self._cond = threading.Condition()
         self._last = 0.0
+        self.sweep()
         threading.Thread(target=self._loop, daemon=True).start()
+
+    def sweep(self, everything: bool = False) -> int:
+        """Borra lo exportado para descargar que ya tiene más de 24 h (o todo lo que no está en
+        curso, con everything). Devuelve los bytes liberados."""
+        busy = {j["id"] for j in self.jobs if j["state"] not in ("listo", "error")}
+        freed, gone = 0, set()
+        for old in list(self.dir.iterdir()):
+            try:  # otro hilo puede estar borrando lo mismo (quitar de la lista, Almacenamiento)
+                if old.name in busy or not (everything or time.time() - old.stat().st_mtime > SWEEP_AGE):
+                    continue
+                freed += dir_size(old)
+                shutil.rmtree(old, ignore_errors=True) if old.is_dir() else old.unlink(missing_ok=True)
+                gone.add(old.name)
+            except OSError:
+                continue
+        if gone:  # ya no se pueden descargar: salen del panel
+            self.jobs = [j for j in self.jobs if j["id"] not in gone or j.get("dest")]
+            self._broadcast(force=True)
+        return freed
+
+    def busy_videos(self) -> set[str]:
+        """Videos de exportaciones que aún no terminan (Almacenamiento no borra su original)."""
+        return {v for j in self.jobs if j["state"] not in ("listo", "error") for v in j["videos"]}
 
     # ------------------------------------------------------------------ API
     def add(self, videos: list[str], kinds: list[str], name: str = "", audio: str = "m4a",
-            layout: str = "flat", folder: str = "") -> dict:
+            layout: str = "flat", folder: str = "", quality: str = "alta", video: str = "original",
+            dest: str = "") -> dict:
         videos = [v for v in dict.fromkeys(videos) if v in self.library.data["videos"]]
         kinds = [ALIASES.get(k, k) for k in kinds]
         kinds = [k for k in KINDS if k in kinds]
@@ -116,11 +209,30 @@ class Exporter:
             raise ValueError("nada que exportar")
         if audio not in AUDIO_FORMATS:
             raise ValueError("audio: " + ", ".join(AUDIO_FORMATS))
+        if quality not in QUALITIES:
+            raise ValueError("quality: " + ", ".join(QUALITIES))
+        if video not in VIDEO_HEIGHT:
+            raise ValueError("video: " + ", ".join(VIDEO_HEIGHT))
         if layout not in LAYOUTS:
             raise ValueError("layout: " + ", ".join(LAYOUTS))
+        if dest:
+            d = Path(dest)
+            # una carpeta de este equipo: nunca de red (abrir \\servidor\… conecta a otra máquina)
+            if not d.is_absolute() or str(d).startswith(("\\\\", "//")):
+                raise ValueError(f"no se puede guardar en «{dest}»")
+            # ni dentro de los datos: Almacenamiento tomaría lo exportado por archivos sueltos
+            roots = [self.root] + ([v.root for v in self.vaults.all()] if self.vaults else [])
+            if any(d.resolve().is_relative_to(r.resolve()) for r in roots):
+                raise ValueError("elige una carpeta fuera de la de tus bibliotecas")
+            try:
+                d.mkdir(parents=True, exist_ok=True)  # el cuadro deja escribir una carpeta nueva
+            except OSError:
+                raise ValueError(f"no se puede guardar en «{dest}»") from None
+            dest = str(d.resolve())
         if not name:
             name = self.library.data["videos"][videos[0]].get("title", "video") if len(videos) == 1 else "videos"
         job = {"id": uuid.uuid4().hex[:10], "name": name, "videos": videos, "kinds": kinds, "audio": audio,
+               "quality": quality, "video": video, "dest": dest, "path": "",
                "layout": layout, "folder": folder, "state": "en espera", "pct": 0, "detail": "", "url": "", "error": "", "skipped": [],
                "added": time.time()}
         with self._cond:
@@ -131,11 +243,15 @@ class Exporter:
 
     def remove(self, jid: str):
         with self._cond:
+            gone = [j for j in self.jobs if j["id"] == jid]
             self.jobs = [j for j in self.jobs if j["id"] != jid]
+        for j in gone:  # lo que quedaba para descargar ya no sirve (en curso: lo borra _run al ver que no está)
+            if j["state"] in ("listo", "error"):
+                shutil.rmtree(self.dir / j["id"], ignore_errors=True)
         self._broadcast(force=True)
 
     def public(self) -> dict:
-        return {"type": "exports", "jobs": [{k: j[k] for k in ("id", "name", "state", "pct", "detail", "url", "error")}
+        return {"type": "exports", "jobs": [{k: j[k] for k in ("id", "name", "state", "pct", "detail", "url", "error", "path")}
                                             | {"count": len(j["videos"]), "videos": j["videos"][:50],
                                                "skipped": len(j["skipped"])} for j in self.jobs]}
 
@@ -153,24 +269,34 @@ class Exporter:
         while True:
             with self._cond:
                 while (job := next((j for j in self.jobs if j["state"] == "en espera"), None)) is None:
-                    self._cond.wait()
+                    if not self._cond.wait(timeout=3600):  # sin trabajo: cada hora, lo vencido
+                        try:
+                            self.sweep()
+                        except Exception:  # noqa: BLE001 — nunca detiene las exportaciones
+                            pass
             try:
                 self._run(job)
             except Exception as e:
                 import traceback
 
                 traceback.print_exc()
+                shutil.rmtree(self._work_dir(job), ignore_errors=True)  # lo a medias no sirve
                 self._set(job, state="error", error=reason(e))
                 events.emit("exportacion.error", self._job_vault(job), job=job["id"], name=job["name"], error=job["error"])
 
     def _run(self, job):
         """Lo que pesa (convertir, mezclar) corre en varios hilos, un video por hilo; descargar y esperar
         el doblaje siguen de a uno. Cada archivo entra al .zip apenas está y se borra su copia suelta."""
-        out_dir = self.dir / job["id"]
+        out_dir = self._work_dir(job)
         out_dir.mkdir(exist_ok=True)
         many = len(job["videos"]) > 1
         zpath = out_dir / "export.zip"
-        z = zipfile.ZipFile(zpath, "w", zipfile.ZIP_STORED, allowZip64=True)             if many or len(job["kinds"]) > 1 else None  # varios: un .zip sin comprimir (ya vienen comprimidos)
+        # varios: un .zip sin comprimir (ya vienen comprimidos); a una carpeta elegida, una carpeta con
+        # los archivos sueltos (un pendrive FAT32 no admite archivos de más de 4 GB)
+        z = None
+        if many or len(job["kinds"]) > 1:
+            z = (_Folder(out_dir / "carpeta", out_dir) if job.get("dest")
+                 else zipfile.ZipFile(zpath, "w", zipfile.ZIP_STORED, allowZip64=True))
         files: list[tuple[Path, str]] = []  # (archivo, nombre al descargar) cuando es uno solo
         used: set[str] = set()
         frac: dict[str, float] = {}  # avance de cada video: 0 a 1
@@ -214,7 +340,8 @@ class Exporter:
                     progress()
 
                 self._set(job, state="exportando", detail=f"{title} · {label}")
-                path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"))
+                path = self._make(kind, vid, v, out_dir, prog, job.get("audio", "m4a"),
+                                  job.get("quality", "alta"), job.get("video", "original"))
                 if kind == "orig_video":
                     ext = path.suffix.lstrip(".")
                 out.append((path, f"{title} ({label}).{ext}" if kind != "orig_video" else f"{title}.{ext}"))
@@ -282,11 +409,28 @@ class Exporter:
         if z is None:
             path, name = files[0]
         else:
-            if job["skipped"]:
-                with zipfile.ZipFile(zpath, "a", zipfile.ZIP_STORED, allowZip64=True) as za:
-                    za.writestr("omitidos.txt", "No se pudieron exportar:\n\n"
-                                + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n")
-            path, name = zpath, safe_name(job["name"]) + ".zip"
+            skipped = ("No se pudieron exportar:\n\n" + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n"
+                       if job["skipped"] else "")
+            if isinstance(z, _Folder):
+                if skipped:
+                    (z.root / "omitidos.txt").write_text(skipped, encoding="utf-8")
+                path, name = z.root, safe_name(job["name"])
+            else:
+                if skipped:
+                    with zipfile.ZipFile(zpath, "a", zipfile.ZIP_STORED, allowZip64=True) as za:
+                        za.writestr("omitidos.txt", skipped)
+                path, name = zpath, safe_name(job["name"]) + ".zip"
+        if job.get("dest"):  # a la carpeta elegida: se mueve (mismo disco) o, si es el original de la biblioteca, se copia
+            target = unique_path(Path(job["dest"]) / name)
+            if path.is_relative_to(out_dir):
+                os.replace(path, target)
+            else:
+                shutil.copy2(path, target)
+            shutil.rmtree(out_dir, ignore_errors=True)
+            self._set(job, state="listo", pct=100, detail="", path=str(target))
+            events.emit("exportacion.lista", self._job_vault(job), job=job["id"], name=job["name"], url="",
+                        path=str(target), videos=job["videos"], kinds=job["kinds"])
+            return
         url = None
         for vault in (self.vaults.all() if self.vaults else []):  # el original, directo de su biblioteca
             for sub, pre in (("youtube", "/media/yt/"), ("library", "/media/lib/")):
@@ -319,6 +463,10 @@ class Exporter:
         if layout == "folder":
             return safe_name(job.get("folder") or job["name"])
         return ""
+
+    def _work_dir(self, job) -> Path:
+        """Donde se arma: junto al destino elegido (mismo disco: mover es instantáneo) o en data/exports."""
+        return Path(job["dest"]) / f".translay-exportando-{job['id']}" if job.get("dest") else self.dir / job["id"]
 
     def _job_vault(self, job):
         v = self.vaults.of(job["videos"][0]) if self.vaults and job["videos"] else None
@@ -373,23 +521,33 @@ class Exporter:
             time.sleep(3)
 
     # ------------------------------------------------------------ salida
-    def _make(self, kind, vid, v, out_dir: Path, prog, fmt: str = "m4a") -> Path:
+    def _make(self, kind, vid, v, out_dir: Path, prog, fmt: str = "m4a", quality: str = "alta",
+              video: str = "original") -> Path:
         if kind in TEXT_KINDS:
             return self._make_text(kind, vid, v, out_dir)
         media = self._media_path(v["media"], vid)
         audio = self._media_path(v["audio"], vid) if v.get("audio") else media
+        dur = float(v.get("duration") or 0)
+        height = VIDEO_HEIGHT[video]
         if kind == "orig_video":
-            return media
+            if not height:
+                return media
+            out = out_dir / f"{vid}.orig.{video}.mp4"
+            self._ffmpeg(["-i", str(media), "-map", "0:v:0", "-map", "0:a?", *video_args(height),
+                          "-c:a", "aac", "-b:a", f"{ORIG_TRACK_KBPS[quality]}k", "-movflags", "+faststart", str(out)],
+                         prog, dur)
+            return out
         if kind == "orig_audio":
-            if audio.suffix == f".{fmt}":
+            if audio.suffix == f".{fmt}" and quality == "alta":
                 return audio
-            out = out_dir / f"{vid}.orig.{fmt}"
-            self._convert(audio, out, fmt, prog, float(v.get("duration") or 0))
+            out = out_dir / f"{vid}.orig.{quality}.{fmt}"
+            self._ffmpeg(["-i", str(audio), "-vn", *audio_args(fmt, quality), str(out)], prog, dur)
             return out
         # el MP4 lleva la mezcla en AAC (se copia tal cual); el audio suelto, en el formato elegido
-        es = out_dir / f"{vid}.es.{fmt if kind == 'es_audio' else 'm4a'}"
+        es = out_dir / f"{vid}.es.{quality}.{fmt if kind == 'es_audio' else 'm4a'}"
+        mixed = 0.3 if height else 0.9  # parte del avance: la mezcla, y luego armar (o recodificar) el MP4
         if not es.exists():
-            self._mix(vid, audio, es, prog if kind == "es_audio" else (lambda f: prog(f * 0.9)))
+            self._mix(vid, audio, es, prog if kind == "es_audio" else (lambda f: prog(f * mixed)), quality)
         if kind == "es_audio":
             return es
         tr = self.store.open(vid)
@@ -399,31 +557,34 @@ class Exporter:
             f = out_dir / f"{vid}.{lang}.srt"
             f.write_text(srt(tr.segments, key), encoding="utf-8")
             subs.append((f, lang))
-        out = out_dir / f"{vid}.es.mp4"
-        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(media), "-i", str(es)]
+        out = out_dir / f"{vid}.es.{quality}.{video}.mp4"
+        cmd = ["-i", str(media), "-i", str(es)]
         for f, _ in subs:
             cmd += ["-i", str(f)]
         cmd += ["-map", "0:v:0", "-map", "1:a", "-map", "0:a?", "-map", "2", "-map", "3",
-                "-c:v", "copy", "-c:a:0", "copy", "-c:a:1", "aac", "-b:a:1", "128k", "-c:s", "mov_text",
+                *(video_args(height) if height else ["-c:v", "copy"]), "-c:a:0", "copy",
+                "-c:a:1", "aac", "-b:a:1", f"{ORIG_TRACK_KBPS[quality]}k", "-c:s", "mov_text",
                 "-metadata:s:a:0", "language=spa", "-metadata:s:a:0", "title=Español",
                 "-metadata:s:a:1", f"language={orig}", "-metadata:s:a:1", "title=Original",
                 "-metadata:s:s:0", "language=spa", "-metadata:s:s:1", f"language={orig}",
                 "-disposition:a:0", "default", "-disposition:a:1", "0", "-disposition:s:0", "0",
                 "-disposition:s:1", "0", "-movflags", "+faststart", str(out)]
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if r.returncode != 0:  # códec de video que MP4 no admite sin recodificar
+        step = lambda f: prog(mixed + (1 - mixed) * f)  # noqa: E731
+        try:
+            self._ffmpeg(cmd, step, dur)
+        except subprocess.CalledProcessError:  # códec de video que MP4 no admite sin recodificar
+            if height:
+                raise
             i = cmd.index("-c:v")
-            cmd[i + 1] = "libx264"
-            cmd[i + 2:i + 2] = ["-preset", "veryfast", "-crf", "21"]
-            subprocess.run(cmd, check=True, capture_output=True)
+            cmd[i:i + 2] = video_args(0)
+            self._ffmpeg(cmd, step, dur)
         prog(1.0)
         return out
 
     @staticmethod
-    def _convert(src: Path, out: Path, fmt: str, prog, dur: float):
-        """Solo el audio, al formato pedido, informando el avance (un mix de horas tarda minutos)."""
-        p = subprocess.Popen(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-progress", "pipe:1", "-nostats",
-                              "-i", str(src), "-vn", *AUDIO_CODEC[fmt], str(out)],
+    def _ffmpeg(args: list[str], prog, dur: float):
+        """ffmpeg con estos argumentos, informando el avance (convertir horas de audio o video tarda minutos)."""
+        p = subprocess.Popen(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-progress", "pipe:1", "-nostats", *args],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
         for line in p.stdout:
             if dur > 0 and line.startswith("out_time_us=") and line[12:].strip().isdigit():
@@ -462,8 +623,8 @@ class Exporter:
         out.write_text("\n".join(lines), encoding="utf-8")
         return out
 
-    def _mix(self, vid, src: Path, out: Path, prog):
-        """Original (bajo la voz) + cada frase doblada en su momento → AAC o MP3 (según `out`)."""
+    def _mix(self, vid, src: Path, out: Path, prog, quality: str = "alta"):
+        """Original (bajo la voz) + cada frase doblada en su momento → AAC, MP3 u Opus (según `out`)."""
         tr = self.store.open(vid)
         duck = DUCK_LEVELS.get(self.prefs.values.get("duck", "bajo"), 0.14)
         dub_dir = self._root(vid) / "audio"
@@ -491,7 +652,7 @@ class Exporter:
         dec = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-i", str(src), "-vn", "-f", "f32le", "-ac", "2",
                                 "-ar", str(SR), "-"], stdout=subprocess.PIPE)
         enc = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "f32le", "-ac", "2", "-ar", str(SR),
-                                "-i", "-", *AUDIO_CODEC[out.suffix.lstrip(".")], str(out)], stdin=subprocess.PIPE)
+                                "-i", "-", *audio_args(out.suffix.lstrip("."), quality), str(out)], stdin=subprocess.PIPE)
         pos, ci, ri = 0, 0, 0
         try:
             while True:

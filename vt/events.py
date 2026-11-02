@@ -26,7 +26,7 @@ CATALOG = {
     "cola.pausa": "Procesamiento en pausa o reanudado",
     "cola.terminada": "Cola terminada",
     "descarga.progreso": "Avance de las descargas (cada pocos segundos)",
-    "exportacion.lista": "Exportación lista para descargar",
+    "exportacion.lista": "Exportación lista (para descargar, o ya en su carpeta: path)",
     "exportacion.error": "Exportación con error",
     "glosario.cambio": "Glosario cambiado",
     "comentario.cambio": "Comentarios de una frase",

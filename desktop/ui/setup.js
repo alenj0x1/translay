@@ -1,6 +1,8 @@
 "use strict";
 // Setup and loading screens of the desktop app (src-tauri/src/lib.rs):
-//   first launch  → "Preparar Translay": hardware, library folder, install with progress on the button
+//   first launch  → "Preparar Translay": hardware, library folder, install the server with progress on the button;
+//                   then "Elige cómo usar Translay": the profile (recommended one first), which installs the voice
+//                   engine only if it has voice and downloads its models (vt/modelset.py), so Translay opens ready
 //   every launch  → "Abriendo Translay" while the server loads its models; then the window opens Translay
 //   server stopped → its last lines, "Reintentar" and the logs folder
 // el(), icon() and btn() come from Translay's web/js/ui.js (shared/).
@@ -10,7 +12,7 @@ const { listen } = window.__TAURI__.event;
 const win = window.__TAURI__.window.getCurrentWindow();
 const $ = (s) => document.querySelector(s);
 
-const STEP_TEXT = { server: "Instalando el servidor", voice: "Instalando el motor de voz" };
+const STEP_TEXT = { server: "Instalando el servidor", voice: "Instalando el motor de voz", models: "Descargando modelos" };
 const gb = (bytes) => (bytes / 1e9).toLocaleString("es", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
 let status = null;
@@ -68,9 +70,11 @@ function renderSetup() {
   mode.className = "tag" + (status.voice ? " ok" : "");
   $("#data-dir").textContent = dataDir;
   setBtn($("#pick"), "Cambiar…", "pencil");
-  $("#size").textContent = status.voice
-    ? "El servidor y el motor de voz: unos 7,5 GB en disco. Los modelos (unos 6 GB) se bajan al abrir Translay."
-    : "El servidor: unos 2 GB en disco. Los modelos (unos 2 GB) se bajan al abrir Translay.";
+  // first time: only the server; the profile chosen next decides the voice engine and the models
+  $("#size").textContent = status.data_chosen
+    ? (status.voice_chosen && !status.voice_installed ? "El motor de voz, unos 4,8 GB, para el perfil que elegiste."
+      : "Lo que cambió en esta versión.")
+    : "El servidor, unos 2 GB. Después eliges el perfil: según él se instala el motor de voz y se bajan sus modelos.";
   setBtn($("#install"), status.server_ok ? "Actualizar e instalar" : "Instalar", "download");
   show("setup");
 }
@@ -81,24 +85,39 @@ $("#pick").addEventListener("click", async () => {
 });
 
 let installing = false;
+let working = { btn: "#install", note: "#install-note", verb: "Instalando" };  // where progress shows
+
+function busy(b, verb) {
+  b.classList.add("dl", "busy");
+  b.style.setProperty("--p", "0%");
+  setBtn(b, `${verb} 0 %`, "download");
+}
+function idle(b, label, ic) {
+  b.classList.remove("dl", "busy");
+  setBtn(b, label, ic);
+}
 
 async function install() {
   if (installing) return;
   installing = true;
   const b = $("#install");
-  b.classList.add("dl", "busy");
-  b.style.setProperty("--p", "0%");
-  setBtn(b, "Instalando 0 %", "download");
+  working = { btn: "#install", note: "#install-note", verb: "Instalando" };
+  busy(b, "Instalando");
   $("#pick").disabled = true;
   $("#install-note").textContent = "";
   try {
-    await invoke("install");
-    await start();
+    if (status.data_chosen) {  // update or a voice engine asked for inside Translay: as chosen before
+      await invoke("install", {});
+      await start();
+    } else {  // first time: the server, then the profile
+      await invoke("install", { voice: false });
+      installing = false;
+      await chooseProfile();
+    }
   } catch (e) {
     installing = false;
-    b.classList.remove("dl", "busy");
+    idle(b, "Reintentar", "reload");
     $("#pick").disabled = false;
-    setBtn(b, "Reintentar", "reload");
     $("#install-note").textContent = String(e);
   }
 }
@@ -106,13 +125,82 @@ $("#install").addEventListener("click", install);
 
 listen("setup", ({ payload: p }) => {
   if (p.percent == null || p.state === "error") return;
-  const b = $("#install");
+  const b = $(working.btn);
   b.style.setProperty("--p", `${p.percent}%`);
-  setBtn(b, `Instalando ${p.percent} %`, "download");
+  setBtn(b, `${working.verb} ${p.percent} %`, "download");
   if (p.step && p.total_bytes) {
-    $("#install-note").textContent = `${STEP_TEXT[p.step]} · ${gb(p.done_bytes)} de ${gb(p.total_bytes)} GB`;
+    $(working.note).textContent = `${STEP_TEXT[p.step]}${p.step === "models" && p.label ? ` · ${p.label}` : ""} · ${gb(p.done_bytes)} de ${gb(p.total_bytes)} GB`;
   }
 });
+
+// ------------------------------------------------------------ profile
+let plans = null;
+let chosen = "";
+
+async function chooseProfile() {
+  show("profile");
+  $("#profiles").replaceChildren(el("div", { class: "row" }, el("p", { class: "note", text: "Midiendo tu equipo…" })));
+  setBtn($("#prepare"), "Instalar y abrir", "download");
+  $("#prepare").disabled = true;
+  try {
+    plans = await invoke("profiles", { dataDir });
+  } catch (e) {
+    $("#profiles").replaceChildren();
+    setBtn($("#prepare"), "Reintentar", "reload");
+    $("#prepare").disabled = false;
+    $("#prepare").onclick = () => { $("#prepare").onclick = null; chooseProfile(); };
+    $("#prepare-note").textContent = String(e);
+    return;
+  }
+  $("#prepare-note").textContent = "";
+  // el recomendado, salvo que tenga voz y esta GPU no pueda con ella: entonces el primero que sí
+  const can = (p) => !(p.voice && !status.voice);
+  chosen = can(plans.profiles.find((p) => p.id === plans.recommended) || {}) ? plans.recommended
+    : (plans.profiles.find(can) || plans.profiles[plans.profiles.length - 1]).id;
+  renderProfiles();
+}
+
+function renderProfiles() {
+  const voiceOk = status.voice;  // a GPU that can run the voice engine
+  $("#profiles").replaceChildren(...plans.profiles.map((p) => {
+    const blocked = p.voice && !voiceOk;
+    const bytes = p.download_bytes + (p.voice && p.voice_env ? plans.voice_env_bytes : 0);
+    const facts = [p.voice ? "Con voz en español" : "Solo subtítulos", p.state_label,
+      bytes ? `Descarga ${gb(bytes)} GB` : "Ya está descargado"];
+    const b = el("button", { type: "button", class: "row pick" + (p.id === chosen ? " on" : ""), disabled: blocked,
+      on: { click: () => { chosen = p.id; renderProfiles(); } } },
+      el("span", { class: "radio" }),
+      el("div", { class: "row-text" },
+        el("strong", {}, p.name, p.id === plans.recommended ? el("span", { class: "tag ok", text: "Recomendado" }) : null),
+        el("p", { text: blocked ? "Necesita una GPU NVIDIA con al menos 4 GB para la voz." : p.desc }),
+        el("p", { class: "facts", text: facts.join(" · ") })));
+    return b;
+  }));
+  $("#prepare").disabled = false;
+}
+
+async function prepare() {
+  if (installing || !plans) return;
+  installing = true;
+  const p = plans.profiles.find((x) => x.id === chosen);
+  const b = $("#prepare");
+  working = { btn: "#prepare", note: "#prepare-note", verb: "Preparando" };
+  busy(b, "Preparando");
+  for (const r of document.querySelectorAll("#profiles .pick")) r.disabled = true;
+  $("#prepare-note").textContent = "";
+  try {
+    await invoke("install", { voice: p.voice });  // the voice engine, only if this profile uses it
+    // the recommended one stays automatic: it follows the machine if it changes
+    await invoke("prepare", { dataDir, profile: chosen === plans.recommended ? "auto" : chosen });  // «auto»: solo el recomendado
+    await start();
+  } catch (e) {
+    installing = false;
+    idle(b, "Reintentar", "reload");
+    renderProfiles();
+    $("#prepare-note").textContent = String(e);
+  }
+}
+$("#prepare").addEventListener("click", prepare);
 
 // ------------------------------------------------------------ loading
 function loadingLine(line) {

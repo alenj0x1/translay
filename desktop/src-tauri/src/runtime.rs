@@ -1,7 +1,10 @@
 //! The runtime Translay needs, installed by the app itself on first launch (no manual steps):
 //! - The server packages (`locks/server.txt`) in `<app data>/runtime/server`, on the bundled Python 3.12.
 //! - The voice engine (OmniVoice on CUDA, `locks/voice.txt`) in `<app data>/runtime/venvs/omnivoice`, on the
-//!   bundled Python 3.11, only when the GPU can run it.
+//!   bundled Python 3.11, only when the GPU can run it and the chosen profile has voice (`Settings::voice`).
+//! - On first launch the server goes in first; then the setup screen asks for the profile (`profiles`, from
+//!   `python -m vt.modelset`), installs the voice engine only if that profile uses it and downloads its models
+//!   (`prepare`), so Translay opens ready.
 //! Both Pythons ship in the installer (python-build-standalone, verified by scripts/prepare.mjs): uv 0.13's own
 //! Python downloads fail under some user folders. Packages come from the bundled `uv` with pinned versions and
 //! SHA-256 hashes (`--require-hashes`);
@@ -111,11 +114,19 @@ pub struct Settings {
     /// Look for updates by itself (Preferencias › App de escritorio); None = yes.
     #[serde(default)]
     pub check_updates: Option<bool>,
+    /// The chosen profile has voice, so the voice engine is installed. None = installs from before profiles were
+    /// chosen at setup: whenever the GPU can run it.
+    #[serde(default)]
+    pub voice: Option<bool>,
 }
 
 impl Settings {
     pub fn auto_update(&self) -> bool {
         self.check_updates.unwrap_or(true)
+    }
+    /// Whether the voice engine should be installed: the profile wants it and the GPU can run it.
+    pub fn wants_voice(&self, gpu: &Option<Gpu>) -> bool {
+        voice_supported(gpu) && self.voice.unwrap_or(true)
     }
     pub fn load(paths: &Paths) -> Self {
         std::fs::read_to_string(paths.settings_file())
@@ -194,13 +205,15 @@ pub fn status(paths: &Paths, settings: &Settings) -> Value {
     let gpu = detect_gpu();
     let voice = voice_supported(&gpu);
     let server_ok = installed(paths, "server", &paths.server_python(), &paths.locks.join("server.txt"));
-    let voice_ok = !voice || installed(paths, "voice", &paths.voice_python(), &paths.locks.join("voice.txt"));
+    let voice_ok = !settings.wants_voice(&gpu) || installed(paths, "voice", &paths.voice_python(), &paths.locks.join("voice.txt"));
     json!({
         "version": env!("CARGO_PKG_VERSION"),
         "gpu": gpu,
         "voice": voice,
         "server_ok": server_ok,
         "voice_ok": voice_ok,
+        "voice_installed": paths.voice_python().exists(),
+        "voice_chosen": settings.voice,
         "ready": server_ok && voice_ok && settings.data_dir.is_some(),
         "data_dir": settings.data_dir.clone().unwrap_or_else(|| paths.default_data.clone()),
         "data_chosen": settings.data_dir.is_some(),
@@ -235,11 +248,11 @@ struct Step {
 }
 
 /// Installs whatever is missing, emitting `setup` events: {step, state, percent, done_bytes, total_bytes, error?}.
-pub async fn install(app: AppHandle, paths: &Paths) -> Result<(), String> {
+pub async fn install(app: AppHandle, paths: &Paths, voice: bool) -> Result<(), String> {
     if INSTALLING.swap(true, Ordering::SeqCst) {
         return Err("La instalación ya está en curso.".into());
     }
-    let result = run_install(&app, paths).await;
+    let result = run_install(&app, paths, voice).await;
     INSTALLING.store(false, Ordering::SeqCst);
     if let Err(e) = &result {
         let _ = app.emit("setup", json!({ "state": "error", "error": e }));
@@ -247,8 +260,7 @@ pub async fn install(app: AppHandle, paths: &Paths) -> Result<(), String> {
     result
 }
 
-async fn run_install(app: &AppHandle, paths: &Paths) -> Result<(), String> {
-    let voice = voice_supported(&detect_gpu());
+async fn run_install(app: &AppHandle, paths: &Paths, voice: bool) -> Result<(), String> {
     let server_lock = paths.locks.join("server.txt");
     let voice_lock = paths.locks.join("voice.txt");
     let need_server = !installed(paths, "server", &paths.server_python(), &server_lock);
@@ -390,6 +402,97 @@ async fn uv(paths: &Paths, args: &[&str], log: &Path, ctx: &Progress<'_>) -> Res
     } else {
         let last = tail.lock().unwrap().iter().rev().find(|l| !l.trim().is_empty()).cloned().unwrap_or_default();
         Err(format!("La instalación se detuvo ({}). {}", status.code().map(|c| format!("código {c}")).unwrap_or_default(), last.trim()))
+    }
+}
+
+/// The server's Python with Translay's code and environment (bundled tools ahead of the PATH): the server
+/// itself (server.rs) and `python -m vt.modelset` before it starts.
+pub fn python(paths: &Paths) -> Result<Command, String> {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    let mut dirs = vec![paths.tools.clone()];
+    dirs.extend(std::env::split_paths(&path));
+    let path = std::env::join_paths(dirs).map_err(|e| e.to_string())?;
+    let mut cmd = Command::new(paths.server_python());
+    cmd.current_dir(&paths.code)
+        .env("PATH", path)
+        .env("TRANSLAY_VENVS", paths.venvs())
+        .env("TRANSLAY_DESKTOP", "1")
+        .env("PYTHONIOENCODING", "utf-8")
+        .env("PYTHONUTF8", "1")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+        .env_remove("PYTHONHOME")
+        .env_remove("PYTHONPATH")
+        .env_remove("VIRTUAL_ENV")
+        .stdin(Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW);
+    Ok(cmd)
+}
+
+/// The profiles with the recommended one for this machine and how much each one downloads (vt/modelset.py).
+pub async fn profiles(paths: &Paths, data: &Path) -> Result<Value, String> {
+    let out = python(paths)?
+        .args(["-m", "vt.modelset", "profiles", "--data-dir"])
+        .arg(data)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("No se pudieron leer los perfiles: {e}"))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("No se pudieron leer los perfiles. {}", err.lines().last().unwrap_or("")));
+    }
+    serde_json::from_slice(&out.stdout).map_err(|e| e.to_string())
+}
+
+/// Saves the chosen profile and downloads its models; progress arrives as `setup` events (step "models").
+pub async fn prepare(app: &AppHandle, paths: &Paths, data: &Path, profile: &str) -> Result<(), String> {
+    std::fs::create_dir_all(paths.logs()).map_err(|e| e.to_string())?;
+    let log = paths.logs().join("setup.log");
+    append(&log, &format!("$ python -m vt.modelset prepare --profile {profile}\n"));
+    let mut child = python(paths)?
+        .args(["-m", "vt.modelset", "prepare", "--profile", profile, "--data-dir"])
+        .arg(data)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| format!("No se pudieron bajar los modelos: {e}"))?;
+    let stderr = child.stderr.take().unwrap();
+    let err_log = log.clone();
+    let errs = tokio::spawn(async move {
+        let mut last = String::new();
+        let mut lines = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            append(&err_log, &format!("{line}\n"));
+            if !line.trim().is_empty() {
+                last = line;
+            }
+        }
+        last
+    });
+    let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        append(&log, &format!("{line}\n"));
+        let mut parts = line.splitn(4, ' ');
+        if parts.next() != Some("PROGRESS") {
+            continue;
+        }
+        let done: u64 = parts.next().and_then(|x| x.parse().ok()).unwrap_or(0);
+        let total: u64 = parts.next().and_then(|x| x.parse().ok()).unwrap_or(1).max(1);
+        let _ = app.emit("setup", json!({
+            "step": "models", "state": "running", "label": parts.next().unwrap_or(""),
+            "percent": (done as f64 * 100.0 / total as f64).floor().min(100.0),
+            "done_bytes": done, "total_bytes": total,
+        }));
+    }
+    let status = child.wait().await.map_err(|e| e.to_string())?;
+    let last = errs.await.unwrap_or_default();
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("No se pudieron bajar los modelos. {}", last.trim()))
     }
 }
 

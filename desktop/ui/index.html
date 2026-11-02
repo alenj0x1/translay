@@ -60,6 +60,16 @@
     </div>
   </section>
 
+  <!-- first launch, after the server: the profile, which decides the voice engine and the models -->
+  <section class="panel" id="profile" hidden>
+    <h1>Elige cómo usar Translay</h1>
+    <div class="rows" id="profiles"></div>
+    <div class="go">
+      <button class="btn dark" id="prepare" type="button"></button>
+      <p class="note" id="prepare-note"></p>
+    </div>
+  </section>
+
   <!-- every launch: the server loads its models (and downloads them the first time) -->
   <section class="panel center" id="loading" hidden>
     <span class="mark big" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>
