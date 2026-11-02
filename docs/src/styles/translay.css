@@ -137,12 +137,27 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 
 /* Botón de menú de Starlight (celular): con los colores del tema y el ícono justo al centro. */
 button.sl-menu-button {
-  display: grid; place-items: center; padding: 0;
+  place-items: center; padding: 0;
   background-color: var(--sl-color-gray-6); color: var(--sl-color-white);
   border: 1px solid var(--sl-color-gray-5); box-shadow: none;
 }
-button.sl-menu-button svg { display: block; grid-area: 1 / 1; }
+/* solo en el celular (desde 50rem hay barra lateral): un display propio le ganaba a md:sl-hidden */
+@media (max-width: 49.99rem) { button.sl-menu-button { display: grid; } }
+button.sl-menu-button svg { grid-area: 1 / 1; }
+/* un solo ícono: las tres líneas cerrado, la X abierto (antes se veían los dos encimados) */
+button.sl-menu-button:not(:has(~ :popover-open)) .close-menu,
+button.sl-menu-button:has(~ :popover-open) .open-menu { display: none; }
 button.sl-menu-button:has(~ :popover-open) { background-color: var(--sl-color-gray-5); }
+/* aire entre el selector de idioma y el botón de menú */
+@media (max-width: 49.99rem) {
+  [data-has-sidebar] .header { padding-inline-end: calc(var(--sl-nav-gap) * 1.5 + var(--sl-nav-pad-x) + var(--sl-menu-button-size)); }
+}
+
+/* índice de la derecha: mide lo que su contenido, no la mitad del espacio que sobra */
+@media (min-width: 72rem) {
+  .right-sidebar-container { width: 16rem; }
+  .right-sidebar { width: 16rem; }
+}
 
 /* Diagramas (components/Diagram.astro): estilo draw.io, grupos punteados, cajas neutras y flechas grises. */
 :root {
