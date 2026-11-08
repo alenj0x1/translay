@@ -42,7 +42,7 @@ Mientras resume, el resumen tiene la GPU para sí (`Resources.exclusive`, ver [G
 
 ## Lab
 
-Los modelos se midieron con `tools/lab/summary.py` sobre transcripciones reales: una clase del MIT (43 min, inglés), una charla TED (14 min, inglés), una clase en portugués (12 min), una charla en español (17 min) y un video corto (4 min). De cada modelo guarda el resumen para leerlo, el tiempo, el pico en la GPU, cuántos puntos salen cada 10 minutos y si el texto salió en español. También se probó Gemma 3 4B: en CTranslate2 necesita `int8_bfloat16` (en float16 solo repite palabras), fue más rápida, pero se equivocó en un hecho de la charla TED y su licencia no es Apache, así que no se ofrece.
+Los modelos se midieron con `tools/lab/summary.py` sobre transcripciones reales: una clase del MIT (43 min, inglés), una charla TED (14 min, inglés), una clase en portugués (12 min), una charla en español (17 min) y un video corto (4 min). De cada modelo guarda el resumen para leerlo, el tiempo, el pico en la GPU, cuántos puntos salen cada 10 minutos y si el texto salió en español.
 
 <Aside>
 El resumen se guarda en la transcripción del video (`summary`, ver [Datos](../data/)) y la API lo devuelve en `GET /api/v1/videos/{id}/summary`.
