@@ -38,6 +38,8 @@ There are two measured reasons:
 
 In addition, the server has a single thread for recognition and translation (`gpu`) and one for the voice (`tts`), so at most two computations compete for the turn.
 
+The [summary](../summary/) takes a longer turn: `Resources.exclusive` holds the lock for the whole summary of a video. If the free VRAM isn't enough for its model, it first sets the loaded models aside (as in idle mode), and when it's done it releases its own and loads them back, so whoever was using them finds them as they were. On 8 GB the 4B summary model doesn't fit beside the voice; without this it overflowed to shared memory and a chunk went from 30 s to several minutes.
+
 ## Unified memory (DGX Spark)
 
 On machines like the NVIDIA DGX Spark (GB10) the GPU has no VRAM of its own: it uses system RAM, and `nvidia-smi` reports the memory as `[N/A]`. Without knowing how much memory it has, Translay treated the GPU as if it didn't exist: Rendimiento (Performance) showed "Muy forzado" (Very strained) at 0.02× and the automatic profile picked "Subtítulos ligeros" (Light subtitles).

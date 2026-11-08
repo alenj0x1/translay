@@ -1,7 +1,7 @@
 /* =====================================================================
    Tarjeta de video (biblioteca). Sin sombra, sin elevación ni zoom.
    .card(.picked .pending)
-     .thumb > img | .bau, .pick, .chip.dur, .chip.num, .chip.aud, .pending-dl, .prog > i, .ring, .play
+     .thumb > img | .bau, .pick, .tchips > .chip.lang + .chip.dur, .chip.num, .chip.aud, .pending-dl, .prog > i, .ring, .play
      .meta > h3, p
      .stage-bar(.done .run) > .meter, span
      .actions > .btn
@@ -22,7 +22,8 @@
 
 /* lo que va sobre la imagen: fondo oscuro translúcido, siempre legible */
 .card .thumb .chip, .card .pending-dl { background: rgba(10, 11, 13, .72); color: #fff; }
-.card .dur { right: var(--s2); bottom: var(--s2); }
+.card .tchips { right: var(--s2); bottom: var(--s2); display: flex; gap: var(--s1); }
+.card .tchips .chip { position: static; }
 .card .num { left: var(--s2); bottom: var(--s2); }
 .card .aud { left: var(--s2); bottom: var(--s2); }
 .card .num ~ .aud { left: 40px; }

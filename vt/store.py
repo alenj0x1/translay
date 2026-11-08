@@ -8,6 +8,7 @@ navegador). Se guarda un JSON por video con:
   volver a transcribirlos al retroceder o reabrir el video.
 * `lang`: idioma en que se habla (código de `vt/langs.py`; "en" si no está, como
   antes de los idiomas). Vacío con `detect`: se detecta al empezar a reconocerlo.
+* `summary`: el resumen (vt/summarize.py): de qué se trató y sus puntos con su minuto.
 * `mode`: "translate" (traducir y doblar) o "transcribe" (solo transcribir, en su
   idioma y sin voz). Lo elige la persona; si falta, un video en el idioma de destino
   solo se transcribe. Cambiar de modo no borra nada: las traducciones quedan guardadas.
@@ -171,7 +172,7 @@ class Transcript:
         return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
                 "comments": self.comments, "lang": self.lang, "mode": self.mode, "translates": self.translates,
                 "detecting": self.detecting, "speaker_names": self.data.get("speaker_names") or {},
-                "voice_map": self.data.get("voice_map") or {}}
+                "voice_map": self.data.get("voice_map") or {}, "summary": self.data.get("summary")}
 
     # ------------------------------------------------- comentarios por frase
     @property

@@ -9,7 +9,7 @@ import json
 import threading
 from pathlib import Path
 
-from . import langs
+from . import langs, summarize
 
 # [clave, título, descripción, ícono] — cada sección es una página de Preferencias
 SECTIONS = [
@@ -18,6 +18,8 @@ SECTIONS = [
     ["video", "Reproducción", "Qué pasa al abrir, terminar o agregar videos mientras miras.", "video"],
     ["audio", "Audio y subtítulos", "Qué escuchas y qué textos aparecen sobre el video.", "speaker"],
     ["biblioteca", "Agregar y descargar", "Qué se hace con lo que agregas y cómo se descarga.", "download"],
+    ["resumen", "Resumen", "Cuándo se resume cada video y con qué modelo.", "lines"],
+    ["exportar", "Exportar", "Dónde se guarda lo que exportas.", "download"],
     ["glosario", "Glosario", "Términos con traducción fija o que se dejan como en el original.", "book"],
     ["youtube", "YouTube", "La sesión que se usa para descargar.", "play"],
     ["acceso", "Acceso y API", "Quién entra desde otros equipos, claves de API y webhooks.", "lock"],
@@ -77,6 +79,18 @@ SCHEMA = [
     {"key": "notify", "section": "biblioteca", "label": "Avisos del navegador", "type": "bool", "default": False},
     {"key": "lib_channels", "section": "biblioteca", "label": "Canales en la barra lateral", "type": "bool",
      "default": True},
+    # resumen (vt/summaries.py): manual con el botón Resumir o al terminar de procesar cada video
+    {"key": "summary_mode", "section": "resumen", "label": "Resumir", "type": "choice", "default": "manual",
+     "options": [["manual", "Al pedirlo"], ["auto", "Al procesar cada video"]]},
+    # del registro de modelos (vt/summarize.py): automático elige según el equipo
+    {"key": "summary_model", "section": "resumen", "label": "Modelo", "type": "choice", "default": "auto",
+     "options": [["auto", "Automático"]] + [[k, m.name] for k, m in summarize.MODELS.items()]},
+    # exportar en este equipo: preguntar con el cuadro de Windows (en la última carpeta) o una carpeta fija;
+    # desde otro equipo, el navegador decide dónde se descarga
+    {"key": "export_ask", "section": "exportar", "label": "Al exportar", "type": "choice", "default": "preguntar",
+     "options": [["preguntar", "Preguntar dónde guardar"], ["carpeta", "Guardar siempre en una carpeta"]]},
+    {"key": "export_dir", "section": "_export", "label": "Carpeta", "type": "path", "default": ""},
+    {"key": "export_last_dir", "section": "_export", "label": "Última carpeta", "type": "path", "default": ""},
     {"key": "yt_session", "section": "youtube", "label": "Sesión para descargar", "type": "choice",
      "default": "ninguna",
      "options": [["ninguna", "No usar"], ["cuenta", "Cuenta conectada"], ["firefox", "Firefox"], ["brave", "Brave"], ["chrome", "Chrome"],
@@ -106,6 +120,12 @@ DETAILS = {
     "download_order": ("Descargas", "Aleatorio descarga variado de toda la cola; lo priorizado siempre va primero."),
     "notify": ("Avisos y vista", "Un aviso del sistema cuando termina una descarga, un video o una exportación."),
     "lib_channels": ("Avisos y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
+    "summary_mode": ("Cuándo", "Al pedirlo, cada video tiene el botón Resumir. Al procesar, se resume solo "
+                     "apenas termina su transcripción (usa la GPU un rato por video)."),
+    "summary_model": ("Modelo", "Automático usa el mejor que entra en tu equipo. Los más grandes resumen con más "
+                      "detalle; los livianos son más rápidos y funcionan sin GPU. Se descarga la primera vez."),
+    "export_ask": ("Dónde guardar", "Preguntar abre el cuadro de Windows en la última carpeta que usaste. Desde otro "
+                   "equipo, lo exportado se descarga con el navegador."),
     "yt_session": ("Sesión", "Con tu sesión, YouTube deja bajar videos con restricción de edad y pide menos verificaciones."),
 }
 for _p in SCHEMA:
@@ -146,6 +166,8 @@ class Prefs:
             return False
         if p["type"] == "bool":
             return isinstance(value, bool)
+        if p["type"] == "path":  # una carpeta de este equipo (la elige el cuadro de Windows)
+            return isinstance(value, str) and len(value) < 1000
         return value in [o[0] for o in p["options"]]
 
     def set(self, key: str, value) -> bool:
@@ -157,6 +179,10 @@ class Prefs:
             tmp.write_text(json.dumps(self.values, ensure_ascii=False, indent=1), encoding="utf-8")
             tmp.replace(self.path)
         return True
+
+    @staticmethod
+    def kind(key: str) -> str:
+        return (_BY_KEY.get(key) or {}).get("type", "")
 
     def public(self) -> dict:
         return {"type": "prefs", "sections": SECTIONS, "schema": SCHEMA, "values": dict(self.values)}

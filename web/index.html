@@ -187,10 +187,12 @@
 <section class="side" id="side">
   <nav class="side-tabs" id="side-tabs">
     <button type="button" class="on" data-tab="transcript">Transcripción</button>
+    <button type="button" data-tab="summary">Resumen</button>
     <button type="button" data-tab="upnext">Siguientes</button>
     <button type="button" data-tab="people">Personas</button>
   </nav>
   <ol class="transcript" id="transcript"></ol>
+  <div class="summary" id="summary" hidden></div>
   <ol class="upnext" id="upnext" hidden></ol>
   <div class="people" id="people" hidden></div>
 </section>
@@ -245,7 +247,10 @@
       <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small class="audio-fmt">M4A</small></label>
       <label><input class="check" type="checkbox" name="kind" value="srt_es"><span>Subtítulos en español</span><small>SRT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span><small>SRT</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="txt_es"><span>Texto en español</span><small>TXT</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="txt_orig"><span>Texto del original</span><small>TXT</small></label>
       <label><input class="check" type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe con comentarios</span><small>TXT</small></label>
+      <label><input class="check" type="checkbox" name="kind" value="summary"><span>Resumen</span><small>TXT</small></label>
     </div>
     <div class="dlg-row" id="export-audio" hidden><span class="label">Audio</span>
       <div class="dlg-segs">
@@ -260,7 +265,7 @@
       <div class="segs"><button class="seg on" type="button" data-layout="channel">Canales</button><button class="seg" type="button" data-layout="collection">Colecciones</button><button class="seg" type="button" data-layout="playlist">Playlists</button><button class="seg" type="button" data-layout="flat">Sin carpetas</button></div>
     </div>
     <div class="dlg-row" id="export-dest" hidden><span class="label">Guardar en</span>
-      <div class="segs"><button class="seg on" type="button" data-dest="">Descargas</button><button class="seg" type="button" data-dest="folder" id="export-dest-folder" data-icon="folder">Elegir carpeta</button></div>
+      <div class="segs"><button class="seg on" type="button" data-dest="ask">Preguntar</button><button class="seg" type="button" data-dest="folder" id="export-dest-folder" data-icon="folder">Elegir carpeta</button></div>
     </div>
     <p class="dlg-note" id="export-note"></p>
     <div class="dlg-actions">
@@ -418,6 +423,7 @@
 <script src="js/app.js"></script>
 <script src="js/patterns.js"></script>
 <script src="js/library.js"></script>
+<script src="js/summary.js"></script>
 <script src="js/vaults.js"></script>
 <script src="js/home.js"></script>
 <script src="js/access.js"></script>

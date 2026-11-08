@@ -371,7 +371,15 @@ def main():
                           order=lambda: prefs.values.get("download_order", "orden"),
                           own_lang=lambda: prefs.values.get("transcribe_lang") if langs.is_source(
                               prefs.values.get("transcribe_lang")) else None)
-    exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults)
+    # resumen (vt/summaries.py): su cola, el resumen automático al terminar y el que pide exportar
+    from . import summarize
+    from .summaries import Summaries
+
+    summaries = Summaries(store, library, res, prefs, notify, hw=lambda: hw, limits=lambda: lim, device=a.device,
+                          vaults=vaults, threads=lim["threads"] or max(1, (hw["cpu"]["usable_threads"] or 2) // 2))
+    processor.on_done = summaries.auto
+    info["summary"] = {"recommended": summarize.recommend(hw, lim)}
+    exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults, summaries=summaries)
 
     def models_in_use() -> set[str]:
         """Repos de Hugging Face que usa lo que está corriendo (no se pueden borrar desde Almacenamiento)."""
@@ -380,6 +388,8 @@ def main():
         from .storage import VOICE_REPOS
 
         out = {ASR_MODELS.get(a.model, a.model), SpeakerEmbedder.REPO, VOICE_REPOS.get(a.voice, "")}
+        if summaries._model is not None:  # el del resumen, mientras está cargado
+            out.add(summaries._model.model.repo)
         for src in langs.SOURCES:
             if src != langs.TARGET and translator.name_for(src) in MT_MODELS:
                 out.add(MT_MODELS[translator.name_for(src)][1])

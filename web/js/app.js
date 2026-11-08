@@ -80,6 +80,7 @@ function onMessage(m) {
       renderPower();
       state.voice = m.voice;
       if (m.langs) LANGS = m.langs;
+      state.summaryRec = m.summary?.recommended || "";  // modelo de resumen que entra en este equipo
       // al reconectar, la pestaña sigue en su biblioteca (la responde con todo: lista, prefs, videos)
       if (typeof vaults !== "undefined" && vaults.current) send({ type: "vault_open", id: vaults.current });
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
@@ -234,6 +235,11 @@ function onMessage(m) {
       // bajarlas todas al abrir llenaba las conexiones y el video tardaba en cargar
       renderTranscript();
       renderTimeline();
+      summaryFromTranscript(m);
+      break;
+    case "summary":
+    case "summary_state":
+      summaryUpdate(m);
       break;
     case "segment": {
       const gone = new Set([...m.removed, m.segment.id]);
@@ -1624,9 +1630,12 @@ function setPref(key, value) {
 }
 
 function applyPrefs(m) {
+  if (typeof syncExportOpts === "function") setTimeout(syncExportOpts);  // la carpeta de Exportar, en el diálogo
   prefsSchema = m.schema;
   prefsSections = m.sections || [];
   if (DESKTOP) prefsSections = [...prefsSections, DESKTOP_SECTION];  // web/js/desktop.js
+  // dónde guardar lo exportado solo se elige en este equipo (desde otro, lo descarga el navegador)
+  if (!(state.access?.local && state.access?.owner)) prefsSections = prefsSections.filter(([k]) => k !== "exportar");
   prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
@@ -1679,7 +1688,12 @@ const PREF_BLOCKS = {
 
 function prefControl(p) {
   if (p.key === "theme_mode") return appearanceRow(p);
-  const opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
+  let opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
+  if (p.key === "summary_model" && state.summaryRec) {  // «Automático» dice cuál usa en este equipo
+    const rec = p.options.find(([k]) => k === state.summaryRec);
+    opts = opts.map(([k, t]) => [k, k === "auto" && rec ? `Automático (${rec[1]})` : t]);
+  }
+  if (p.key === "export_ask") return exportAskRow(p);
   if (p.type === "bool") {  // interruptor
     const on = prefs[p.key] === true;
     return el("button", { type: "button", class: "switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), "aria-label": p.label,
@@ -1694,6 +1708,17 @@ function prefControl(p) {
   }
   return el("div", { class: "segs" }, ...opts.map(([value, text]) => el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : ""),
     on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, text)));
+}
+
+// dónde guardar lo exportado: preguntar o una carpeta fija (que se elige con el cuadro de Windows)
+function exportAskRow(p) {
+  const dir = prefs.export_dir || "";
+  const fixed = prefs.export_ask === "carpeta" && dir;
+  return el("div", { class: "segs" },
+    el("button", { type: "button", class: "seg" + (fixed ? "" : " on"), on: { click: () => { setPref("export_ask", "preguntar"); renderPrefs(); } } }, "Preguntar"),
+    el("button", { type: "button", class: "seg" + (fixed ? " on" : ""), title: dir,
+      on: { click: () => { if (!dir || fixed) send({ type: "export_pick_folder" }); else { setPref("export_ask", "carpeta"); renderPrefs(); } } } },
+    icon("folder"), dir ? shortPath(dir) : "Elegir carpeta"));
 }
 
 function renderPrefs() {
@@ -1776,14 +1801,16 @@ function appearanceRow(p) {
 
 $("#prefs-btn").addEventListener("click", () => togglePrefs());
 
-/* ------------------------------------------------------------ pestañas: transcripción / siguientes */
+/* ------------------------------------------- pestañas: transcripción / resumen / siguientes / personas */
 function setSideTab(tab) {
   for (const b of $("#side-tabs").querySelectorAll("button")) b.classList.toggle("on", b.dataset.tab === tab);
   $("#transcript").hidden = tab !== "transcript";
   $("#upnext").hidden = tab !== "upnext";
   $("#people").hidden = tab !== "people";
+  $("#summary").hidden = tab !== "summary";
   if (tab === "transcript") renderActive(true);
   else if (tab === "people") renderPeople();
+  else if (tab === "summary") renderSummary();
   else renderUpNext(true);
 }
 
@@ -1791,10 +1818,12 @@ function setSideTab(tab) {
 function updateSideTabs() {
   const up = $('#side-tabs [data-tab="upnext"]');
   const pe = $('#side-tabs [data-tab="people"]');
+  const su = $('#side-tabs [data-tab="summary"]');
   const items = typeof contextItems === "function" ? contextItems().filter((id) => lib.videos[id]) : [];
   up.hidden = items.length < 2;
   pe.hidden = !state.segments.some((s) => s.speaker != null);
-  $("#side-tabs").hidden = up.hidden && pe.hidden;
+  su.hidden = !state.segments.length && !state.summary;
+  $("#side-tabs").hidden = up.hidden && pe.hidden && su.hidden;
   const on = $("#side-tabs button.on");
   if (!on || on.hidden) setSideTab("transcript");
 }

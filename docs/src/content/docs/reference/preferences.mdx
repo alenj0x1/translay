@@ -39,7 +39,20 @@ The session used for downloading.
 
 <PrefTable section="youtube" />
 
-<PrefTable except={["apariencia", "video", "audio", "biblioteca", "youtube"]} />
+## Summary
+
+When each video is summarized and with which model. See [Summary](../../how-it-works/summary/).
+
+<PrefTable section="resumen" />
+
+## Export
+
+Where what you export is saved (only on the computer where Translay runs). The folders are chosen with the Windows dialog and are never sent to other devices. See [Export](../../guide/export/#where-its-saved).
+
+<PrefTable section="exportar" />
+<PrefTable section="_export" />
+
+<PrefTable except={["apariencia", "video", "audio", "biblioteca", "youtube", "resumen", "exportar", "_export"]} />
 
 The **Bibliotecas** (Libraries), **Glosario** (Glossary) and **Acceso y API** (Access and API) sections are not individual preferences: they are screens of their own. See [Libraries](../../guide/libraries/), [Glossary and search](../../guide/glossary-and-search/) and [Access](../../integrations/access/).
 

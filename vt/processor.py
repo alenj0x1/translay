@@ -65,6 +65,7 @@ class Processor:
                  own_lang=lambda: None):
         self.root = root
         self.own_lang = own_lang  # idioma propio (Preferencias): lo que se habla en él solo se transcribe
+        self.on_done = lambda vid: None  # un video terminó (el resumen automático, vt/summaries.py)
         self.vaults = vaults  # bibliotecas (vt/vaults.py): cada video se ubica en la suya
         self.order = order    # orden de descarga: "orden" (el de la cola) o "aleatorio"
         self.youtube, self.session = youtube, session
@@ -473,6 +474,7 @@ class Processor:
                     if done:
                         job.pop("prio", None)
                         self._vid_event("video.procesado", job["id"])
+                        self.on_done(job["id"])
                         if not any(j["state"] in ("en cola", "procesando") for j in self.data["jobs"]):
                             events.emit("cola.terminada")
             except Exception as e:

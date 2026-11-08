@@ -4,6 +4,20 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Video summary: the «Resumen» (Summary) tab tells what the video was about and lists all its important points, each with its minute (a click jumps there); there is no fixed number of points, a long video has more. It is made on your computer with a small language model (Qwen3 4B, 1.7B or 0.6B, chosen for your machine or in Preferences › Resumen) and comes out in Spanish whatever the video's language. «Resumir» (Summarize) makes it when you ask, or every video is summarized when the queue finishes it. The API has `GET` and `POST /api/v1/videos/{id}/summary`, and webhooks get `resumen.listo` and `resumen.error`.
+- Export: «Texto en español» (Spanish text), «Texto del original» (Original text) and «Resumen» (Summary) as TXT files.
+- Export: on this computer, Translay asks where to save with the Windows dialog («Guardar como» with the proposed name, or a folder for several files), starting in the last folder you used; Preferences › Exportar can set a fixed folder instead. Each export in the Queue list shows where it was saved, its context menu has «Mostrar en el Explorador» (Show in Explorer) and «Copiar la ruta» (Copy the path), and what was saved to a folder stays in the list after a restart.
+- Library: each card shows the language spoken in the video (EN, PT, ES…) next to its duration.
+
+### Fixed
+
+- Phone header: the library button no longer overlaps the logo, «Agregar» shows only its icon on narrow screens (the rule pointed at old markup) and no button drops to a second row at 320 px; the grey line under the header is gone.
+- Player: the rounded corners no longer show a thin black line under the light controls.
+
 ## 1.9.0 · 2026-11-02
 
 ### Added

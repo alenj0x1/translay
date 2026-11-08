@@ -19,8 +19,8 @@ html.desktop .bar .vault-btn .btn-text { min-width: 0; overflow: hidden; text-ov
   html.desktop .bar > .btn:not(.icon), html.desktop .queue-wrap > .btn { min-width: var(--h-md); padding: 0 11px; gap: 4px; }
 }
 @media (max-width: 1000px) {
-  html.desktop .bar .import-wrap > .btn .btn-text { display: none; }
-  html.desktop .bar .import-wrap > .btn { min-width: var(--h-md); padding: 0 11px; }
+  html.desktop .bar #import-btn .btn-text { display: none; }
+  html.desktop .bar #import-btn { min-width: var(--h-md); padding: 0 11px; }
 }
 /* íconos de la barra (Preferencias, claro/oscuro, ventana): todos iguales; lo activo y el foco se marcan
    solo con tono, sin anillos ni bordes */

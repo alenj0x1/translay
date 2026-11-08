@@ -1,6 +1,6 @@
 /* =====================================================================
    Panel lateral del reproductor: transcripción (con comentarios),
-   «Siguientes» y personas
+   resumen, «Siguientes» y personas
    ===================================================================== */
 
 .side { grid-column: 3; grid-row: 2 / 4; display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0;
@@ -60,6 +60,19 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
 .ceditor .area { background: var(--surface); min-height: 72px; }
 .ceditor .area { overflow: hidden; }
 .ceditor .cacts { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* ---------------------------------------------------------------- resumen */
+.summary { overflow-y: auto; min-height: 0; padding: 0 var(--s2) var(--s3); }
+.summary > .empty-state { margin-top: var(--s2); }
+.sum-overview { display: grid; gap: var(--s3); padding: var(--s2) var(--s3) var(--s4); }
+.sum-overview p { margin: 0; font: 500 var(--fs-body)/1.55 var(--font); color: var(--fg); }
+.sum-points { list-style: none; margin: 0; padding: var(--s2) 0 0; border-top: 1px solid var(--line); }
+.sum-points li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: var(--s2); padding: 10px var(--s3);
+  border-radius: var(--r-sm); cursor: pointer; }
+.sum-points li:hover, .sum-points li.active { background: var(--surface-2); }
+.sum-points time { font: 600 var(--fs-xs)/1.9 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+.sum-points p { margin: 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
+.sum-points li.active p { color: var(--fg); }
 
 /* ------------------------------------------------------------- siguientes */
 .upnext li {

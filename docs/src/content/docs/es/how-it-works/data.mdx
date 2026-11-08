@@ -31,6 +31,7 @@ Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se 
   - yt-session/ cuenta de YouTube conectada: el perfil de navegador propio de Translay, las cookies de youtube.com cifradas con DPAPI (`cookies.bin`) y cuándo se renovó (`session.json`) (`vt/ytsession.py`)
   - libraries.json lista de bibliotecas (id y ruta absoluta) y la última abierta (`vt/vaults.py`)
   - exports/ exportaciones listas para descargar; se borran al quitarlas del panel «Cola» o a las 24 h (`vt/exporter.py`)
+  - exports.json las últimas 100 exportaciones guardadas en una carpeta, con su ruta, para la lista de la Cola después de reiniciar
   - libraries/ carpeta por defecto de las bibliotecas nuevas
     - \<biblioteca\>/
   - youtube/
@@ -121,6 +122,7 @@ Las colecciones automáticas (recientes, todos, canales, categorías) no se guar
 | `speaker_names` | Nombre de cada persona («Personas»). |
 | `voice_map` | Voz que usa cada persona si elegiste otra: el número de otra persona o `p:<id>` de una persona guardada. |
 | `comments` | Comentarios por frase: id de frase → lista de `{id, text, created, updated}`. |
+| `summary` | El [resumen](../summary/): `overview` (de qué se trató), `points` (`{t, text}`, cada uno con su segundo), `model`, `lang`, `created` y `seconds` (cuánto tardó). |
 
 Una frase nueva reemplaza a las que se solapan con ella en más de la mitad de la más corta.
 

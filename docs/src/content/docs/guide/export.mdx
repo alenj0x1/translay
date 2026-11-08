@@ -21,7 +21,10 @@ In the export dialog you check any combination of:
 | **Audio original** (Original audio) | M4A, MP3 or Opus | The original audio track. |
 | **Subtítulos en español** (Spanish subtitles) | SRT | The translation, with its timings. |
 | **Subtítulos del original** (Original subtitles) | SRT | What is said, in the video's language; the file is named with its code (`.en.srt`, `.pt.srt`…). |
+| **Texto en español** (Spanish text) | TXT | Only the translation, in paragraphs (a new one after a long pause or when the speaker changes), without times. For a video already in Spanish, its own text. |
+| **Texto del original** (Original text) | TXT | The same, with what is said in the video's language. |
 | **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
+| **Resumen** (Summary) | TXT | What the video was about and its important points with their minute (see [Summary](../transcript-and-people/#summary)). If the video doesn't have one yet, it is summarized before exporting. |
 
 The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Preferences › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
@@ -39,7 +42,13 @@ When you check a video option, the **Video** row chooses **Original** (copied as
 
 ## Where it's saved
 
-From the computer where Translay runs, **Guardar en** (Save to) chooses between **Descargas** (Downloads, the browser downloads it as usual) and a folder: **Elegir carpeta** (Choose folder) opens the Windows dialog, and you can pick another drive. With a folder, everything is built inside it (in a temporary `.translay-exportando-…` folder) and the result is moved there: it doesn't go through the drive of your data or leave a second copy. Several files don't go in a `.zip` but loose, in a folder with the export's name and the same subfolders the `.zip` would have (one per channel, collection…): they play straight from a USB drive, and a FAT32 drive doesn't take files over 4 GB. If a file or folder with that name already exists, it's saved as `name (2)`. When it's done, **Mostrar en la carpeta** (Show in folder) opens the Explorer with the file selected. From other devices the option isn't there: the file is downloaded. The API takes `"dest"` (only the owner, from this computer; never a network path or a folder inside your libraries).
+From the computer where Translay runs (the owner), **Exportar** opens the Windows dialog to choose where to save: «Guardar como» (Save as) with the proposed name if it's a single file, or a folder if there are several. It starts in the last folder you used (the first time, in Downloads) and warns before replacing a file. If you cancel it, nothing is exported. If you'd rather not choose every time, **Guardar en** › **Elegir carpeta** (Save to › Choose folder), or Preferences › Exportar › **Al exportar** › **Guardar siempre en una carpeta** (On export › Always save to a folder), sets a fixed folder, which can be on another drive; **Preguntar** (Ask) goes back. Both are the same preference.
+
+Everything is built inside the chosen folder (in a temporary `.translay-exportando-…` folder) and the result is moved there: it doesn't go through the drive of your data or leave a second copy. Several files don't go in a `.zip` but loose, in a folder with the export's name and the same subfolders the `.zip` would have (one per channel, collection…): they play straight from a USB drive, and a FAT32 drive doesn't take files over 4 GB. With the fixed folder, if a file or folder with that name already exists, it's saved as `name (2)`.
+
+Each export in the Queue list says where it ended up («Listo · en Descargas\Charlas»; the full path on hover) and its context menu (right click) has **Mostrar en el Explorador** (Show in Explorer, opens the folder with the file selected), **Copiar la ruta** (Copy the path) and **Quitar de la lista** (Remove from the list). What was saved to a folder stays in the list after a restart, as long as the file is still there (the last 100).
+
+From other devices you don't choose: the browser downloads it where it always does. The API takes `"dest"` (only the owner, from this computer; never a network path or a folder inside your libraries).
 
 ## From where
 
@@ -76,7 +85,7 @@ Progress shows in the **Cola** panel, in the **Exportar** section, and the downl
 The dialog tells you before exporting what it will have to wait for:
 
 - **Translated content** (video or audio) waits for dubbing to finish. If the video wasn't in the queue, it is added automatically; meanwhile the panel shows how far dubbing has got.
-- **Subtitles and the TXT** only wait for the full transcription, not dubbing.
+- **Subtitles and the TXT files** only wait for the full transcription, not dubbing. **The summary** is also made if it's missing.
 - **A video that hasn't been downloaded** is downloaded first.
 - **A video that is only transcribed** has no translation or voice: the translated options are skipped for it, and if nothing else was checked it goes to `omitidos.txt`.
 - **A video of which only the audio was downloaded**: if you ask for a video (original or translated), the full video is downloaded first.

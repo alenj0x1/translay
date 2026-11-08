@@ -21,12 +21,16 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   PATCH  /api/v1/videos/{id}                      {"title": "…"}  le cambia el nombre
   GET    /api/v1/videos/{id}/transcript           frases en su idioma (text) y traducidas (translation)
   GET    /api/v1/videos/{id}/subtitles?lang=es    SRT: es (traducción) | orig o el código del idioma del video
+  GET    /api/v1/videos/{id}/summary              resumen: overview (de qué se trató), points [{t, text}], model,
+                                                   y state si se está haciendo (en cola, descargando, resumiendo)
+  POST   /api/v1/videos/{id}/summary              {"force": false}  lo pide (a la cola del resumen); force lo rehace
   DELETE /api/v1/videos/{id}                      lo borra con sus archivos
   GET    /api/v1/queue?library=                   cola
   POST   /api/v1/queue                            {"video": id, "priority": false}
   DELETE /api/v1/queue/{id}
   POST   /api/v1/queue/pause  ·  /queue/resume    (clave para todas las bibliotecas)
   POST   /api/v1/exports                          {"videos": [...], "kinds": ["es_video", "srt_es", …],
+                                                   (también txt_es, txt_orig y summary: texto y resumen)
                                                    "audio": "m4a|mp3|opus", "quality": "alta|media|liviana",
                                                    "video": "original|480p|360p",
                                                    "layout": "flat|channel|collection|playlist|folder",
@@ -298,6 +302,17 @@ class Api:
                                                                              "speaker")} for s in tr.segments],
                              "speaker_names": tr.data.get("speaker_names") or {}, "comments": tr.comments,
                              "lang": tr.lang, "mode": tr.mode}, {}
+            if p[2] == "summary":
+                sums = self.exporter.summaries
+                if m == "POST":
+                    if not self._can_write(acc, v.id):
+                        raise PermissionError("resumir requiere una clave de escritura")
+                    queued = sums is not None and sums.request(vid, bool((req.json() or {}).get("force")))
+                    if not queued and not tr.data.get("summary"):
+                        raise ValueError("este video aún no tiene transcripción")
+                    return 202, {"id": vid, "state": sums.state(vid) if sums else None}, {}
+                return 200, {"id": vid, **(tr.data.get("summary") or {}),
+                             "state": sums.state(vid) if sums else None}, {}
             if p[2] == "subtitles":
                 lang = req.query.get("lang", langs.TARGET)
                 if lang == langs.TARGET and tr.lang != langs.TARGET and not tr.translates:

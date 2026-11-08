@@ -1,0 +1,49 @@
+---
+title: Resumen
+description: Cómo Translay resume un video en tu equipo, qué modelos usa y cómo se eligieron.
+sidebar:
+  order: 4.5
+---
+
+import { Aside } from "@astrojs/starlight/components";
+import Diagram from "../../../../components/Diagram.astro";
+import { summary } from "../../../../diagrams";
+
+El resumen cuenta de qué se trató un video y enumera todos sus puntos importantes con su minuto. Se hace en tu equipo, sin ningún servicio en internet, con un modelo de lenguaje pequeño que corre sobre [CTranslate2](https://github.com/OpenNMT/CTranslate2), el mismo motor de Whisper y del traductor, así que no suma dependencias. Cómo se usa: [Transcripción › Resumen](../../guide/transcript-and-people/#resumen).
+
+<Diagram {...summary("es")} />
+
+## Cómo se arma
+
+1. **Líneas con su minuto.** Las frases se juntan en líneas de hasta 30 segundos, cada una con su minuto al comienzo (`[12:34] …`).
+2. **Tramos.** La transcripción se corta en tramos de unos 1000 tokens del propio modelo (unas 700 palabras en inglés; el portugués usa más tokens por palabra). Un último tramo muy corto se suma al anterior.
+3. **Puntos de cada tramo.** De cada tramo, el modelo escribe todos los puntos importantes que trata, uno por línea con el minuto en que empieza. No hay un número fijo: un video largo tiene más tramos y, por eso, más puntos (de 15 a 20 puntos cada 10 minutos en el lab).
+4. **De qué se trató.** Con todos los puntos, el modelo escribe de uno a tres párrafos: el tema, cómo se desarrolla y a qué conclusiones llega. Si los puntos no caben en un tramo (un video de horas), primero se cuenta cada grupo en un párrafo y el panorama sale de esos párrafos, así ninguna llamada al modelo pasa de unos 1000 tokens.
+
+Por qué los tramos se miden en tokens y son cortos: la atención crece con el cuadrado del largo. Con tramos de 1500 palabras en portugués, el modelo 4B llegaba a 6,8 GB y desbordaba la GPU de 8 GB a la memoria compartida (356 s para un video de 12 minutos); con 1000 tokens se queda en 6,3 GB y cada tramo tarda la mitad, con la misma cantidad de puntos.
+
+El minuto de cada punto se ajusta al de una línea real de su tramo: un modelo pequeño puede inventar uno, y un punto después de su tramo pasa a su última línea, y uno antes, junto al punto anterior. Los puntos repetidos se descartan. El modelo lee lo que se dice en el idioma original (lo entiende mejor que una traducción) y escribe en español. La decodificación voraz (siempre la palabra más probable) con una leve penalización a las repeticiones evita que dé vueltas.
+
+El código está en `vt/summarize.py` (el modelo, los tramos y las instrucciones) y `vt/summaries.py` (la cola: un video a la vez, en segundo plano).
+
+## Modelos
+
+| Modelo | Licencia | GPU (pico) | Clase de 43 minutos en la RTX 4060 | Resultado |
+| --- | --- | --- | --- | --- |
+| **Qwen3 4B** Instruct 2507 (int8) | Apache 2.0 | 6,9 GB | 218 s, 63 puntos | Fiel: traduce los términos («monkey» → «mono») y no confunde los hechos. |
+| **Qwen3 1.7B** (int8) | Apache 2.0 | 3,0 GB | 63 s, 50 puntos | Bueno, pero deja términos en inglés y se equivoca en algunos detalles. En la CPU (6 hilos), 11 minutos. |
+| **Qwen3 0.6B** (int8) | Apache 2.0 | 1,8 GB | 47 s, 45 puntos | Vago: puntos genéricos, sin contenido. Solo si no entra ninguno de los otros. |
+
+**Automático** (por defecto) usa el mejor cuyo pico entra en tu GPU, con 500 MB de margen: con 8 GB, el 4B; con 4 o 6 GB, el 1.7B. Si no entra ninguno, el 1.7B corre en la CPU con la mitad de los hilos (con al menos 8 GB de RAM), y solo si no, el 0.6B. Puedes elegir otro en Preferencias › Resumen › **Modelo**; se descarga de Hugging Face (`jncraton/…-ct2-int8`) la primera vez que se usa, con su avance en el botón, y se puede borrar en [Almacenamiento](../../guide/storage/).
+
+## GPU
+
+Mientras resume, el resumen tiene la GPU para sí (`Resources.exclusive`, ver [GPU y reposo](../gpu-and-idle/#turnos-en-la-gpu)): si su modelo no cabe junto a los cargados, estos se apartan y vuelven al terminar. En 8 GB el 4B no cabe junto a la voz, y sin esto desbordaba a la memoria compartida. El modelo de resumen se suelta un minuto después del último resumen.
+
+## Lab
+
+Los modelos se midieron con `tools/lab/summary.py` sobre transcripciones reales: una clase del MIT (43 min, inglés), una charla TED (14 min, inglés), una clase en portugués (12 min), una charla en español (17 min) y un video corto (4 min). De cada modelo guarda el resumen para leerlo, el tiempo, el pico en la GPU, cuántos puntos salen cada 10 minutos y si el texto salió en español. También se probó Gemma 3 4B: en CTranslate2 necesita `int8_bfloat16` (en float16 solo repite palabras), fue más rápida, pero se equivocó en un hecho de la charla TED y su licencia no es Apache, así que no se ofrece.
+
+<Aside>
+El resumen se guarda en la transcripción del video (`summary`, ver [Datos](../data/)) y la API lo devuelve en `GET /api/v1/videos/{id}/summary`.
+</Aside>

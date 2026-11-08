@@ -48,6 +48,7 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 - Speed from 0.75× to 2× without changing pitch, fullscreen, keyboard shortcuts.
 - **«Preparando NN %» / «Listo para reproducir»** (Preparing NN% / Ready to play) indicator, computed from the real dubbing speed; it can pause by itself until there is voice ahead and resume on its own.
 - **Aligned transcript** (original | Spanish) showing who speaks each sentence, per-sentence **comments** (marked on the progress bar) and click to jump.
+- **Summary** of what the video was about, with all its important points and their minute (click to jump), made on your computer with Qwen3 (4B, 1.7B or 0.6B, chosen for your hardware); on demand or for every video.
 - **People**: name each one, choose their voice (their own, another person's from the video, or a **saved person** from the library) and listen to their reference.
 - **Up next** (the collection or playlist you opened it from) with autoplay of the next video, and a **floating thumbnail** when you go back to the library.
 
@@ -83,12 +84,14 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 | Option | Format |
 |---|---|
 | Translated video | MP4 with the Spanish voice as the main track, the original as the second track (tagged with its language), and Spanish and original subtitles |
-| Translated / original audio | M4A |
+| Translated / original audio | M4A, MP3 or Opus |
 | Original video | MP4 |
 | Spanish / original subtitles | SRT |
+| Spanish / original text, in paragraphs | TXT |
 | Bilingual transcript with people and comments | TXT |
+| Summary | TXT |
 
-From the player, a card, an entire collection or a selection; several files go in a `.zip`. If the video isn't ready yet, the export waits (and sends it to the queue if needed).
+From the player, a card, an entire collection or a selection. On your computer it asks where to save (it remembers the last folder) or uses a fixed folder; from another device, several files go in a `.zip`. If the video isn't ready yet, the export waits (and sends it to the queue if needed).
 
 ## Performance: what hardware you need
 

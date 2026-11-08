@@ -28,6 +28,8 @@ CATALOG = {
     "descarga.progreso": "Avance de las descargas (cada pocos segundos)",
     "exportacion.lista": "Exportación lista (para descargar, o ya en su carpeta: path)",
     "exportacion.error": "Exportación con error",
+    "resumen.listo": "Resumen de un video listo (cuántos puntos y con qué modelo)",
+    "resumen.error": "No se pudo resumir un video",
     "glosario.cambio": "Glosario cambiado",
     "comentario.cambio": "Comentarios de una frase",
     "youtube.bloqueo": "YouTube pidió verificación (descargas en pausa)",

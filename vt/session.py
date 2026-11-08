@@ -17,9 +17,13 @@ Cliente → servidor
   {"type":"video_lang", "video", "lang"?, "mode"?}   idioma en que se habla (rehace lo reconocido) y/o
                                                      traducir o solo transcribir (no borra nada)
   {"type":"export", "videos":[ids], "kinds":[…], "name", "audio":"m4a"|"mp3"|"opus", "quality":"alta"|"media"|"liviana",
-   "video":"original"|"480p"|"360p", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder", "dest"}
-                                                     exportar (vt/exporter.py; «dest»: carpeta de este equipo, solo
-                                                     el dueño) · export_remove {job} · export_pick_folder · export_reveal {job}
+   "video":"original"|"480p"|"360p", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder"}
+                                                     exportar (vt/exporter.py). Desde este equipo, el dueño elige dónde
+                                                     guardar en el cuadro de Windows, o va a la carpeta fija de
+                                                     Preferencias; si lo cancela, responde export_cancelled
+                                                     export_remove {job} · export_pick_folder · export_reveal {job}
+  summarize {video, force?} · summary_cancel {video}   resumen del video (vt/summaries.py); el avance llega
+                                                     como summary_state y el resultado como summary
   storage_scan · storage_free {what, vault?, videos?, repo?}   Preferencias → Almacenamiento (vt/storage.py)
   perf_plan {profile}                                qué modelos faltan para ese perfil (vt/modelset.py) · server_restart {prune?}
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
@@ -46,6 +50,7 @@ espera a la síntesis.
 import asyncio
 import json
 import struct
+import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -65,7 +70,8 @@ OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete",
               "export_pick_folder", "export_reveal"}
-IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch"}
+IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch",
+               "summarize", "summary_cancel"}
 from .streaming import Detected, Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
@@ -144,8 +150,14 @@ class Session:
         own = self.vault.meta.get("prefs") or {}
         return own[key] if key in VAULT_PREFS and key in own else self.prefs.values.get(key)
 
+    @property
+    def _summaries(self):
+        return self.exporter.summaries if self.exporter else None
+
     def _prefs_msg(self) -> dict:
         m = self.prefs.public()
+        if not (self.access.owner and self.access.local):  # carpetas de este equipo: solo para quien está en él
+            m["values"].update({p["key"]: "" for p in m["schema"] if p["type"] == "path"})
         own = self.vault.meta.get("prefs") or {}
         m["values"].update({k: v for k, v in own.items() if k in VAULT_PREFS})
         m["vault_keys"] = list(VAULT_PREFS)
@@ -193,7 +205,7 @@ class Session:
             if t == "queue_video":
                 vs = [self.vaults.of(str(x)) for x in m.get("videos", [])]
                 return bool(vs) and all(v and a.can_import(v.id) for v in vs)
-            if t in ("lib_register", "watch", "video_lang"):  # la del video, si ya está en alguna biblioteca
+            if t in ("lib_register", "watch", "video_lang", "summarize", "summary_cancel"):  # la del video, si ya está en alguna biblioteca
                 return a.can_import(self._vault_of(str(m.get("id") or m.get("video") or "")).id)
             return a.can_import(self.vault.id)
         if t == "open":
@@ -259,6 +271,15 @@ class Session:
                         self.watching = None
                     elif m.get("type", "").startswith("comment_"):
                         self._comment(m)
+                    elif m.get("type") in ("summarize", "summary_cancel") and self._summaries:
+                        vid = str(m.get("video", ""))
+                        if m["type"] == "summary_cancel":
+                            self._summaries.cancel(vid)
+                        elif _SAFE_VID.match(vid) and self.vaults.of(vid):
+                            ok = await asyncio.get_running_loop().run_in_executor(
+                                None, self._summaries.request, vid, bool(m.get("force")))
+                            if not ok:  # sin transcripción (o ya tiene): la vista no queda «en cola»
+                                await self.ws.send_json({"type": "summary_state", "state": None})
                     elif m.get("type") == "search":
                         asyncio.create_task(self._search(str(m.get("q", ""))))
                     elif m.get("type") in ("glossary_get", "glossary_set"):
@@ -289,6 +310,8 @@ class Session:
                             if self.prefs._valid(key, value):
                                 self.vaults.set_pref(self.vault.id, key, value)
                                 self.notify({"type": "prefs"})  # cada pestaña, con los de su biblioteca
+                        elif self.prefs.kind(key) == "path":  # solo las elige el cuadro de Windows (servidor)
+                            pass
                         elif self.prefs.set(key, value):
                             self.notify({"type": "prefs"})  # todas las pestañas
                     elif m.get("type") == "power_info":
@@ -359,6 +382,8 @@ class Session:
                     self.st.language = self.tr.lang  # "" = se detecta con la primera voz
                     vault = self._vault_of(self.tr.data["id"])
                     await self.ws.send_json({"type": "transcript", **self.tr.public(),
+                                             "summary_state": self._summaries.state(self.tr.data["id"])
+                                             if self._summaries else None,
                                              "voice_refs": self._voice_refs(self.tr.data["id"]),
                                              "prefix": vault.prefix, "vault": vault.id})
                     if self._backfill:
@@ -777,7 +802,14 @@ class Session:
         if m["type"] == "export_pick_folder":  # el cuadro nativo de Windows, en este equipo
             if not self.access.local:
                 return
-            path = await asyncio.get_running_loop().run_in_executor(None, pick_folder, "Dónde guardar lo exportado")
+            # la carpeta fija de Preferencias › Exportar (desde ahí o el diálogo de exportar)
+            p = self.prefs.values
+            path = await asyncio.get_running_loop().run_in_executor(
+                None, pick_folder, "Dónde guardar lo exportado", p.get("export_dir") or p.get("export_last_dir") or "")
+            if path:
+                self.prefs.set("export_dir", str(Path(path)))
+                self.prefs.set("export_ask", "carpeta")
+                self.notify({"type": "prefs"})
             return await self.ws.send_json({"type": "export_folder", "path": path})
         if m["type"] == "export_reveal":  # el archivo exportado, marcado en el Explorador
             if not self.access.local:
@@ -791,12 +823,33 @@ class Session:
         try:
             vids = [str(v) for v in m.get("videos", [])
                     if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
-            # una carpeta del equipo, solo desde este mismo equipo (desde otro, el resultado se descarga)
-            dest = str(m.get("dest") or "") if self.access.owner and self.access.local else ""
-            job = await asyncio.get_running_loop().run_in_executor(None, lambda: self.exporter.add(
-                vids, list(m.get("kinds", [])), str(m.get("name", ""))[:120], str(m.get("audio") or "m4a"),
+            # desde este mismo equipo (el dueño) se guarda en una carpeta: la que elige en «Guardar como»
+            # (empieza en la última que usó) o la fija de Preferencias › Exportar; desde otro equipo, el
+            # resultado se descarga con el navegador
+            loop = asyncio.get_running_loop()
+            kinds, name, audio = list(m.get("kinds", [])), str(m.get("name", ""))[:120], str(m.get("audio") or "m4a")
+            dest, filename = "", ""
+            if self.access.owner and self.access.local and self.prefs:
+                p = self.prefs.values
+                if p.get("export_ask") == "carpeta" and p.get("export_dir"):
+                    dest = p["export_dir"]
+                else:
+                    single, planned = await loop.run_in_executor(None, self.exporter.plan, vids, kinds, name, audio)
+                    last = p.get("export_last_dir") or ""
+                    if single:
+                        chosen = await loop.run_in_executor(None, pick_save, planned, last)
+                        dest, filename = (str(Path(chosen).parent), Path(chosen).name) if chosen else ("", "")
+                    else:
+                        dest = await loop.run_in_executor(None, pick_folder, f"Dónde guardar «{planned}»", last)
+                    if not dest:
+                        if _dialog_available():  # lo canceló; sin pantalla (Docker), se descarga
+                            return await self.ws.send_json({"type": "export_cancelled"})
+                    else:
+                        self.prefs.set("export_last_dir", str(Path(dest)))
+            job = await loop.run_in_executor(None, lambda: self.exporter.add(
+                vids, kinds, name, audio,
                 str(m.get("layout") or "flat"), str(m.get("folder", ""))[:120], str(m.get("quality") or "alta"),
-                str(m.get("video") or "original"), dest))
+                str(m.get("video") or "original"), dest, filename))
             self._my_exports.add(job["id"])
             await self.ws.send_json({"type": "export_started", "job": job["id"]})
         except ValueError as e:
@@ -1403,20 +1456,53 @@ def reveal(path: Path):
         subprocess.Popen(["xdg-open", str(path.parent)])
 
 
-def pick_folder(title: str = "Carpeta de la biblioteca") -> str:
-    """Cuadro nativo para elegir una carpeta (el servidor corre en este mismo equipo)."""
+def _dialog(ask):
+    """Un cuadro nativo de tkinter delante del navegador (el servidor corre en este mismo equipo).
+    "" si se canceló o no hay pantalla (Docker, servidor remoto)."""
     try:
         import tkinter as tk
         from tkinter import filedialog
     except ImportError:
         return ""
-    try:
-        root = tk.Tk()
-    except Exception:  # sin pantalla (Docker, servidor remoto): la carpeta se escribe a mano
-        return ""
-    root.withdraw()
-    root.attributes("-topmost", True)  # delante del navegador
-    try:
-        return filedialog.askdirectory(parent=root, title=title, mustexist=False) or ""
-    finally:
-        root.destroy()
+    with _dialog_lock:  # dos pestañas a la vez: Tk no es seguro entre hilos
+        try:
+            root = tk.Tk()
+        except Exception:
+            return ""
+        root.withdraw()
+        root.attributes("-topmost", True)  # delante del navegador
+        try:
+            return ask(root, filedialog) or ""
+        finally:
+            root.destroy()
+
+
+_has_dialogs: list[bool] = []
+_dialog_lock = threading.Lock()
+
+
+def _dialog_available() -> bool:
+    """¿Hay cuadros nativos? (no en Docker ni en un servidor sin pantalla)"""
+    if not _has_dialogs:
+        _has_dialogs.append(_dialog(lambda root, fd: "1") == "1")
+    return _has_dialogs[0]
+
+
+def _start_dir(initial: str = "") -> str:
+    d = Path(initial) if initial else Path.home() / "Downloads"
+    return str(d) if d.is_dir() else str(Path.home())
+
+
+def pick_folder(title: str = "Carpeta de la biblioteca", initial: str = "") -> str:
+    """Cuadro nativo para elegir una carpeta."""
+    return _dialog(lambda root, filedialog: filedialog.askdirectory(parent=root, title=title, mustexist=False,
+                                                        initialdir=_start_dir(initial)))
+
+
+def pick_save(filename: str, initial: str = "", title: str = "Guardar como") -> str:
+    """Cuadro nativo «Guardar como» con el nombre propuesto; pregunta antes de reemplazar."""
+    ext = Path(filename).suffix
+    types = [(f"{ext[1:].upper()}", f"*{ext}")] if ext else []
+    return _dialog(lambda root, filedialog: filedialog.asksaveasfilename(
+        parent=root, title=title, initialdir=_start_dir(initial), initialfile=filename,
+        defaultextension=ext, filetypes=types + [("Todos los archivos", "*.*")]))

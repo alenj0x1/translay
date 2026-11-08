@@ -4,6 +4,20 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Resumen del video: la pestaña «Resumen» cuenta de qué se trató el video y enumera todos sus puntos importantes, cada uno con su minuto (un clic salta ahí); no hay un número fijo de puntos, un video largo tiene más. Se hace en tu equipo con un modelo de lenguaje pequeño (Qwen3 4B, 1.7B o 0.6B, elegido según tu equipo o en Preferencias › Resumen) y sale en español sea cual sea el idioma del video. «Resumir» lo hace cuando lo pides, o cada video se resume cuando la cola lo termina. La API tiene `GET` y `POST /api/v1/videos/{id}/summary`, y los webhooks reciben `resumen.listo` y `resumen.error`.
+- Exportar: «Texto en español», «Texto del original» y «Resumen» como archivos TXT.
+- Exportar: en este equipo, Translay pregunta dónde guardar con el cuadro de Windows («Guardar como» con el nombre propuesto, o una carpeta si son varios archivos), empezando en la última carpeta que usaste; en Preferencias › Exportar se puede dejar una carpeta fija. Cada exportación de la lista de la Cola muestra dónde se guardó, su menú del clic derecho tiene «Mostrar en el Explorador» y «Copiar la ruta», y lo guardado en una carpeta sigue en la lista después de reiniciar.
+- Biblioteca: cada tarjeta muestra el idioma en que se habla en el video (EN, PT, ES…) junto a su duración.
+
+### Arreglado
+
+- Encabezado en el celular: el botón de la biblioteca ya no se encima al logo, «Agregar» queda solo con su ícono en pantallas angostas (la regla apuntaba a un marcado viejo) y ningún botón baja a otra fila a 320 px; se quitó la línea gris bajo el encabezado.
+- Reproductor: las esquinas redondeadas ya no muestran una línea negra bajo los controles claros.
+
 ## 1.9.0 · 2026-11-02
 
 ### Agregado

@@ -112,14 +112,17 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   /* align-content: con poco contenido, el alto que sobra no estira el encabezado ni las píldoras */
   body { overflow: auto; height: auto; min-height: 100%; grid-template-rows: auto auto !important; align-content: start; }
   body.view-library .library, body.view-prefs .prefs-screen, body.view-queue .queue-screen { align-content: start; }
-  .bar { position: sticky; top: 0; flex-wrap: wrap; height: auto; padding: 10px 12px; row-gap: 10px; }
+  /* sin línea abajo: el encabezado (y la fila de píldoras) se separan del contenido por el tono */
+  .bar { position: sticky; top: 0; flex-wrap: wrap; height: auto; padding: 10px 12px; row-gap: 10px; box-shadow: none; }
   .side-btn { display: none; }
   .bar .brand { width: auto !important; }
   .bar .search { order: 10; flex: 1 1 100%; max-width: none; margin: 0; }
   /* los botones van siempre en la primera fila (ninguno baja solo): la biblioteca no cuenta
      al repartir las filas (base 0) y toma el espacio que sobra, con su nombre recortado */
   .bar .vault-wrap { flex: 1 1 0; min-width: 0; }
-  .bar .vault-btn { max-width: 100%; }
+  /* nunca más angosta que su avatar y su flecha: el avatar se salía encima del logo */
+  .bar .vault-wrap { min-width: 62px; }
+  .bar .vault-btn { max-width: 100%; min-width: 100%; justify-content: flex-start; }
   .bar .vault-btn .btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar .status { display: none; }
   body.view-library .library, body.view-prefs .prefs-screen, body.view-queue .queue-screen,
@@ -127,7 +130,7 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
     grid-template-columns: minmax(0, 1fr); grid-row: auto;
   }
   /* la barra lateral pasa a una fila de píldoras que se desliza */
-  .libside, .prefs-nav, .qnav { flex-direction: row; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 10px 12px; box-shadow: 0 1px 0 var(--line); }
+  .libside, .prefs-nav, .qnav { flex-direction: row; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 10px 12px; box-shadow: none; }
   .libside { flex-direction: column; gap: 8px; height: auto; }
   .side-main, .libside #collections { display: flex; gap: 6px; overflow-x: auto; padding: 0; border: 0; }
   .navlist h4:not(.with-add), .navlist .inline-form { display: none !important; }
@@ -150,9 +153,16 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
 /* celular angosto: la marca sin su nombre e «Importar» solo con su ícono (como los demás) */
 @media (max-width: 520px) {
   .bar .brand { gap: 0; padding: 0; font-size: 0; }
-  .bar .import-wrap > .btn .btn-text { display: none; }
-  .bar .import-wrap > .btn { min-width: var(--h-md); padding: 0 11px; }
+  .bar #import-btn .btn-text { display: none; }
+  .bar #import-btn { min-width: var(--h-md); padding: 0 11px; }
   .bar { column-gap: 6px; }
+}
+
+/* celular muy angosto (320 px): la biblioteca solo con su avatar, así ningún botón baja de fila */
+@media (max-width: 360px) {
+  .bar .vault-wrap { flex: none; min-width: 0; }
+  .bar .vault-btn { min-width: 0; padding: 0 6px; }
+  .bar .vault-btn .btn-text, .bar .vault-btn .chev { display: none; }
 }
 
 /* paneles del encabezado: se abren debajo de él, con aire (no encima del borde) */

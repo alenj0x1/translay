@@ -48,6 +48,7 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 - Velocidad de 0,75× a 2× sin cambiar el tono, pantalla completa, atajos de teclado.
 - Indicador **«Preparando NN %» / «Listo para reproducir»** calculado con la velocidad real del doblaje; puede pausar solo hasta que haya voz por delante y seguir solo.
 - **Transcripción alineada** (original | español) con quién habla cada frase, **comentarios** por frase (marcados en la línea de avance) y clic para saltar.
+- **Resumen** de qué se trató el video, con todos sus puntos importantes y su minuto (clic para saltar), hecho en tu equipo con Qwen3 (4B, 1.7B o 0.6B, según tu equipo); al pedirlo o para cada video.
 - **Personas**: ponle nombre a cada una, elige su voz (la suya, la de otra persona del video o una **persona guardada** en la biblioteca) y escucha su referencia.
 - **Siguientes** (la colección o playlist desde donde abriste) con reproducción automática del próximo, y **miniatura flotante** al volver a la biblioteca.
 
@@ -83,12 +84,14 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 | Opción | Formato |
 |---|---|
 | Video traducido | MP4 con la voz en español como pista principal, el original como segunda pista (marcado con su idioma) y subtítulos en español y del original |
-| Audio traducido / original | M4A |
+| Audio traducido / original | M4A, MP3 u Opus |
 | Video original | MP4 |
 | Subtítulos en español / del original | SRT |
+| Texto en español / del original, en párrafos | TXT |
 | Transcripción bilingüe con personas y comentarios | TXT |
+| Resumen | TXT |
 
-Desde el reproductor, una tarjeta, una colección entera o una selección; varios archivos van en un `.zip`. Si el video aún no está listo, la exportación espera (y lo manda a la cola si hace falta).
+Desde el reproductor, una tarjeta, una colección entera o una selección. En tu equipo pregunta dónde guardar (recuerda la última carpeta) o usa una carpeta fija; desde otro equipo, varios archivos van en un `.zip`. Si el video aún no está listo, la exportación espera (y lo manda a la cola si hace falta).
 
 ## Rendimiento: qué equipo necesitas
 

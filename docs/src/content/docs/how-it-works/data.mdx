@@ -31,6 +31,7 @@ JSON files are written atomically: first a `.tmp` next to it, then the original 
   - yt-session/ connected YouTube account: Translay's own browser profile, the youtube.com cookies encrypted with DPAPI (`cookies.bin`) and when it was renewed (`session.json`) (`vt/ytsession.py`)
   - libraries.json list of libraries (id and absolute path) and the last one opened (`vt/vaults.py`)
   - exports/ exports ready to download; deleted when removed from the Queue panel, or after 24 h (`vt/exporter.py`)
+  - exports.json the last 100 exports saved to a folder, with their path, for the Queue list after a restart
   - libraries/ default folder for new libraries
     - \<library\>/
   - youtube/
@@ -121,6 +122,7 @@ Automatic collections (recent, all, channels, categories) aren't stored: they ar
 | `speaker_names` | Each person's name ("Personas", People). |
 | `voice_map` | The voice each person uses if you chose another one: another person's number or `p:<id>` of a saved person. |
 | `comments` | Per-sentence comments: sentence id → list of `{id, text, created, updated}`. |
+| `summary` | The [summary](../summary/): `overview` (what it was about), `points` (`{t, text}`, each with its second), `model`, `lang`, `created` and `seconds` (how long it took). |
 
 A new sentence replaces those that overlap with it by more than half of the shorter one.
 

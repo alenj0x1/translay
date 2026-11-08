@@ -38,7 +38,7 @@ const langMenu = (v) => ({ label: "Idioma y traducción", icon: "globe", sub: [
 ] });
 // copiar: el portapapeles moderno solo existe en conexiones seguras (no desde otro equipo por http)
 function copyText(text, what) {
-  const ok = () => toast(`${what} copiado.`, "ok");
+  const ok = () => toast(what.endsWith(".") ? what : `${what} copiado.`, "ok");  // o el aviso entero
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(ok, () => legacyCopy(text) ? ok() : toast("No se pudo copiar."));
   } else if (legacyCopy(text)) ok();
@@ -211,6 +211,29 @@ function generalMenu() {
   ];
 }
 
+/* ------------------------------------------------------------ una exportación (Cola) */
+function exportMenu(x) {
+  const done = x.state === "listo" || x.state === "error";
+  return [
+    x.state === "listo" && x.path && state.access?.local && { label: "Mostrar en el Explorador", icon: "folder", onClick: () => revealExport(x) },
+    x.state === "listo" && x.path && { label: "Copiar la ruta", icon: "copy", onClick: () => copyText(x.path, "Ruta copiada.") },
+    x.state === "listo" && !x.path && { label: "Descargar", icon: "download", onClick: () => download(x) },
+    { label: done ? "Quitar de la lista" : "Cancelar", icon: "x", onClick: () => send({ type: "export_remove", job: x.id }) },
+  ].filter(Boolean);
+}
+
+/* ------------------------------------------------------------ resumen (panel lateral) */
+function summaryMenu() {
+  const s = state.summary;
+  const job = state.summaryJob && state.summaryJob.state !== "error";
+  return [
+    s && { label: "Copiar el resumen", icon: "copy", onClick: () => copyText(summaryText(), "Resumen copiado.") },
+    s && { label: "Exportar el resumen", icon: "download", onClick: () => { openExport([state.videoId]); checkOnlyKind("summary"); } },
+    canImport() && s && !job && { label: "Rehacer el resumen", icon: "reload", onClick: () => requestSummary(true) },
+    canImport() && job && { label: "Cancelar el resumen", icon: "x", onClick: () => send({ type: "summary_cancel", video: state.videoId }) },
+  ].filter(Boolean);
+}
+
 /* ------------------------------------------------------------ dónde se hizo clic */
 function menuFor(t) {
   const collOf = (id) => lib.collections.find((c) => c.id === id) || (id === "home" ? { id, name: "Inicio", kind: "auto", items: [] } : null);
@@ -218,10 +241,13 @@ function menuFor(t) {
   if (card && lib.videos[card.dataset.id]) return videoMenu(lib.videos[card.dataset.id], collOf(card.dataset.coll));
   const up = t.closest("#upnext li[data-id]");
   if (up && lib.videos[up.dataset.id]) return videoMenu(lib.videos[up.dataset.id], null);
+  const ex = t.closest(".qitem[data-export]");
+  if (ex) { const x = lib.exports.find((j) => j.id === ex.dataset.export); if (x) return exportMenu(x); }
   const q = t.closest(".qitem[data-id]");
   if (q) { const j = lib.queue.jobs.find((x) => x.id === q.dataset.id); if (j) return jobMenu(j); }
   const nav = t.closest("[data-coll]") || (t.closest(".shelf-head.has-banner, .cbanner") && { dataset: { coll: lib.sel } });
   if (nav) { const c = collOf(nav.dataset.coll); if (c) return collMenu(c); }
+  if (t.closest("#summary")) { const items = summaryMenu(); if (items.length) return items; }
   const line = t.closest("#transcript li[data-id]");
   if (line && !t.closest(".notes")) return lineMenu(line);
   if (t.closest("#pane-en .screen")) return playerMenu();

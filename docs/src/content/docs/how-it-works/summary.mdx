@@ -1,0 +1,49 @@
+---
+title: Summary
+description: How Translay summarizes a video on your computer, which models it uses and how they were chosen.
+sidebar:
+  order: 4.5
+---
+
+import { Aside } from "@astrojs/starlight/components";
+import Diagram from "../../../components/Diagram.astro";
+import { summary } from "../../../diagrams";
+
+The summary tells what a video was about and lists all its important points with their minute. It is made on your computer, with no service on the internet, by a small language model that runs on [CTranslate2](https://github.com/OpenNMT/CTranslate2), the same engine as Whisper and the translator, so it adds no new dependency. How to use it: [Transcript › Summary](../../guide/transcript-and-people/#summary).
+
+<Diagram {...summary("en")} />
+
+## How it's made
+
+1. **Lines with their minute.** The sentences are joined into lines of up to 30 seconds, each starting with its minute (`[12:34] …`).
+2. **Chunks.** The transcript is cut into chunks of about 1000 tokens of the model itself (about 700 words in English; Portuguese takes more tokens per word). A very short last chunk joins the previous one.
+3. **Points of each chunk.** For each chunk, the model writes all the important points it covers, one per line with the minute where it starts. There is no fixed number: a long video has more chunks and therefore more points (15 to 20 points per 10 minutes in the lab).
+4. **What it was about.** With all the points, the model writes one to three paragraphs: the topic, how it develops and what it concludes. If the points don't fit in one chunk (a video of hours), each group is first told in a paragraph and the overview comes from those paragraphs, so no call to the model goes over about 1000 tokens.
+
+Why chunks are measured in tokens and kept short: attention grows with the square of the length. With chunks of 1500 words in Portuguese, the 4B model reached 6.8 GB and overflowed the 8 GB GPU into shared memory (356 s for a 12-minute video); with 1000 tokens it stays at 6.3 GB and each chunk takes half as long, with the same density of points.
+
+The minute of each point is adjusted to that of a real line of its chunk: a small model can make one up, and a point after its chunk goes to its last line, and one before it, next to the previous point. Repeated points are dropped. The model reads what is said in the original language (it understands it better than a translation) and writes in Spanish. Greedy decoding (always the most likely word) with a slight repetition penalty keeps it from going in circles.
+
+The code is in `vt/summarize.py` (the model, chunks and prompts) and `vt/summaries.py` (the queue: one video at a time, in the background).
+
+## Models
+
+| Model | License | GPU (peak) | 43-minute class on the RTX 4060 | Result |
+| --- | --- | --- | --- | --- |
+| **Qwen3 4B** Instruct 2507 (int8) | Apache 2.0 | 6.9 GB | 218 s, 63 points | Faithful: translates terms («monkey» → «mono») and doesn't confuse facts. |
+| **Qwen3 1.7B** (int8) | Apache 2.0 | 3.0 GB | 63 s, 50 points | Good, but leaves terms in English and gets some details wrong. On the CPU (6 threads), 11 minutes. |
+| **Qwen3 0.6B** (int8) | Apache 2.0 | 1.8 GB | 47 s, 45 points | Vague: generic points without content. Only if neither of the others fits. |
+
+**Automático** (Automatic, the default) uses the best one whose peak fits in your GPU, plus a margin of 500 MB: on 8 GB, the 4B; on 4 or 6 GB, the 1.7B. If neither fits, the 1.7B runs on the CPU with half the threads (with at least 8 GB of RAM), and only otherwise the 0.6B. You can choose another in Preferences › Resumen › **Modelo**; it's downloaded from Hugging Face (`jncraton/…-ct2-int8`) the first time it's used, with its progress on the button, and can be deleted in [Storage](../../guide/storage/).
+
+## GPU
+
+While it summarizes, the summary has the GPU to itself (`Resources.exclusive`, see [GPU and idle](../gpu-and-idle/#gpu-turns)): if its model doesn't fit beside the ones loaded, they are set aside and come back when it's done. On 8 GB the 4B doesn't fit beside the voice, and without this it overflowed to shared memory. The summary model is released a minute after the last summary.
+
+## Lab
+
+The models were measured with `tools/lab/summary.py` on real transcripts: an MIT class (43 min, English), a TED talk (14 min, English), a class in Portuguese (12 min), a talk in Spanish (17 min) and a short video (4 min). For each model it saves the summary to read it, the time, the GPU peak, how many points per 10 minutes come out and whether the text came out in Spanish. Gemma 3 4B was also tried: on CTranslate2 it needs `int8_bfloat16` (in float16 it only repeats words), it was faster, but it got a fact of the TED talk wrong and its license isn't Apache, so it's not offered.
+
+<Aside>
+The summary is saved in the video's transcript (`summary`, see [Data](../data/)) and the API returns it in `GET /api/v1/videos/{id}/summary`.
+</Aside>

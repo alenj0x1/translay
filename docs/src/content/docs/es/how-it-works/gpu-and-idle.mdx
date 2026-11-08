@@ -38,6 +38,8 @@ Hay dos razones medidas:
 
 Además, en el servidor hay un solo hilo para reconocimiento y traducción (`gpu`) y uno para la voz (`tts`), así que como mucho dos cálculos compiten por el turno.
 
+El [resumen](../summary/) toma un turno más largo: `Resources.exclusive` tiene el candado durante todo el resumen de un video. Si la VRAM libre no alcanza para su modelo, primero aparta los modelos cargados (como el modo reposo) y, al terminar, suelta el suyo y los vuelve a cargar, así quien los usaba los encuentra como estaban. En 8 GB el modelo de resumen 4B no cabe junto a la voz; sin esto desbordaba a la memoria compartida y un tramo pasaba de 30 s a varios minutos.
+
 ## Memoria unificada (DGX Spark)
 
 En equipos como NVIDIA DGX Spark (GB10) la GPU no tiene VRAM propia: usa la RAM del sistema, y `nvidia-smi` informa la memoria como `[N/A]`. Sin saber cuánta memoria tiene, Translay trataba la GPU como si no existiera: Rendimiento marcaba «Muy forzado» a 0,02× y el perfil automático elegía «Subtítulos ligeros».

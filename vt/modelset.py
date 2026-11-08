@@ -37,6 +37,8 @@ BYTES = {
     "Nextcloud-AI/madlad400-3b-mt-ct2-int8": 2_980_000_000, "k2-fsa/OmniVoice": 3_270_000_000,
     "openbmb/VoxCPM2": 4_960_000_000, "ResembleAI/chatterbox": 3_210_000_000,
     "onnx-community/wespeaker-voxceleb-resnet34-LM": 27_000_000,
+    "jncraton/Qwen3-4B-Instruct-2507-ct2-int8": 4_040_000_000, "jncraton/Qwen3-1.7B-ct2-int8": 1_740_000_000,
+    "jncraton/Qwen3-0.6B-ct2-int8": 620_000_000,
 }
 VOICE_ENV_BYTES = 4_800_000_000  # el entorno del motor de voz (app de escritorio, locks/voice.txt)
 
@@ -66,6 +68,8 @@ def info() -> dict[str, dict]:
     out |= {repo: {"label": f"Voz · {VOICE_NAMES[name]}", "purpose": "Dobla al español con la voz de cada persona"}
             for name, repo in VOICE_REPOS.items()}
     out[SpeakerEmbedder.REPO] = {"label": "Personas · separar quién habla", "purpose": "Distingue quién habla en cada frase"}
+    from .summarize import MODELS as SUM
+    out |= {m.repo: {"label": f"Resumen · {m.name}", "purpose": "Resume de qué se trató cada video"} for m in SUM.values()}
     for i in out.values():
         i["profiles"] = []
     for pid, prof in PROFILES.items():

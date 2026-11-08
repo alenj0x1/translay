@@ -483,7 +483,10 @@ function card(v, coll, i) {
     v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : patternEl(v.id, "fill", 8, 4.5),
     coll.kind === "playlist" ? el("span", { class: "chip solid num", text: String(i + 1) }) : null,
     pending ? el("span", { class: "pending-dl", text: cap(pending) }) : null,
-    v.duration ? el("span", { class: "chip dur", text: fmtDur(v.duration) }) : null,
+    // abajo a la derecha: el idioma en que se habla (EN, PT…) y la duración
+    v.lang || v.duration ? el("span", { class: "tchips" },
+      v.lang ? el("span", { class: "chip lang", text: v.lang.toUpperCase(), title: `En ${langName(v.lang)}` }) : null,
+      v.duration ? el("span", { class: "chip dur", text: fmtDur(v.duration) }) : null) : null,
     v.audio_only ? el("span", { class: "chip aud", title: "Solo se descargó el audio" }, icon("music"), "Solo audio") : null,
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null,
     v.media ? progressRing(jobOf(v.id) && jobOf(v.id).state !== "listo" ? jobOf(v.id) : v.progress) : null,
@@ -941,6 +944,7 @@ $("#queue-clear").addEventListener("click", () => {
 });
 
 /* ------------------------------------------------------------ exportar */
+const TEXT_KINDS = ["srt_es", "srt_orig", "txt", "txt_es", "txt_orig", "summary"];  // vt/exporter.py
 let exportVideos = [];
 let exportFolder = "";  // exportado desde un canal, colección o playlist: todo en una carpeta con su nombre
 function openExport(ids, name = "", coll = null) {
@@ -956,7 +960,7 @@ function openExport(ids, name = "", coll = null) {
   const one = exportVideos.length === 1;
   const first = lib.videos[exportVideos[0]];
   $("#export-title").textContent = one ? first.title || first.id : name || `${exportVideos.length} videos`;
-  $("#export-sub").textContent = one ? "" : `${exportVideos.length} videos · ${exportUseDest && exportDest ? "en una carpeta" : "un archivo .zip"}`;
+  $("#export-sub").textContent = one ? "" : `${exportVideos.length} videos · ${exportToFolder() ? "en una carpeta" : "un archivo .zip"}`;
   $("#export-form").dataset.name = one ? "" : name || "videos";
   updateExportNote();
   $("#export-dlg").showModal();
@@ -971,9 +975,9 @@ function updateExportNote() {
   const vs = exportVideos.map((id) => lib.videos[id]);
   const needDub = kinds.some((k) => k.startsWith("es_"))
     ? vs.filter((v) => translatesV(v) && !(v.progress && v.progress.dub >= 0.99)).length : 0;
-  const onlyText = kinds.every((k) => ["srt_es", "srt_orig", "txt"].includes(k));
+  const onlyText = kinds.every((k) => TEXT_KINDS.includes(k));
   const needDl = onlyText ? 0 : vs.filter((v) => !v.media).length;
-  const needText = !needDub && kinds.some((k) => ["srt_es", "srt_orig", "txt"].includes(k))
+  const needText = !needDub && kinds.some((k) => TEXT_KINDS.includes(k))
     ? vs.filter((v) => !(v.progress && v.progress.asr >= 0.99)).length : 0;
   const parts = [];
   if (needDl) parts.push(exportVideos.length === 1 ? "se descarga primero" : `${needDl} se descargan primero`);
@@ -984,6 +988,9 @@ function updateExportNote() {
     : `${needText} aún sin transcripción completa: se exportan al terminar`);
   if (needDub) parts.push(exportVideos.length === 1 ? "el doblaje aún no termina: se exporta al terminar"
     : `${needDub} aún sin doblaje completo: se exportan al terminar`);
+  const needSum = kinds.includes("summary") ? vs.filter((v) => !v.summarized).length : 0;
+  if (needSum) parts.push(exportVideos.length === 1 ? "aún sin resumen: se resume antes de exportar"
+    : `${needSum} aún sin resumen: se resumen antes de exportar`);
   // lo que más se achica con la calidad: el audio suelto (≈ kbps × 0,45 MB por hora)
   const nAudio = kinds.filter((k) => k.endsWith("_audio")).length;
   const secs = vs.reduce((n, v) => n + (v.duration || 0), 0);
@@ -996,7 +1003,7 @@ $("#export-form").addEventListener("change", updateExportNote);
 // se guarda; se recuerdan en este navegador (vt/exporter.py: AUDIO_CODEC, VIDEO_HEIGHT)
 const AUDIO_KBPS = { m4a: { alta: 160, media: 96, liviana: 64 }, mp3: { alta: 192, media: 128, liviana: 64 },
   opus: { alta: 128, media: 64, liviana: 32 } };
-let exportAudio = "m4a", exportQuality = "alta", exportVideoQ = "original", exportDest = "", exportUseDest = false;
+let exportAudio = "m4a", exportQuality = "alta", exportVideoQ = "original";
 const rememberExport = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const recallExport = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
 function syncExportOpts() {
@@ -1006,19 +1013,22 @@ function syncExportOpts() {
   seg("#export-video", "v", exportVideoQ);
   for (const s of $("#export-form").querySelectorAll(".audio-fmt")) s.textContent = exportAudio === "opus" ? "Opus" : exportAudio.toUpperCase();
   const folder = $("#export-dest-folder");
-  // la carpeta: sus dos últimas partes (la ruta entera al pasar el mouse)
-  setBtn(folder, exportDest ? exportDest.split(/[\\/]/).filter(Boolean).slice(-2).join("\\") : "Elegir carpeta", "folder");
-  folder.title = exportDest || "";
-  seg("#export-dest", "dest", exportUseDest && exportDest ? "folder" : "");
+  // la carpeta fija (Preferencias › Exportar): sus dos últimas partes (la ruta entera al pasar el mouse)
+  const dir = prefs.export_dir || "";
+  setBtn(folder, dir ? shortPath(dir) : "Elegir carpeta", "folder");
+  folder.title = dir;
+  seg("#export-dest", "dest", prefs.export_ask === "carpeta" && dir ? "folder" : "ask");
   // a una carpeta, varios archivos van sueltos (sin .zip), en una carpeta con el nombre de lo exportado
-  if (exportVideos.length > 1) $("#export-sub").textContent = `${exportVideos.length} videos · ${exportUseDest && exportDest ? "en una carpeta" : "un archivo .zip"}`;
+  if (exportVideos.length > 1) $("#export-sub").textContent = `${exportVideos.length} videos · ${exportToFolder() ? "en una carpeta" : "un archivo .zip"}`;
   updateExportNote();
 }
+// dónde guardar (solo el dueño, en este equipo): preguntar con el cuadro de Windows al exportar o la carpeta
+// fija. Es la preferencia de Exportar: cambiarla aquí la cambia allá. Desde otro equipo, se descarga
+const exportToFolder = () => !!(state.access?.local && state.access?.owner);
+const shortPath = (p) => p.split(/[\\/]/).filter(Boolean).slice(-2).join("\\");
 exportAudio = AUDIO_KBPS[recallExport("vt-export-audio")] ? recallExport("vt-export-audio") : "m4a";
 exportQuality = AUDIO_KBPS.m4a[recallExport("vt-export-quality")] ? recallExport("vt-export-quality") : "alta";
 exportVideoQ = ["480p", "360p"].includes(recallExport("vt-export-video")) ? recallExport("vt-export-video") : "original";
-exportDest = recallExport("vt-export-dest");
-exportUseDest = !!exportDest && recallExport("vt-export-use-dest") === "1";
 syncExportOpts();
 $("#export-fmt").addEventListener("click", (e) => {
   const b = e.target.closest(".seg");
@@ -1035,20 +1045,12 @@ $("#export-video").addEventListener("click", (e) => {
 $("#export-dest").addEventListener("click", (e) => {
   const b = e.target.closest(".seg");
   if (!b) return;
-  // «Elegir carpeta» (o la ya elegida, otra vez): el cuadro de Windows, en este equipo
-  if (b.dataset.dest === "folder" && (!exportDest || exportUseDest)) return send({ type: "export_pick_folder" });
-  exportUseDest = b.dataset.dest === "folder";
-  rememberExport("vt-export-use-dest", exportUseDest ? "1" : "0");
+  // «Elegir carpeta» (o la ya elegida, otra vez): el cuadro de Windows; el servidor la guarda en Preferencias
+  if (b.dataset.dest === "folder" && (!prefs.export_dir || prefs.export_ask === "carpeta")) return send({ type: "export_pick_folder" });
+  setPref("export_ask", b.dataset.dest === "folder" ? "carpeta" : "preguntar");
   syncExportOpts();
 });
-function exportFolderPicked(m) {
-  if (!m.path) return;
-  exportDest = m.path;
-  exportUseDest = true;
-  rememberExport("vt-export-dest", exportDest);
-  rememberExport("vt-export-use-dest", "1");
-  syncExportOpts();
-}
+function exportFolderPicked() { syncExportOpts(); }
 // carpetas del .zip (desde Todos, Recientes o una búsqueda), como los grupos del aside; se recuerda en este navegador
 let exportLayout = "channel", exportPref = "channel";  // la que se usa · la elegida (si ese grupo no está, Canales)
 function setExportLayout(v) {
@@ -1068,10 +1070,15 @@ $("#export-dlg").addEventListener("close", () => {
   if ($("#export-dlg").returnValue !== "ok") return;
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   if (kinds.length) send({ type: "export", videos: exportVideos, kinds, name: $("#export-form").dataset.name, audio: exportAudio,
-    quality: exportQuality, video: exportVideoQ, dest: exportUseDest && !$("#export-dest").hidden ? exportDest : "",
+    quality: exportQuality, video: exportVideoQ,
     layout: exportVideos.length < 2 ? "flat" : exportFolder ? "folder" : exportLayout, folder: exportFolder });
 });
 $("#export-btn").addEventListener("click", () => { if (state.videoId) openExport([state.videoId]); });
+// el diálogo con un solo tipo marcado (p. ej. «Exportar el resumen» desde su menú)
+function checkOnlyKind(kind) {
+  for (const x of $("#export-form").querySelectorAll("input[name=kind]")) x.checked = x.value === kind;
+  updateExportNote();
+}
 
 function exportStarted(id) {
   lib.mine.add(id);
@@ -1086,7 +1093,7 @@ function exportsUpdate(m) {
       lib.delivered.add(x.id);
       if (!x.path) download(x);
       toast(x.skipped ? `Exportación lista: ${x.name} · ${x.skipped} no se pudo exportar${x.skipped > 1 ? "n" : ""} (ver omitidos.txt)`
-        : `Exportación lista: ${x.name}`, "ok", x.path ? { label: "Mostrar en la carpeta", onClick: () => revealExport(x) } : undefined);
+        : `Exportación lista: ${x.name}`, "ok", x.path ? { label: "Mostrar en el Explorador", onClick: () => revealExport(x) } : undefined);
       notifyUser("Exportación lista", x.name);
     }
     if (x.state === "error" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
@@ -1305,20 +1312,21 @@ function renderSearch() {
 
 /* Una exportación en la cola (panel y pantalla Cola → Exportaciones) */
 function exportItem(x) {
-  const label = cap(x.state === "listo" ? (x.skipped ? `listo · ${x.skipped} omitido${x.skipped > 1 ? "s" : ""} (ver omitidos.txt)` : "listo")
+  // guardado en una carpeta: dónde quedó (la ruta entera al pasar el mouse; clic derecho, mostrarlo en el Explorador)
+  const where = x.path ? ` · en ${shortPath(x.path.replace(/[\\/][^\\/]*$/, "")) || x.path}` : "";
+  const label = cap(x.state === "listo" ? (x.skipped ? `listo · ${x.skipped} omitido${x.skipped > 1 ? "s" : ""} (ver omitidos.txt)` : "listo") + where
     : x.state === "error" ? (x.error || "error")
     // el porcentaje adelante: un título largo lo cortaría en el panel
     : x.detail ? `${x.state === "exportando" ? `${x.pct} % · ` : ""}${x.detail}` : x.state);
   const done = x.state === "listo" || x.state === "error";
-  return el("li", { class: "qitem" + (x.state === "exportando" ? " run" : "") },
+  return el("li", { class: "qitem" + (x.state === "exportando" ? " run" : ""), "data-export": x.id, title: x.path || undefined },
     el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),
     el("div", { class: "qbody" },
       el("strong", { text: x.name }),
       meter(x.pct),
       el("small", { text: label })),
     el("div", { class: "qactions" },
-      x.state === "listo" ? (x.path ? btn("Mostrar", { icon: "folder", size: "xs", title: x.path, onClick: () => revealExport(x) })
-        : btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) })) : null,
+      x.state === "listo" && !x.path ? btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) }) : null,
       btn(done ? "Quitar" : "Cancelar", { icon: "x", variant: "ghost", size: "xs", title: done ? "Quitar" : "Cancelar",
         onClick: () => send({ type: "export_remove", job: x.id }) })));
 }

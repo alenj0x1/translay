@@ -39,6 +39,7 @@ const ICONS = {
   up: '<path d="M8 13V3M4 7l4-4 4 4"/>',
   update: '<circle cx="8" cy="8" r="5.5"/><path d="M8 10.6V5.6M5.8 7.6L8 5.4l2.2 2.2"/>',
   pencil: '<path d="M10.5 2.8l2.7 2.7-7.7 7.7H2.8v-2.7z"/>',
+  lines: '<path d="M2.5 3.5h11M2.5 6.5h11M2.5 9.5h11M2.5 12.5h6.5"/>',
   comment: '<path d="M2.5 3h11v7.5h-6l-3 2.5v-2.5h-2z"/>',
   spark: '<path d="M8 2v3M8 11v3M2 8h3M11 8h3M4 4l2 2M10 10l2 2M12 4l-2 2M6 10l-2 2"/>',
   external: '<path d="M9 2.5h4.5V7M13.5 2.5L7.5 8.5M11.5 9.5v4h-9v-9h4"/>',

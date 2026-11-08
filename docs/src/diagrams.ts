@@ -108,3 +108,25 @@ export const languages = (lang: Lang) => ({
     { from: "mt", to: "voice", label: t(lang, "Spanish text", "texto en español") },
   ],
 });
+
+// The summary: the transcript cut into chunks, the points of each chunk with their minute, and the overview.
+export const summary = (lang: Lang) => ({
+  width: 260,
+  height: 765,
+  label: t(lang,
+    "The transcript is grouped into timed lines and cut into chunks; the summary model writes the important points of each chunk with their minute, and with all the points it writes what the video was about.",
+    "La transcripción se agrupa en líneas con su minuto y se corta en tramos; el modelo de resumen escribe los puntos importantes de cada tramo con su minuto y, con todos los puntos, escribe de qué se trató el video."),
+  nodes: [
+    { id: "tr", x: 130, y: 55, icon: "messages", label: t(lang, "Transcript\n(original language)", "Transcripción\n(idioma original)") },
+    { id: "chunks", x: 130, y: 220, icon: "layout-rows", label: t(lang, "Timed lines\nin chunks", "Líneas con minuto\nen tramos") },
+    { id: "points", x: 130, y: 385, icon: "list-details", label: t(lang, "Points of\neach chunk", "Puntos de\ncada tramo") },
+    { id: "overview", x: 130, y: 550, icon: "align-left", label: t(lang, "What it\nwas about", "De qué\nse trató") },
+    { id: "saved", x: 130, y: 710, icon: "device-floppy", label: t(lang, "Saved with\nthe video", "Guardado con\nel video") },
+  ],
+  edges: [
+    { from: "tr", to: "chunks", label: t(lang, "~1000 tokens", "~1000 tokens") },
+    { from: "chunks", to: "points", label: t(lang, "Qwen3 · GPU or CPU", "Qwen3 · GPU o CPU") },
+    { from: "points", to: "overview", label: t(lang, "all the points", "todos los puntos") },
+    { from: "overview", to: "saved", label: "summary" },
+  ],
+});

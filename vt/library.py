@@ -4,7 +4,7 @@ data/library.json guarda:
   videos       id → {title, duration, source (file|youtube|link), media, audio, thumb,
                      channel, categories, added, opened, position,
                      url (el enlace compartido, si es link), lang (idioma en que se habla; "en" si falta),
-                     mode (translate o transcribe, ver vt/store.py),
+                     mode (translate o transcribe, ver vt/store.py), summarized (ya tiene resumen),
                      renamed (la persona le puso nombre: el título ya no se toma de YouTube ni del archivo)}
   collections  [{id, name, items: [ids], created}]   (las que crea la persona)
                + {kind: "playlist", playlist, url, channel}  (playlists importadas de YouTube)

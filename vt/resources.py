@@ -59,6 +59,8 @@ class Resources:
         self._loaded = {"asr": False, "mt": False, "tts": False}
         self._part_locks = {p: threading.Lock() for p in self._loaded}
         self._compute = FairLock()  # un cálculo en la GPU a la vez, por orden de llegada
+        self._shared = threading.Event()  # sin marcar: el resumen tiene la GPU (exclusive) y no se carga nada
+        self._shared.set()
         # últimos cálculos (parte, segundos, momento): Rendimiento muestra si algo va lento (vt/perf.py)
         self.recent: deque = deque(maxlen=200)
         threading.Thread(target=self._watch, daemon=True).start()
@@ -93,6 +95,42 @@ class Resources:
                 finally:
                     self.recent.append((parts[0] if parts else "", time.perf_counter() - t, time.time()))
 
+    def exclusive(self, need_mb: int, free_mb, fn, release=None):
+        """Ejecuta `fn()` con la GPU para sí (el resumen, vt/summaries.py): nada más calcula mientras
+        tanto. Si no hay `need_mb` libres (`free_mb()`), duerme los modelos cargados y los vuelve a
+        cargar al terminar: el resumen no cabe junto a la voz en 8 GB, y si no cabe, la GPU desborda a
+        memoria compartida (lo medido en tools/lab/summary.py pasó de 33 s a minutos por tramo).
+        `release()` suelta el modelo propio antes de devolverles la GPU a los que se durmieron."""
+        with self.use():
+            with self._compute:
+                was: list[str] = []
+                self._shared.clear()
+                if free_mb() < need_mb:
+                    for lk in self._part_locks.values():
+                        lk.acquire()
+                    try:
+                        was = [p for p, on in self._loaded.items() if on]
+                        if "asr" in was:
+                            self.asr.unload()
+                        if "mt" in was:
+                            self.translator.unload()
+                        if "tts" in was and self.tts:
+                            self.tts.offload()
+                        self._loaded = {p: False for p in self._loaded}
+                    finally:
+                        for lk in self._part_locks.values():
+                            lk.release()
+                t = time.perf_counter()
+                try:
+                    return fn()
+                finally:
+                    self.recent.append(("sum", time.perf_counter() - t, time.time()))
+                    if was and release:
+                        release()
+                    self._shared.set()
+                    if was:  # quien los tenía cargados los espera así
+                        self._wake(was)
+
     def info(self) -> dict:
         return {"state": self.state, "busy": self._busy, "idle_s": round(time.monotonic() - self._last, 1),
                 "loaded": dict(self._loaded)}
@@ -102,6 +140,8 @@ class Resources:
         self._last = time.monotonic()
 
     def _wake(self, parts):
+        if any(not self._loaded[p] for p in parts):
+            self._shared.wait()  # el resumen tiene la GPU: se carga cuando la suelte
         # un candado por modelo: cargar la voz (~20 s la primera vez) no frena a Whisper
         for p in parts:
             with self._part_locks[p]:
