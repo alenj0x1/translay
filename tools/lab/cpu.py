@@ -42,7 +42,8 @@ VARIANTS = ["stream-small-def", "stream-small-cores", "whole-small-def", "whole-
             "mt-base-def", "mt-base-cores"]
 
 
-def peak_mb() -> float:
+def peak_mb(handle: int | None = None) -> float:
+    """Memoria pico de este proceso (o del proceso de ese handle, aunque ya haya terminado)."""
     if os.name != "nt":
         import resource
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
@@ -57,7 +58,7 @@ def peak_mb() -> float:
     k32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
     k32.GetCurrentProcess.restype = ctypes.c_void_p  # un HANDLE de 64 bits: como int se truncaba y medía 0
     psapi.GetProcessMemoryInfo.argtypes = [ctypes.c_void_p, ctypes.POINTER(PMC), ctypes.c_ulong]
-    psapi.GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(c), c.cb)
+    psapi.GetProcessMemoryInfo(handle or k32.GetCurrentProcess(), ctypes.byref(c), c.cb)
     return c.PeakWorkingSetSize / 2**20
 
 
@@ -131,20 +132,28 @@ def run_variant(v: str, media: Path, cores: int, wcpp: Path | None) -> dict:
         model = wcpp / GGML[size]
         if not exe or not model.exists():
             return {**out, "skipped": f"falta {'whisper-cli.exe' if not exe else model.name} en {wcpp}"}
+        vad = wcpp / "ggml-silero-v5.1.2.bin"
+        if not vad.exists():
+            return {**out, "skipped": f"falta {vad.name} en {wcpp}"}
         wav = Path(tempfile.gettempdir()) / f"translay-lab-{os.getpid()}.wav"
         import wave
         with wave.open(str(wav), "wb") as w:
             w.setnchannels(1), w.setsampwidth(2), w.setframerate(SR)
-            w.writeframes((audio.clip(-1, 1) * 32767).astype("<i2").tobytes())
+            w.writeframes((audio * 32768).clip(-32768, 32767).astype("<i2").tobytes())  # las muestras exactas de ffmpeg
+        # con su detector de voz: sin él, whisper.cpp se saltaba tramos enteros (50 de 171 palabras) con un audio
+        # que difería en 1 de amplitud; con él, las mismas 170 palabras siempre (como vad_filter en faster-whisper)
         args = [str(exe), "-m", str(model), "-f", str(wav), "-l", "en", "-t", str(cores), "-bs", "5" if size == "turbo" else "3",
-                "-nt", "-np"] + (["-ng"] if dev == "cpu" else [])
-        r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace")
+                "-nt", "--vad", "-vm", str(vad)] + (["-ng"] if dev == "cpu" else [])
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        stdout, stderr = proc.communicate()
+        out["child_peak_mb"] = round(peak_mb(int(proc._handle))) if os.name == "nt" else None
         wav.unlink(missing_ok=True)
-        text = r.stdout.strip()
-        gpu = re.findall(r"ggml_vulkan: \d+ = ([^|\n]+)", r.stderr) or re.findall(r"using (Vulkan\S*|CPU) backend", r.stderr)
-        out.update(rc=r.returncode, device=gpu[0].strip() if gpu else dev, stderr_tail=r.stderr.strip().splitlines()[-6:])
-        if r.returncode:
-            return {**out, "error": "whisper.cpp terminó con error"}
+        text = " ".join(l.strip() for l in stdout.splitlines() if l.strip())
+        gpu = re.findall(r"ggml_vulkan: \d+ = ([^|\n]+)", stderr)
+        out.update(rc=proc.returncode, device=gpu[0].strip() if gpu and dev != "cpu" else "CPU",
+                   stderr_tail=[l for l in stderr.strip().splitlines() if "total time" in l or "vulkan" in l.lower()][-6:])
+        if proc.returncode:
+            return {**out, "error": "whisper.cpp terminó con error", "stderr_tail": stderr.strip().splitlines()[-8:]}
     elif kind == "mt":
         sys.path.insert(0, str(Path(os.environ.get("TRANSLAY_CODE") or HERE.parents[2])))
         import ctranslate2
@@ -160,7 +169,8 @@ def run_variant(v: str, media: Path, cores: int, wcpp: Path | None) -> dict:
         return {**out, "wall_s": round(wall, 2), "sentences": len(lines), "ms_per_sentence": round(wall * 1000 / max(1, len(lines))),
                 "peak_mb": round(peak_mb()), "sample": es[:3]}
     wall = time.perf_counter() - t0
-    out.update(wall_s=round(wall, 2), speed=round(dur / wall, 2) if wall else None, peak_mb=round(peak_mb()), text=text)
+    out.update(wall_s=round(wall, 2), speed=round(dur / wall, 2) if wall else None, text=text,
+               peak_mb=out.pop("child_peak_mb", None) or round(peak_mb()))
     ref = truth_of(media)
     if ref:
         out["wer"] = round(wer(words(" ".join(t["text"] for t in ref if t["start"] < dur)), words(text)), 3)

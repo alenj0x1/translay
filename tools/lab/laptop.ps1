@@ -97,6 +97,7 @@ $wcpp = Join-Path $work "whisper-vulkan"
 if (-not (Test-Path (Join-Path $wcpp "whisper-cli.exe"))) { Expand-Archive (Join-Path $work "whisper-vulkan-x64.zip") -DestinationPath $wcpp -Force }
 $hf = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
 Get-File "$hf/ggml-small.bin" (Join-Path $wcpp "ggml-small.bin")
+Get-File "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin" (Join-Path $wcpp "ggml-silero-v5.1.2.bin")
 if (-not $Quick) { Get-File "$hf/ggml-large-v3-turbo-q5_0.bin" (Join-Path $wcpp "ggml-large-v3-turbo-q5_0.bin") }
 
 # ------------------------------------------------------------------ medir
