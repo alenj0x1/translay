@@ -188,6 +188,22 @@ Labs: `rtx4060-8g` (el equipo, sin límites), `gpu-6g`, `gpu-4g`, `gpu-2g` (VRAM
 Los labs necesitan la GPU solo para ellos: con otra instancia de Translay procesando en paralelo, la primera corrida dio 0,33× en «calidad» donde limpio da 2,2×. Cierra Translay y lo que use la GPU antes de correrlos.
 </Aside>
 
+### Lab de CPU y gráfica integrada
+
+`tools/lab/cpu.py` mide el reconocimiento y la traducción sin GPU NVIDIA: el streaming de la cola tal como es hoy (`stream-*`), el archivo entero de una vez (`whole-*`), varias ventanas a la vez (`batch-*`), [whisper.cpp](https://github.com/ggml-org/whisper.cpp) en la CPU o en cualquier GPU por Vulkan, incluidas las gráficas integradas AMD e Intel (`wcpp-*`), y el traductor (`mt-*`); `-def` usa los hilos por defecto de CTranslate2 (4) y `-cores`, uno por núcleo físico. Cada variante corre en su propio proceso con tiempo límite, en rondas intercaladas, y da la velocidad (segundos de audio por segundo), la memoria pico y el WER contra `<media>.truth.json`.
+
+```bash
+python tools/lab/cpu.py --media samples/podcast.mp4 --out data/labs/cpu-1 --variants stream-small-def whole-small-cores
+```
+
+Para medir **otro equipo sin tocarlo**, `tools/lab/laptop.ps1` lo corre allá con el Python, el código y los modelos que instaló la app de escritorio: revisa que Translay esté instalado y cerrado y que haya RAM y disco, baja whisper.cpp con Vulkan y la muestra desde la pre-release del lab, mide, borra lo que bajó y deja en el Escritorio `translay-lab-<fecha>.json` (equipo y resultados) y su `.log`, para enviarlos de vuelta. No pide administrador ni instala nada (PowerShell 5; `-Quick` omite el modelo grande).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File laptop.ps1
+```
+
+Una etiqueta `lab-*` corre `.github/workflows/lab-assets.yml`: compila whisper.cpp con Vulkan para Windows (whisper.cpp no publica una) y crea la pre-release de esa etiqueta con él, `cpu.py` y `laptop.ps1`; la muestra se sube con `gh release upload <etiqueta> samples/podcast.mp4 samples/podcast.truth.json`. Las pre-releases nunca son la última versión, así que las apps instaladas no las ven.
+
 ### Labs de idiomas
 
 Miden cada idioma con [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): las mismas frases leídas en cada idioma, con su texto; el español es el latinoamericano (`es_419`), así que sirve de traducción de referencia. `python tools/lab/langs_data.py` los baja a `data/labs/languages/fleurs/` (unos 250 MB por idioma con audio) y los resultados en `data/labs/languages/`, fuera de git. De ellos salieron el [traductor de cada idioma](../../how-it-works/languages/#un-traductor-por-idioma) y el aviso de los perfiles ligeros en [Rendimiento](../../guide/performance/).

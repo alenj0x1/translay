@@ -1,0 +1,52 @@
+name: Lab assets
+
+# Lab: what tools/lab/laptop.ps1 downloads to measure another computer without touching it. A lab-* tag
+# builds whisper.cpp with Vulkan for Windows (whisper.cpp publishes no such build; Vulkan runs on any GPU,
+# AMD integrated graphics included) and publishes it on a pre-release of that tag with the lab script and
+# its sample. Pre-releases never show up as the latest version, so installed apps don't see them.
+
+on:
+  push:
+    tags: ["lab-*"]
+
+permissions:
+  contents: write
+
+env:
+  WHISPER_CPP: v1.9.5
+
+jobs:
+  assets:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Vulkan SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe -OutFile vulkan-sdk.exe
+          Start-Process .\vulkan-sdk.exe -Wait -ArgumentList '--root','C:\VulkanSDK','--accept-licenses','--default-answer','--confirm-command','install'
+          "VULKAN_SDK=C:\VulkanSDK" | Out-File -Append $env:GITHUB_ENV
+          "C:\VulkanSDK\Bin" | Out-File -Append $env:GITHUB_PATH
+      - name: whisper.cpp with Vulkan
+        run: |
+          git clone --depth 1 --branch "$WHISPER_CPP" https://github.com/ggml-org/whisper.cpp
+          cmake -S whisper.cpp -B build -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --target whisper-cli -j 4
+          mkdir -p whisper-vulkan
+          cp build/bin/Release/whisper-cli.exe whisper-vulkan/
+          cp whisper.cpp/LICENSE whisper-vulkan/LICENSE-whisper.cpp.txt
+          ./whisper-vulkan/whisper-cli.exe --help > /dev/null 2>&1 || true
+          7z a whisper-vulkan-x64.zip ./whisper-vulkan/*
+      - name: Pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --prerelease --title "Lab: $GITHUB_REF_NAME" \
+            --notes "Archivos del laboratorio de CPU y gráfica integrada (tools/lab/laptop.ps1). whisper.cpp $WHISPER_CPP con Vulkan." \
+            whisper-vulkan-x64.zip tools/lab/cpu.py tools/lab/laptop.ps1
+          # la muestra vive en samples/ (fuera del repositorio): se sube aparte con
+          # gh release upload <etiqueta> samples/podcast.mp4 samples/podcast.truth.json
