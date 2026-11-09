@@ -196,7 +196,7 @@ The labs need the GPU to themselves: with another Translay instance processing i
 python tools/lab/cpu.py --media samples/podcast.mp4 --out data/labs/cpu-1 --variants stream-small-def whole-small-cores
 ```
 
-To measure **another computer without touching it**, `tools/lab/laptop.ps1` runs it there with the Python, code and models the desktop app installed: it checks that Translay is installed and closed and that there is RAM and disk, downloads whisper.cpp with Vulkan and the sample from the lab's pre-release, measures, deletes what it downloaded and leaves `translay-lab-<date>.json` (hardware and results) and its `.log` on the Desktop, to send back. It needs no administrator and installs nothing (PowerShell 5, `-Quick` skips the large model).
+To measure **another computer without touching it**, `tools/lab/laptop.ps1` runs it there with the Python, code and models the desktop app installed: it checks that Translay is installed and closed and that there is RAM and disk, downloads whisper.cpp with Vulkan and the sample from the lab's pre-release, measures, deletes what it downloaded and leaves `translay-lab-<date>.json` (hardware and results) and its `.log` on the Desktop, to send back. It needs no administrator and installs nothing (PowerShell 5, `-Quick` skips the large model). `python tools/lab/pack_laptop.py` packs it as **a single file** (`data/labs/translay-lab.ps1`, ~330 KB) with the lab and the sample inside, to send by chat or email; without the pre-release it measures only the CPU.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File laptop.ps1

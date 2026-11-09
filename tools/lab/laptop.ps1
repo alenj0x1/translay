@@ -82,28 +82,44 @@ if ($hw.on_battery) { Say "Aviso: está con batería; conéctalo al cargador par
 
 # ------------------------------------------------------------------ bajar lo del lab
 New-Item -ItemType Directory -Force -Path $work | Out-Null
-function Get-File($url, $dest) {
-    if (Test-Path $dest) { return }
+function Get-File($url, $dest, [switch]$Optional) {
+    if (Test-Path $dest) { return $true }
     $local = if ($Assets) { Join-Path $Assets (Split-Path $dest -Leaf) } else { "" }
-    if ($local -and (Test-Path $local)) { Copy-Item $local $dest; return }
+    if ($local -and (Test-Path $local)) { Copy-Item $local $dest; return $true }
     Say "Bajando $(Split-Path $dest -Leaf)…"
     try { Invoke-WebRequest -Uri $url -OutFile "$dest.part" -UseBasicParsing -TimeoutSec 60 }
-    catch { Remove-Item "$dest.part" -ErrorAction SilentlyContinue; Fail "no se pudo bajar $url ($($_.Exception.Message))" }
+    catch {
+        Remove-Item "$dest.part" -ErrorAction SilentlyContinue
+        if ($Optional) { Say "No se pudo bajar $(Split-Path $dest -Leaf): se omite."; return $false }
+        Fail "no se pudo bajar $url ($($_.Exception.Message))"
+    }
     Move-Item "$dest.part" $dest
+    return $true
+}
+# la versión de un solo archivo (tools/lab/pack_laptop.py) trae el lab y la muestra adentro
+$sample = "podcast.mp4"
+if (Get-Variable Embedded -ErrorAction SilentlyContinue) {
+    foreach ($name in $Embedded.Keys) { [IO.File]::WriteAllBytes((Join-Path $work $name), [Convert]::FromBase64String($Embedded[$name])) }
+    $sample = ($Embedded.Keys | Where-Object { $_ -like "podcast.*" -and $_ -notlike "*.json" } | Select-Object -First 1)
 }
 $base = "https://github.com/alenj0x1/translay/releases/download/$Tag"
-foreach ($f in "cpu.py", "podcast.mp4", "podcast.truth.json", "whisper-vulkan-x64.zip") { Get-File "$base/$f" (Join-Path $work $f) }
+foreach ($f in "cpu.py", $sample, "podcast.truth.json") { [void](Get-File "$base/$f" (Join-Path $work $f)) }
+# whisper.cpp con Vulkan (la gráfica integrada): si no está publicado, se mide solo la CPU
 $wcpp = Join-Path $work "whisper-vulkan"
-if (-not (Test-Path (Join-Path $wcpp "whisper-cli.exe"))) { Expand-Archive (Join-Path $work "whisper-vulkan-x64.zip") -DestinationPath $wcpp -Force }
-$hf = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
-Get-File "$hf/ggml-small.bin" (Join-Path $wcpp "ggml-small.bin")
-Get-File "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin" (Join-Path $wcpp "ggml-silero-v5.1.2.bin")
-if (-not $Quick) { Get-File "$hf/ggml-large-v3-turbo-q5_0.bin" (Join-Path $wcpp "ggml-large-v3-turbo-q5_0.bin") }
+$hasWcpp = Get-File "$base/whisper-vulkan-x64.zip" (Join-Path $work "whisper-vulkan-x64.zip") -Optional
+if ($hasWcpp) {
+    if (-not (Test-Path (Join-Path $wcpp "whisper-cli.exe"))) { Expand-Archive (Join-Path $work "whisper-vulkan-x64.zip") -DestinationPath $wcpp -Force }
+    $hf = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
+    [void](Get-File "$hf/ggml-small.bin" (Join-Path $wcpp "ggml-small.bin"))
+    [void](Get-File "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin" (Join-Path $wcpp "ggml-silero-v5.1.2.bin"))
+    if (-not $Quick) { [void](Get-File "$hf/ggml-large-v3-turbo-q5_0.bin" (Join-Path $wcpp "ggml-large-v3-turbo-q5_0.bin")) }
+}
 
 # ------------------------------------------------------------------ medir
 $variants = @("stream-small-def", "stream-small-cores", "whole-small-def", "whole-small-cores", "batch-small-cores",
               "wcpp-small-cpu", "wcpp-small-vk", "mt-base-def", "mt-base-cores")
 if (-not $Quick) { $variants += @("whole-turbo-cores", "batch-turbo-cores", "wcpp-turbo-vk") }
+if (-not $hasWcpp) { $variants = @($variants | Where-Object { $_ -notlike "wcpp-*" }) }
 $out = Join-Path $work "out"
 $env:TRANSLAY_CODE = $appCode
 $env:PATH = "$tools;$env:PATH"  # ffmpeg de la app
@@ -113,8 +129,11 @@ $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
 $ErrorActionPreference = "Continue"  # en PowerShell 5, lo que Python escribe en stderr no debe cortar el lab
 Say "Midiendo $($variants.Count) variantes × $Rounds rondas. No uses el equipo mientras tanto (la CPU tiene que estar libre)."
 $started = Get-Date
-& $python -u (Join-Path $work "cpu.py") --media (Join-Path $work "podcast.mp4") --out $out --cores $hw.cores `
-    --rounds $Rounds --timeout 900 --whispercpp $wcpp --variants $variants 2>&1 | ForEach-Object { Say "$_" }
+# PowerShell 5 descarta los argumentos vacíos: --whispercpp solo si hay whisper.cpp
+$labArgs = @("-u", (Join-Path $work "cpu.py"), "--media", (Join-Path $work $sample), "--out", $out, "--cores", $hw.cores,
+             "--rounds", $Rounds, "--timeout", 900)
+if ($hasWcpp) { $labArgs += @("--whispercpp", $wcpp) }
+& $python @labArgs --variants $variants 2>&1 | ForEach-Object { Say "$_" }
 $rc = $LASTEXITCODE
 
 # ------------------------------------------------------------------ juntar el resultado
