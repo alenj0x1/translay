@@ -4,6 +4,22 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Preferences › Apariencia: «Color de énfasis» (Accent color) picks the color of buttons, progress and playback (the theme's or one of seven); «Color de cada biblioteca» (Color of each library) now overrides it only when turned on.
+
+### Fixed
+
+- Adding a link: pressing Enter with something that isn't a YouTube or Dropbox link shows a notice instead of doing nothing, and a video that can't be downloaded (private, deleted, members-only, age-restricted or a link that needs an account) goes to «Con error» at once with a notice saying which one and why, instead of retrying silently for 20 minutes.
+- Desktop app: the install and model download percentages follow what is written and downloaded as it happens; before, Hugging Face's Xet downloads kept the folder at 0 MB until the end and Windows listed files still being written with their old size, so the bar stayed still and then jumped.
+- Queue and «Agregar» panels close when you tap anything outside them, the other button included (some elements stopped the click and the panel stayed open).
+- Record the screen: after picking a window or a tab, Translay stays in front instead of hiding behind it, and the dialog warns that a window or the whole screen records the whole computer's sound (a call included).
+- Summary: «Resumir» (Summarize) appears as soon as the transcription finishes, without leaving the video and coming back; if the open video already has sentences on the server that the tab didn't get, it asks for the transcript again.
+- Library: selecting videos on the home page shows the selection actions (they were missing), and on a phone they stay under the header however far down you scroll; right-clicking a card's checkbox opens the video's menu.
+- Preferences › Rendimiento: a long processor name («AMD Ryzen 7 7730U with Radeon Graphics») wraps to two lines instead of spilling out of its card.
+
 ## 1.10.0 · 2026-11-08
 
 ### Added

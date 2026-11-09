@@ -75,7 +75,9 @@
 .hwchip { display: flex; align-items: center; gap: var(--s3); padding: var(--s3); border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
 .hwchip-ic { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-3); color: var(--fg-muted); }
 .hwchip-ic svg { width: 18px; height: 18px; }
-.hwchip strong { display: block; font: 700 var(--fs-md)/1.3 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hwchip > div { min-width: 0; }
+/* un nombre largo («AMD Ryzen 7 7730U with Radeon Graphics») usa dos líneas en vez de salirse de la caja */
+.hwchip strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font: 700 var(--fs-md)/1.3 var(--font); }
 .hwchip small { font: 500 var(--fs-xs)/1.35 var(--font); color: var(--fg-muted); }
 
 .perf-calc { display: flex; align-items: center; gap: var(--s3); font: 600 var(--fs-sm)/1 var(--font); color: var(--fg-muted); }
@@ -142,3 +144,8 @@
 #plan-dlg .vrows { margin-top: var(--s2); }
 .plan-prune { display: flex; align-items: center; gap: var(--s2); font: 500 var(--fs-md)/1.4 var(--font); cursor: pointer; }
 #plan-dlg .st-row .vinfo strong { white-space: normal; }
+
+/* color de énfasis (Preferencias › Apariencia): la primera muestra es el del tema; con «Color de cada
+   biblioteca» activo las muestras quedan atenuadas (manda el de la biblioteca) */
+.accent-colors .vcolor.theme { --vc: var(--primary); }
+.accent-colors.off .vcolor { opacity: .4; }

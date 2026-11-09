@@ -44,7 +44,7 @@ function vaultsUpdate(m) {
   }
   renderVaultBtn();
   renderVaultPop();
-  if (typeof applyAccent === "function") applyAccent(prefs.accent_lib ? currentVault().color : null);  // Preferencias → Apariencia
+  if (typeof syncAccent === "function") syncAccent();  // Preferencias → Apariencia
   if (typeof applyCan === "function") applyCan();  // los permisos son por biblioteca
   if (typeof renderQueuePanel === "function") {  // la cola muestra lo de la biblioteca abierta
     for (const n of ["#qnav", "#qhead", "#qlist"]) $(n).dataset.sig = "";
@@ -85,7 +85,7 @@ OPTIMISTIC.vault_update = (m) => {
 function refreshVaultViews() {
   renderVaultBtn();
   renderVaultPop();
-  if (typeof applyAccent === "function") applyAccent(prefs.accent_lib ? currentVault().color : null);
+  if (typeof syncAccent === "function") syncAccent();
   renderVaultViews();
 }
 

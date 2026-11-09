@@ -257,7 +257,8 @@ function menuFor(t) {
 document.addEventListener("contextmenu", (e) => {
   const t = e.target;
   // campos de texto, texto seleccionado y enlaces: el menú del navegador
-  if (t.closest("input, textarea, [contenteditable], a[href]") || String(getSelection()).trim()) return;
+  // (el check de una miniatura no: ahí va el menú del video)
+  if (t.closest("input:not([type=checkbox]), textarea, [contenteditable], a[href]") || String(getSelection()).trim()) return;
   if (t.closest(".login, dialog")) return;
   const items = menuFor(t);
   if (!items) return;

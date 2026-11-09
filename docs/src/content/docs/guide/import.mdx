@@ -16,7 +16,7 @@ Everything you add goes straight to the server's queue: it appears instantly in 
 The «Agregar» (Add) button in the header, with a plus icon, is a split button:
 
 - **The main part** does what you use most in this browser: «Agregar» (opens the panel with the link field), «Subir» (Upload: picks videos or audio files from your machine), «Capturar» (Capture: records the screen, only in browsers that support it) or «Pegar enlaces» (Paste links: opens the several-links dialog). Uses are counted in this browser only; an action needs at least 3 uses to take over the button, and with a tie or fewer uses it stays «Agregar».
-- **The ▾ part** always opens the full panel: the «Pega un enlace de YouTube o Dropbox» (Paste a YouTube or Dropbox link) field with its «Agregar ▾» button, and three cards for the other sources: «Archivos» (Files), «Grabar pantalla» (Record screen) and «Varios enlaces» (Several links).
+- **The ▾ part** always opens the full panel: the «Pega un enlace de YouTube o Dropbox» (Paste a YouTube or Dropbox link) field with its «Agregar ▾» button, and three cards for the other sources: «Archivos» (Files), «Grabar pantalla» (Record screen) and «Varios enlaces» (Several links). Pressing Enter with something that isn't a YouTube or Dropbox link shows a notice instead of doing nothing.
 
 To keep the button as «Agregar» all the time, choose Preferencias › Agregar y descargar › «Botón Agregar» › «Siempre «Agregar»» (Preferences › Add and download › "Add button" › "Always Add"); the default is «Lo que más usas» (What you use most).
 
@@ -80,7 +80,9 @@ The separator can be a comma, semicolon or tab. The links found open in the seve
 
 ## Record the screen
 
-«Grabar pantalla» (Record screen), in the «Agregar» panel (or «Capturar» when the button shows it), records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`.
+«Grabar pantalla» (Record screen), in the «Agregar» panel (or «Capturar» when the button shows it), records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`. After you pick a window or a tab, Translay stays in front instead of hiding behind it.
+
+Only a tab brings just its own sound. A window or the whole screen brings the sound of the whole computer, a call or notifications included, and the dialog says so before you record.
 
 1. The browser asks what to share. To have something to translate, the source must carry sound: a tab, or the whole screen with «Compartir audio» (Share audio) turned on. A single window usually has no sound on Windows; if so, the dialog says so and «Elegir otra» (Choose another) opens the picker again.
 2. In the preview, moving the cursor highlights the boxes it finds: where the picture keeps moving (a video, even one that only takes up part of a page) and boxes with straight edges (windows, panels, players). A click picks the highlighted box, the mouse wheel jumps to the box that contains it, and dragging marks a zone by hand. «Toda la imagen» (Whole picture) goes back to recording everything.

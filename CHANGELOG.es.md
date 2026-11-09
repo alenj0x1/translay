@@ -4,6 +4,22 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Preferencias › Apariencia: «Color de énfasis» elige el color de los botones, el avance y la reproducción (el del tema o uno de siete); «Color de cada biblioteca» ahora lo reemplaza solo cuando está activado.
+
+### Corregido
+
+- Agregar un enlace: presionar Enter con algo que no es un enlace de YouTube ni de Dropbox muestra un aviso en vez de no hacer nada, y un video que no se puede descargar (privado, eliminado, solo para miembros, con restricción de edad o un enlace que pide cuenta) pasa a «Con error» al instante con un aviso que dice cuál y por qué, en vez de reintentar en silencio durante 20 minutos.
+- App de escritorio: el porcentaje de la instalación y de la descarga de modelos sigue lo que se escribe y se descarga en el momento; antes, las descargas Xet de Hugging Face dejaban la carpeta en 0 MB hasta el final y Windows listaba los archivos que se estaban escribiendo con su tamaño viejo, así que la barra se quedaba quieta y luego saltaba.
+- Los paneles de la Cola y de «Agregar» se cierran al tocar cualquier cosa fuera de ellos, también el otro botón (algunos elementos detenían el clic y el panel seguía abierto).
+- Grabar pantalla: al elegir una ventana o una pestaña, Translay sigue al frente en vez de quedar detrás, y el cuadro avisa que una ventana o la pantalla completa graban el sonido de todo el equipo (también una llamada).
+- Resumen: «Resumir» aparece apenas termina la transcripción, sin salir del video y volver; si el video abierto ya tiene frases en el servidor que la pestaña no recibió, se vuelve a pedir la transcripción.
+- Biblioteca: elegir videos en el inicio muestra las acciones de la selección (no aparecían), y en el celular quedan bajo el encabezado aunque bajes mucho; el clic derecho sobre la casilla de una tarjeta abre el menú del video.
+- Preferencias › Rendimiento: un nombre de procesador largo («AMD Ryzen 7 7730U with Radeon Graphics») usa dos líneas en vez de salirse de su tarjeta.
+
 ## 1.10.0 · 2026-11-08
 
 ### Agregado

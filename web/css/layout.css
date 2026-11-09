@@ -114,6 +114,9 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   body.view-library .library, body.view-prefs .prefs-screen, body.view-queue .queue-screen { align-content: start; }
   /* sin línea abajo: el encabezado (y la fila de píldoras) se separan del contenido por el tono */
   .bar { position: sticky; top: 0; flex-wrap: wrap; height: auto; padding: 10px 12px; row-gap: 10px; box-shadow: none; }
+  /* con videos elegidos, sus acciones quedan a la vista bajo el encabezado aunque se baje mucho (aquí se
+     desplaza la página entera); --bar-h lo mide web/js/home.js */
+  .shelf-head.picking { position: sticky; top: var(--bar-h, 0); z-index: 5; margin: 0 calc(-1 * var(--pad)); padding: var(--s3) var(--pad); background: var(--bg); }
   .side-btn { display: none; }
   .bar .brand { width: auto !important; }
   .bar .search { order: 10; flex: 1 1 100%; max-width: none; margin: 0; }

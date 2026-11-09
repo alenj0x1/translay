@@ -25,7 +25,7 @@ function perfStart() {
 
 function chip(ic, main, sub) {
   return el("div", { class: "hwchip" }, el("span", { class: "hwchip-ic" }, icon(ic)),
-    el("div", {}, el("strong", { text: main }), sub ? el("small", { text: sub }) : null));
+    el("div", {}, el("strong", { text: main, title: main }), sub ? el("small", { text: sub }) : null));
 }
 
 function renderPerf() {

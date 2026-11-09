@@ -42,6 +42,9 @@ SCHEMA = [
     # apariencia: claro u oscuro (web/css/tokens.css, web/js/theme.js)
     {"key": "theme_mode", "section": "apariencia", "label": "Modo", "type": "choice", "default": "sistema",
      "options": [["sistema", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"]]},
+    {"key": "accent_color", "section": "apariencia", "label": "Color de énfasis", "type": "choice", "default": "",
+     "options": [["", "Del tema"], ["#e4572e", "Coral"], ["#f3a712", "Ámbar"], ["#29bf12", "Verde"], ["#00a5cf", "Celeste"],
+                 ["#7d5ba6", "Violeta"], ["#e84f9b", "Rosa"], ["#8d6e63", "Café"]]},
     {"key": "accent_lib", "section": "apariencia", "label": "Color de cada biblioteca", "type": "bool", "default": False},
     {"key": "layout", "section": "video", "label": "Vista del video", "type": "choice", "default": "ampliada",
      "options": [["ampliada", "Ampliada"], ["dividida", "Dividida"]]},
@@ -100,7 +103,8 @@ SCHEMA = [
 DETAILS = {
     "models_prune": ("Rendimiento", "Al reiniciar con otro perfil, borra los modelos que ese perfil no usa (se apaga sola después)."),
     "theme_mode": ("Tema", "Claro, oscuro o el que use tu sistema. Cada biblioteca recuerda el suyo."),
-    "accent_lib": ("Tema", "Usar el color de la biblioteca abierta en botones, avance y reproducción, en vez del color del tema."),
+    "accent_color": ("Tema", "El color de botones, avance y reproducción."),
+    "accent_lib": ("Tema", "Usar el color de la biblioteca abierta en vez del color de énfasis."),
     "autoplay": ("Al abrir y terminar", "El video empieza solo cuando lo abres."),
     "autoplay_next": ("Al abrir y terminar", "Al terminar, sigue con el próximo de la colección o playlist."),
     "wait_ready": ("Al abrir y terminar", "Si llegas a una parte que aún no tiene voz en español, se pausa y sigue cuando esté lista."),

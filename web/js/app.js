@@ -570,6 +570,12 @@ function updateImportBtn() {
   $("#import-go").disabled = $("#import-more").disabled = !(ytLinks(text).some((u) => classify(u) || /dropbox\.com\//i.test(u)) || /^[\w-]{11}$/.test(text));
 }
 $("#yt-url").addEventListener("input", updateImportBtn);
+// Enter con algo que no es un enlace: con «Agregar» deshabilitado el formulario no se envía y no pasaba nada
+$("#yt-url").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !$("#import-go").disabled || !$("#yt-url").value.trim()) return;
+  e.preventDefault();
+  toast("Eso no es un enlace de YouTube ni de Dropbox: copia el enlace del video y pégalo aquí.", "warn");
+});
 // «Agregar ▾»: traducir y doblar (lo que está en el idioma propio de Preferencias solo se
 // transcribe) o solo transcribir, en cualquier idioma
 function importMenu(more, form) {
@@ -1627,6 +1633,7 @@ function setPref(key, value) {
   prefs[key] = value;
   send({ type: "prefs_set", key, value });
   if (key === "add_button" && typeof syncAddButton === "function") syncAddButton();  // al instante
+  if (key.startsWith("accent_") && typeof syncAccent === "function") syncAccent();
 }
 
 function applyPrefs(m) {
@@ -1640,7 +1647,7 @@ function applyPrefs(m) {
   prefs = { ...prefs, ...m.values };
   applyTheme();
   if (typeof syncAddButton === "function") syncAddButton();  // «Botón Agregar» (web/js/home.js)
-  if (typeof applyAccent === "function" && typeof vaults !== "undefined") applyAccent(prefs.accent_lib ? currentVault().color : null);
+  if (typeof syncAccent === "function") syncAccent();
   setLayout(!state.translates || prefs.layout !== "dividida", false);
   document.body.classList.toggle("no-sub-es", !prefs.sub_es);
   document.body.classList.toggle("no-sub-en", !prefs.sub_orig);
@@ -1694,6 +1701,7 @@ function prefControl(p) {
     opts = opts.map(([k, t]) => [k, k === "auto" && rec ? `Automático (${rec[1]})` : t]);
   }
   if (p.key === "export_ask") return exportAskRow(p);
+  if (p.key === "accent_color") return accentRow(p);
   if (p.type === "bool") {  // interruptor
     const on = prefs[p.key] === true;
     return el("button", { type: "button", class: "switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), "aria-label": p.label,
@@ -1708,6 +1716,15 @@ function prefControl(p) {
   }
   return el("div", { class: "segs" }, ...opts.map(([value, text]) => el("button", { type: "button", class: "seg" + (prefs[p.key] === value ? " on" : ""),
     on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, text)));
+}
+
+// color de énfasis: muestras (la primera, el del tema); con «Color de cada biblioteca» manda el de la biblioteca
+function accentRow(p) {
+  const cur = prefs.accent_color || "";
+  return el("div", { class: "vcolors accent-colors" + (prefs.accent_lib ? " off" : "") }, ...p.options.map(([value, name]) =>
+    el("button", { type: "button", class: "vcolor" + (value ? "" : " theme") + (cur === value ? " on" : ""), title: name,
+      "aria-label": name, "aria-pressed": String(cur === value), style: value ? `--vc: ${value}` : null,
+      on: { click: () => { setPref(p.key, value); renderPrefs(); } } })));
 }
 
 // dónde guardar lo exportado: preguntar o una carpeta fija (que se elige con el cuadro de Windows)

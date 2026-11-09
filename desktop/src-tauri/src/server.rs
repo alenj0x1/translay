@@ -203,6 +203,7 @@ fn open_page(app: &AppHandle, url: &str) {
         .permission("core:window:allow-toggle-maximize")
         .permission("core:window:allow-is-maximized")
         .permission("core:window:allow-hide")
+        .permission("core:window:allow-set-focus")
         .permission("allow-desktop-info")
         .permission("allow-change-data-dir")
         .permission("allow-reinstall")

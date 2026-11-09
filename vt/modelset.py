@@ -148,28 +148,58 @@ def _dir_size(p: Path) -> int:
     return total
 
 
-def download(repo: str):
-    """Solo los archivos que se usan, como los baja cada motor al usarlo."""
+def download(repo: str, tqdm_class=None):
+    """Solo los archivos que se usan, como los baja cada motor al usarlo. tqdm_class recibe el avance
+    en bytes de Hugging Face (ver _byte_counter)."""
     from huggingface_hub import hf_hub_download, snapshot_download
 
     from .asr import MODELS as ASR
     from .speakers import SpeakerEmbedder
-    from .translate import MODELS as MT, model_dir
+    from .translate import _FILES as MT_FILES, MODELS as MT, model_dir
 
     if repo == SpeakerEmbedder.REPO:
-        hf_hub_download(repo, "onnx/model.onnx")
-    elif repo.startswith("opus:") or repo in {m[1] for m in MT.values()}:
+        hf_hub_download(repo, "onnx/model.onnx", tqdm_class=tqdm_class)
+    elif repo.startswith("opus:"):
         model_dir(repo)
+    elif repo in {m[1] for m in MT.values()}:  # lo mismo que translate.model_dir
+        snapshot_download(repo, allow_patterns=MT_FILES, tqdm_class=tqdm_class)
     elif repo in ASR.values():  # lo de faster-whisper (download_model)
         snapshot_download(repo, allow_patterns=["config.json", "preprocessor_config.json", "model.bin",
-                                                "tokenizer.json", "vocabulary.*"])
+                                                "tokenizer.json", "vocabulary.*"], tqdm_class=tqdm_class)
     else:
-        snapshot_download(repo)
+        snapshot_download(repo, tqdm_class=tqdm_class)
+
+
+def _byte_counter():
+    """(clase tqdm, función que da los bytes bajados hasta ahora). Con Xet (hf_xet) el archivo se arma al
+    final: la carpeta se queda en 0 MB casi toda la descarga y el avance llegaba de golpe al terminar
+    (medido: 145 MB en 5 s con la carpeta en 0 MB). Las barras de Hugging Face sí avanzan: «Downloading
+    bytes» (la red, con Xet) va al día y «Reconstructing…» (el archivo) se atrasa; sin Xet hay una barra
+    por archivo. Se cuenta la red y el archivo por separado y vale el mayor (sumarlas contaría dos veces)."""
+    from tqdm.auto import tqdm
+
+    got, lock = {"net": 0, "file": 0}, threading.Lock()
+
+    class Bytes(tqdm):
+        def __init__(self, *a, **k):
+            desc = str(k.get("desc") or "")
+            self._kind = None if k.get("unit") != "B" else "net" if desc.startswith("Downloading bytes") else "file"
+            k["disable"] = True
+            super().__init__(*a, **k)
+
+        def update(self, n=1):
+            if self._kind and n:
+                with lock:
+                    got[self._kind] += n
+            return super().update(n)
+
+    return Bytes, lambda: max(got.values())
 
 
 def prefetch(profile: str, report=None, voice: bool = True) -> list[str]:
     """Baja los modelos del perfil que falten (sin voice, salvo el de voz). report(hecho, total, nombre)
-    recibe el avance en bytes (se mide el tamaño de la carpeta mientras baja); sin report, imprime
+    recibe el avance en bytes (lo que cuentan las barras de Hugging Face, o el tamaño de la carpeta si es
+    mayor); sin report, imprime
     «Descargando …: NN%|»."""
     names = info()
     todo = [r for r in repos(profile) if not have(r) and (voice or r not in VOICE_REPOS.values())]
@@ -178,10 +208,11 @@ def prefetch(profile: str, report=None, voice: bool = True) -> list[str]:
     for repo in todo:
         label = names.get(repo, {}).get("label", repo)
         stop = threading.Event()
+        bar, counted = _byte_counter()
 
-        def watch(repo=repo, label=label, base=done):
+        def watch(repo=repo, label=label, base=done, counted=counted):
             while not stop.wait(1.0):
-                now = min(base + _dir_size(path(repo)), total)
+                now = min(base + max(_dir_size(path(repo)), counted()), total)
                 if report:
                     report(now, total, label)
                 else:
@@ -190,7 +221,7 @@ def prefetch(profile: str, report=None, voice: bool = True) -> list[str]:
         t = threading.Thread(target=watch, daemon=True)
         t.start()
         try:
-            download(repo)
+            download(repo, bar)
         finally:
             stop.set()
             t.join()

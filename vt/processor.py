@@ -417,7 +417,7 @@ class Processor:
                     job["state"] = "descargado"
                 self._vid_event("video.descargado", vid, audio_only=bool(info.get("audio_only")))
             except Exception as e:
-                from .youtube import friendly_error
+                from .youtube import friendly_error, permanent_error
 
                 print(f"[descarga] {vid}: {e}", flush=True)
                 job.pop("dl", None)
@@ -439,7 +439,7 @@ class Processor:
                         self.notify({"type": "yt_need_account", "reason": "edad",
                                      "account": self._account().status()})
                     job["attempts"] = job.get("attempts", 0) + 1
-                    if job["attempts"] >= MAX_ATTEMPTS:
+                    if job["attempts"] >= MAX_ATTEMPTS or permanent_error(e):
                         job.pop("fetch_video", None)
                         job.update(state="error", error=friendly_error(e, self.session()))
                         self._vid_event("video.error", vid, error=job["error"])

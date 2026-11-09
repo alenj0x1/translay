@@ -115,11 +115,25 @@ function libraryUpdate(m) {
   syncFetchBtn();
   syncExportBtn();
   if (currentView() === "player") renderSidebar();
+  syncOpenVideo();
   if (typeof routeRestore === "function") routeRestore();  // al recargar: volver a donde se estaba
   renderUpNext();
   if (lib.promptSave && state.videoId && lib.videos[state.videoId]) {
     lib.promptSave = false;
     openSave();  // al traducir un video nuevo: elegir si guardarlo en una colección
+  }
+}
+
+// el video abierto al cambiar su avance: el resumen solo se redibujaba al abrirlo (terminada la
+// transcripción seguía en «cuando termine…» hasta salir y volver), y si el servidor ya tiene frases que
+// esta pestaña no recibió (no hay ninguna), se vuelve a pedir la transcripción
+function syncOpenVideo() {
+  const v = state.videoId && lib.videos[state.videoId];
+  if (!v) return;
+  if (typeof renderSummary === "function") renderSummary();
+  if (state.serverSide && !state.segments.length && v.progress?.asr > 0 && lib.resynced !== v.id) {
+    lib.resynced = v.id;  // una vez por video: si de verdad no tiene frases, no se insiste
+    send({ type: "open", id: v.id, name: state.videoName });
   }
 }
 
@@ -698,7 +712,9 @@ function queueUpdate(m) {
     const p = prev.get(j.id);
     if (!p) continue;
     const title = lib.videos[j.id]?.title || j.id;
-    if (p.state !== "listo" && j.state === "listo") notifyLater("traducidos", title);
+    // no se pudo bajar (privado, solo para miembros, pide cuenta…): se avisa en vez de quedar callado en la cola
+    if (p.state !== "error" && j.state === "error") toast(`«${title}»: ${j.error || "no se pudo procesar"}`, "warn");
+    else if (p.state !== "listo" && j.state === "listo") notifyLater("traducidos", title);
     else if (!p.downloaded && j.downloaded) notifyLater("descargados", title);
   }
   const busy = (jobs) => jobs.some((j) => j.state === "en cola" || j.state === "procesando");
@@ -935,7 +951,11 @@ function openQueue() { renderQueuePanel(); $("#queue-pop").hidden = false; }
 function closeQueue() { $("#queue-pop").hidden = true; }
 $("#queue-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#queue-pop").hidden ? openQueue() : closeQueue(); });
 $("#queue-pop").addEventListener("click", (e) => e.stopPropagation());
-document.addEventListener("click", closeQueue);
+// se cierra al tocar cualquier cosa fuera (también «Agregar» y lo que detiene el clic); un menú abierto desde
+// el panel no cuenta
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".queue-wrap, .menu, dialog")) closeQueue();
+}, true);
 $("#queue-full").addEventListener("click", () => { closeQueue(); setView("queue"); });
 $("#queue-toggle").addEventListener("click", () => send({ type: lib.queue.paused ? "queue_resume" : "queue_pause" }));
 $("#queue-clear").addEventListener("click", () => {
@@ -1150,6 +1170,7 @@ function libOnOpen({ id, name, file, fromLibrary, position, keepContext }) {
     lib.ctx = pl ? { name: pl.name, coll: pl.id, auto: true } : null;
   }
   lib.keepCtxFor = null;
+  lib.resynced = null;
   renderUpNext(true);
   // el aviso pendiente del video anterior (si no llegó a cargar) no se aplica a este
   if (lib.onMeta) vEn.removeEventListener("loadedmetadata", lib.onMeta);

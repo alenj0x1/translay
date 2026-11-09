@@ -20,6 +20,11 @@ function applyAccent(color) {
   root.setProperty("--accent-soft", `color-mix(in srgb, ${color} 35%, transparent)`);
 }
 
+// Preferencias › Apariencia: el color de énfasis elegido; con «Color de cada biblioteca», el de la abierta
+function syncAccent() {
+  applyAccent(prefs.accent_lib && typeof vaults !== "undefined" ? currentVault().color : prefs.accent_color || null);
+}
+
 /* ------------------------------------------------------------ portada */
 const fmtLong = (s) => {
   s = Math.round(s || 0);
@@ -56,7 +61,9 @@ function heroVideo() {
 
 function renderHome() {
   const head = $("#shelf-head");
-  head.hidden = true;
+  // con videos elegidos en las filas: las acciones arriba, fuera del desplazamiento (antes no aparecían)
+  head.hidden = !lib.picked.size;
+  if (lib.picked.size) renderShelfHead({ id: "home", name: "Inicio", kind: "auto", items: [...lib.picked] });
   const grid = $("#grid");
   grid.className = "grid home";
   grid.replaceChildren();
@@ -274,7 +281,9 @@ $("#import-pop-btn").addEventListener("click", (e) => {
 $("#cap-btn").addEventListener("click", () => addUsed("capture"));
 syncAddButton();
 importPop.addEventListener("click", (e) => e.stopPropagation());
-document.addEventListener("click", () => { importPop.hidden = true; });
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".import-wrap, .menu, dialog")) importPop.hidden = true;
+}, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") importPop.hidden = true; });
 // al importar, el panel se cierra solo
 $("#yt").addEventListener("submit", () => {
@@ -285,3 +294,10 @@ $("#file").addEventListener("change", (e) => { importPop.hidden = true; if (e.ta
 $("#multi-btn").addEventListener("click", () => { importPop.hidden = true; addUsed("multi"); openMulti(""); });
 // buscar desde cualquier vista lleva a la biblioteca
 $("#lib-q").addEventListener("focus", () => { if (currentView() !== "library") setView("library"); });
+// alto del encabezado (en el celular es fijo arriba y cambia de alto): las acciones de una selección
+// quedan justo debajo (layout.css)
+const topBar = document.querySelector(".bar");
+const syncBarH = () => document.documentElement.style.setProperty("--bar-h", `${Math.ceil(topBar.getBoundingClientRect().height)}px`);
+new ResizeObserver(syncBarH).observe(topBar);
+addEventListener("resize", syncBarH);
+syncBarH();

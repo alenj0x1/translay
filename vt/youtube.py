@@ -9,6 +9,7 @@ vuelve a descargar.
 import re
 import subprocess
 import threading
+import urllib.error
 from collections import defaultdict
 from pathlib import Path
 
@@ -303,6 +304,27 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
         return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
     if "playlist" in msg.lower() and ("does not exist" in msg or "private" in msg.lower()):
         return "La playlist no existe o es privada."
-    if "Video unavailable" in msg or "Private video" in msg:
-        return "El video no está disponible (privado, eliminado o restringido)."
+    if "Private video" in msg:
+        return "El video es privado: solo lo puede ver quien lo subió."
+    if _MEMBERS in msg.lower() or "join this channel" in msg.lower():
+        return "El video es solo para miembros del canal."
+    if "Video unavailable" in msg:
+        return "El video no está disponible (eliminado o restringido)."
+    if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403, 404, 410):
+        return "No se pudo abrir el enlace: puede ser privado, necesitar una cuenta o haberse borrado."
     return msg[:300]
+
+
+_MEMBERS = "members-only"
+_PERMANENT = ("Private video", "Video unavailable", "confirm your age", "members-only", "join this channel",
+              "revisa que el enlace sea público", "no corresponde a este video")
+
+
+def permanent_error(e: Exception) -> bool:
+    """Un error que no se arregla reintentando (privado, borrado, solo para miembros, con restricción de
+    edad, un enlace que pide cuenta): el video queda en error al instante y se avisa, en vez de reintentar
+    3 veces en silencio."""
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code in (401, 403, 404, 410)
+    msg = str(e).lower()
+    return any(k.lower() in msg for k in _PERMANENT)

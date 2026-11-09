@@ -385,13 +385,16 @@ async fn uv(paths: &Paths, args: &[&str], log: &Path, ctx: &Progress<'_>) -> Res
     let a = pump(Box::new(stdout));
     let b = pump(Box::new(stderr));
 
-    let measure = || dir_size(&cache);
-    let start = measure();
+    // Progress: what uv has written so far (the process's own I/O counter, always current) or how much the cache
+    // grew, whichever is larger. The cache alone lagged: Windows lists a file that is still being written with
+    // its old size, so a big wheel only counted once it was done. The folder walk runs off the async thread.
+    let measure = |dir: PathBuf| async move { tokio::task::spawn_blocking(move || dir_size(&dir)).await.unwrap_or(0) };
+    let start = measure(cache.clone()).await;
     let status = loop {
         tokio::select! {
             status = child.wait() => break status.map_err(|e| e.to_string())?,
-            _ = tokio::time::sleep(Duration::from_millis(1500)) => {
-                let grown = measure().saturating_sub(start);
+            _ = tokio::time::sleep(Duration::from_millis(1000)) => {
+                let grown = measure(cache.clone()).await.saturating_sub(start).max(written(&child));
                 ctx.emit((grown as f64 / ctx.bytes as f64).min(0.97), "running");
             }
         }
@@ -403,6 +406,17 @@ async fn uv(paths: &Paths, args: &[&str], log: &Path, ctx: &Progress<'_>) -> Res
         let last = tail.lock().unwrap().iter().rev().find(|l| !l.trim().is_empty()).cloned().unwrap_or_default();
         Err(format!("La instalación se detuvo ({}). {}", status.code().map(|c| format!("código {c}")).unwrap_or_default(), last.trim()))
     }
+}
+
+/// Bytes the process has written to disk so far (0 if it can't be read).
+fn written(child: &tokio::process::Child) -> u64 {
+    use windows_sys::Win32::System::Threading::{GetProcessIoCounters, IO_COUNTERS};
+    let Some(handle) = child.raw_handle() else { return 0 };
+    let mut io: IO_COUNTERS = unsafe { std::mem::zeroed() };
+    if unsafe { GetProcessIoCounters(handle as _, &mut io) } == 0 {
+        return 0;
+    }
+    io.WriteTransferCount
 }
 
 /// The server's Python with Translay's code and environment (bundled tools ahead of the PATH): the server

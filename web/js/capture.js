@@ -270,12 +270,20 @@ const canCapture = () => !!navigator.mediaDevices?.getDisplayMedia && window.isS
 $("#cap-btn").hidden = !canCapture();
 
 async function pickSource() {
+  // al elegir una ventana o una pestaña, el navegador la pasa al frente y Translay quedaba detrás (como si ya
+  // grabara o se hubiera cerrado): CaptureController pide no cambiar el foco; en la app de escritorio,
+  // además, la ventana vuelve al frente
+  const controller = typeof CaptureController === "function" ? new CaptureController() : null;
   try {
-    return await navigator.mediaDevices.getDisplayMedia({
+    const s = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: { ideal: 30, max: 30 } },
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       systemAudio: "include", selfBrowserSurface: "exclude", surfaceSwitching: "include", monitorTypeSurfaces: "include",
+      ...(controller ? { controller } : {}),
     });
+    try { controller?.setFocusBehavior("no-focus-change"); } catch { /* la pantalla completa no cambia el foco */ }
+    if (DESKTOP) desktopWindow().setFocus().catch(() => {});
+    return s;
   } catch (e) {
     if (e?.name !== "NotAllowedError" && e?.name !== "AbortError") toast("No se pudo compartir la pantalla.");
     return null;
@@ -321,8 +329,15 @@ function capCropPx() {
 function capRender() {
   const hasAudio = !!capUI.stream?.getAudioTracks().length;
   const hasVideo = !!capUI.stream?.getVideoTracks().length;
-  $("#cap-warn").textContent = hasAudio ? ""
-    : "Esta fuente no trae sonido y sin él no hay nada que traducir. Comparte una pestaña o la pantalla completa con «Compartir audio» activado.";
+  // una ventana o la pantalla traen el sonido de todo el equipo (una llamada, notificaciones…); solo una
+  // pestaña trae únicamente el suyo
+  const surface = capUI.stream?.getVideoTracks()[0]?.getSettings?.().displaySurface;
+  $("#cap-warn").textContent = !hasAudio
+    ? "Esta fuente no trae sonido y sin él no hay nada que traducir. Comparte una pestaña o la pantalla completa con «Compartir audio» activado."
+    : surface && surface !== "browser"
+      ? "Se graba todo el sonido del equipo, también una llamada o las notificaciones."
+        + (DESKTOP ? "" : " Para grabar solo un video, comparte su pestaña.")
+      : "";
   $("#cap-go").disabled = !hasAudio;
   const audioOnly = capOpts.q === "audio";
   $("#cap-stage").hidden = audioOnly || !hasVideo;
