@@ -4,6 +4,12 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Corregido
+
+- Script de versiones: ya no falla en la consola de Windows al mostrar las notas; escribe su salida en UTF-8.
+
 ## 1.13.0 · 2026-11-13
 
 ### Agregado

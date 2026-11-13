@@ -57,6 +57,11 @@ def suggest() -> str:
 
 
 def main() -> int:
+    # la consola de Windows usa cp1252 por defecto: las notas y los mensajes llevan «→», tildes y
+    # comillas que no caben ahí y harían fallar el print a mitad de la liberación
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("version", nargs="?", help="x.y.z")
     ap.add_argument("--dry-run", action="store_true")
