@@ -209,9 +209,9 @@ site-search dialog { box-shadow: none !important; border: 1px solid var(--sl-col
 site-search dialog::backdrop { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: rgba(8, 9, 11, .6) !important; }
 :root[data-theme="light"] site-search dialog::backdrop { background: rgba(17, 18, 22, .28) !important; }
 @media (min-width: 50rem) { site-search dialog { min-height: 0 !important; border-radius: 14px !important; } }
-#starlight__search { --pagefind-ui-border: transparent; --pagefind-ui-border-width: 0px; --pagefind-ui-border-radius: 999px; --pagefind-ui-background: var(--sl-color-gray-6); }
+#starlight__search { --pagefind-ui-border: transparent; --pagefind-ui-border-width: 0px; --pagefind-ui-border-radius: 999px; --pagefind-ui-background: transparent; }
 #starlight__search input:focus { --pagefind-ui-border: transparent; outline: none; }
-#starlight__search .pagefind-ui__search-input { border: 0 !important; border-radius: 999px !important; background: var(--sl-color-gray-6) !important; }
-#starlight__search .pagefind-ui__search-input:focus { box-shadow: 0 0 0 1px var(--sl-color-gray-4) !important; }
+#starlight__search .pagefind-ui__search-input { border: 1px solid var(--sl-color-gray-5) !important; border-radius: 999px !important; background: transparent !important; }
+#starlight__search .pagefind-ui__search-input:focus { box-shadow: none !important; outline: none !important; }
 site-search dialog:focus, site-search dialog:focus-visible { outline: none !important; }
 site-search .dialog-frame { scrollbar-width: none; }
