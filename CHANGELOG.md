@@ -14,7 +14,8 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Changed
 
-- Option groups (Traducir y doblar / Solo transcribir, light or dark, export formats…): the chosen option is a pill that slides softly to the new one.
+- Option groups (Traducir y doblar / Solo transcribir, light or dark, export formats…): the chosen option is a pill that slides softly to the new one; so do the player's side tabs (Transcripción, Resumen, Personas) and the ES / EN switch.
+- Dialogs fade in softly and notices rise when they appear and fade out when they leave, instead of popping in.
 - Dark theme: dialogs, menus, fields and the chosen option use the new darker grays, just above the bars, instead of the old lighter gray; text fields and dropdowns have no gray fill, only a thin line.
 - Collections, channels and categories without their own banner always get a color: the gray dot field is gone.
 - Documentation and README: every screenshot was retaken with the current version, in dark and light.

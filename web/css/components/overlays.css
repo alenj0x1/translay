@@ -49,6 +49,11 @@
 }
 .dlg.wide { width: min(640px, calc(100vw - 32px)); }
 .dlg::backdrop { background: var(--backdrop); }
+/* al abrir: aparece suave con una escala mínima, como los menús; el fondo se oscurece de a poco */
+.dlg[open] { animation: dlg-in .18s var(--ease); }
+.dlg[open]::backdrop { animation: dlg-fade .18s var(--ease); }
+@keyframes dlg-in { from { opacity: 0; transform: scale(.97); } }
+@keyframes dlg-fade { from { opacity: 0; } }
 .dlg form { display: grid; gap: var(--s4); padding: var(--s6); }
 .dlg h3 { font: 800 var(--fs-xl)/1.2 var(--font); overflow-wrap: anywhere; }
 .dlg-sub, .dlg-note { margin: 0; font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
@@ -84,6 +89,12 @@
 .toast::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .toast[data-kind="ok"]::before { background: var(--ok); }
 .toast[data-kind="warn"]::before { background: var(--warn); }
+/* sube suave al aparecer y se desvanece al irse (web/js/app.js · hideToast) */
+.toast:not([hidden]) { animation: toast-in .22s var(--ease); }
+.toast.out { animation: toast-out .18s var(--ease) forwards; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, 6px); } }
+@media (prefers-reduced-motion: reduce) { .dlg[open], .dlg[open]::backdrop, .toast:not([hidden]), .toast.out { animation: none; } }
 
 /* opciones de una lista desplegable: con su distintivo, se desplaza si es larga */
 .menu { overflow-y: auto; }

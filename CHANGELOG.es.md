@@ -14,7 +14,8 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Cambiado
 
-- Grupos de opciones (Traducir y doblar / Solo transcribir, claro u oscuro, formatos de exportación…): la opción elegida es una píldora que se desliza suave a la nueva.
+- Grupos de opciones (Traducir y doblar / Solo transcribir, claro u oscuro, formatos de exportación…): la opción elegida es una píldora que se desliza suave a la nueva; también las pestañas del panel del reproductor (Transcripción, Resumen, Personas) y el cambio ES / EN.
+- Los diálogos aparecen suave y los avisos suben al aparecer y se desvanecen al irse, en vez de saltar.
 - Tema oscuro: diálogos, menús, campos y la opción elegida usan los grises nuevos, más oscuros y apenas sobre las barras, en vez del gris claro de antes; los campos de texto y las listas desplegables ya no tienen relleno gris, solo una línea fina.
 - Colecciones, canales y categorías sin banner propio siempre tienen color: se quitó el campo de puntos gris.
 - Documentación y README: todas las capturas se volvieron a tomar con la versión actual, en oscuro y en claro.

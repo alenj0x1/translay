@@ -1980,14 +1980,24 @@ let toastTimer = null;
 function toast(text, kind = "error", action = null) {
   const t = $("#toast");
   t.replaceChildren(...[el("span", { class: "toast-text", text }),
-    action ? btn(action.label, { size: "xs", cls: "toast-act", onClick: (e) => { e.stopPropagation(); t.hidden = true; action.onClick(); } }) : null]
+    action ? btn(action.label, { size: "xs", cls: "toast-act", onClick: (e) => { e.stopPropagation(); hideToast(); action.onClick(); } }) : null]
     .filter(Boolean));
   t.dataset.kind = kind;  // error (rojo) · ok (verde) · warn (ámbar)
+  t.classList.remove("out");
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 12000 : 15000);
+  toastTimer = setTimeout(hideToast, action ? 12000 : 15000);
 }
-$("#toast").addEventListener("click", () => { $("#toast").hidden = true; });
+// se va desvaneciéndose (overlays.css · toast-out) y luego se oculta
+function hideToast() {
+  const t = $("#toast");
+  clearTimeout(toastTimer);
+  if (t.hidden || t.classList.contains("out")) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { t.hidden = true; return; }
+  t.classList.add("out");
+  t.addEventListener("animationend", () => { if (t.classList.contains("out")) { t.hidden = true; t.classList.remove("out"); } }, { once: true });
+}
+$("#toast").addEventListener("click", hideToast);
 
 /* ------------------------------------------------------------ sesión de YouTube */
 // La cuenta conectada (vt/ytsession.py): se inicia sesión una vez en una ventana del

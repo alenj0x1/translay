@@ -77,6 +77,10 @@ El botón dividido del encabezado (`#import-split`) tiene una parte principal cu
 |---|---|
 | `el(tag, attrs, ...hijos)` | Crea un elemento. `attrs` acepta `class`, `text`, `on: {evento: fn}` y cualquier atributo; `false` o `null` lo omiten. |
 | `icon(nombre, clase)` | Ícono SVG de línea, 16×16, trazo de 1,5, color de `currentColor`. Las partes rellenas llevan `class="solid"`. La lista está en `ICONS`. |
+
+### Movimiento
+
+La opción elegida de un grupo de opciones (`.segs`), las pestañas del panel del reproductor (`.side-tabs`) y el cambio ES / EN (`.lang`) es una `.seg-pill` que se desliza a la nueva opción: `ui.js` la ubica sobre el hijo `.on` y vigila los cambios de clase, así que basta con marcar otra opción como `.on`. Los diálogos (`.dlg`) y los menús aparecen suave con una escala mínima; el aviso (`toast()`) sube al aparecer y se desvanece con `hideToast()`. Todo respeta la opción del sistema de reducir movimiento.
 | `btn(texto, {icon, variant, size, title, onClick, disabled, href, cls})` | Botón `.btn`. `variant`: `""`, `dark`, `ghost` o `danger`; `size`: `""`, `sm` o `xs`. Con `href` es un enlace que abre otra pestaña. |
 | `setBtn(boton, texto, icono)` | Cambia texto e ícono sin rehacer el botón si no hace falta. |
 | `hydrateIcons(raiz)` | Pone el ícono a todo `[data-icon]` del HTML estático y envuelve su texto en `.btn-text`, para que el botón pueda quedar solo con el ícono cuando falta espacio. |

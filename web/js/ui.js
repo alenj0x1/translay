@@ -141,13 +141,15 @@ const watchSegs = () => {
 new MutationObserver(watchSegs).observe(document.documentElement, { childList: true, subtree: true });
 watchSegs();
 
-// La opción elegida de un grupo (.segs) es una píldora que se desliza de una opción a otra.
-// Se ubica sobre la .seg.on (posición y ancho); la primera vez, sin animación. En los grupos
-// que no caben en una fila (.wrapped, una lista) se marca como antes, sin píldora.
+// La opción elegida de un grupo (.segs, las pestañas del panel del reproductor y el ES / EN) es
+// una píldora que se desliza de una opción a otra. Se ubica sobre la opción .on (posición y
+// ancho); la primera vez, sin animación. En los grupos que no caben en una fila (.wrapped, una
+// lista) se marca como antes, sin píldora.
+const PILL_GROUPS = ".segs, .side-tabs, .lang";
 const placePill = (s, animate = true) => {
   if (!s.isConnected) return;
   let pill = s.querySelector(":scope > .seg-pill");
-  const on = s.querySelector(":scope > .seg.on");
+  const on = s.querySelector(":scope > .on");
   if (s.classList.contains("wrapped") || !on || !on.offsetWidth) { if (pill && !pill.classList.contains("off")) pill.classList.add("off"); return; }
   if (!pill) { pill = el("i", { class: "seg-pill", "aria-hidden": "true" }); s.prepend(pill); animate = false; }
   pill.classList.toggle("still", !animate);
@@ -157,18 +159,27 @@ const placePill = (s, animate = true) => {
   pill.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
   if (!s.classList.contains("has-pill")) s.classList.add("has-pill");  // solo si cambia: el observador reacciona a las clases
 };
+const hasClass = (list, c) => (list || "").split(/\s+/).includes(c);
 const pillSize = new ResizeObserver((entries) => { for (const { target } of entries) placePill(target, false); });
 const watchPills = (muts) => {
-  for (const s of document.querySelectorAll(".segs:not([data-pill])")) { s.dataset.pill = ""; pillSize.observe(s); placePill(s, false); }
+  for (const s of document.querySelectorAll(`:is(${PILL_GROUPS}):not([data-pill])`)) { s.dataset.pill = ""; pillSize.observe(s); placePill(s, false); }
   for (const m of muts || []) {
-    if (m.type === "attributes" && m.target.classList?.contains("seg")) {
-      const s = m.target.parentElement;
-      if (s?.classList.contains("segs")) placePill(s, true);
-    } else if (m.type === "attributes" && m.target.classList?.contains("segs")
-      && m.oldValue?.includes("wrapped") !== m.target.classList.contains("wrapped")) placePill(m.target, false);  // pasó a lista o volvió
+    if (m.type !== "attributes") continue;
+    const t = m.target, cl = t.classList;
+    if (!cl || cl.contains("seg-pill")) continue;
+    // una opción que aparece o se oculta mueve a las demás: la píldora va a su lugar sin animar
+    // (solo si de verdad cambió: volver a poner el mismo valor también avisa y cortaría el deslizamiento)
+    if (m.attributeName === "hidden") {
+      if ((m.oldValue !== null) !== t.hidden && t.parentElement?.matches(PILL_GROUPS)) placePill(t.parentElement, false);
+      continue;
+    }
+    // una opción que se eligió o dejó de estarlo
+    if (hasClass(m.oldValue, "on") !== cl.contains("on") && t.parentElement?.matches(PILL_GROUPS)) placePill(t.parentElement, true);
+    // el grupo pasó a lista o volvió
+    else if (cl.contains("segs") && hasClass(m.oldValue, "wrapped") !== cl.contains("wrapped")) placePill(t, false);
   }
 };
-new MutationObserver(watchPills).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ["class"] });
+new MutationObserver(watchPills).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ["class", "hidden"] });
 watchPills();
 
 // Estado vacío: ícono, título y qué va a aparecer ahí (en vez de una caja vacía o «Nada aquí»).

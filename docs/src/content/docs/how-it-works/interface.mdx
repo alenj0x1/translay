@@ -84,6 +84,10 @@ The header's split button (`#import-split`) has a main part whose action changes
 
 There are no emojis: all icons come from `ICONS`.
 
+### Motion
+
+The chosen option of an option group (`.segs`), the player's side tabs (`.side-tabs`) and the ES / EN switch (`.lang`) is a `.seg-pill` that slides to the new option: `ui.js` places it over the `.on` child and watches class changes, so marking another option `.on` is enough. Dialogs (`.dlg`) and menus fade in with a slight scale; the notice (`toast()`) rises when it appears and fades out through `hideToast()`. Everything respects the system's reduced-motion setting.
+
 ## Custom menus
 
 Neither the context menu nor the dropdown lists are the browser's.
