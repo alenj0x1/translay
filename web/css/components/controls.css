@@ -11,12 +11,13 @@
    .swatch              muestra de color
    ===================================================================== */
 
+/* campos sin relleno: el fondo de su contenedor y una línea fina; al enfocar solo se marca un poco la línea */
 .input, .select, .area, .field {
-  border: 0; border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg); outline: 0;
-  transition: box-shadow .15s, background-color .15s;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--fg); outline: 0;
+  box-shadow: inset 0 0 0 1px var(--line-strong); transition: box-shadow .15s;
 }
 .input:focus, .select:focus, .area:focus, .field:focus-within {
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, var(--line-strong));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 28%, transparent);
 }
 .input::placeholder, .area::placeholder, .field input::placeholder { color: var(--fg-faint); }
 
@@ -48,7 +49,20 @@
 }
 .seg:hover { color: var(--fg); }
 .seg.on, .seg.on:hover { background: var(--sel); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+[data-theme="dark"] .seg.on { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .seg svg { flex: none; width: 14px; height: 14px; }
+/* la elegida como píldora que se desliza (web/js/ui.js · placePill): las opciones quedan encima */
+.segs { position: relative; }
+.segs.has-pill > .seg { position: relative; z-index: 1; }
+.segs.has-pill > .seg.on, .segs.has-pill > .seg.on:hover { background: transparent; box-shadow: none; }
+.seg-pill { position: absolute; top: 0; left: 0; border-radius: var(--r-pill); background: var(--sel); pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12); transition: transform .32s var(--ease), width .32s var(--ease), height .32s var(--ease); }
+[data-theme="dark"] .seg-pill { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.seg-pill.still { transition: none; }
+.seg-pill.off { display: none; }
+.segs.wrapped > .seg-pill { display: none; }
+.segs.wrapped.has-pill > .seg.on { background: var(--sel); }
+@media (prefers-reduced-motion: reduce) { .seg-pill { transition: none; } }
 label.seg { display: inline-flex; }
 /* el grupo no cabe en una fila (web/js/ui.js lo marca): una opción por fila, como una
    lista a todo el ancho, en vez de una píldora deforme con filas desparejas */
@@ -100,11 +114,11 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .45; cu
 select.native { display: none !important; }
 .dd {
   display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; height: var(--h-md); padding: 0 var(--s3);
-  border: 0; border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg); cursor: pointer; text-align: left;
-  font: 600 var(--fs-md)/1 var(--font); transition: box-shadow .15s, background-color .15s;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--fg); cursor: pointer; text-align: left;
+  font: 600 var(--fs-md)/1 var(--font); box-shadow: inset 0 0 0 1px var(--line-strong); transition: box-shadow .15s, background-color .15s;
 }
-.dd:hover { background: var(--surface-3); }
-.dd.open, .dd:focus-visible { outline: 0; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, var(--line-strong)); }
+.dd:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.dd.open, .dd:focus-visible { outline: 0; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 28%, transparent); }
 .dd > .dd-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dd .chev { flex: none; width: 14px; height: 14px; color: var(--fg-muted); transition: transform .15s; }
 .dd.open .chev { transform: rotate(180deg); }

@@ -4,7 +4,7 @@
 // (se guarda en el navegador). Los puntos miden lo mismo en cualquier caja (no se estiran con ella).
 // Íconos por categoría de YouTube; los canales usan su avatar y banner reales (/chan/…).
 
-// [principal (distintivo), fondo, puntos]: oscuros y apagados
+// [principal (distintivo), fondo, puntos]: oscuros y apagados, siempre con color (nada del gris de las superficies)
 const DOT_PALETTES = [
   ["#5b7db1", "#1f2a3a", "#3f5a80"],
   ["#3f9a8c", "#17302d", "#2f6e65"],
@@ -13,7 +13,6 @@ const DOT_PALETTES = [
   ["#9a6aa8", "#2a1f2e", "#5f4469"],
   ["#c06a85", "#301e25", "#7a4455"],
   ["#b89a5e", "#2c2619", "#73603b"],
-  ["#7f8a99", "#22262c", "#4f5763"],
 ];
 
 // generador con semilla (FNV-1a + mezcla): el mismo texto da siempre la misma secuencia

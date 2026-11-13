@@ -120,9 +120,10 @@ function el(tag, attrs = {}, ...kids) {
 // Grupos de opciones (.segs) que no caben en una fila: se marcan .wrapped (controls.css)
 // (se mide sin la marca, en una fila: así vuelve a la píldora si después hay espacio)
 const fitSegs = (s) => {
-  if (!s.isConnected || !s.firstElementChild) return;
+  const first = s.querySelector(":scope > .seg");
+  if (!s.isConnected || !first) return;
   s.classList.remove("wrapped");
-  s.classList.toggle("wrapped", s.offsetHeight > s.firstElementChild.offsetHeight * 1.6 + 6);
+  s.classList.toggle("wrapped", s.offsetHeight > first.offsetHeight * 1.6 + 6);
 };
 const segsFit = new ResizeObserver((entries) => {
   for (const { target } of entries) {
@@ -139,6 +140,36 @@ const watchSegs = () => {
 };
 new MutationObserver(watchSegs).observe(document.documentElement, { childList: true, subtree: true });
 watchSegs();
+
+// La opción elegida de un grupo (.segs) es una píldora que se desliza de una opción a otra.
+// Se ubica sobre la .seg.on (posición y ancho); la primera vez, sin animación. En los grupos
+// que no caben en una fila (.wrapped, una lista) se marca como antes, sin píldora.
+const placePill = (s, animate = true) => {
+  if (!s.isConnected) return;
+  let pill = s.querySelector(":scope > .seg-pill");
+  const on = s.querySelector(":scope > .seg.on");
+  if (s.classList.contains("wrapped") || !on || !on.offsetWidth) { if (pill && !pill.classList.contains("off")) pill.classList.add("off"); return; }
+  if (!pill) { pill = el("i", { class: "seg-pill", "aria-hidden": "true" }); s.prepend(pill); animate = false; }
+  pill.classList.toggle("still", !animate);
+  pill.classList.remove("off");
+  pill.style.width = `${on.offsetWidth}px`;
+  pill.style.height = `${on.offsetHeight}px`;
+  pill.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+  if (!s.classList.contains("has-pill")) s.classList.add("has-pill");  // solo si cambia: el observador reacciona a las clases
+};
+const pillSize = new ResizeObserver((entries) => { for (const { target } of entries) placePill(target, false); });
+const watchPills = (muts) => {
+  for (const s of document.querySelectorAll(".segs:not([data-pill])")) { s.dataset.pill = ""; pillSize.observe(s); placePill(s, false); }
+  for (const m of muts || []) {
+    if (m.type === "attributes" && m.target.classList?.contains("seg")) {
+      const s = m.target.parentElement;
+      if (s?.classList.contains("segs")) placePill(s, true);
+    } else if (m.type === "attributes" && m.target.classList?.contains("segs")
+      && m.oldValue?.includes("wrapped") !== m.target.classList.contains("wrapped")) placePill(m.target, false);  // pasó a lista o volvió
+  }
+};
+new MutationObserver(watchPills).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ["class"] });
+watchPills();
 
 // Estado vacío: ícono, título y qué va a aparecer ahí (en vez de una caja vacía o «Nada aquí»).
 // tag: "div" o "li" (dentro de una lista); acts: botones opcionales para empezar

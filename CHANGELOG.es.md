@@ -4,6 +4,25 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Transcripción y «Personas»: cada persona de un video tiene su color apagado (azul, violeta, verde azulado, dorado, rosa), en su nombre en la transcripción y en su P1, P2…, para seguir de un vistazo quién habla.
+- Inicio: la caja para agregar entra con una animación suave al llegar, y su título cambia con una animación corta al elegir «Traducir y doblar» o «Solo transcribir».
+- Sitio de documentación: una portada nueva que presenta Translay, con una muestra del reproductor y su transcripción alineada que se puede usar, los cinco pasos del doblaje, todas las funciones, capturas reales, el perfil que elige para cada GPU, acceso y API, instalación, lo nuevo de la última versión y preguntas frecuentes, en inglés y español y en claro y oscuro.
+
+### Cambiado
+
+- Grupos de opciones (Traducir y doblar / Solo transcribir, claro u oscuro, formatos de exportación…): la opción elegida es una píldora que se desliza suave a la nueva.
+- Tema oscuro: diálogos, menús, campos y la opción elegida usan los grises nuevos, más oscuros y apenas sobre las barras, en vez del gris claro de antes; los campos de texto y las listas desplegables ya no tienen relleno gris, solo una línea fina.
+- Colecciones, canales y categorías sin banner propio siempre tienen color: se quitó el campo de puntos gris.
+- Documentación y README: todas las capturas se volvieron a tomar con la versión actual, en oscuro y en claro.
+
+### Corregido
+
+- Biblioteca: con videos elegidos, el título, cuántos y las acciones quedan en una fila; si las acciones no caben, muestran solo su ícono en vez de encimarse o salirse.
+
 ## 1.12.0 · 2026-11-12
 
 ### Agregado

@@ -48,7 +48,7 @@ The scripts are loaded in that order at the end of `index.html` and share global
 
 <Steps>
 
-1. **`tokens.css`**: all visual values as variables (`--bg`, `--surface`, `--fg`, `--primary`, `--s1`…`--s8`, `--r-xs`…`--r-lg`, `--h-xs`…`--h-lg`). Outside this file nothing uses a loose color or measurement, except what goes over a video (always dark).
+1. **`tokens.css`**: all visual values as variables (`--bg`, `--surface`, `--fg`, `--primary`, `--s1`…`--s8`, `--r-xs`…`--r-lg`, `--h-xs`…`--h-lg`, and `--who-0`…`--who-4`, one muted color per person in a video). Outside this file nothing uses a loose color or measurement, except what goes over a video (always dark).
 2. **`base.css`**: reset, page, text and icons. No components.
 3. **`components/`**: buttons, controls, indicators, lists, layers (menus and dialogs) and cards.
 4. **`layout.css`**: the frame according to `body` classes: `view-library`, `view-prefs`, `view-queue` (with none, the player), `layout-wide` (enlarged player), `side-mini` (icon-only sidebar) and `mini` (video as a thumbnail outside the player).
@@ -110,7 +110,7 @@ The first time the library arrives, `routeRestore` applies the requested hash. A
 
 ## Dot fields
 
-`patterns.js` paints a solid, muted color with an even grid of dots in a lighter tone of the same color (one of 8 palettes; a library uses its own color), as a CSS background: the dots measure the same in any box, they don't stretch with it. It replaced the Bauhaus shapes (circles, triangles and squares). Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
+`patterns.js` paints a solid, muted color with an even grid of dots in a lighter tone of the same color (one of 7 palettes, always with a color; a library uses its own color), as a CSS background: the dots measure the same in any box, they don't stretch with it. It replaced the Bauhaus shapes (circles, triangles and squares). Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
 
 ## Communication with the server
 

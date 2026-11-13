@@ -4,6 +4,25 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Transcript and «Personas»: each person in a video has their own muted color (blue, violet, teal, gold, pink), on their name in the transcript and on their P1, P2…, so you can follow who speaks at a glance.
+- Home: the add box comes in with a soft animation when you arrive, and its title changes with a short animation when you pick «Traducir y doblar» or «Solo transcribir».
+- Documentation site: a new home page that presents Translay, with a playable sample of the player and its aligned transcript, the five steps of dubbing, every feature, real screenshots, the profile picked for each GPU, access and API, installation, what's new in the latest version and frequent questions, in English and Spanish and in light and dark.
+
+### Changed
+
+- Option groups (Traducir y doblar / Solo transcribir, light or dark, export formats…): the chosen option is a pill that slides softly to the new one.
+- Dark theme: dialogs, menus, fields and the chosen option use the new darker grays, just above the bars, instead of the old lighter gray; text fields and dropdowns have no gray fill, only a thin line.
+- Collections, channels and categories without their own banner always get a color: the gray dot field is gone.
+- Documentation and README: every screenshot was retaken with the current version, in dark and light.
+
+### Fixed
+
+- Library: with videos selected, the title, how many and the actions stay on one row; when the actions don't fit, they show only their icon instead of overlapping or spilling out.
+
 ## 1.12.0 · 2026-11-12
 
 ### Added

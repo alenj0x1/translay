@@ -33,14 +33,19 @@ Cada página existe en los dos idiomas con la misma ruta (`guide/queue.mdx` y `e
   - scripts/
     - gen_reference.py lee vt/ y escribe src/data/*.json
     - sync.mjs corre lo anterior y copia los dos changelogs
+    - capturas.mjs toma las capturas desde una instancia de prueba
   - src/
     - content/docs/ una página por archivo .mdx en inglés
       - es/ las mismas páginas en español
+    - pages/index.astro y es/index.astro la portada (landing), fuera de Starlight
+    - components/landing/ la portada: Landing.astro (estructura, estilos y sus pequeñas demos) y copy.ts (sus textos en los dos idiomas)
     - components/Diagram.astro diagramas estilo draw.io
     - diagrams.ts los datos de cada diagrama, con su texto en los dos idiomas
     - styles/translay.css los tokens de la app en Starlight
     - data/ generado, no va a git
 </FileTree>
+
+La página de inicio (`/` y `/es/`) es la portada, no una página de Starlight: usa los tokens de la app, comparte la elección de claro u oscuro con la documentación, toma la versión de `src/data/version.json` y las tarjetas de «Lo nuevo» de la última versión del changelog. Cada número que muestra sale del README (quién habla, sincronía, velocidad medida y perfiles); si cambia allá, cámbialo también en `copy.ts`.
 
 ## Trabajar en local
 
@@ -65,6 +70,14 @@ npm run build    # sitio estático en docs/dist
 <Aside>
 Si trabajas con Claude Code, `CLAUDE.md` en la raíz le pide actualizar la documentación y el changelog en cada cambio.
 </Aside>
+
+## Capturas
+
+Las capturas de `src/assets/capturas/` (documentación, README y portada) siempre muestran la versión actual, en oscuro (`nombre.webp`) y en claro (`nombre-claro.webp`). Se toman de una instancia de prueba con videos de dominio público, nunca de una biblioteca personal:
+
+1. Arranca Translay con su propia carpeta de datos y su puerto: `python run.py --no-browser --port 8799 --data-dir <carpeta vacía>`.
+2. Agrega videos de dominio público de la NASA y la NOAA a «Principal» (con una entrevista de varias personas, para «Personas») y crea las bibliotecas «Espacio» y «Océanos»; deja que la cola termine.
+3. Corre `node docs/scripts/capturas.mjs <carpeta> dark` y `… light` (con `CHROME` apuntando a un Chromium instalado) y convierte cada PNG a WebP de 2000 px de ancho (780 px para `movil-inicio`).
 
 ## Publicar
 

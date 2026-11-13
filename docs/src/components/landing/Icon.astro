@@ -1,0 +1,11 @@
+---
+// Ícono de línea de Tabler (el mismo set de los diagramas), incrustado al compilar.
+import fs from "node:fs";
+import path from "node:path";
+interface Props { name: string; size?: number; class?: string }
+const { name, size = 20, class: cls = "" } = Astro.props;
+const file = path.join(process.cwd(), "node_modules", "@tabler", "icons", "icons", "outline", `${name}.svg`);
+const raw = fs.readFileSync(file, "utf8");
+const inner = raw.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "").replace(/<path stroke="none" d="M0 0h24v24H0z" fill="none"\/>/, "");
+---
+<svg class={`ic ${cls}`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={inner} />

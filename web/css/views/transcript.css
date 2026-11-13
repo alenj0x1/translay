@@ -103,6 +103,11 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
 .person { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s2) var(--s3); align-items: start; padding: var(--s3); border-radius: var(--r-sm); }
 .person + .person { border-top: 1px solid var(--line); border-radius: 0; }
 .person .chip { margin-top: 8px; }
+
+/* el color de cada persona (tokens --who-N): su nombre en la transcripción y su P1, P2… */
+.who-0 { --who: var(--who-0); } .who-1 { --who: var(--who-1); } .who-2 { --who: var(--who-2); } .who-3 { --who: var(--who-3); } .who-4 { --who: var(--who-4); }
+.transcript .spk[class*="who-"] { color: var(--who); }
+.person .chip.who { background: color-mix(in srgb, var(--who) 18%, transparent); color: var(--who); }
 .person .pfields { display: grid; gap: var(--s2); }
 .person .pfields .input, .person .pfields .dd { width: 100%; }
 .person .pmeta { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }

@@ -231,8 +231,23 @@ function refreshCards() {
   }
 }
 
+// las acciones de la selección: con su texto si caben en la fila; si no, solo el ícono (el nombre queda de título)
+const measurePickActs = () => {
+  const acts = document.querySelector("#shelf-head.picking .acts");
+  if (!acts) return;
+  acts.classList.remove("compact");
+  acts.classList.toggle("compact", acts.scrollWidth > acts.clientWidth + 1);
+};
+const pickFit = new ResizeObserver(measurePickActs);
+pickFit.observe($("#shelf-head"));  // el encabezado se mantiene; cambia lo de adentro
+function fitPickActs() {
+  for (const b of document.querySelectorAll("#shelf-head.picking .acts .btn")) if (!b.title) b.title = b.textContent.trim();
+  measurePickActs();
+}
+let welcomeShown = false;  // la caja de agregar ya entró con su animación en esta visita al inicio
 function renderLibrary() {
-  if (currentView() !== "library") return;
+  if (currentView() !== "library") { welcomeShown = false; return; }
+  if (lib.sel !== "home" || lib.search) welcomeShown = false;
   if (typeof syncRoute === "function") syncRoute();
   lib.shelfSig = shelfSignature();
   // con la caja de agregar a la vista, el «Agregar» del encabezado no es otro botón principal
@@ -384,6 +399,7 @@ function renderShelfHead(c) {
           }
         } }),
         btn("Quitar selección", { icon: "x", variant: "ghost", onClick: () => { lib.picked.clear(); renderLibrary(); } })));
+    fitPickActs();
     return;
   }
   const acts = el("div", { class: "acts" });
@@ -464,12 +480,34 @@ function addBox(big, more = false) {
     canCapture() ? btn("Grabar pantalla", { icon: "record", variant: big ? "" : "ghost", title: "Una pestaña, una ventana o toda la pantalla, con su sonido", onClick: openCapture }) : null,
     btn("Varios enlaces", { icon: "queue", variant: big ? "" : "ghost", title: "Listas y canales también", onClick: () => openMulti("") }));
   if (!big) return el("div", { class: "addbar" }, form, acts);
-  return el("div", { class: "welcome" },
+  // entra con una animación solo al llegar al inicio, no cada vez que la biblioteca se redibuja (elegir una tarjeta, la cola)
+  const fresh = !welcomeShown;
+  welcomeShown = true;
+  return el("div", { class: "welcome" + (fresh ? " enter" : ""), "data-more": more ? "1" : "" },
     // el título sigue a lo que se va a hacer (el modo de la app o «Solo transcribir» elegido aquí)
-    el("h2", { text: transcribeMode() || importTask === "transcribe" ? (more ? "Transcribe un video" : "Transcribe tu primer video")
-      : (more ? "Traduce un video" : "Traduce tu primer video") }),
+    el("h2", {}, el("span", { text: welcomeTitle(more) })),
     form, importTaskSegs(), acts,
     el("small", { text: "o arrastra un video aquí" }));
+}
+function welcomeTitle(more) {
+  return transcribeMode() || importTask === "transcribe" ? (more ? "Transcribe un video" : "Transcribe tu primer video")
+    : (more ? "Traduce un video" : "Traduce tu primer video");
+}
+// al elegir «Traducir y doblar» o «Solo transcribir»: el título sale hacia arriba y entra el nuevo desde abajo
+function swapWelcomeTitle() {
+  const w = document.querySelector(".welcome");
+  const span = w?.querySelector("h2 > span");
+  if (!span) return;
+  const next = welcomeTitle(!!w.dataset.more);
+  if (span.textContent === next) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { span.textContent = next; return; }
+  span.getAnimations().forEach((a) => a.cancel());
+  const out = span.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-8px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
+  out.finished.then(() => {
+      span.textContent = next;
+      out.cancel();  // sin esto, su «fill» dejaba el título invisible al terminar la entrada
+      span.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.2, .7, .2, 1)" });
+    }).catch(() => { span.textContent = next; });
 }
 
 // avance de traducción y doblaje de un video ya en el equipo

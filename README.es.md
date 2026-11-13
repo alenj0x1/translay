@@ -16,7 +16,10 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 
 **[Descargar para Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentación](https://alenj0x1.github.io/translay/es/) · [Cambios](CHANGELOG.es.md)
 
-![Translay: video doblado al español con subtítulos y la transcripción alineada](docs/src/assets/capturas/reproductor.webp)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/capturas/reproductor-claro.webp">
+  <img src="docs/src/assets/capturas/reproductor.webp" alt="Translay: video doblado al español con subtítulos y la transcripción alineada">
+</picture>
 
 ## Contenido
 
@@ -71,7 +74,7 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 - **Glosario** por biblioteca: términos que no se traducen o que siempre se traducen igual; al cambiarlo, se re-traduce lo ya hecho y se rehace la voz.
 - **Selección múltiple** para abrir, procesar, exportar, mover o eliminar; menú contextual en todo.
 - **Papelera de 30 días**: eliminar videos, vaciar o eliminar una biblioteca se puede deshacer al momento o restaurar después, con sus traducciones, voces, descargas y colecciones. Vaciar y eliminar una biblioteca piden escribir su nombre.
-- Banners y distintivos con **patrones geométricos** por colección y biblioteca; modo claro y oscuro (por biblioteca); interfaz adaptada al celular.
+- Banners y distintivos con un **campo de puntos** de su color por colección y biblioteca; modo claro y oscuro (por biblioteca); interfaz adaptada al celular.
 
 ### App de escritorio
 

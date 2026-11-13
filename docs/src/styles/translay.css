@@ -22,8 +22,8 @@
   --sl-color-gray-2: #c3c6cb;
   --sl-color-gray-3: #9a9ea6;
   --sl-color-gray-4: #62666d;
-  --sl-color-gray-5: #33363c;
-  --sl-color-gray-6: #202226;
+  --sl-color-gray-5: #2e3035;
+  --sl-color-gray-6: #1c1d21;
   --sl-color-black: #18191c;
   --sl-color-bg-nav: #18191c;
   --sl-color-bg-sidebar: #18191c;
@@ -31,8 +31,8 @@
   --sl-color-hairline: rgba(255, 255, 255, .07);
   --sl-color-hairline-shade: rgba(255, 255, 255, .05);
 
-  --t-surface: #202226;
-  --t-surface-2: #2a2d32;
+  --t-surface: #1c1d21;
+  --t-surface-2: #25272b;
   --t-radius: 14px;
 }
 
@@ -168,8 +168,8 @@ button.sl-menu-button:has(~ :popover-open) { background-color: var(--sl-color-gr
 
 /* Diagramas (components/Diagram.astro): estilo draw.io, grupos punteados, cajas neutras y flechas grises. */
 :root {
-  --dd-card: #202226;
-  --dd-line: #33363c;
+  --dd-card: #1c1d21;
+  --dd-line: #2e3035;
   --dd-group: #6f737b;
   --dd-ink: #c9cbcf;
   --dd-muted: #9a9ea6;

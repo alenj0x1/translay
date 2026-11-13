@@ -48,7 +48,7 @@ Los scripts se cargan en ese orden al final de `index.html` y comparten variable
 
 <Steps>
 
-1. **`tokens.css`**: todos los valores visuales como variables (`--bg`, `--surface`, `--fg`, `--primary`, `--s1`…`--s8`, `--r-xs`…`--r-lg`, `--h-xs`…`--h-lg`). Fuera de este archivo nada usa un color o una medida suelta, salvo lo que va sobre un video (siempre oscuro).
+1. **`tokens.css`**: todos los valores visuales como variables (`--bg`, `--surface`, `--fg`, `--primary`, `--s1`…`--s8`, `--r-xs`…`--r-lg`, `--h-xs`…`--h-lg`, y `--who-0`…`--who-4`, un color apagado por persona del video). Fuera de este archivo nada usa un color o una medida suelta, salvo lo que va sobre un video (siempre oscuro).
 2. **`base.css`**: reset, página, texto e íconos. Sin componentes.
 3. **`components/`**: botones, controles, indicadores, listas, capas (menús y diálogos) y tarjetas.
 4. **`layout.css`**: el armazón según clases de `body`: `view-library`, `view-prefs`, `view-queue` (sin ninguna, el reproductor), `layout-wide` (reproductor ampliado), `side-mini` (barra lateral solo con íconos) y `mini` (video en miniatura fuera del reproductor).
@@ -110,7 +110,7 @@ La primera vez que llega la biblioteca, `routeRestore` aplica el hash pedido. De
 
 ## Campos de puntos
 
-`patterns.js` pinta un color sólido y apagado con una cuadrícula pareja de puntos en un tono más claro del mismo color (una de 8 paletas; una biblioteca usa su propio color), como fondo CSS: los puntos miden lo mismo en cualquier caja, no se estiran con ella. Reemplazó a las figuras Bauhaus (círculos, triángulos y cuadrados). Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
+`patterns.js` pinta un color sólido y apagado con una cuadrícula pareja de puntos en un tono más claro del mismo color (una de 7 paletas, siempre con color; una biblioteca usa su propio color), como fondo CSS: los puntos miden lo mismo en cualquier caja, no se estiran con ella. Reemplazó a las figuras Bauhaus (círculos, triángulos y cuadrados). Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
 
 ## Comunicación con el servidor
 

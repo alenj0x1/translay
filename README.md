@@ -16,7 +16,10 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 
 **[Download for Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentation](https://alenj0x1.github.io/translay/) · [Changelog](CHANGELOG.md)
 
-![Translay: a video dubbed into Spanish with subtitles and the aligned transcript](docs/src/assets/capturas/reproductor.webp)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/capturas/reproductor-claro.webp">
+  <img src="docs/src/assets/capturas/reproductor.webp" alt="Translay: a video dubbed into Spanish with subtitles and the aligned transcript">
+</picture>
 
 ## Contents
 
@@ -71,7 +74,7 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 - **Glossary** per library: terms that are not translated or are always translated the same way; when you change it, what is already done is re-translated and the voice is redone.
 - **Multi-select** to open, process, export, move or delete; context menu everywhere.
 - **30-day trash**: deleting videos, or emptying or deleting a library, can be undone right away or restored later, with their translations, voices, downloads and collections. Emptying and deleting a library require typing its name.
-- Banners and badges with **geometric patterns** per collection and library; light and dark mode (per library); phone-friendly interface.
+- Banners and badges with a **dot field** in its own color per collection and library; light and dark mode (per library); phone-friendly interface.
 
 ### Desktop app
 

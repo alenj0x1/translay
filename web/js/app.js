@@ -585,13 +585,13 @@ try { importTask = localStorage.getItem("translay.import-task") || ""; } catch {
 function takeImportOpts() { return { lang: "auto", mode: transcribeMode() ? "transcribe" : importTask }; }
 function importTaskSegs() {
   if (transcribeMode()) return null;
-  const seg = (value, ic, text) => el("button", { type: "button", class: "seg" + (importTask === value ? " on" : ""),
+  const seg = (value, ic, text) => el("button", { type: "button", class: "seg" + (importTask === value ? " on" : ""), "data-task": value,
     on: { click: (e) => {
       e.stopPropagation();
       importTask = value;
       try { localStorage.setItem("translay.import-task", value); } catch { /* sin almacenamiento */ }
-      syncImportTask();
-      if (currentView() === "library" && lib.sel === "home") renderLibrary();
+      for (const b of document.querySelectorAll(".import-segs > .seg")) b.classList.toggle("on", b.dataset.task === value);
+      if (typeof swapWelcomeTitle === "function") swapWelcomeTitle();
     } } }, icon(ic), text);
   return el("div", { class: "segs import-segs" }, seg("", "spark", "Traducir y doblar"), seg("transcribe", "comment", "Solo transcribir"));
 }
@@ -1378,7 +1378,7 @@ function renderTranscript() {
     li.dataset.start = s.start;
     li.dataset.id = s.id;
     const who = s.speaker != null && speakers.size > 1
-      ? `<span class="spk">${escapeHtml(personName(s.speaker, speakers.get(s.speaker)))}</span>` : "";
+      ? `<span class="spk ${whoClass(speakers.get(s.speaker))}">${escapeHtml(personName(s.speaker, speakers.get(s.speaker)))}</span>` : "";
     const time = `<time>${fmt(s.start)}${who}</time>`;
     const n = (state.comments[String(s.id)] || []).length;
     const time1 = time;
@@ -2179,6 +2179,8 @@ fitLinkHint();
 
 /* ------------------------------------------------------------ personas del video */
 const escapeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// color de la persona n (1, 2…, en orden de aparición): el mismo en la transcripción y en Personas
+function whoClass(n) { return `who-${(n - 1) % 5}`; }
 function personName(spk, n) { return state.people.names[String(spk)] || `P${n}`; }
 
 // Nombre de cada persona y la voz que usa en español (la suya clonada o la de otra persona)
@@ -2222,7 +2224,7 @@ function renderPeople() {
       title: `Guardar su nombre y su voz en «${vname}»`,
       onClick: () => send({ type: "people_save", video: state.videoId, spk: key, name: nm || `Persona ${n}`, id: same?.id || "" }) }) : null;
     return el("div", { class: "person" },
-      el("span", { class: "chip solid", text: `P${n}` }),
+      el("span", { class: `chip who ${whoClass(n)}`, text: `P${n}` }),
       el("div", { class: "pfields" }, name, voice),
       el("div", { class: "pmeta" }, el("small", { text: `${count.get(spk)} ${count.get(spk) === 1 ? "frase" : "frases"}` }),
         el("span", { class: "pacts" }, keep, listen)));

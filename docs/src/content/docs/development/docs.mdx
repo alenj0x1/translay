@@ -33,14 +33,19 @@ Every page exists in both languages with the same path (`guide/queue.mdx` and `e
   - scripts/
     - gen_reference.py reads vt/ and writes src/data/*.json
     - sync.mjs runs the above and copies the two changelogs
+    - capturas.mjs takes the screenshots from a test instance
   - src/
     - content/docs/ one page per .mdx file, in English
       - es/ the same pages in Spanish
+    - pages/index.astro and es/index.astro the home page (landing), outside Starlight
+    - components/landing/ the landing: Landing.astro (layout, styles and its small demos) and copy.ts (its text in both languages)
     - components/Diagram.astro draw.io-style diagrams
     - diagrams.ts the data for each diagram, with its text in both languages
     - styles/translay.css the app's tokens in Starlight
     - data/ generated, not in git
 </FileTree>
+
+The home page (`/` and `/es/`) is the landing, not a Starlight page: it uses the app's tokens, shares the light or dark choice with the docs, takes the version from `src/data/version.json` and its "New in version" cards from the latest release in the changelog. Every number on it comes from the README (who speaks, sync, measured speed and profiles); if one changes there, change it in `copy.ts` too.
 
 ## Work locally
 
@@ -65,6 +70,14 @@ npm run build    # static site in docs/dist
 <Aside>
 If you work with Claude Code, `CLAUDE.md` at the root asks it to update the documentation and the changelog on every change.
 </Aside>
+
+## Screenshots
+
+The screenshots in `src/assets/capturas/` (docs, README and home page) always show the current version, in dark (`name.webp`) and light (`name-claro.webp`). Take them from a test instance with public-domain videos, never from a personal library:
+
+1. Start Translay with its own data folder and port: `python run.py --no-browser --port 8799 --data-dir <empty folder>`.
+2. Add public-domain NASA and NOAA videos to «Principal» (including an interview with several people, for «Personas») and create the «Espacio» and «Océanos» libraries; let the queue finish.
+3. Run `node docs/scripts/capturas.mjs <folder> dark` and `… light` (with `CHROME` pointing to an installed Chromium), then convert each PNG to WebP at 2000 px wide (780 px for `movil-inicio`).
 
 ## Publish
 

@@ -70,6 +70,8 @@
   --warn: #c27a10;
   /* almacenamiento: un color por tipo (barra, leyenda e ícono de su fila) */
   --st-media: #3d7fd0; --st-models: #8a68c9; --st-voice: #22958a; --st-text: #c28a1e; --st-trash: #c25f8f; --st-other: #8a8f98;
+  /* personas de un video: un color apagado por persona, en orden de aparición (nombre y P1, P2…) */
+  --who-0: #3d7fd0; --who-1: #8a68c9; --who-2: #22958a; --who-3: #b07a12; --who-4: #c25f8f;
   --danger: #c4402f;
 }
 
@@ -78,9 +80,9 @@
   color-scheme: dark;
   --bg: #18191c;
   --surface: #1c1d21;
-  --surface-2: #2a2d32;
-  --surface-3: #33363c;
-  --raised: #272a2f;
+  --surface-2: #25272b;   /* campos, botones secundarios: apenas sobre las barras */
+  --surface-3: #2e3035;
+  --raised: #1f2024;      /* menús y diálogos: el gris nuevo, separado por su anillo */
   --fg: #e6e7e9;
   --fg-muted: #9a9ea6;
   --fg-faint: #62666d;
@@ -89,7 +91,7 @@
   --primary: #e6e7e9;
   --on-primary: #18191c;
   --primary-hover: #cfd1d5;
-  --sel: #41454c;
+  --sel: #34363b;         /* opción elegida: un tono sobre los campos, con su anillo fino */
   --video-bg: #0e0f11;
   --backdrop: rgba(8, 9, 11, .55);
   --menu-shadow: 0 16px 40px -14px rgba(0, 0, 0, .6), 0 0 0 1px var(--line-strong);
@@ -98,6 +100,7 @@
   --ok: #3fbf74;
   --warn: #e3a43f;
   --st-media: #5c9ae6; --st-models: #a68ae0; --st-voice: #3fb8a8; --st-text: #dcae4f; --st-trash: #db82ad; --st-other: #8e939b;
+  --who-0: #5c9ae6; --who-1: #a68ae0; --who-2: #3fb8a8; --who-3: #dcae4f; --who-4: #db82ad;
   --danger: #e2654f;
 }
 
