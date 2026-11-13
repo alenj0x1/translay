@@ -33,6 +33,7 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 
 ### Translation and dubbing
 
+- **Two modes** (Ajustes › Uso, Settings › Use): **Traducir y doblar** (Translate and dub), or **Transcribir y resumir** (Transcribe and summarize) to record or upload classes and meetings and use their transcript and summaries, with nothing about translation or voice (those models aren't loaded either).
 - **Recognition** with Whisper large-v3-turbo in streaming mode: the video is processed while you watch, starting from your playback position, and if you skip ahead, processing skips with you.
 - **Languages**: English, Portuguese and Spanish, **detected automatically** from the first seconds of speech. Any video can be **only transcribed**, in its own language, and a preference decides which language is only transcribed when detected (Spanish by default).
 - **Translation** with a translator per language, chosen in the lab: Opus-MT big for English and Opus-MT itc-itc for Portuguese (as good as MADLAD-3B and ten times faster), NLLB-1.3B for the rest. Custom layers for **Latin American Spanish**: it splits sentences, rewrites idioms before translating («call it a day», «pisou na bola») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
@@ -75,7 +76,7 @@ Translate and dub videos into Spanish, from English or Portuguese, **in each per
 ### Desktop app
 
 - **Windows installer**, no administrator rights needed. The first time you open it, the app installs the server and the voice engine by itself (packages pinned with their SHA-256 hash) and shows progress on the button; then it opens Translay in its own window. It tells you when there is a new version on GitHub and opens its download (automatic checking can be turned off).
-- **Custom title bar** that follows the light or dark theme, with Preferences and the theme switch as icons.
+- **Custom title bar** that follows the light or dark theme, with Settings and the theme switch as icons.
 - Optional **system tray** so the queue keeps working with the window closed (when it finishes, Translay quits); a single instance; the server, its models and everything it launches close with the app, so nothing keeps using the GPU or RAM.
 - **Your library wherever you want** (by default `Videos\Translay`), chosen at install time and changeable later.
 
@@ -95,7 +96,7 @@ From the player, a card, an entire collection or a selection. On your computer i
 
 ## Performance: what hardware you need
 
-Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvidia-smi`), VRAM, RAM and CPU, and picks the most complete **profile** that can be watched live. Everything is shown and changed in **Preferencias › Rendimiento** (Preferences › Performance). On machines with unified memory, such as NVIDIA DGX Spark, GPU memory is the system RAM ([details](https://alenj0x1.github.io/translay/how-it-works/gpu-and-idle/#unified-memory-dgx-spark)).
+Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvidia-smi`), VRAM, RAM and CPU, and picks the most complete **profile** that can be watched live. Everything is shown and changed in **Ajustes › Rendimiento** (Settings › Performance). On machines with unified memory, such as NVIDIA DGX Spark, GPU memory is the system RAM ([details](https://alenj0x1.github.io/translay/how-it-works/gpu-and-idle/#unified-memory-dgx-spark)).
 
 ### Profiles
 

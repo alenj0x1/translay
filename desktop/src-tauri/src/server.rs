@@ -3,7 +3,7 @@
 //!   app quits or crashes.
 //! - Its output feeds the loading screen ("Preparando large-v3-turbo…", model downloads) and `logs/server.log`.
 //! - When it prints "Listo: http://…" the window opens that page, with IPC allowed only for that exact origin.
-//! - "Reiniciar ahora" (Preferencias › Rendimiento) restarts the server from inside: the new process stays in
+//! - "Reiniciar ahora" (Ajustes › Rendimiento) restarts the server from inside: the new process stays in
 //!   the job and inherits the output pipe, so the output only ends when every server process is gone.
 
 use crate::runtime::{Paths, Settings};

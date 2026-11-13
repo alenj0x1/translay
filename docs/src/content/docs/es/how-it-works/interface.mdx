@@ -22,17 +22,17 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
     - components/ button, controls, indicators, lists, overlays, card
     - layout.css armazón de la página según la vista
     - views/ player, transcript, library, queue, prefs, vaults, access, capture
-    - patterns.css banners y distintivos Bauhaus
+    - patterns.css banners y distintivos con campo de puntos
   - js/
     - ui.js componentes: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js menús propios y listas desplegables
     - theme.js modo claro u oscuro
     - app.js conexión, reproductor, transcripción, voz, preferencias
-    - patterns.js patrones Bauhaus e íconos de colecciones
+    - patterns.js campos de puntos e íconos de colecciones
     - library.js biblioteca, colecciones, selección, cola y exportaciones; `setView`
     - vaults.js bibliotecas: selector, crear, editar, mover
     - home.js portada de la biblioteca, el botón «Agregar», color de acento y reproductor tipo cine
-    - access.js inicio de sesión, vista de invitado, Preferencias → Acceso y API
+    - access.js inicio de sesión, vista de invitado, Ajustes → Acceso y API
     - route.js la vista actual en el hash de la dirección
     - contextmenu.js menú contextual según dónde se hace clic
     - capture.js grabar la pantalla: zona con recuadros detectados, partes guardadas en IndexedDB y subida reanudable
@@ -53,7 +53,7 @@ Los scripts se cargan en ese orden al final de `index.html` y comparten variable
 3. **`components/`**: botones, controles, indicadores, listas, capas (menús y diálogos) y tarjetas.
 4. **`layout.css`**: el armazón según clases de `body`: `view-library`, `view-prefs`, `view-queue` (sin ninguna, el reproductor), `layout-wide` (reproductor ampliado), `side-mini` (barra lateral solo con íconos) y `mini` (video en miniatura fuera del reproductor).
 5. **`views/`**: una hoja por pantalla.
-6. **`patterns.css`**: los patrones Bauhaus de banners, distintivos, miniaturas que faltan y estados vacíos.
+6. **`patterns.css`**: los campos de puntos de banners, distintivos, miniaturas que faltan y estados vacíos.
 
 </Steps>
 
@@ -104,13 +104,13 @@ Ni el menú contextual ni las listas desplegables son los del navegador.
 | `#/c/<colección>` | Una colección, playlist, canal o categoría |
 | `#/video/<id>` | El reproductor con ese video |
 | `#/cola` | La pantalla de la Cola |
-| `#/preferencias/<sección>` | Una página de Preferencias |
+| `#/preferencias/<sección>` | Una página de Ajustes |
 
 La primera vez que llega la biblioteca, `routeRestore` aplica el hash pedido. Después, cada cambio de vista llama a `syncRoute`, que agrega una entrada al historial. La biblioteca va en la ruta de la página, no en el hash: `/b/<biblioteca>` abre esa biblioteca.
 
-## Patrones Bauhaus
+## Campos de puntos
 
-`patterns.js` dibuja en SVG círculos, cuartos de círculo, triángulos y cuadrados en cuadrícula, con una de 8 paletas. Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
+`patterns.js` pinta un color sólido y apagado con una cuadrícula pareja de puntos en un tono más claro del mismo color (una de 8 paletas; una biblioteca usa su propio color), como fondo CSS: los puntos miden lo mismo en cualquier caja, no se estiran con ella. Reemplazó a las figuras Bauhaus (círculos, triángulos y cuadrados). Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
 
 ## Comunicación con el servidor
 
@@ -165,7 +165,7 @@ Los permisos se revisan en el servidor (`Session._allowed`): `OWNER_ONLY` lista 
 
 ## Agregar una preferencia
 
-Las preferencias tienen un solo origen: `SCHEMA` en `vt/prefs.py`. La pantalla de Preferencias y la [referencia](../../reference/preferences/) se arman a partir de él.
+Las preferencias tienen un solo origen: `SCHEMA` en `vt/prefs.py`. La pantalla de Ajustes y la [referencia](../../reference/preferences/) se arman a partir de él.
 
 <Steps>
 

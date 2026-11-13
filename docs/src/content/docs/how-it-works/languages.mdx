@@ -31,8 +31,9 @@ Translay recognizes videos in English, Portuguese and Spanish and translates the
 
 A new video (imported link, local file or screen recording) has no language: Whisper detects it from the first seconds of speech, before recognizing anything (`WhisperASR.detect`).
 
-- **Queue.** It uses the first ~15 s of speech found by the energy VAD (`speech_sample`, within the first 5 minutes), so a musical intro or a silence doesn't mislead it.
-- **Live.** `StreamingTranscriber` waits for 3 s of speech and accepts the language if its probability is 0.7 or more; otherwise it waits for more speech, up to 15 s, and then decides anyway. The language arrives before the first sentence (`lang` message).
+- **Queue.** It takes ~15 s of speech found by the energy VAD from three points of the file (the start, a third and two thirds; `speech_samples`) and adds up each language's probability (`vote_language`), so a musical intro, a waiting room or someone greeting in another language doesn't mislead it.
+- **Live.** `StreamingTranscriber` waits for 3 s of speech (only the frames with speech) and accepts the language if its probability is 0.7 or more; otherwise it waits for more speech, up to 15 s, and then decides. Below 0.5 it never decides: with noise, music or almost silence Whisper tends to say English, and a Spanish video would then be recognized as English, which Whisper does by translating it (a Zoom class came out «translated» into English and back into Spanish). That stretch isn't marked as covered: the queue processes it with the whole file. The language arrives before the first sentence (`lang` message).
+- **Confirmation.** A language decided live (`detected: {by: "vivo"}` in the transcript) is checked by the queue with the whole file before processing it. If it was another one, what was recognized is deleted and redone in the right language (`Transcript.redetect`, `lang` message with `reset`); if the person chose the language, it isn't checked.
 
 A detected language that Translay can't translate yet is only transcribed, in that language. A video from before there were languages, without `lang`, stays in English. A `.en` model passed with `--model` doesn't detect: everything is English to it.
 

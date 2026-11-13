@@ -111,7 +111,7 @@ pub struct Settings {
     /// Last theme Translay showed ("light" or "dark"): the setup and loading screens open with it.
     #[serde(default)]
     pub theme: Option<String>,
-    /// Look for updates by itself (Preferencias › App de escritorio); None = yes.
+    /// Look for updates by itself (Ajustes › App de escritorio); None = yes.
     #[serde(default)]
     pub check_updates: Option<bool>,
     /// The chosen profile has voice, so the voice engine is installed. None = installs from before profiles were

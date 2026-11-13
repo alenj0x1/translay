@@ -1,15 +1,15 @@
 "use strict";
 // App de escritorio (desktop/, Tauri): la misma página, dentro de una ventana propia.
-// - El encabezado hace de barra de título: se arrastra, y a la derecha van Preferencias y claro/oscuro
+// - El encabezado hace de barra de título: se arrastra, y a la derecha van Ajustes y claro/oscuro
 //   como íconos, más minimizar, maximizar y cerrar (la barra de Windows toma el color de acento del
 //   sistema, no el del tema).
-// - Preferencias suma la página «App de escritorio»: qué hace la ventana al cerrarla, dónde está la
+// - Ajustes suma la página «App de escritorio»: qué hace la ventana al cerrarla, dónde está la
 //   biblioteca Principal, los registros y las actualizaciones.
 // - Versiones nuevas (vt/updates.py): busca sola al abrir y cada 6 h (salvo que se apague), o con «Buscar
 //   actualizaciones». Con una versión nueva aparece un botón en la barra de título y «Descargar» abre el
 //   instalador en el navegador; la app no descarga ni ejecuta nada por su cuenta.
-// - En la bandeja (ventana cerrada con «Seguir en la bandeja»), cuando no queda trabajo en la cola,
-//   Translay se cierra del todo: no deja modelos ni procesos ocupando la GPU o la RAM.
+// - En la bandeja (ventana cerrada con «Seguir en la bandeja»), cuando no queda trabajo en la cola (o está
+//   detenida), Translay se cierra del todo: no deja modelos ni procesos ocupando la GPU o la RAM.
 // En el navegador nada de esto existe (DESKTOP es false).
 
 const DESKTOP = !!(window.__TAURI__ && window.__TAURI__.core);
@@ -29,11 +29,11 @@ function initDesktop() {
   document.documentElement.classList.add("desktop");
   const bar = $(".bar");
   bar.setAttribute("data-tauri-drag-region", "");
-  // Preferencias: solo el ícono (la página ya tiene su título)
+  // Ajustes: solo el ícono (la página ya tiene su título)
   const prefsBtn = $("#prefs-btn");
   prefsBtn.classList.add("ghost", "icon");
-  prefsBtn.title = "Preferencias";
-  prefsBtn.setAttribute("aria-label", "Preferencias");
+  prefsBtn.title = "Ajustes";
+  prefsBtn.setAttribute("aria-label", "Ajustes");
   const themeBtn = el("button", { class: "btn ghost icon", id: "theme-btn", type: "button",
     on: { click: () => {
       const dark = document.documentElement.dataset.theme === "dark";
@@ -75,6 +75,7 @@ function initDesktop() {
   };
   syncMax();
   window.addEventListener("resize", syncMax);
+  snapLayouts(maxBtn);
   // doble clic en el encabezado: maximizar o restaurar, como en cualquier ventana
   bar.addEventListener("dblclick", (e) => { if (e.target === bar) desktopWindow().toggleMaximize(); });
 
@@ -83,6 +84,29 @@ function initDesktop() {
     setTimeout(() => checkUpdate(false), 20000);  // al abrir, sin competir con el arranque
   });
   setInterval(() => checkUpdate(false), 6 * 3600 * 1000);
+}
+
+// Diseños de ajuste de Windows 11 (elegir dónde va la ventana): Windows los muestra solo sobre su propio
+// botón de maximizar; con la barra propia se piden a la app al dejar el mouse encima o mantenerlo presionado.
+// En Windows 10 no existen: la app responde false y no se vuelve a pedir.
+function snapLayouts(maxBtn) {
+  let timer = 0, held = false, supported = true;
+  const show = () => {
+    if (!supported) return;
+    desktopCall("snap_layouts").then((ok) => { supported = !!ok; }).catch(() => { supported = false; });
+  };
+  const cancel = () => { clearTimeout(timer); timer = 0; };
+  maxBtn.addEventListener("pointerenter", () => { cancel(); timer = setTimeout(show, 700); });
+  maxBtn.addEventListener("pointerleave", cancel);
+  maxBtn.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    cancel();
+    held = false;
+    timer = setTimeout(() => { held = true; show(); }, 450);
+  });
+  maxBtn.addEventListener("pointerup", cancel);
+  // mantenerlo presionado abrió los diseños: ese clic no maximiza
+  maxBtn.addEventListener("click", (e) => { if (held) { held = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 }
 
 /* ------------------------------------------------------------ versiones nuevas */
@@ -154,7 +178,7 @@ function updateRows(row) {
     checking: "Buscando…",
     latest: "Tienes la última versión.",
     available: `Translay ${v} está disponible.`,
-    opened: `Se abrió la descarga de Translay ${v} en tu navegador: ejecuta el instalador. Tu biblioteca y tus preferencias se mantienen.`,
+    opened: `Se abrió la descarga de Translay ${v} en tu navegador: ejecuta el instalador. Tu biblioteca y tus ajustes se mantienen.`,
     error: upd.error,
   }[upd.state] || "";
   const actions = upd.state === "available" || upd.state === "opened"
@@ -176,8 +200,9 @@ function updateRows(row) {
 // descargas abiertas o exportaciones en curso.
 function desktopBusy() {
   const q = lib.queue || { jobs: [] };
-  // con la cola en pausa igual se procesa el video que se está viendo
-  const pending = q.jobs.some((j) => j.state === "procesando" || j.dl) || (!q.paused && q.jobs.some((j) => j.state === "en cola"));
+  // con la cola detenida igual se procesa el video que se está viendo; lo detenido a mano no cuenta
+  const pending = q.jobs.some((j) => j.state === "procesando" || j.dl)
+    || (!q.paused && q.jobs.some((j) => j.state === "en cola" && !j.held));
   const exporting = (lib.exports || []).some((x) => x.state !== "listo" && x.state !== "error");
   return pending || exporting || Object.keys(state.downloads || {}).length > 0;
 }
@@ -191,7 +216,7 @@ setInterval(() => {
   if (desktopIdle >= 2) desktopCall("quit_if_in_tray");
 }, 15000);
 
-// Página «App de escritorio» de Preferencias (web/js/app.js, PREF_BLOCKS)
+// Página «App de escritorio» de Ajustes (web/js/app.js, PREF_BLOCKS)
 function desktopPrefsBlocks() {
   const box = el("div", { class: "set-rows desk-rows" });
   const render = () => {
@@ -205,7 +230,9 @@ function desktopPrefsBlocks() {
       el("div", { class: "set-text" }, el("strong", { text: title }), desc ? el("p", { class: "desk-path", text: desc }) : null),
       el("div", { class: "set-ctl" }, ...ctl));
     box.replaceChildren(
-      row("Al cerrar la ventana", info.close_to_tray ? "Translay sigue en la bandeja mientras la cola tenga trabajo; al terminar, se cierra y libera todo." : "Translay se cierra por completo.",
+      row("Al cerrar la ventana", info.close_to_tray
+        ? "Translay sigue en la bandeja mientras la cola tenga trabajo y al terminar se cierra y libera todo. Si la cola está detenida o no hay nada en proceso, se cierra igual."
+        : "Translay se cierra por completo.",
         el("div", { class: "segs" }, seg(false, "x", "Salir"), seg(true, "tray", "Seguir en la bandeja"))),
       row("Biblioteca Principal", info.data_dir || "",
         btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),

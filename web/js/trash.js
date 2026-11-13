@@ -1,6 +1,6 @@
 "use strict";
 // Papelera (vt/trash.py): lo borrado se guarda 30 días y se puede devolver.
-// «Deshacer» en el aviso al borrar y Preferencias → Papelera. Usa lo global de app.js.
+// «Deshacer» en el aviso al borrar y Ajustes → Papelera. Usa lo global de app.js.
 
 const trash = { items: [] };
 

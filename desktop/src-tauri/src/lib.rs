@@ -2,7 +2,7 @@
 //! - First launch: the bundled setup page (ui/) installs Python, the server and the voice engine (runtime.rs).
 //! - Every launch: starts the local server hidden (server.rs) and opens its page in the window.
 //! - Custom title bar in both pages (the Windows one takes the system accent color instead of the theme's),
-//!   tray icon when "Al cerrar la ventana" keeps Translay running (until the queue is empty), single instance.
+//!   with Windows 11 snap layouts on its maximize button (`snap_layouts`), tray icon when "Al cerrar la ventana" keeps Translay running (until the queue is empty), single instance.
 //! - Tells about new versions and opens their download in the browser (updates.rs).
 
 mod runtime;
@@ -198,7 +198,7 @@ fn quit(app: &AppHandle) {
     app.exit(0);
 }
 
-/// Translay's page reports its theme (Preferencias › Apariencia) so the next launch opens in it.
+/// Translay's page reports its theme (Ajustes › Apariencia) so the next launch opens in it.
 #[tauri::command]
 fn set_theme(app: AppHandle, state: State<'_, AppState>, theme: String) -> Result<(), String> {
     if theme != "light" && theme != "dark" {
@@ -217,7 +217,7 @@ fn set_theme(app: AppHandle, state: State<'_, AppState>, theme: String) -> Resul
 
 /// Window background before the page paints (web/css/tokens.css: --bg).
 fn theme_background(theme: &str) -> tauri::window::Color {
-    if theme == "light" { tauri::window::Color(0xf3, 0xf4, 0xf6, 0xff) } else { tauri::window::Color(0x18, 0x19, 0x1c, 0xff) }
+    if theme == "light" { tauri::window::Color(0xf8, 0xf8, 0xf9, 0xff) } else { tauri::window::Color(0x18, 0x19, 0x1c, 0xff) }
 }
 
 /// The main window, created here (not in tauri.conf.json) so it opens with the saved theme: the setup page
@@ -240,6 +240,52 @@ fn create_window(app: &tauri::App, theme: Option<&str>) -> tauri::Result<()> {
     }
     builder.build()?;
     Ok(())
+}
+
+/// Windows 11 snap layouts for the custom maximize button: the system only shows them over its own caption
+/// button, so the page asks for them (hovering or holding "Maximizar") and this opens them as Win+Z does.
+/// Returns false where they do not exist (Windows 10), so the page stops asking.
+#[tauri::command]
+fn snap_layouts(app: AppHandle) -> bool {
+    #[cfg(windows)]
+    {
+        use windows_sys::Wdk::System::SystemServices::RtlGetVersion;
+        use windows_sys::Win32::System::SystemInformation::OSVERSIONINFOW;
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+            SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_LWIN,
+        };
+        // SAFETY: plain struct filled by the OS; size set as the API requires.
+        let build = unsafe {
+            let mut v: OSVERSIONINFOW = std::mem::zeroed();
+            v.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOW>() as u32;
+            if RtlGetVersion(&mut v) != 0 {
+                return false;
+            }
+            v.dwBuildNumber
+        };
+        if build < 22000 {
+            return false;
+        }
+        if let Some(window) = app.get_webview_window("main") {
+            if window.is_maximized().unwrap_or(false) || !window.is_focused().unwrap_or(false) {
+                let _ = window.set_focus();
+            }
+        }
+        let key = |vk: VIRTUAL_KEY, up: bool| INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: vk, wScan: 0, dwFlags: if up { KEYEVENTF_KEYUP } else { 0 }, time: 0, dwExtraInfo: 0 } },
+        };
+        const VK_Z: VIRTUAL_KEY = 0x5A;
+        let inputs = [key(VK_LWIN, false), key(VK_Z, false), key(VK_Z, true), key(VK_LWIN, true)];
+        // SAFETY: a valid array of keyboard inputs with its element size.
+        unsafe { SendInput(inputs.len() as u32, inputs.as_ptr(), std::mem::size_of::<INPUT>() as i32) };
+        true
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        false
+    }
 }
 
 /// Last lines of the server output, for the error screen.
@@ -330,7 +376,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             status, install, profiles, prepare, reinstall, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
-            close_window, quit_app, quit_if_in_tray, server_tail, set_theme,
+            close_window, quit_app, quit_if_in_tray, server_tail, set_theme, snap_layouts,
             updates::open_download, updates::set_auto_update
         ])
         .build(tauri::generate_context!())

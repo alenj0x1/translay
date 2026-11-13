@@ -4,6 +4,34 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Added
+
+- Queue: **Detener** (Stop) and **Continuar** (Continue) on each job stop a single video's download and processing without losing its place; **Detener todo** (Stop all) now stops downloads too, not only processing (the video you watch keeps going).
+- Transcript: stretches not transcribed yet appear among the sentences as «Aún sin transcribir» (Not transcribed yet), or «Transcribiendo esta parte» while they are processed, so jumping ahead doesn't look like an error; a click goes there.
+- Desktop app: on Windows 11, resting the mouse on maximize or holding it opens the snap layouts.
+- Record the screen: if the source changes shape halfway (from a phone to a desktop screen), the final video fits both in one frame without stretching; before, everything was squeezed into the first source's shape.
+- Settings › Use: **Transcribir y resumir** (Transcribe and summarize), a mode to record or add videos and use their transcript and summaries; nothing about translation or voice appears and the server doesn't load the translator or the voice. What was translated is kept, and what you add in this mode stays as only transcribed.
+- Home: the add box («Traduce un video», Translate a video) stays at the top of Home even when there are videos, with the link field, «Subir archivos», «Grabar pantalla» and «Varios enlaces»; the big featured video below it is gone (what you're watching stays in its «Seguir viendo» row). Dragging files onto the window shows «Suelta para agregar».
+
+### Changed
+
+- Queue: «Priorizar» left the library (it read like sorting the library) and is **Hacer primero** (Do first) in the Queue; jobs no longer show «en pausa» or a play button (they read like resuming the queue): the title opens the video and right-click has **Abrir el video**.
+- Settings › App de escritorio: «Seguir en la bandeja» says Translay still quits when the queue is stopped or has nothing in process.
+- Header: «Grabar» (Record) and «Agregar» (Add) as two separate buttons; no more split buttons (Agregar ▾, Ver ▾, Conectar ▾), nor the button that changed its action with use (its preference «Botón Agregar» is gone). The Add panel chooses «Traducir y doblar» or «Solo transcribir» and each source says what it accepts.
+- «Preferencias» is now «Ajustes» (Settings), with a gear icon.
+- The header logo goes first, on the left, in its own colors (coral with the white mark) instead of the theme's accent; the sidebar button moves to its right.
+- Dark theme: bars and cards are darker, just above the page background. Light theme: the page is almost the white of the bars, a little dimmer, instead of gray.
+- The header no longer shows «En reposo» or the queue's work: the Queue panel says it, and the header only shows a status without connection or for something specific (looking up a video).
+- Collection and library patterns: a solid color with an even dot field instead of Bauhaus shapes (circles, triangles and squares).
+
+### Fixed
+
+- A Spanish video (a Zoom class recorded live) was recognized as English: with noise or a waiting room Whisper said «English» with little confidence and translated everything into English and back. Live detection no longer decides below 50 %, the queue detects from three points of the file, and it confirms a language decided live with the whole file, redoing it if it was wrong.
+- A video that isn't translated (already in Spanish) always plays instead of staying in «Preparando» (it waited for a translation that never comes), and when a subtitle's original and translation say the same, only one is shown.
+- Record the screen: «Sin conexión» no longer stays forever when only the live transcription didn't connect; a source that stops sending picture says so, one that disappears ends and saves the recording, and a recording the server rejects says why instead of retrying forever.
+
 ## 1.11.0 · 2026-11-08
 
 ### Added

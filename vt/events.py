@@ -23,7 +23,7 @@ CATALOG = {
     "biblioteca.cambio": "Biblioteca cambiada (nombre, acceso)",
     "biblioteca.eliminada": "Biblioteca eliminada",
     "cola.cambio": "Cambios en la cola (resumen, cada pocos segundos)",
-    "cola.pausa": "Procesamiento en pausa o reanudado",
+    "cola.pausa": "Cola detenida (procesamiento y descargas) o reanudada",
     "cola.terminada": "Cola terminada",
     "descarga.progreso": "Avance de las descargas (cada pocos segundos)",
     "exportacion.lista": "Exportación lista (para descargar, o ya en su carpeta: path)",

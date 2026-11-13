@@ -34,7 +34,7 @@ The code is in `vt/summarize.py` (the model, chunks and prompts) and `vt/summari
 | **Qwen3 1.7B** (int8) | Apache 2.0 | 3.0 GB | 63 s, 50 points | Good, but leaves terms in English and gets some details wrong. On the CPU (6 threads), 11 minutes. |
 | **Qwen3 0.6B** (int8) | Apache 2.0 | 1.8 GB | 47 s, 45 points | Vague: generic points without content. Only if neither of the others fits. |
 
-**Automático** (Automatic, the default) uses the best one whose peak fits in your GPU, plus a margin of 500 MB: on 8 GB, the 4B; on 4 or 6 GB, the 1.7B. If neither fits, the 1.7B runs on the CPU with half the threads (with at least 8 GB of RAM), and only otherwise the 0.6B. You can choose another in Preferences › Resumen › **Modelo**; it's downloaded from Hugging Face (`jncraton/…-ct2-int8`) the first time it's used, with its progress on the button, and can be deleted in [Storage](../../guide/storage/).
+**Automático** (Automatic, the default) uses the best one whose peak fits in your GPU, plus a margin of 500 MB: on 8 GB, the 4B; on 4 or 6 GB, the 1.7B. If neither fits, the 1.7B runs on the CPU with half the threads (with at least 8 GB of RAM), and only otherwise the 0.6B. You can choose another in Settings › Resumen › **Modelo**; it's downloaded from Hugging Face (`jncraton/…-ct2-int8`) the first time it's used, with its progress on the button, and can be deleted in [Storage](../../guide/storage/).
 
 ## GPU
 

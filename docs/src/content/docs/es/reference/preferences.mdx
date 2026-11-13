@@ -1,5 +1,5 @@
 ---
-title: Preferencias
+title: Ajustes
 description: Todas las preferencias, sus opciones y valores por defecto, generadas desde vt/prefs.py.
 sidebar:
   order: 2
@@ -7,7 +7,7 @@ sidebar:
 
 import PrefTable from "../../../../components/PrefTable.astro";
 
-Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Las marcadas como **propias** se guardan en cada biblioteca (`vault.json`), así cada una puede tener las suyas. En la app: Preferencias, una página por sección. Cómo se usan: [Preferencias](../../guide/preferences/).
+Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas. Las marcadas como **propias** se guardan en cada biblioteca (`vault.json`), así cada una puede tener las suyas. En la app: Ajustes, una página por sección. Cómo se usan: [Ajustes](../../guide/preferences/).
 
 ## Apariencia
 
@@ -59,13 +59,13 @@ Las secciones **Bibliotecas**, **Glosario** y **Acceso y API** no son preferenci
 ## Agregar una preferencia
 
 1. Suma una entrada a `SCHEMA` en `vt/prefs.py` (con su `section`) y su grupo y descripción en `DETAILS`.
-2. Léela en la vista (`prefs.<clave>` en `web/js/`). La pantalla de Preferencias se arma sola.
+2. Léela en la vista (`prefs.<clave>` en `web/js/`). La pantalla de Ajustes se arma sola.
 3. Si debe ser propia de cada biblioteca, agrégala a `VAULT_PREFS` en `vt/vaults.py`.
 
 Esta página se regenera sola al compilar la documentación.
 
 ## Rendimiento
 
-El perfil y los límites. En la app tienen su propia pantalla (Preferencias › Rendimiento); ver [Rendimiento](../../guide/performance/). `0` es «Sin límite».
+El perfil y los límites. En la app tienen su propia pantalla (Ajustes › Rendimiento); ver [Rendimiento](../../guide/performance/). `0` es «Sin límite».
 
 <PrefTable section="_perf" />

@@ -1,4 +1,4 @@
-"""Cuándo se usó por última vez cada modelo (Preferencias → Almacenamiento).
+"""Cuándo se usó por última vez cada modelo (Ajustes → Almacenamiento).
 
 Reconocimiento, traducción, voz y separar quién habla llaman a mark(repo) cada vez que trabajan;
 se guarda en data/models.json como {"since": <inicio del registro>, "used": {repo: hora}}, a lo sumo

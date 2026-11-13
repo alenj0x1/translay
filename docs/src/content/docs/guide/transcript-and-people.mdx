@@ -11,7 +11,9 @@ The panel beside the video has up to four tabs: «Transcripción» (Transcript),
 
 ## Transcript
 
-Each sentence takes a row with the original and the Spanish side by side (a single column, in its own language, if the video is only transcribed), the time it starts and, if more than one person speaks in the video, who says it. Sentences arrive as they are processed; a dash («—») marks those that don't have a translation yet.
+Each sentence takes a row with the original and the Spanish side by side (a single column, in its own language, if the video is only transcribed), the time it starts and, if more than one person speaks in the video, who says it. Sentences arrive as they are processed; a dash («—») marks those that don't have a translation yet. If a sentence's translation says the same as the original (a video in Spanish marked with another language), it shows once.
+
+A stretch that hasn't been transcribed yet (you jumped ahead, or processing hasn't reached it) shows in its place among the sentences as a dashed row with its times and «Aún sin transcribir» (Not transcribed yet), so it doesn't look like something failed. While that part is playing and being processed it says «Transcribiendo esta parte» (Transcribing this part); a click jumps there. When it fills, the row disappears.
 
 The sentence being heard is highlighted and the panel follows it automatically. If you scroll by hand, it stops following for a few seconds. One click on a sentence jumps to that moment in the video.
 
@@ -19,11 +21,11 @@ The sentence being heard is highlighted and the panel follows it automatically. 
 
 The «Resumen» tab tells what the video was about: first a few paragraphs with the topic, how it develops and what it concludes; then all its important points, each with the minute where it's said. A click on a point jumps to that moment, and the point being watched is highlighted like the transcript's sentence. There is no fixed number of points: a long video has more (a 43-minute class came out with about 60, a 14-minute talk with about 24).
 
-By default it's made when you ask for it: **Resumir** (Summarize) in the tab, once the transcription is complete (it appears as soon as it finishes, without leaving the video). The button shows how it goes («Resumiendo 40 %», Summarizing) and **Cancelar** (Cancel) stops it. With Preferences › Resumen › **Resumir** › **Al procesar cada video** (Summarize › When each video is processed), every video is summarized on its own as soon as the queue finishes it. The first time, the summary model is downloaded (the button shows its progress).
+By default it's made when you ask for it: **Resumir** (Summarize) in the tab, once the transcription is complete (it appears as soon as it finishes, without leaving the video). The button shows how it goes («Resumiendo 40 %», Summarizing) and **Cancelar** (Cancel) stops it. With Settings › Resumen › **Resumir** › **Al procesar cada video** (Summarize › When each video is processed), every video is summarized on its own as soon as the queue finishes it. The first time, the summary model is downloaded (the button shows its progress).
 
 The summary is in Spanish whatever the video's language, is saved with the video and is seen from every tab. Its context menu (right click) has **Copiar el resumen** (Copy), **Exportar el resumen** (Export, as TXT) and **Rehacer el resumen** (Redo, for example with another model).
 
-It is made on your computer, with a small language model chosen for your machine (Preferences › Resumen › **Modelo**). While it summarizes it has the GPU to itself: if the rest of Translay's models don't fit beside it, they are set aside and come back when it's done, so processing that's running waits a moment. How it works and how the models were chosen: [Summary](../../how-it-works/summary/).
+It is made on your computer, with a small language model chosen for your machine (Settings › Resumen › **Modelo**). While it summarizes it has the GPU to itself: if the rest of Translay's models don't fit beside it, they are set aside and come back when it's done, so processing that's running waits a moment. How it works and how the models were chosen: [Summary](../../how-it-works/summary/).
 
 ## Comments
 

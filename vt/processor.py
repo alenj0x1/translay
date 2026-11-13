@@ -8,8 +8,9 @@ transcripción del video. Lo ya procesado se salta.
 Foco: el video que alguien está viendo va primero, empieza desde su punto de
 reproducción y, si salta a una parte sin procesar, el procesamiento salta con
 él. Al dejar de verlo sigue en la cola como cualquier otro (igual que una
-descarga del navegador). Pausar la cola detiene los trabajos de fondo; el video
-que se está viendo se sigue procesando.
+descarga del navegador). Detener la cola frena los trabajos de fondo y las
+descargas; el video que se está viendo se sigue procesando. Cada video también se
+puede detener solo («held»): queda en su lugar sin descargarse ni procesarse.
 
 Reconocimiento y voz comparten la GPU: el reconocimiento no se adelanta más de
 unas pocas frases a la voz. Estado en data/queue.json.
@@ -29,7 +30,7 @@ from pathlib import Path
 import numpy as np
 
 from . import events
-from .streaming import Segment, StreamingTranscriber, speech_sample
+from .streaming import Segment, StreamingTranscriber, speech_samples, vote_language
 
 SR = 16000
 CHUNK_S = 3.0
@@ -43,6 +44,10 @@ CAREFUL_GAP_S = (8, 15)       # modo cuidadoso: tras una verificación de YouTub
 BLOCK_PAUSE_S = 20 * 60       # pausa tras la verificación de YouTube
 RETRY_AFTER_S = 10 * 60       # un video que falla espera antes de reintentar…
 MAX_ATTEMPTS = 3              # …y tras 3 intentos queda en error
+
+
+class Stopped(Exception):
+    """Se detuvo la cola o ese video mientras se descargaba: no es un error (se retoma luego)."""
 
 
 def decode_audio(path: Path) -> np.ndarray:
@@ -62,9 +67,10 @@ def decode_audio(path: Path) -> np.ndarray:
 class Processor:
     def __init__(self, root: Path, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
                  youtube=None, session=lambda: "ninguna", vaults=None, order=lambda: "orden",
-                 own_lang=lambda: None):
+                 own_lang=lambda: None, translating=lambda: True):
         self.root = root
-        self.own_lang = own_lang  # idioma propio (Preferencias): lo que se habla en él solo se transcribe
+        self.own_lang = own_lang  # idioma propio (Ajustes): lo que se habla en él solo se transcribe
+        self.translating = translating  # Ajustes › Uso: con «Transcribir y resumir», sin traductor ni voz
         self.on_done = lambda vid: None  # un video terminó (el resumen automático, vt/summaries.py)
         self.vaults = vaults  # bibliotecas (vt/vaults.py): cada video se ubica en la suya
         self.order = order    # orden de descarga: "orden" (el de la cola) o "aleatorio"
@@ -119,6 +125,7 @@ class Processor:
                 elif job.get("download_only"):
                     job.pop("download_only", None)
                 if front:  # prioridad: primero en la cola y deja atrás al trabajo de fondo en curso
+                    job.pop("held", None)  # «Hacer primero» de algo detenido: sigue
                     self.data["jobs"].remove(job)
                     self.data["jobs"].insert(0, job)
                     job["prio"] = True
@@ -175,6 +182,26 @@ class Processor:
             self._save()
         self._broadcast()
 
+    def set_held(self, vid: str, held: bool):
+        """Detiene (o deja seguir) un video de la cola: no se descarga ni se procesa hasta
+        reanudarlo; lo avanzado queda guardado. Lo que se está viendo sigue igual."""
+        with self._cond:
+            job = self._job(vid)
+            if job is None:
+                return
+            if held:
+                job["held"] = True
+                job.pop("prio", None)
+            else:
+                job.pop("held", None)
+            self._save()
+            self._cond.notify_all()
+        self._broadcast()
+
+    def _stopped(self, job) -> bool:
+        """¿Hay que dejar este trabajo de fondo? (la cola o el video se detuvieron)"""
+        return job["id"] != self.focus["vid"] and (self.data["paused"] or bool(job.get("held")))
+
     def set_paused(self, paused: bool):
         with self._cond:
             self.data["paused"] = paused
@@ -196,7 +223,8 @@ class Processor:
             self.focus = {"vid": vid, "t": float(t)}
         self.add(vid, front=True)
         # los modelos empiezan a cargar ya (la voz tarda ~15 s desde el reposo profundo)
-        threading.Thread(target=self.res.run, args=(("asr", "mt", "tts"), lambda: None), daemon=True).start()
+        kinds = ("asr", "mt", "tts") if self.translating() else ("asr",)
+        threading.Thread(target=self.res.run, args=(kinds, lambda: None), daemon=True).start()
 
     def position(self, vid: str, t: float):
         """Punto de reproducción del video que se está viendo (para seguir los saltos)."""
@@ -259,8 +287,8 @@ class Processor:
             return job
         if self.data["paused"]:
             return None
-        return next((j for j in self.data["jobs"]
-                     if j["state"] == "en cola" and not j.get("download_only") and self._has_media(j["id"])), None)
+        return next((j for j in self.data["jobs"] if j["state"] == "en cola" and not j.get("held")
+                     and not j.get("download_only") and self._has_media(j["id"])), None)
 
     def _has_media(self, vid: str) -> bool:
         return bool((self.library.data["videos"].get(vid) or {}).get("media"))
@@ -339,17 +367,24 @@ class Processor:
         self.notify(cookies.message(self.youtube.cookies))
 
     def _next_download(self):
-        # la pausa de la cola es del procesamiento (GPU); las descargas no la usan y siguen
         if time.time() < self.blocked_until:
+            return None
+        # detenida la cola, tampoco se descarga (salvo lo que se está viendo)
+        fv = self.focus["vid"]
+        if self.data["paused"]:
+            job = self._job(fv) if fv else None
+            v = self.library.data["videos"].get(fv) or {} if fv else {}
+            if job and job["state"] == "en cola" and not v.get("media") and v.get("source") in ("youtube", "link"):
+                return job
             return None
         now = time.time()
         # pocas descargas por delante de lo procesado (con miles importados, el disco se
-        # llenaría); lo priorizado o pedido para abrir se descarga enseguida
+        # llenaría); lo que se hace primero o se pide abrir se descarga enseguida
         waiting, capped = 0, None
         shuffle = self.order() == "aleatorio"
         pending = []
         for j in self.data["jobs"]:
-            if j.get("retry_at", 0) > now:
+            if j.get("retry_at", 0) > now or j.get("held"):
                 continue
             if j.get("fetch_video"):  # «Bajar video»: no cuenta para el límite (no espera a la GPU)
                 if shuffle:
@@ -370,7 +405,7 @@ class Processor:
                 elif capped is None and (waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only")):
                     capped = j
         if shuffle and pending:
-            # aleatorio: lo priorizado sigue primero; del resto, cualquiera (así se descarga variado)
+            # aleatorio: lo que se hace primero sigue primero; del resto, cualquiera (así se descarga variado)
             ok = [j for j in pending if waiting < MAX_DOWNLOADED_AHEAD or j.get("download_only") or j.get("fetch_video")]
             return random.choice(ok) if ok else None
         return capped
@@ -384,6 +419,8 @@ class Processor:
             last = [0.0]
 
             def progress(stage, frac, title=None, stats=None, job=job):
+                if self._stopped(job) or self._job(vid) is not job:
+                    raise Stopped()  # yt-dlp deja el .part y la próxima vez sigue desde ahí
                 job["dl"] = {"stage": stage, "pct": round(frac * 100), **(stats or {})}
                 v = self._vault(vid)
                 events.emit("descarga.progreso", v.id if v else None, video=vid, **job["dl"])
@@ -419,10 +456,12 @@ class Processor:
             except Exception as e:
                 from .youtube import friendly_error, permanent_error
 
-                print(f"[descarga] {vid}: {e}", flush=True)
                 job.pop("dl", None)
                 msg = str(e)
-                if "confirm you" in msg and "bot" in msg:
+                if isinstance(e, Stopped) or self._stopped(job) or self._job(vid) is not job:
+                    print(f"[descarga] {vid}: detenida", flush=True)  # se retoma al reanudar
+                elif "confirm you" in msg and "bot" in msg:
+                    print(f"[descarga] {vid}: {e}", flush=True)
                     self.careful = True
                     # con la cuenta conectada se renueva la sesión y se sigue sin la pausa
                     if self.session() == "cuenta" and self._account().renew(self._account_changed):
@@ -435,6 +474,7 @@ class Processor:
                                      "account": self._account().status()})
                         events.emit("youtube.bloqueo", until=self.blocked_until)
                 else:
+                    print(f"[descarga] {vid}: {e}", flush=True)
                     if "confirm your age" in msg and self.session() != "cuenta":
                         self.notify({"type": "yt_need_account", "reason": "edad",
                                      "account": self._account().status()})
@@ -508,7 +548,7 @@ class Processor:
         # terminado, cederle el turno dejaba este trabajo empezando y cortándose sin fin
         if fv and fv != vid and fj and fj["state"] not in ("listo", "error"):
             return True
-        if self.data["paused"] and fv != vid:
+        if (self.data["paused"] or cur.get("held")) and fv != vid:
             return True
         if fv == vid:
             t = self.focus["t"]
@@ -555,6 +595,8 @@ class Processor:
         vault = self._vault(vid)
         if tr.detecting:
             self._detect(vid, tr, audio)
+        elif tr.lang_unconfirmed:
+            self._verify_lang(vid, tr, audio)
         if tr.translates:
             self.translator.prepare(tr.lang)  # la primera vez en este idioma: se descarga aquí, no en la GPU
         # del idioma del video, con su glosario
@@ -683,22 +725,46 @@ class Processor:
         covered = sum(b - a for a, b in tr.covered)
         return covered >= dur - 2
 
+    def _language(self, audio: np.ndarray) -> tuple[str, float]:
+        """Idioma del archivo completo: voz de varios puntos (no solo del inicio, que puede ser
+        música o una sala de espera), por votación. ~250 ms por punto (tools/lab/langs_asr.py)."""
+        def run():
+            return vote_language([self.asr.detect_probs(s) for s in speech_samples(audio)])
+        return self.gpu.submit(self.res.run, ("asr",), run).result()
+
     def _detect(self, vid: str, tr, audio: np.ndarray):
-        """Idioma de un video que no lo tiene: con sus primeros segundos de voz (el audio
-        completo ya está decodificado). Medido en tools/lab/langs_asr.py."""
-        code, prob = self.gpu.submit(self.res.run, ("asr",), self.asr.detect, speech_sample(audio)).result()
+        """Idioma de un video que no lo tiene (el audio completo ya está decodificado)."""
+        code, prob = self._language(audio)
         print(f"[cola] {vid}: idioma detectado {code} ({prob:.2f})", flush=True)
         if tr.set_detected(code, self.own_lang()):
             tr.save()
         self.lang_changed(vid, tr)
 
-    def lang_changed(self, vid: str, tr):
-        """Idioma o modo nuevo de un video: a la biblioteca y a las pestañas que lo tienen abierto."""
+    def _verify_lang(self, vid: str, tr, audio: np.ndarray):
+        """El idioma se decidió en vivo con unos segundos (una grabación, un video que se vio
+        antes de procesarse): se confirma con el archivo completo. Si era otro, lo reconocido se
+        rehace en el correcto (Whisper con el idioma equivocado traduce en vez de transcribir)."""
+        code, prob = self._language(audio)
+        if code != tr.lang and prob >= 0.5 and tr.redetect(code):
+            print(f"[cola] {vid}: el idioma era {code} ({prob:.2f}), no {tr.data.get('lang')}: se rehace", flush=True)
+            own = self.own_lang()
+            if code == own and "mode" not in tr.data:
+                tr.data.update(mode="transcribe", mode_auto=True)
+            tr.save()
+            self.lang_changed(vid, tr, reset=True)
+        else:
+            tr.redetect(tr.lang)  # confirmado: no se vuelve a revisar
+            tr.save()
+
+    def lang_changed(self, vid: str, tr, reset: bool = False):
+        """Idioma o modo nuevo de un video: a la biblioteca y a las pestañas que lo tienen abierto.
+        reset: lo reconocido se borró (era otro idioma) y las pestañas vacían su transcripción."""
         vault = self._vault(vid)
         lib = vault.library if vault else self.library
         if vid in lib.data["videos"]:
             lib.set_field(vid, lang=tr.lang, mode=tr.mode)
-        self._bg(vid, {"type": "lang", "lang": tr.lang, "mode": tr.mode, "translates": tr.translates})
+        self._bg(vid, {"type": "lang", "lang": tr.lang, "mode": tr.mode, "translates": tr.translates,
+                       **({"reset": True} if reset else {})})
         self.notify({"type": "library_changed"})
 
     def _dub(self, tr, vid, seg, orig_db, inflight: set, voice_end: list | None = None):

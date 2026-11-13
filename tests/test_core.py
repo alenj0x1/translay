@@ -276,6 +276,44 @@ def test_download_only_queue():
         Processor._loop = loop
 
 
+def test_queue_hold_and_stop_all():
+    """Detener un video lo saca del turno (sin descargarse ni procesarse); detener toda la cola
+    frena también las descargas, salvo lo que se está viendo."""
+    from vt.library import Library
+    from vt.processor import Processor, Stopped
+
+    loop, Processor._loop = Processor._loop, lambda self: None
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            lib = Library(root / "library.json")
+            lib.add_pending([{"id": "abcdefghij1"}, {"id": "abcdefghij2"}])
+            for v in ("yt_abcdefghij1", "yt_abcdefghij2"):
+                lib.set_field(v, source="youtube")
+            p = Processor(root, Store(root / "tr"), lib, None, None, None, None, None, None, lambda m: None)
+            p.add_many(["yt_abcdefghij1", "yt_abcdefghij2"])
+            a, b = p._job("yt_abcdefghij1"), p._job("yt_abcdefghij2")
+            assert p._next_download() is a
+            p.set_held("yt_abcdefghij1", True)
+            assert a["held"] and p._next_download() is b and p._stopped(a) and not p._stopped(b)
+            p.add("yt_abcdefghij1", front=True)          # «Hacer primero» de algo detenido: sigue
+            assert "held" not in a and p._next_download() is a
+            p.set_paused(True)
+            assert p._next_download() is None and p._stopped(b)
+            p.focus = {"vid": "yt_abcdefghij2", "t": 0.0}  # lo que se ve se baja igual
+            assert p._next_download() is b and not p._stopped(b)
+            p.focus = {"vid": None, "t": 0.0}
+            p.set_paused(False)
+            lib.set_field("yt_abcdefghij1", media="/media/yt/x.mp4")
+            p.set_held("yt_abcdefghij1", True)
+            assert p._next() is None                     # detenido: no se procesa
+            p.set_held("yt_abcdefghij1", False)
+            assert p._next() is a
+            assert issubclass(Stopped, Exception)
+    finally:
+        Processor._loop = loop
+
+
 def test_vaults():
     """Bibliotecas: cada una en su carpeta; un video vive en una sola y se puede mover con sus archivos."""
     from vt.vaults import Vaults

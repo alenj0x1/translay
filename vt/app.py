@@ -31,7 +31,7 @@ def main():
     p.add_argument("--host", default="127.0.0.1",
                    help="Dirección donde escucha el servidor (0.0.0.0 para todas, p. ej. en Docker)")
     p.add_argument("--port", type=int, default=8765, help="Puerto HTTP y WebSocket")
-    # sin estos argumentos, los modelos salen del perfil de rendimiento (Preferencias → Rendimiento,
+    # sin estos argumentos, los modelos salen del perfil de rendimiento (Ajustes → Rendimiento,
     # vt/profiles.py), elegido según el equipo; si se pasan, ganan sobre el perfil
     p.add_argument("--model", default=None, help="Modelo de Whisper (por defecto, el del perfil de rendimiento)")
     p.add_argument("--device", default=None, help="cuda (GPU NVIDIA) o cpu (por defecto, cuda si hay GPU)")
@@ -112,8 +112,12 @@ def main():
     # un traductor por idioma de origen (vt/translate.py): el del inglés se prepara ahora,
     # los demás la primera vez que llega un video en ese idioma
     translator = Translators(prof["mt"], a.device, mt_ct, force=a.translator)
-    print(f"Preparando traductor {translator.name}…", flush=True)
-    translator.translate("Warm up.")
+    from . import store as _store
+
+    _store.TRANSLATION = lambda: prefs.translating  # Ajustes › Uso: «Transcribir y resumir» no traduce ni dobla
+    if prefs.translating:  # al solo transcribir, el traductor no se carga (se prepara al volver a traducir)
+        print(f"Preparando traductor {translator.name}…", flush=True)
+        translator.translate("Warm up.")
     gpu = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")  # un solo hilo usa la GPU
     # bibliotecas (vt/vaults.py): Principal es data/; las demás, cada una en su carpeta
     vaults = Vaults(DATA)
@@ -367,6 +371,7 @@ def main():
 
     perf = Perf(prefs, res, active, cli, device=a.device)
     processor = Processor(DATA, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
+                          translating=lambda: prefs.translating,
                           youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
                           order=lambda: prefs.values.get("download_order", "orden"),
                           own_lang=lambda: prefs.values.get("transcribe_lang") if langs.is_source(
@@ -456,7 +461,7 @@ def main():
     try:
         async def run_all():
             loop_ref["loop"] = asyncio.get_running_loop()
-            if admin.network:  # «Acceso desde otros equipos» (Preferencias → Acceso y API)
+            if admin.network:  # «Acceso desde otros equipos» (Ajustes → Acceso y API)
                 await admin.set_network(True)
                 print("En la red: " + ", ".join(f"http://{ip}:{a.port}" for ip in admin.lan_ips()), flush=True)
             await server.serve(a.host, a.port)

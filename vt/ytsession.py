@@ -290,7 +290,7 @@ class Session:
                 self._jar = json.loads(_dpapi(self.store.read_bytes(), False))
             except (OSError, ValueError):
                 raise ValueError("No se pudo leer la cuenta de YouTube guardada: vuelve a conectarla en "
-                                 "Preferencias → YouTube.") from None
+                                 "Ajustes → YouTube.") from None
         return [_cookie(c) for c in self._jar]
 
     def _scrub(self):

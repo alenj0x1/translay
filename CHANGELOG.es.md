@@ -4,6 +4,34 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Agregado
+
+- Cola: «Detener» y «Continuar» en cada trabajo detienen la descarga y el procesamiento de un solo video sin perder su lugar; «Detener todo» ahora también frena las descargas, no solo el procesamiento (el video que ves sigue).
+- Transcripción: los tramos aún sin transcribir aparecen entre las frases como «Aún sin transcribir», o «Transcribiendo esta parte» mientras se procesan, así adelantar el video no parece un error; un clic lleva ahí.
+- App de escritorio: en Windows 11, dejar el mouse sobre maximizar o mantenerlo presionado abre los diseños de ajuste.
+- Grabar pantalla: si la fuente cambia de forma a mitad (de un celular a la pantalla del escritorio), el video final entra completo en un solo cuadro sin deformarse; antes todo quedaba apretado en la forma de la primera fuente.
+- Ajustes › Uso: **Transcribir y resumir**, un modo para grabar o agregar videos y usar su transcripción y sus resúmenes; no aparece nada de traducción ni de voz y el servidor no carga el traductor ni la voz. Lo traducido se conserva, y lo que agregues en este modo queda como solo transcribir.
+- Inicio: la caja para agregar («Traduce un video») queda arriba del inicio aunque haya videos, con el campo del enlace, «Subir archivos», «Grabar pantalla» y «Varios enlaces»; se quitó el video destacado grande de abajo (lo que estás viendo queda en su fila «Seguir viendo»). Al arrastrar archivos sobre la ventana aparece «Suelta para agregar».
+
+### Cambiado
+
+- Cola: «Priorizar» salió de la biblioteca (se leía como ordenar la biblioteca) y en la Cola es «Hacer primero»; los trabajos ya no muestran «en pausa» ni un botón de reproducir (se leían como reanudar la cola): el título abre el video y el clic derecho tiene «Abrir el video».
+- Ajustes › App de escritorio: «Seguir en la bandeja» dice que Translay se cierra igual si la cola está detenida o no hay nada en proceso.
+- Encabezado: «Grabar» y «Agregar» como dos botones separados; ya no hay botones divididos (Agregar ▾, Ver ▾, Conectar ▾) ni el botón que cambiaba de acción con el uso (se quitó su preferencia «Botón Agregar»). El panel Agregar elige «Traducir y doblar» o «Solo transcribir» y cada fuente dice qué acepta.
+- «Preferencias» ahora es «Ajustes», con ícono de engranaje.
+- El logo del encabezado va primero, a la izquierda, con sus colores (coral con la marca blanca) en vez del color de énfasis del tema; el botón de la barra lateral pasa a su derecha.
+- Tema oscuro: barras y tarjetas más oscuras, apenas más claras que el fondo de la página. Tema claro: la página es casi el blanco de las barras, un poco más apagado, en vez de gris.
+- El encabezado ya no muestra «En reposo» ni el trabajo de la cola: lo dice el panel de la Cola, y en el encabezado solo aparece un estado sin conexión o con algo puntual (buscar un video).
+- Patrones de colecciones y bibliotecas: un color sólido con un campo de puntos parejo en vez de las figuras Bauhaus (círculos, triángulos y cuadrados).
+
+### Corregido
+
+- Un video en español (una clase de Zoom grabada en vivo) se reconocía como inglés: con ruido o una sala de espera Whisper decía «inglés» con poca confianza y traducía todo al inglés y de vuelta. La detección en vivo ya no decide por debajo de 50 %, la cola detecta con tres puntos del archivo y confirma con el archivo completo un idioma decidido en vivo, y lo rehace si era otro.
+- Un video que no se traduce (ya en español) se reproduce siempre en vez de quedarse en «Preparando» (esperaba una traducción que nunca llega), y cuando el original y la traducción de un subtítulo dicen lo mismo, se muestra uno solo.
+- Grabar pantalla: «Sin conexión» ya no queda para siempre cuando solo la transcripción en vivo no se conectó; una fuente que deja de enviar imagen lo avisa, una que desaparece termina y guarda la grabación, y una grabación que el servidor rechaza dice por qué en vez de reintentar sin fin.
+
 ## 1.11.0 · 2026-11-08
 
 ### Agregado

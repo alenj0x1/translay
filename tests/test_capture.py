@@ -59,12 +59,23 @@ def test_parse_options():
     assert parse_crop("11,21,641,361") == (10, 20, 640, 360)
     assert parse_crop("0,0,8,8") is None and parse_crop("x") is None
     o = parse_opts({"q": "nada", "fps": "15", "crop": ""})
-    assert o == {"quality": "media", "fps": 15, "crop": None}
+    assert o == {"quality": "media", "fps": 15, "crop": None, "sizes": []}
     cmd = capture.convert_cmd(Path("a"), Path("b"), "ligera", 15, (0, 0, 640, 360))
     vf = cmd[cmd.index("-vf") + 1]
     assert "crop=" in vf and "min(480" in vf and "fps=15" in vf
     assert cmd[cmd.index("-maxrate") + 1] == "600k"
     assert "-vn" in capture.convert_cmd(Path("a"), Path("b"), "audio", 30, None)
+
+
+def test_source_that_changes_shape():
+    """De un celular (vertical) a una pantalla: un lienzo que entra a los dos, sin deformar."""
+    assert capture.parse_sizes("1080x2340,1920x1080,1920x1080,x,9x9") == [(1080, 2340), (1920, 1080)]
+    assert capture.canvas([(1080, 2340), (1920, 1080)], 720) == (1280, 720)
+    assert capture.canvas([(1920, 1080), (1916, 1080)], 720) is None  # una ventana que se acomodó
+    assert capture.canvas([(1280, 720)], 720) is None
+    cmd = capture.convert_cmd(Path("a"), Path("b"), "media", 30, None, [(1080, 2340), (1920, 1080)])
+    vf = cmd[cmd.index("-vf") + 1]
+    assert "force_original_aspect_ratio=decrease" in vf and "pad=1280:720" in vf
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="sin ffmpeg")

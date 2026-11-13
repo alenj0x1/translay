@@ -30,7 +30,7 @@ Un video que solo se transcribe no tiene traducción ni voz: sus tipos traducido
 omiten (si no queda nada, el video va a «omitidos.txt»).
 
 La mezcla en español es la misma que se escucha en la vista: cada frase doblada
-en su momento y el original bajo la voz (nivel de Preferencias). Donde no hay
+en su momento y el original bajo la voz (nivel de Ajustes). Donde no hay
 voz, el original queda a volumen normal. Se arma por bloques (un video largo no
 pasa entero por memoria) con ffmpeg en la CPU: no usa la GPU.
 

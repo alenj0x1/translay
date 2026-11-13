@@ -24,7 +24,7 @@ Translay is three processes on the same computer: the Python server (`vt/`), the
 1. On launch, it loads its home page (`desktop/ui/`), which uses the font, colors and buttons from `web/` (copied by `desktop/scripts/prepare.mjs`).
 2. The first time, or if a new version changes the packages, it installs the environments with the bundled `uv`: `uv pip sync --require-hashes` from `desktop/locks/server.txt` on the bundled Python 3.12, and from `desktop/locks/voice.txt` (torch for CUDA 12.8) on Python 3.11, if the GPU has at least ~4 GB. `sync` installs exactly the lock, without resolving dependencies on your computer. Progress comes from how much the package cache grows.
 3. It starts `run.py` without a window with `--data-dir` (the chosen folder), `--port` (8765 or the next free one) and `TRANSLAY_VENVS` pointing to its environments, with the bundled ffmpeg and Node.js at the front of the `PATH`. The process runs inside a Windows *job object* that closes the whole tree (voice, yt-dlp, ffmpeg) when the app exits, even if it is killed abruptly.
-4. When the server writes `Listo: http://127.0.0.1:<port>` ("Ready: …"), it grants that exact origin permission for the window controls and the app's commands, and navigates to the page. `web/js/desktop.js` turns the header into a title bar and adds **Preferencias › App de escritorio** (Preferences › Desktop app).
+4. When the server writes `Listo: http://127.0.0.1:<port>` ("Ready: …"), it grants that exact origin permission for the window controls and the app's commands, and navigates to the page. `web/js/desktop.js` turns the header into a title bar and adds **Ajustes › App de escritorio** (Settings › Desktop app).
 5. If the server's output closes (all its processes ended) without the app having asked for it, it returns to its home page with the last lines. The "Reiniciar ahora" (Restart now) button in Rendimiento (Performance) doesn't count: the new server inherits the output and stays in the same *job*.
 
 </Steps>
@@ -111,7 +111,7 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 | `ytsession.py` | Connected YouTube account: its own browser profile, encrypted cookies and automatic renewal. |
 | `capture.py` | Screen recordings: receives the parts in order (resumable after a cut) and puts the final file together, cropped and compressed. |
 | `exporter.py` | Exports translated or original video and audio, subtitles and transcript. |
-| `storage.py` | Preferences › Storage: how much each thing takes and what can be freed. |
+| `storage.py` | Settings › Storage: how much each thing takes and what can be freed. |
 | `modelset.py` | Which models each profile uses, what's missing and downloading it (also `python -m vt.modelset` for the desktop installer). |
 | `modelusage.py` | When each model was last used (`data/models.json`). |
 | `auth.py` | Access: owner, private, password-protected or public libraries, and API keys. |

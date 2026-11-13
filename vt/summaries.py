@@ -3,7 +3,7 @@
 Se pide desde la vista («Resumir»), la API o al exportar el resumen; con la preferencia
 «Resumir al procesar» en automático, cada video que termina la cola entra solo.
 
-El modelo es el de Preferencias › Resumen o, en automático, el que recomienda el equipo
+El modelo es el de Ajustes › Resumen o, en automático, el que recomienda el equipo
 (`summarize.recommend`). Corre en la GPU si cabe en ella; si en ese momento no hay memoria
 libre, la toma para sí (`Resources.exclusive`) y devuelve los otros modelos al terminar.
 Si no entra en la GPU, corre en la CPU con la mitad de los hilos. La primera vez se
@@ -21,7 +21,7 @@ from . import events, hardware, modelset, summarize
 def reason(e: Exception) -> str:
     s = str(e)
     if "out of memory" in s.lower() or "CUDA failed" in s:
-        return "No hubo memoria suficiente para el modelo de resumen: elige uno más liviano en Preferencias."
+        return "No hubo memoria suficiente para el modelo de resumen: elige uno más liviano en Ajustes."
     if "Connection" in type(e).__name__ or "HTTP" in s or "resolve" in s.lower():
         return "No se pudo descargar el modelo de resumen: revisa la conexión a internet."
     return "No se pudo resumir este video."

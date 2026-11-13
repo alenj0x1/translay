@@ -9,7 +9,7 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
 
 Translay uses no database: everything is JSON files, WAV files and the downloaded media. General data lives in the data folder; each library's data, in its own folder. The **Principal** (Main) library is the data folder itself.
 
-The data folder is `data/` at the repository root when running `python run.py`, or the one you specify with `--data-dir` (or `TRANSLAY_DATA`). The desktop app uses the one you chose at install time (by default `Videos\Translay`; changed in **Preferencias › App de escritorio**, Preferences › Desktop app). On this page, `data/` is that folder.
+The data folder is `data/` at the repository root when running `python run.py`, or the one you specify with `--data-dir` (or `TRANSLAY_DATA`). The desktop app uses the one you chose at install time (by default `Videos\Translay`; changed in **Ajustes › App de escritorio**, Settings › Desktop app). On this page, `data/` is that folder.
 
 JSON files are written atomically: first a `.tmp` next to it, then the original is replaced. A crash in the middle of a write doesn't leave a half-written file.
 
@@ -23,7 +23,7 @@ JSON files are written atomically: first a `.tmp` next to it, then the original 
 
 - data/
   - prefs.json general preferences (`vt/prefs.py`)
-  - models.json when each model was last used, for Preferences › Storage (`vt/modelusage.py`)
+  - models.json when each model was last used, for Settings › Storage (`vt/modelusage.py`)
   - queue.json processing queue: jobs, state, pause (`vt/processor.py`)
   - auth.json owner password (scrypt), sessions (SHA-256 of the token), API keys (SHA-256) and network access (`vt/auth.py`)
   - webhooks.json webhooks with their URL, events, library and signing secret (`vt/webhooks.py`)
@@ -94,7 +94,7 @@ The fingerprint doesn't change if you rename the file: when you open it again, e
 
 | Field | Content |
 |---|---|
-| `id`, `name`, `color`, `icon`, `pattern` | The library's identity; `pattern` is the seed of the Bauhaus banner. |
+| `id`, `name`, `color`, `icon`, `pattern` | The library's identity; `pattern` is the seed of the banner (its dot field). |
 | `prefs` | Own preferences: `theme_mode`, `import_mode` and `download_what` (`VAULT_PREFS`). |
 | `access` | `mode` (`privada`, `clave`, `publica`), `perm` (`ver`, `importar`), password with scrypt (`pw`) and its version (`pv`): when it changes, anyone who got in with the old one no longer gets in. |
 
@@ -158,7 +158,7 @@ Before serving a file or accepting an upload, the `make_guard` guard (`vt/api.py
 |---|---|
 | `transcripts/`, `voices/`, `people/`, `library.json`, `glossary.json` and `vault.json` of each library | This is your work: transcripts, translations, people, comments, collections and glossary. Without it everything has to be processed again. |
 | Each library's `library/` | The copies of your files. If you no longer have the originals, they can't be recovered. |
-| `data/prefs.json`, `data/libraries.json`, `data/auth.json`, `data/webhooks.json` | Preferences, list of libraries, access, API keys and webhooks. |
+| `data/prefs.json`, `data/libraries.json`, `data/auth.json`, `data/webhooks.json` | Settings, list of libraries, access, API keys and webhooks. |
 | `audio/` | Optional: it can be rebuilt, but it costs hours of GPU in a large library. |
 | `youtube/` | Optional: it is downloaded again. |
 

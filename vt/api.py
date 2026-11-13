@@ -1,6 +1,6 @@
 """API HTTP (JSON) para integrar el traductor con otras apps, inicio de sesión y red local.
 
-Autenticación: Authorization: Bearer vt_…  (Preferencias → Acceso y API → Claves).
+Autenticación: Authorization: Bearer vt_…  (Ajustes → Acceso y API → Claves).
 Una clave sirve para todas las bibliotecas o para una; "lectura" o "escritura".
 Desde este mismo equipo, sin clave, la API responde como al dueño.
 
@@ -15,7 +15,7 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
                                                    "lang": "auto|en|pt|es", "task": "translate|transcribe"}
                                                    YouTube o Dropbox; lang "auto" (por defecto): se detecta;
                                                    task: traducir y doblar, o solo transcribir (si falta, lo
-                                                   que está en el idioma propio de Preferencias solo se transcribe)
+                                                   que está en el idioma propio de Ajustes solo se transcribe)
   GET    /api/v1/libraries/{lib}/glossary         ·  PUT {"entries": [{"src", "dst"}]}
   GET    /api/v1/videos/{id}                      datos (idioma y modo incluidos), avance y estado en la cola
   PATCH  /api/v1/videos/{id}                      {"title": "…"}  le cambia el nombre
@@ -28,7 +28,7 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   GET    /api/v1/queue?library=                   cola
   POST   /api/v1/queue                            {"video": id, "priority": false}
   DELETE /api/v1/queue/{id}
-  POST   /api/v1/queue/pause  ·  /queue/resume    (clave para todas las bibliotecas)
+  POST   /api/v1/queue/pause  ·  /queue/resume    detiene o reanuda procesamiento y descargas (clave para todas las bibliotecas)
   POST   /api/v1/exports                          {"videos": [...], "kinds": ["es_video", "srt_es", …],
                                                    (también txt_es, txt_orig y summary: texto y resumen)
                                                    "audio": "m4a|mp3|opus", "quality": "alta|media|liviana",
@@ -70,7 +70,7 @@ class CollectorWS:
 
 
 class Admin:
-    """Acceso, claves, webhooks y red local (lo que el dueño maneja en Preferencias)."""
+    """Acceso, claves, webhooks y red local (lo que el dueño maneja en Ajustes)."""
 
     def __init__(self, auth, hooks, port: int):
         self.auth, self.hooks, self.port = auth, hooks, port

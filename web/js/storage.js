@@ -1,6 +1,6 @@
 "use strict";
 // Almacenamiento (vt/storage.py): cuánto ocupa cada cosa de Translay y qué se puede liberar.
-// Preferencias → Almacenamiento. Nada se borra sin confirmar. Usa lo global de app.js y ui.js.
+// Ajustes → Almacenamiento. Nada se borra sin confirmar. Usa lo global de app.js y ui.js.
 
 const storage = { data: null, more: false, busy: "" };
 

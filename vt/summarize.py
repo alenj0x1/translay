@@ -2,7 +2,7 @@
 
 Corre sobre CTranslate2, el mismo motor de Whisper y del traductor (sin dependencias
 nuevas), con un modelo de lenguaje pequeño. El modelo se elige según el equipo
-(`recommend`) o en Preferencias › Resumen; los números salen de tools/lab/summary.py.
+(`recommend`) o en Ajustes › Resumen; los números salen de tools/lab/summary.py.
 
 Cómo se arma (piezas propias):
 

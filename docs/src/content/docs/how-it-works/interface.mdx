@@ -22,17 +22,17 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
     - components/ button, controls, indicators, lists, overlays, card
     - layout.css page frame depending on the view
     - views/ player, transcript, library, queue, prefs, vaults, access, capture
-    - patterns.css Bauhaus banners and badges
+    - patterns.css dot-field banners and badges
   - js/
     - ui.js components: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js custom menus and dropdown lists
     - theme.js light or dark mode
     - app.js connection, player, transcript, voice, preferences
-    - patterns.js Bauhaus patterns and collection icons
+    - patterns.js dot fields and collection icons
     - library.js library, collections, selection, queue and exports; `setView`
     - vaults.js libraries: selector, create, edit, move
     - home.js library home, the «Agregar» (Add) button, accent color and cinema-style player
-    - access.js sign-in, guest view, Preferencias → Acceso y API (Preferences → Access and API)
+    - access.js sign-in, guest view, Ajustes → Acceso y API (Settings → Access and API)
     - route.js the current view in the address hash
     - contextmenu.js context menu depending on where you click
     - capture.js screen recording: zone from detected boxes, parts kept in IndexedDB and resumable upload
@@ -53,7 +53,7 @@ The scripts are loaded in that order at the end of `index.html` and share global
 3. **`components/`**: buttons, controls, indicators, lists, layers (menus and dialogs) and cards.
 4. **`layout.css`**: the frame according to `body` classes: `view-library`, `view-prefs`, `view-queue` (with none, the player), `layout-wide` (enlarged player), `side-mini` (icon-only sidebar) and `mini` (video as a thumbnail outside the player).
 5. **`views/`**: one stylesheet per screen.
-6. **`patterns.css`**: the Bauhaus patterns for banners, badges, missing thumbnails and empty states.
+6. **`patterns.css`**: the dot fields for banners, badges, missing thumbnails and empty states.
 
 </Steps>
 
@@ -104,13 +104,13 @@ Neither the context menu nor the dropdown lists are the browser's.
 | `#/c/<collection>` | A collection, playlist, channel or category |
 | `#/video/<id>` | The player with that video |
 | `#/cola` | The Cola (Queue) screen |
-| `#/preferencias/<section>` | A Preferencias (Preferences) page |
+| `#/preferencias/<section>` | A Ajustes (Settings) page |
 
 The first time the library arrives, `routeRestore` applies the requested hash. After that, every view change calls `syncRoute`, which adds a history entry. The library goes in the page path, not in the hash: `/b/<library>` opens that library.
 
-## Bauhaus patterns
+## Dot fields
 
-`patterns.js` draws circles, quarter circles, triangles and squares in a grid in SVG, with one of 8 palettes. Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
+`patterns.js` paints a solid, muted color with an even grid of dots in a lighter tone of the same color (one of 8 palettes; a library uses its own color), as a CSS background: the dots measure the same in any box, they don't stretch with it. It replaced the Bauhaus shapes (circles, triangles and squares). Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
 
 ## Communication with the server
 
@@ -165,7 +165,7 @@ Permissions are checked on the server (`Session._allowed`): `OWNER_ONLY` lists w
 
 ## Add a preference
 
-Preferences have a single source: `SCHEMA` in `vt/prefs.py`. The Preferencias screen and the [reference](../../reference/preferences/) are built from it.
+Settings have a single source: `SCHEMA` in `vt/prefs.py`. The Ajustes screen and the [reference](../../reference/preferences/) are built from it.
 
 <Steps>
 

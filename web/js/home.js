@@ -20,7 +20,7 @@ function applyAccent(color) {
   root.setProperty("--accent-soft", `color-mix(in srgb, ${color} 35%, transparent)`);
 }
 
-// Preferencias › Apariencia: el color de énfasis elegido; con «Color de cada biblioteca», el de la abierta
+// Ajustes › Apariencia: el color de énfasis elegido; con «Color de cada biblioteca», el de la abierta
 function syncAccent() {
   applyAccent(prefs.accent_lib && typeof vaults !== "undefined" ? currentVault().color : prefs.accent_color || null);
 }
@@ -67,8 +67,9 @@ function renderHome() {
   const grid = $("#grid");
   grid.className = "grid home";
   grid.replaceChildren();
-  const h = heroVideo();
-  if (h) grid.append(hero(h));
+  // agregar, siempre arriba del inicio; lo que sigues viendo va en su fila (un destacado grande debajo de la
+  // caja competía con ella y repetía «Seguir viendo»)
+  grid.append(addBox(true, Object.keys(lib.videos).length > 0));
   for (const r of homeRows()) grid.append(row(r));
 }
 
@@ -85,8 +86,8 @@ function hero({ v, en, es, label }) {
       el("h2", { text: v.title || v.id }),
       // la firma de Translay: la frase en los dos idiomas
       en || es ? el("blockquote", { class: "hero-line" },
-        es ? el("p", { class: "es", text: es }) : null,
-        en ? el("p", { class: "en", text: en }) : null) : null,
+        es && !(transcribeMode() && en) ? el("p", { class: "es", text: es }) : null,
+        en && !(es && sameText(en, es) && !transcribeMode()) ? el("p", { class: "en", text: en }) : null) : null,
       el("div", { class: "hero-acts" },
         btn(pct > 1 ? "Continuar" : "Ver", { icon: "play", variant: "dark", disabled: !canOpen, onClick: play }),
         pct > 1 ? btn("Desde el inicio", { variant: "ghost", onClick: () => { v.position = 0; play(); } }) : null,
@@ -136,7 +137,8 @@ function progressRing(p) {
   s.setAttribute("viewBox", "0 0 36 36");
   s.innerHTML = `<circle cx="18" cy="18" r="14" class="r0"/><circle cx="18" cy="18" r="14" class="r1" pathLength="100" stroke-dasharray="${Math.round(p.asr * 100)} 100"/>`
     + `<circle cx="18" cy="18" r="14" class="r2" pathLength="100" stroke-dasharray="${Math.round(p.dub * 100)} 100"/>`;
-  return el("span", { class: "ring", title: `Traducido ${Math.round(p.asr * 100)} % · doblado ${Math.round(p.dub * 100)} %` }, s);
+  return el("span", { class: "ring", title: transcribeMode() ? `Transcrito ${Math.round(p.asr * 100)} %`
+    : `Traducido ${Math.round(p.asr * 100)} % · doblado ${Math.round(p.dub * 100)} %` }, s);
 }
 
 /* ------------------------------------------------------------ reproductor: controles que se esconden */
@@ -196,7 +198,7 @@ queueFades();
 
 
 /* ------------------------------------------------------------ barra lateral colapsable (se recuerda) */
-// El botón junto al logo solo pliega la barra lateral (biblioteca, reproductor, Cola y Preferencias).
+// El botón junto al logo solo pliega la barra lateral (biblioteca, reproductor, Cola y Ajustes).
 function syncSideBtn() {
   const b = $("#side-btn");
   const t = document.body.classList.contains("side-mini") ? "Expandir la barra lateral" : "Contraer la barra lateral";
@@ -232,66 +234,17 @@ function toggleImportPop(open = importPop.hidden) {
   importPop.hidden = !open;
   if (open) $("#yt-url").focus();
 }
-// «Agregar ▾»: la parte principal hace lo que más usas (pegar un enlace, subir archivos, capturar la
-// pantalla o pegar varios enlaces); ▾ abre todas. Preferencias › Agregar y descargar › «Botón Agregar»
-// puede dejarlo siempre en «Agregar». Lo usado se cuenta en este navegador.
-const ADD_ACTIONS = {
-  link: { label: "Agregar", icon: "plus", title: "Pegar un enlace", run: () => toggleImportPop(true) },
-  files: { label: "Subir", icon: "upload", title: "Subir videos o audios de este equipo", run: () => $("#file").click() },
-  capture: { label: "Capturar", icon: "record", title: "Grabar una pestaña, una ventana o la pantalla",
-    run: () => { addUsed("capture"); openCapture(); }, ok: () => !$("#cap-btn").hidden },
-  multi: { label: "Pegar enlaces", icon: "queue", title: "Agregar muchos enlaces a la vez", run: () => { addUsed("multi"); openMulti(""); } },
-};
-function addUses() {
-  try { return JSON.parse(localStorage.getItem("translay.add-uses") || "{}"); } catch { return {}; }
-}
-function addUsed(kind) {
-  const uses = addUses();
-  uses[kind] = (uses[kind] || 0) + 1;
-  try { localStorage.setItem("translay.add-uses", JSON.stringify(uses)); } catch { /* sin almacenamiento: queda «Agregar» */ }
-  syncAddButton();
-}
-// la acción del botón: la más usada (al menos 3 veces); empate o pocas veces, pegar un enlace
-function addAction() {
-  if (prefs.add_button === "agregar") return "link";
-  const uses = addUses();
-  let best = "link";
-  for (const [k, a] of Object.entries(ADD_ACTIONS)) {
-    if ((a.ok ? a.ok() : true) && (uses[k] || 0) >= 3 && (uses[k] || 0) > (uses[best] || 0)) best = k;
-  }
-  return best;
-}
-function syncAddButton() {
-  const a = ADD_ACTIONS[addAction()];
-  const b = $("#import-btn");
-  setBtn(b, a.label, a.icon);
-  b.title = a.title;
-}
-$("#import-btn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  const kind = addAction();
-  if (kind === "link") return toggleImportPop();
-  importPop.hidden = true;
-  ADD_ACTIONS[kind].run();
-});
-$("#import-pop-btn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  toggleImportPop();
-});
-$("#cap-btn").addEventListener("click", () => addUsed("capture"));
-syncAddButton();
+// «Agregar» abre el panel (enlace, archivos, grabar, varios enlaces); «Grabar» va directo a grabar
+$("#import-btn").addEventListener("click", (e) => { e.stopPropagation(); toggleImportPop(); });
+$("#rec-btn").addEventListener("click", () => { importPop.hidden = true; openCapture(); });
 importPop.addEventListener("click", (e) => e.stopPropagation());
 document.addEventListener("pointerdown", (e) => {
   if (!e.target.closest(".import-wrap, .menu, dialog")) importPop.hidden = true;
 }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") importPop.hidden = true; });
 // al importar, el panel se cierra solo
-$("#yt").addEventListener("submit", () => {
-  if ($("#yt-url").value.trim()) addUsed("link");
-  setTimeout(() => { importPop.hidden = true; }, 0);
-});
-$("#file").addEventListener("change", (e) => { importPop.hidden = true; if (e.target.files.length) addUsed("files"); });
-$("#multi-btn").addEventListener("click", () => { importPop.hidden = true; addUsed("multi"); openMulti(""); });
+$("#file").addEventListener("change", () => { importPop.hidden = true; });
+$("#multi-btn").addEventListener("click", () => { importPop.hidden = true; openMulti(""); });
 // buscar desde cualquier vista lleva a la biblioteca
 $("#lib-q").addEventListener("focus", () => { if (currentView() !== "library") setView("library"); });
 // alto del encabezado (en el celular es fijo arriba y cambia de alto): las acciones de una selección

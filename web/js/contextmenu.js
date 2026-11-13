@@ -28,14 +28,17 @@ async function renameVideo(v) {
   const title = (await promptDlg("Renombrar video", v.title || v.id, "Guardar"))?.trim();
   if (title && title !== v.title) send({ type: "lib_rename", video: v.id, title });
 }
-const langMenu = (v) => ({ label: "Idioma y traducción", icon: "globe", sub: [
+const langMenu = (v) => ({ label: transcribeMode() ? "Idioma" : "Idioma y traducción", icon: "globe", sub: [
   { head: "Se habla en" },
   ...Object.keys(LANGS).map((c) => ({ label: cap(LANGS[c]), check: (v.lang || "en") === c, onClick: () => setVideoLang(v, c) })),
+  ...(transcribeMode() ? [] : langModes(v)),
+] });
+const langModes = (v) => [
   "sep",
   (v.lang || "en") !== "es" && (v.lang || "en") in LANGS && { label: "Traducir y doblar", icon: "spark", check: translatesV(v),
     onClick: () => setVideoMode(v, "translate") },
   { label: "Solo transcribir", icon: "comment", check: !translatesV(v), onClick: () => setVideoMode(v, "transcribe") },
-] });
+];
 // copiar: el portapapeles moderno solo existe en conexiones seguras (no desde otro equipo por http)
 function copyText(text, what) {
   const ok = () => toast(what.endsWith(".") ? what : `${what} copiado.`, "ok");  // o el aviso entero
@@ -69,7 +72,6 @@ function videoMenu(v, coll) {
     canOpen && v.position > 5 && { label: "Ver desde el inicio", icon: "reload", onClick: () => { v.position = 0; open(); } },
     canDownload(v) && { label: "Descargar sin abrir", icon: "download", onClick: () => downloadOnly(v) },
     "sep",
-    canImport() && job?.state === "en cola" && !job.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: v.id, front: true }) },
     canImport() && canProcess(v) && { label: translatesV(v) ? "Traducir y doblar" : "Transcribir", icon: "spark", onClick: () => send({ type: "queue_add", video: v.id }) },
     canImport() && langMenu(v),
     isOwner() && { label: "Renombrar…", icon: "pencil", onClick: () => renameVideo(v) },
@@ -138,15 +140,19 @@ function collMenu(c) {
 /* ------------------------------------------------------------ cola */
 function jobMenu(j) {
   const v = videoInfo(j.id) || { id: j.id, title: j.id };
+  const active = jobActive(j) && !j.watching;
   return [
     { head: v.title || j.id },
-    { label: "Ver", icon: "play", disabled: !v.media && !isRemote(v), onClick: () => {
-      closeQueue();
-      if (j.lib && j.lib !== vaults.current) return playAcross(v.id, j.lib);  // de otra biblioteca
-      playItem(v.id);
-    } },
-    canImport() && j.state === "en cola" && !j.prio && { label: "Priorizar", icon: "up", onClick: () => send({ type: "queue_add", video: j.id, front: true }) },
-    canImport() && j.state === "descargado" && { label: translatesV(v) ? "Traducir y doblar" : "Transcribir", icon: "spark", onClick: () => send({ type: "queue_add", video: j.id }) },
+    { label: "Abrir el video", icon: "arrow", disabled: !v.media && !isRemote(v), onClick: () => openJob(j, v) },
+    "sep",
+    isOwner() && active && { label: j.held ? "Continuar" : "Detener", icon: j.held ? "resume" : "stop",
+      onClick: () => send({ type: "queue_hold", video: j.id, held: !j.held }) },
+    canImport() && j.state === "en cola" && !j.prio && !j.watching && { label: "Hacer primero", icon: "first",
+      onClick: () => send({ type: "queue_add", video: j.id, front: true }) },
+    canImport() && j.state === "descargado" && { label: translatesV(v) ? "Traducir y doblar" : "Transcribir", icon: "spark",
+      onClick: () => send({ type: "queue_add", video: j.id }) },
+    isOwner() && { label: lib.queue.paused ? "Continuar toda la cola" : "Detener toda la cola", icon: lib.queue.paused ? "resume" : "stop",
+      onClick: () => send({ type: lib.queue.paused ? "queue_resume" : "queue_pause" }) },
     shareUrl(v) && { label: "Copiar enlace", icon: "link", onClick: () => copyText(shareUrl(v), "Enlace") },
     "sep",
     isOwner() && { label: "Quitar de la cola", icon: "x", danger: true, onClick: () => send({ type: "queue_remove", video: j.id }) },
@@ -204,7 +210,7 @@ function generalMenu() {
     "sep",
     { label: "Inicio", icon: "home", onClick: goHome },
     { label: "Cola", icon: "queue", onClick: () => setView("queue") },
-    isOwner() && { label: "Preferencias", icon: "sliders", onClick: () => setView("prefs") },
+    isOwner() && { label: "Ajustes", icon: "gear", onClick: () => setView("prefs") },
     "sep",
     currentView() !== "player" && innerWidth > 760 && { label: mini ? "Expandir la barra lateral" : "Contraer la barra lateral", icon: "sidebar", onClick: () => setSideMini(!mini) },
     { label: "Recargar", icon: "reload", kbd: "F5", onClick: () => location.reload() },

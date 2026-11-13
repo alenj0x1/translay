@@ -12,7 +12,7 @@ Cada envío:
   {"event": "...", "time": 1730000000.0, "vault": "ciencia", "data": {...}}
 
 Si falla (sin respuesta 2xx) se reintenta a los 10 s, 1 min y 5 min. Los últimos
-envíos quedan en memoria para verlos en Preferencias → Webhooks.
+envíos quedan en memoria para verlos en Ajustes → Webhooks.
 """
 
 import hashlib

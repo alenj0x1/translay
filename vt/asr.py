@@ -66,6 +66,13 @@ class WhisperASR:
         code, prob, _ = self.model.detect_language(audio)
         return code, float(prob)
 
+    def detect_probs(self, audio: np.ndarray) -> dict[str, float]:
+        """Probabilidad de cada idioma (código de Whisper) en hasta 30 s de audio."""
+        if self.name.endswith(".en"):
+            return {"en": 1.0}
+        _, _, probs = self.model.detect_language(audio)
+        return {code: float(p) for code, p in probs}
+
     def transcribe(self, audio: np.ndarray, prompt: str | None = None, language: str | None = None) -> list[Word]:
         """language: el del video (por defecto, el del motor)."""
         modelusage.mark(MODELS.get(self.name, self.name))

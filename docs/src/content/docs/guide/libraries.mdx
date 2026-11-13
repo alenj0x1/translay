@@ -9,7 +9,7 @@ import { Aside } from "@astrojs/starlight/components";
 
 A library is a folder with everything that belongs to it, like Obsidian vaults. You can have one for documentaries and another for talks, each on a different disk if you want, and switch between them from the header.
 
-![The Bibliotecas (Libraries) screen with Ciencia, Espacio and Océanos, each with its Bauhaus banner](../../../assets/capturas/bibliotecas.webp)
+![The Bibliotecas (Libraries) screen with Ciencia, Espacio and Océanos, each with its banner](../../../assets/capturas/bibliotecas.webp)
 
 ## What each one stores
 
@@ -25,7 +25,7 @@ Inside a library's folder:
 | `audio/` and `voices/` | The Spanish voice of each sentence and each person's reference voices. |
 | `people/` | People saved so their voice can be used in other videos (see [People](../transcript-and-people/#saved-people)). |
 
-Three preferences are also specific to each library: **Modo** (Mode: light, dark or follow the system), **Al agregar** (On add) and **Qué descargar** (What to download). A new library starts with the values of the one that was open. When you have more than one library, the Preferencias (Preferences) sections that include them say so with «Se guarda en» (Saved in) and the name of the open library.
+Three preferences are also specific to each library: **Modo** (Mode: light, dark or follow the system), **Al agregar** (On add) and **Qué descargar** (What to download). A new library starts with the values of the one that was open. When you have more than one library, the Ajustes (Settings) sections that include them say so with «Se guarda en» (Saved in) and the name of the open library.
 
 Everything else is shared by all and lives in `data/`: the queue, the YouTube session (`cookies.txt` and the connected account in `yt-session/`), the general preferences and the list of libraries (`data/libraries.json`). The details are in [Data on disk](../../how-it-works/data/).
 
@@ -50,7 +50,7 @@ At the top you see a preview of the banner. «Al azar» (Random) picks color, ic
 
 Each library has a banner with its geometric pattern, using its color as the main one, and a badge with its icon. «Otro patrón» (Another pattern), in the dialog or in its card's menu, changes the pattern and stores it on the server, so it looks the same in every browser.
 
-With Preferencias › Apariencia › «Color de cada biblioteca» (Preferences › Appearance › "Color of each library"), buttons, progress and playback use the open library's color instead of the accent color (Preferencias › Apariencia › «Color de énfasis»).
+With Ajustes › Apariencia › «Color de cada biblioteca» (Settings › Appearance › "Color of each library"), buttons, progress and playback use the open library's color instead of the accent color (Ajustes › Apariencia › «Color de énfasis»).
 
 ## The «Bibliotecas» screen
 
@@ -62,7 +62,7 @@ With Preferencias › Apariencia › «Color de cada biblioteca» (Preferences �
 - **Vaciar…** (Empty…): sends all its videos and collections to the [trash](../trash/). It asks you to type the library's name.
 - **Eliminar** (Delete): sends the entire library (only what belongs to it: the files and folders in the table above) to Principal's trash, from where it can be restored for 30 days. It also asks you to type its name.
 
-In the header are «Abrir carpeta», to add a folder that is already a library (from an external drive or another machine), and «Administrar» (Manage), which leads to Preferencias › Bibliotecas, where you can also see each one's path.
+In the header are «Abrir carpeta», to add a folder that is already a library (from an external drive or another machine), and «Administrar» (Manage), which leads to Ajustes › Bibliotecas, where you can also see each one's path.
 
 ## Move videos
 
@@ -76,7 +76,7 @@ The queue is a single one for all libraries (one GPU, one order), but the «Cola
 
 ## Direct link
 
-Each library has its own address: `http://127.0.0.1:8765/b/<id>` opens the app directly on it. For anyone connecting from another machine as a guest, it is the only library they see. The link to share appears in Preferencias › Acceso y API (Access and API) when the library is public or password-protected. See [Access](../../integrations/access/).
+Each library has its own address: `http://127.0.0.1:8765/b/<id>` opens the app directly on it. For anyone connecting from another machine as a guest, it is the only library they see. The link to share appears in Ajustes › Acceso y API (Access and API) when the library is public or password-protected. See [Access](../../integrations/access/).
 
 <Aside>
 The libraries code is in `vt/vaults.py` (server) and `web/js/vaults.js` (interface).

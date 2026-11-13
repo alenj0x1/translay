@@ -90,10 +90,41 @@ def test_streaming_detects_language_first():
 
 
 def test_streaming_waits_for_confidence():
-    asr = LangASR("pt", prob=0.4)
+    asr = LangASR("pt", prob=0.6)
     st = StreamingTranscriber(asr, language="")
     run(st, np.concatenate([tone(4), np.zeros(SR, np.float32)]))
     assert asr.detects > 1 and st.language == "pt"  # con poca confianza esperó más voz; al final decidió
+
+
+def test_streaming_never_guesses_a_doubtful_language():
+    """Ruido o una sala de espera: Whisper dice «inglés» con poca confianza. En vivo no se decide
+    (todo se reconocería traducido): ni el tramo queda cubierto; lo decide la cola con el archivo."""
+    asr = LangASR("en", prob=0.3)
+    st = StreamingTranscriber(asr, language="")
+    speech = np.concatenate([np.concatenate([tone(1.5), np.zeros(SR // 4, np.float32)]) for _ in range(23)])  # ~40 s de «voz»
+    ev = run(st, np.concatenate([speech, np.zeros(SR, np.float32)]))
+    assert st.language == "" and not [e for e in ev if isinstance(e, Detected)]
+    assert st.final_t <= st.start_t and st.duration < 30  # el búfer no crece sin fin
+
+
+def test_queue_confirms_a_live_detection(tmp_path):
+    """Lo detectado en vivo se confirma con el archivo completo; si era otro idioma se rehace."""
+    from vt.streaming import speech_samples, vote_language
+
+    tr = Store(tmp_path).open("cap_aaaaaaaaaaaa")
+    assert tr.set_detected("en", own="es", live=True, prob=0.72) and tr.lang_unconfirmed
+    tr.add_segment(0, 1, "So I will finish you", "Así que te terminaré", "opus-big")
+    assert tr.redetect("es") and tr.lang == "es" and not tr.segments and not tr.covered and not tr.lang_unconfirmed
+    ok = Store(tmp_path).open("cap_bbbbbbbbbbbb")
+    ok.set_detected("en", own="es", live=True, prob=0.9)
+    assert not ok.redetect("en") and not ok.lang_unconfirmed  # confirmado: no se vuelve a revisar
+    chosen = Store(tmp_path).open("cap_cccccccccccc")
+    chosen.set_detected("en", own="es", live=True, prob=0.6)
+    chosen.set_lang("pt")
+    assert not chosen.lang_unconfirmed  # lo eligió la persona
+    # votación: el inicio (música) dice inglés, el resto español
+    assert vote_language([{"en": 0.5, "es": 0.3}, {"es": 0.95}, {"es": 0.9, "en": 0.05}])[0] == "es"
+    assert len(speech_samples(np.concatenate([tone(60), tone(60), tone(60)]))) == 3
 
 
 def test_mode_and_detection(tmp_path):
@@ -149,3 +180,29 @@ def test_detection_does_not_override_or_guess(tmp_path):
     st = StreamingTranscriber(asr, language="")
     run(st, np.concatenate([tone(0.6), np.zeros(SR, np.float32)]))  # casi sin voz y se cierra
     assert st.language == "" and asr.detects == 0 and st.final_t == 0  # no adivina ni da el tramo por cubierto
+
+
+def test_transcribe_only_app_mode(tmp_path):
+    """Ajustes › Uso › «Transcribir y resumir»: nada se traduce ni se dobla, lo nuevo queda para solo
+    transcribir (al volver a traducir no se pone a traducir de golpe) y lo ya elegido se conserva."""
+    from vt import store as store_mod
+
+    prefs = Prefs(tmp_path / "prefs.json")
+    assert prefs.translating and prefs.set("app_mode", "transcribir") and not prefs.translating
+    keys = {p["key"]: p for p in prefs.public()["schema"]}
+    assert keys["audio"]["only"] == "traducir" and keys["sub_orig"]["alt"]["label"] == "Subtítulos"
+    assert "add_button" not in keys
+    old = store_mod.TRANSLATION
+    try:
+        store_mod.TRANSLATION = lambda: prefs.translating
+        chosen = Store(tmp_path).open("yt_ggggggggggg")
+        chosen.set_mode("translate")
+        chosen.set_detected("en", own="es")
+        assert not chosen.translates and chosen.mode == "translate"  # lo elegido queda para cuando se vuelva
+        new = Store(tmp_path).open("yt_hhhhhhhhhhh")
+        new.set_detected("en", own="es")
+        assert new.mode == "transcribe" and not new.translates
+        prefs.set("app_mode", "traducir")
+        assert chosen.translates and not new.translates
+    finally:
+        store_mod.TRANSLATION = old

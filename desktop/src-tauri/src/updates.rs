@@ -1,4 +1,4 @@
-//! New versions (Preferencias › App de escritorio): the server finds them (vt/updates.py) and the page shows
+//! New versions (Ajustes › App de escritorio): the server finds them (vt/updates.py) and the page shows
 //! them; here only the settings and opening the download in the default browser. The app never downloads
 //! or runs an installer itself: an app that does that is what Windows Defender's machine-learning scan
 //! mistook for a trojan, so the person runs the installer from the browser as usual.

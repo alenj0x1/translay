@@ -31,4 +31,4 @@ from . import events
 events.emit("video.procesado", vault.id, video=vid, title=title)  # name and library go by position
 ```
 
-First add it to `CATALOG` in `vt/events.py` with its description: that way it shows up to pick in Preferences → **Acceso y API** (Access and API) → Webhooks, in `GET /api/v1/events` and on this page.
+First add it to `CATALOG` in `vt/events.py` with its description: that way it shows up to pick in Settings → **Acceso y API** (Access and API) → Webhooks, in `GET /api/v1/events` and on this page.

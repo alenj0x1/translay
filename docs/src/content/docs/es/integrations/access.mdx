@@ -7,9 +7,9 @@ sidebar:
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Translay distingue entre el dueño, que puede todo, y los invitados, que entran a bibliotecas concretas. Todo se configura en **Preferencias → Acceso y API**, que solo ve el dueño.
+Translay distingue entre el dueño, que puede todo, y los invitados, que entran a bibliotecas concretas. Todo se configura en **Ajustes → Acceso y API**, que solo ve el dueño.
 
-![Preferencias, Acceso y API: contraseña del dueño, acceso desde otros equipos y visibilidad de cada biblioteca](../../../../assets/capturas/acceso.webp)
+![Ajustes, Acceso y API: contraseña del dueño, acceso desde otros equipos y visibilidad de cada biblioteca](../../../../assets/capturas/acceso.webp)
 
 ## El dueño
 
@@ -27,7 +27,7 @@ Un proxy local que **no** agregue ninguna de esas cabeceras (una redirección de
 
 ### Contraseña del dueño
 
-En **Preferencias → Acceso y API → Contraseña** escribe una de al menos 6 caracteres y pulsa **Guardar** (o **Cambiar** si ya había una).
+En **Ajustes → Acceso y API → Contraseña** escribe una de al menos 6 caracteres y pulsa **Guardar** (o **Cambiar** si ya había una).
 
 - Sin contraseña, solo se entra como dueño desde este equipo; la pantalla de inicio de sesión de los demás equipos lo explica.
 - **Cambiarla** o **Quitar contraseña** cierra las sesiones de dueño abiertas en otros equipos. Las sesiones de invitados a bibliotecas siguen igual.
@@ -43,7 +43,7 @@ python run.py --owner-password "una-contraseña-larga"
 TRANSLAY_OWNER_PASSWORD="una-contraseña-larga" python run.py
 ```
 
-Con la variable definida, lo que cambies o quites en Preferencias dura hasta el próximo arranque: ahí vuelve a valer la de la variable.
+Con la variable definida, lo que cambies o quites en Ajustes dura hasta el próximo arranque: ahí vuelve a valer la de la variable.
 
 ## Docker
 
@@ -62,7 +62,7 @@ Una misma cookie puede valer como dueño y como invitado de varias bibliotecas a
 
 ## Quién entra a cada biblioteca
 
-En **Preferencias → Acceso y API → Bibliotecas**, cada biblioteca tiene su visibilidad:
+En **Ajustes → Acceso y API → Bibliotecas**, cada biblioteca tiene su visibilidad:
 
 | Visibilidad | En la app | Quién entra |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ Cada biblioteca tiene su enlace, `/b/<id>`, que aparece con el botón **Copiar e
 - con una `privada`, solo deja entrar con la contraseña del dueño;
 - en ambos casos lista las bibliotecas públicas, si hay.
 
-Si **Acceso desde otros equipos** está activo y abres Preferencias desde este equipo, el enlace usa la dirección de la red local en lugar de `localhost`, para que sirva al compartirlo.
+Si **Acceso desde otros equipos** está activo y abres Ajustes desde este equipo, el enlace usa la dirección de la red local en lugar de `localhost`, para que sirva al compartirlo.
 
 ### Cambiar la contraseña de una biblioteca
 
@@ -104,14 +104,14 @@ Para pasar una biblioteca a `clave` por primera vez hay que darle una contraseñ
 | Borrar videos, cambiar el glosario, quitar de la cola | Sí | No | No | No | Sí |
 | Pausar o reanudar la cola | Sí | No | No | No | Solo si es para todas las bibliotecas |
 | Colecciones, comentarios y personas | Sí | No | No | No | No |
-| Preferencias, acceso, claves y webhooks | Sí | No | No | No | No |
+| Ajustes, acceso, claves y webhooks | Sí | No | No | No | No |
 | Ver la carpeta de cada biblioteca | Sí | No | No | No | No |
 
 Invitados y claves solo alcanzan las bibliotecas que les tocan. Las claves de API se explican en [API REST](../api/).
 
 ## Acceso desde otros equipos
 
-Por omisión el servidor escucha solo en `127.0.0.1:8765`: nadie más llega. En **Preferencias → Acceso y API → Otros equipos**, elige **Sí** para que escuche también en cada dirección IPv4 de la red local del equipo (sin las `127.*` ni las `169.254.*`), en el mismo puerto.
+Por omisión el servidor escucha solo en `127.0.0.1:8765`: nadie más llega. En **Ajustes → Acceso y API → Otros equipos**, elige **Sí** para que escuche también en cada dirección IPv4 de la red local del equipo (sin las `127.*` ni las `169.254.*`), en el mismo puerto.
 
 <Steps>
 1. Pon una contraseña del dueño, si vas a entrar como dueño desde otro equipo.

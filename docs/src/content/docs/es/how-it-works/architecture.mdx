@@ -24,7 +24,7 @@ Translay son tres procesos en el mismo equipo: el servidor en Python (`vt/`), el
 1. Al abrir, carga su página de inicio (`desktop/ui/`), que usa la fuente, los colores y los botones de `web/` (los copia `desktop/scripts/prepare.mjs`).
 2. La primera vez, o si una versión nueva cambia los paquetes, instala los entornos con el `uv` incluido: `uv pip sync --require-hashes` de `desktop/locks/server.txt` sobre el Python 3.12 incluido, y de `desktop/locks/voice.txt` (torch para CUDA 12.8) sobre el Python 3.11, si la GPU tiene al menos ~4 GB. `sync` instala exactamente el lock, sin resolver dependencias en tu equipo. El avance sale de lo que crece la caché de paquetes.
 3. Arranca `run.py` sin ventana con `--data-dir` (la carpeta elegida), `--port` (8765 o el siguiente libre) y `TRANSLAY_VENVS` apuntando a sus entornos, con ffmpeg y Node.js incluidos al frente del `PATH`. El proceso va dentro de un *job object* de Windows que cierra todo el árbol (voz, yt-dlp, ffmpeg) cuando la app sale, aunque se cierre de golpe.
-4. Cuando el servidor escribe `Listo: http://127.0.0.1:<puerto>`, le da a ese origen exacto permiso para los controles de la ventana y los comandos de la app, y navega a la página. `web/js/desktop.js` convierte el encabezado en barra de título y agrega **Preferencias › App de escritorio**.
+4. Cuando el servidor escribe `Listo: http://127.0.0.1:<puerto>`, le da a ese origen exacto permiso para los controles de la ventana y los comandos de la app, y navega a la página. `web/js/desktop.js` convierte el encabezado en barra de título y agrega **Ajustes › App de escritorio**.
 5. Si la salida del servidor se cierra (todos sus procesos terminaron) sin que la app lo pidiera, vuelve a su página con las últimas líneas. «Reiniciar ahora» de Rendimiento no cuenta: el servidor nuevo hereda la salida y sigue en el mismo *job*.
 
 </Steps>
@@ -111,7 +111,7 @@ La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y l
 | `ytsession.py` | Cuenta de YouTube conectada: perfil de navegador propio, cookies cifradas y renovación automática. |
 | `capture.py` | Grabaciones de pantalla: recibe las partes en orden (reanudable tras un corte) y arma el archivo final, recortado y comprimido. |
 | `exporter.py` | Exporta video y audio traducidos u originales, subtítulos y transcripción. |
-| `storage.py` | Preferencias › Almacenamiento: cuánto ocupa cada cosa y qué se puede liberar. |
+| `storage.py` | Ajustes › Almacenamiento: cuánto ocupa cada cosa y qué se puede liberar. |
 | `modelset.py` | Qué modelos usa cada perfil, cuáles faltan y bajarlos (también `python -m vt.modelset` para el instalador de escritorio). |
 | `modelusage.py` | Cuándo se usó por última vez cada modelo (`data/models.json`). |
 | `auth.py` | Acceso: dueño, bibliotecas privadas, con contraseña o públicas, y claves de API. |

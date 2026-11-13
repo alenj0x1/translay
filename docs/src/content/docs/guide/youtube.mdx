@@ -12,7 +12,7 @@ Translay downloads YouTube videos with yt-dlp into the library's `youtube/` fold
 ## What is downloaded
 
 - **Video and audio**: an MP4 in H.264 and AAC up to 720p, which any browser plays without conversion, plus the audio track as M4A, which is what gets processed.
-- **Audio only**, if you chose it in Preferences › Agregar y descargar › **Qué descargar** (What to download): just the M4A. The video can be downloaded later (see [Add videos](../import/#audio-only)).
+- **Audio only**, if you chose it in Settings › Agregar y descargar › **Qué descargar** (What to download): just the M4A. The video can be downloaded later (see [Add videos](../import/#audio-only)).
 
 With each video, its title, channel, duration, categories and thumbnail are saved. When you add many links, they show up right away with their YouTube id and the title and channel arrive little by little before downloading, through a public query to YouTube (3 at a time, with pauses). If Translay closes halfway or YouTube doesn't answer, it picks up where it left off on the next start and retries every hour, in every library.
 
@@ -38,7 +38,7 @@ Without a session, YouTube lets you download most videos, but not age-restricted
 
 ### Connect your YouTube account
 
-In Preferences › YouTube › **Cuenta de YouTube** (YouTube account):
+In Settings › YouTube › **Cuenta de YouTube** (YouTube account):
 
 <Steps>
 
@@ -75,7 +75,7 @@ The code is in `vt/ytsession.py`. It only works on Windows; in Docker or on anot
 
 ### Other sessions
 
-In Preferences › YouTube › **Sesión para descargar** (Session for downloading) you choose which one to use:
+In Settings › YouTube › **Sesión para descargar** (Session for downloading) you choose which one to use:
 
 | Option | What it does |
 |---|---|

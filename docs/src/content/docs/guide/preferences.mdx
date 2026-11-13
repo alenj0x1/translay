@@ -1,20 +1,24 @@
 ---
-title: Preferences
-description: What you configure in each Preferences section and where it is saved.
+title: Settings
+description: What you configure in each Settings section and where it is saved.
 sidebar:
   order: 8
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-**Preferencias** (Preferences), in the header, opens its own screen: the sections on the left and, on the right, the page for the selected section, with its options grouped and a description of each. Yes/no options are switches; the rest are buttons to choose an option. Changes apply instantly, with no save button. Tapping **Preferencias** again takes you back to the video or the library.
+**Ajustes** (Settings), in the header, opens its own screen: the sections on the left and, on the right, the page for the selected section, with its options grouped and a description of each. Yes/no options are switches; the rest are buttons to choose an option. Changes apply instantly, with no save button. Tapping **Ajustes** again takes you back to the video or the library.
 
 They are saved on the server (`data/prefs.json`) and apply to all tabs and devices. Some belong to each library and are saved in it (see [Libraries](../libraries/#what-each-one-stores)). Only the owner can change them.
 
 The full table, with each option and its default value, is in the [preferences reference](../../reference/preferences/).
 
-![Preferences, Audio and subtitles page](../../../assets/capturas/preferencias.webp)
+![Settings, Audio and subtitles page](../../../assets/capturas/preferencias.webp)
 
+
+## Use
+
+**Uso** (Use), the first page: **Usar Translay para** (Use Translay for) **Traducir y doblar** (Translate and dub, the default) or **Transcribir y resumir** (Transcribe and summarize). The second is a mode for recording and saving videos to use their transcript and summaries: nothing about translation or voice appears (the audio switch, the split view, Spanish subtitles and voice, the Glossary page, «Traducir y doblar» in menus and the Add panel, and the translated exports), «Audio y subtítulos» becomes «Subtítulos», and the server doesn't load the translator or the voice. Each video is transcribed in the language it's spoken in (a video in English stays in English; its summary is in Spanish). What was already translated is kept, and what you add in this mode stays as «only transcribe», so going back to «Traducir y doblar» doesn't start translating everything at once.
 ## Libraries
 
 **Bibliotecas** (Libraries): your libraries as cards, with their folder: open them, edit them, change their pattern, remove them from the list or delete them. **Abrir carpeta** (Open folder) adds a folder that is already a library. All of this is explained in [Libraries](../libraries/).
@@ -33,7 +37,7 @@ The full table, with each option and its default value, is in the [preferences r
 
 ## Add and download
 
-**Agregar y descargar** (Add and download). What is done with what you add (download and translate, or download only), what the header's «Agregar» button does (**Botón Agregar**, Add button: **Lo que más usas**, What you use most, or **Siempre «Agregar»**, Always Add), which language is only transcribed when detected (**Solo transcribir lo que está en**, Only transcribe what is in: Spanish by default, English, Portuguese or none), what is downloaded (video and audio, or audio only), in what order downloads run (the queue's or random), browser notifications, and whether channels appear in the library sidebar. **Al agregar** (On add) and **Qué descargar** (What to download) belong to each library. Details in [Add videos](../import/#download-only-or-translate), [Add videos › The «Agregar» button](../import/#the-agregar-button), [Add videos › Language](../import/#language-and-transcribe-only) and [Queue](../queue/#downloads).
+**Agregar y descargar** (Add and download). What is done with what you add (download and translate, or download only), which language is only transcribed when detected (**Solo transcribir lo que está en**, Only transcribe what is in: Spanish by default, English, Portuguese or none), what is downloaded (video and audio, or audio only), in what order downloads run (the queue's or random), browser notifications, and whether channels appear in the library sidebar. **Al agregar** (On add) and **Qué descargar** (What to download) belong to each library. Details in [Add videos](../import/#download-only-or-translate), [Add videos › «Grabar» and «Agregar»](../import/#grabar-and-agregar), [Add videos › Language](../import/#language-and-transcribe-only) and [Queue](../queue/#downloads).
 
 ## Summary
 
@@ -68,7 +72,7 @@ The session used to download (none, the connected account, a browser or a `cooki
 **Papelera** (Trash). What was deleted in the last 30 days, to restore it or delete it forever. See [Trash](../trash/).
 
 <Aside>
-Each section has its own address (`#/preferencias/<section>`), so reloading the page leaves you on the same one. Preferences are defined in `vt/prefs.py`.
+Each section has its own address (`#/preferencias/<section>`), so reloading the page leaves you on the same one. Settings are defined in `vt/prefs.py`.
 </Aside>
 
 ## Desktop app

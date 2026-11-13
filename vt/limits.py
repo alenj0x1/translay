@@ -1,4 +1,4 @@
-"""Límites reales para un proceso y sus hijos: los que elige la persona (Preferencias →
+"""Límites reales para un proceso y sus hijos: los que elige la persona (Ajustes →
 Rendimiento) y los de los labs (tools/lab).
 
 Windows: un Job Object (el mismo mecanismo que usa el sistema para contenedores):

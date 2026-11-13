@@ -1,6 +1,6 @@
 ---
 title: Cola
-description: Cómo se ordenan las descargas y el procesamiento, cómo priorizar o pausar, y qué pasa cuando YouTube bloquea las descargas.
+description: Cómo se ordenan las descargas y el procesamiento, cómo pasar un video primero o detenerlo (o toda la cola), y qué pasa cuando YouTube bloquea las descargas.
 sidebar:
   order: 6
 ---
@@ -14,18 +14,21 @@ Todo se procesa en una sola cola, en el servidor (`vt/processor.py`). Sigue trab
 ## Orden y prioridades
 
 1. **El video que estás viendo** va siempre primero. Se procesa desde tu punto de reproducción hacia el final y después lo que quedó antes; si saltas a una parte sin terminar, el procesamiento salta contigo. Al volver a la biblioteca sigue en la cola como cualquier otro.
-2. **Lo priorizado**: «Priorizar», en la tarjeta o en la Cola, pone un video primero. Si ya está descargado, deja atrás al trabajo de fondo en curso, que se retoma después sin perder lo avanzado.
+2. **Lo que se hace primero**: «Hacer primero», en la Cola, pone un video al principio. Si ya está descargado, deja atrás al trabajo de fondo en curso, que se retoma después sin perder lo avanzado. Solo está en la Cola: en la biblioteca se leía como una forma de ordenar la biblioteca.
 3. **El resto**, en el orden en que entró.
 
 Si un tramo ya reconocido quedó sin traducción o sin voz (por un procesamiento que se cortó), la cola lo completa al pasar por ahí.
 
-## Pausar
+## Detener
 
-«Pausar» detiene el procesamiento de fondo; el video que estás viendo se sigue procesando igual. Las descargas no usan la GPU y siguen aunque la cola esté en pausa. Si pausas sin ningún video abierto, los modelos salen de la GPU de inmediato.
+- «Detener todo» frena toda la cola: el procesamiento de fondo y las descargas (una descarga en curso se corta y después sigue donde iba). El video que estás viendo se sigue procesando y descargando igual. Si la detienes sin ningún video abierto, los modelos salen de la GPU de inmediato. «Continuar todo» la reanuda.
+- «Detener», en cada trabajo, hace lo mismo con un solo video: conserva su lugar y lo avanzado, pero no se descarga ni se procesa hasta que presionas «Continuar». «Hacer primero» sobre un video detenido también lo reanuda.
+
+La cola dice «detenido» y «en espera» en vez de «en pausa», y sus trabajos no tienen botón de reproducir: junto a un trabajo en espera, ese botón se leía como «reanudar la cola», cuando abría el video.
 
 ## Panel y pantalla de la Cola
 
-El botón «Cola» del encabezado lleva un número con lo pendiente de la biblioteca abierta. Al tocarlo se abre un panel con el estado general, «Pausar» o «Reanudar», las exportaciones, las descargas en curso y los primeros 50 trabajos. «Ver todo» abre la pantalla completa. El panel se cierra al tocar cualquier cosa fuera de él, también el botón «Agregar».
+El botón «Cola» del encabezado lleva un número con lo pendiente de la biblioteca abierta. Al tocarlo se abre un panel con el estado general, «Detener todo» o «Continuar todo», las exportaciones, las descargas en curso y los primeros 50 trabajos. «Ver todo» abre la pantalla completa. El panel se cierra al tocar cualquier cosa fuera de él, también el botón «Agregar».
 
 La pantalla de la Cola tiene los estados a la izquierda, con su cantidad, y la lista a la derecha, de a 100:
 
@@ -33,7 +36,7 @@ La pantalla de la Cola tiene los estados a la izquierda, con su cantidad, y la l
 |---|---|
 | Todo | Todos los trabajos, con lo que se descarga primero. |
 | Descargando | Lo que se está bajando, con porcentaje, velocidad y tiempo restante. |
-| Procesando | El trabajo en curso («Viendo · N %» si es el video abierto). |
+| Procesando | El trabajo en curso, con su porcentaje. |
 | En cola | Lo que espera su turno. |
 | Descargados sin traducir | Lo importado con «Solo descargar». Tienen «Procesar». |
 | Con error | Lo que falló, con el motivo. |
@@ -41,13 +44,13 @@ La pantalla de la Cola tiene los estados a la izquierda, con su cantidad, y la l
 
 Si tienes más de una [biblioteca](../libraries/#cola-y-bibliotecas), debajo puedes elegir de cuál ver los trabajos, o «Todas». Si hay exportaciones, aparecen en su propia sección.
 
-En la cabecera están «Pausar procesamiento» o «Reanudar procesamiento», «Reintentar descargas» (solo con las descargas en pausa) y «Limpiar terminados», que quita de la lista lo listo, lo descargado sin traducir y lo que tuvo error. Cada trabajo tiene «Ver», «Quitar de la cola» y, según su estado, «Priorizar» o «Procesar».
+En la cabecera están «Detener todo» o «Continuar todo», «Reintentar descargas» (solo mientras YouTube pide verificación) y «Limpiar terminados», que quita de la lista lo listo, lo descargado sin traducir y lo que tuvo error. Cada trabajo tiene, según su estado, «Detener» o «Continuar», «Hacer primero» o «Procesar», y «Quitar de la cola». Su título abre el video; el clic derecho ofrece lo mismo, más «Abrir el video» y «Detener toda la cola».
 
 ## Descargas
 
-Las descargas van en un hilo aparte, una a la vez y con una pausa breve al azar entre una y otra, para no parecer una ráfaga a YouTube. Para no llenar el disco, solo se descargan unos pocos videos por delante de lo que ya se procesó; lo priorizado, lo que pides abrir y lo importado con «Solo descargar» no esperan ese turno.
+Las descargas van en un hilo aparte, una a la vez y con una pausa breve al azar entre una y otra, para no parecer una ráfaga a YouTube. Para no llenar el disco, solo se descargan unos pocos videos por delante de lo que ya se procesó; lo que se hace primero, lo que pides abrir y lo importado con «Solo descargar» no esperan ese turno.
 
-Con Preferencias › Agregar y descargar › «Orden de las descargas» › «Aleatorio (variado)» se descarga de cualquier parte de la cola; lo priorizado sigue yendo primero.
+Con Ajustes › Agregar y descargar › «Orden de las descargas» › «Aleatorio (variado)» se descarga de cualquier parte de la cola; lo que se hace primero sigue yendo primero.
 
 Cada descarga muestra su etapa: primero el video y después el audio (con porcentaje, velocidad y tiempo restante), luego «uniendo» y «preparando», mientras se juntan las pistas y se separa el audio que se va a procesar.
 
@@ -63,10 +66,10 @@ Un video que no se pudo descargar espera 10 minutos antes de reintentar («Fall�
 
 ## Modo reposo
 
-Los modelos ocupan la GPU solo mientras hay algo que procesar. Sin uso por un rato pasan a la memoria del sistema y, un poco después, se cierra el proceso de voz y la GPU queda libre. Al abrir un video vuelven a cargar enseguida; mientras tanto el reproductor dice «Cargando modelos». El estado del encabezado lo resume en palabras: «En reposo», «Cargando modelos», «Procesando · 42 %», «Descargando» o «Listo».
+Los modelos ocupan la GPU solo mientras hay algo que procesar. Sin uso por un rato pasan a la memoria del sistema y, un poco después, se cierra el proceso de voz y la GPU queda libre. Al abrir un video vuelven a cargar enseguida; mientras tanto el reproductor dice «Cargando modelos». El encabezado no muestra este estado (competía con agregar y grabar): lo dice el panel de la Cola («preparando los modelos», «procesando», «descargando» o «sin trabajos») y el botón Cola lleva un punto mientras algo trabaja. En el encabezado solo aparece un estado sin conexión con Translay o con algo puntual, como buscar un video o leer una playlist.
 
 El detalle de los tiempos y la memoria está en [GPU y reposo](../../how-it-works/gpu-and-idle/).
 
 <Aside>
-Con «Avisos del navegador» (Preferencias › Agregar y descargar) recibes un aviso del sistema cuando termina una descarga, un video, toda la cola o una exportación, solo si la pestaña está en segundo plano. Varios avisos seguidos se juntan en uno.
+Con «Avisos del navegador» (Ajustes › Agregar y descargar) recibes un aviso del sistema cuando termina una descarga, un video, toda la cola o una exportación, solo si la pestaña está en segundo plano. Varios avisos seguidos se juntan en uno.
 </Aside>

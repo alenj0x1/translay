@@ -26,7 +26,7 @@ In the export dialog you check any combination of:
 | **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
 | **Resumen** (Summary) | TXT | What the video was about and its important points with their minute (see [Summary](../transcript-and-people/#summary)). If the video doesn't have one yet, it is summarized before exporting. |
 
-The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Preferences › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
+The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Settings › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
 When you check an audio option, the **Audio** row chooses the format and the quality. The browser remembers both.
 
@@ -42,7 +42,7 @@ When you check a video option, the **Video** row chooses **Original** (copied as
 
 ## Where it's saved
 
-From the computer where Translay runs (the owner), **Exportar** opens the Windows dialog to choose where to save: «Guardar como» (Save as) with the proposed name if it's a single file, or a folder if there are several. It starts in the last folder you used (the first time, in Downloads) and warns before replacing a file. If you cancel it, nothing is exported. If you'd rather not choose every time, **Guardar en** › **Elegir carpeta** (Save to › Choose folder), or Preferences › Exportar › **Al exportar** › **Guardar siempre en una carpeta** (On export › Always save to a folder), sets a fixed folder, which can be on another drive; **Preguntar** (Ask) goes back. Both are the same preference.
+From the computer where Translay runs (the owner), **Exportar** opens the Windows dialog to choose where to save: «Guardar como» (Save as) with the proposed name if it's a single file, or a folder if there are several. It starts in the last folder you used (the first time, in Downloads) and warns before replacing a file. If you cancel it, nothing is exported. If you'd rather not choose every time, **Guardar en** › **Elegir carpeta** (Save to › Choose folder), or Settings › Exportar › **Al exportar** › **Guardar siempre en una carpeta** (On export › Always save to a folder), sets a fixed folder, which can be on another drive; **Preguntar** (Ask) goes back. Both are the same preference.
 
 Everything is built inside the chosen folder (in a temporary `.translay-exportando-…` folder) and the result is moved there: it doesn't go through the drive of your data or leave a second copy. Several files don't go in a `.zip` but loose, in a folder with the export's name and the same subfolders the `.zip` would have (one per channel, collection…): they play straight from a USB drive, and a FAT32 drive doesn't take files over 4 GB. With the fixed folder, if a file or folder with that name already exists, it's saved as `name (2)`.
 
@@ -56,7 +56,6 @@ From other devices you don't choose: the browser downloads it where it always do
 - **Card**: the download icon, or **Exportar…** in its context menu.
 - **Collection or playlist**: **Exportar** in its header, or **Exportar todo…** (Export all…) in the context menu. If part of the collection hasn't been downloaded, the header button reads **Exportar descargados (N)** (Export downloaded) and only exports what is already on your computer, so it never goes to YouTube; **Exportar todo…** still exports everything.
 - **Selection**: **Exportar** with several videos selected.
-- **Home**: **Exportar** next to the featured video.
 
 ## One file or a .zip
 

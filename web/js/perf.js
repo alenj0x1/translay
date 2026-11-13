@@ -1,5 +1,5 @@
 "use strict";
-// Preferencias → Rendimiento (vt/perf.py): tu equipo, el perfil, los límites y los avisos.
+// Ajustes → Rendimiento (vt/perf.py): tu equipo, el perfil, los límites y los avisos.
 // Usa lo global de app.js (send, prefs, toast, PREF_BLOCKS…).
 
 const perf = { data: null, minutes: 10, timer: null };

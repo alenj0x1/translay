@@ -60,8 +60,8 @@
 
 <!-- encabezado: el mismo en todas las vistas -->
 <header class="bar">
-  <button class="btn ghost icon side-btn" id="side-btn" type="button" data-icon="sidebar" title="Contraer la barra lateral" aria-label="Contraer la barra lateral"></button>
   <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>Translay</div>
+  <button class="btn ghost icon side-btn" id="side-btn" type="button" data-icon="sidebar" title="Contraer la barra lateral" aria-label="Contraer la barra lateral"></button>
   <div class="vault-wrap">
     <button class="btn vault-btn" id="vault-btn" type="button" aria-haspopup="true">Principal</button>
     <div class="popover vault-pop" id="vault-pop" hidden>
@@ -76,28 +76,24 @@
     <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
     <input id="lib-q" type="search" placeholder="Buscar videos y lo que se dice" spellcheck="false" aria-label="Buscar videos, colecciones y lo que se dice">
   </form>
-  <div class="status" id="status" data-state="off"><i></i><span>sin conexión</span></div>
+  <!-- estado: solo se ve sin conexión o con algo puntual (buscando un video); el resto va en la Cola -->
+  <div class="status" id="status" data-state="busy" data-base="1"><i></i><span>conectando</span></div>
+  <!-- las formas de agregar, a la vista: grabar (donde se puede) y agregar (enlace, archivos, varios enlaces) -->
+  <button class="btn" id="rec-btn" type="button" data-icon="record" title="Grabar una pestaña, una ventana o la pantalla" hidden>Grabar</button>
   <div class="import-wrap">
-    <!-- botón dividido: la acción (la que más usas, salvo que Preferencias diga «Siempre Agregar») y ▾ con todas -->
-    <div class="split" id="import-split">
-      <button class="btn dark" id="import-btn" type="button" data-icon="plus">Agregar</button>
-      <button class="btn dark icon split-more" id="import-pop-btn" type="button" data-icon="chevron" aria-haspopup="true"
-        aria-label="Todas las formas de agregar" title="Todas las formas de agregar"></button>
-    </div>
+    <button class="btn dark" id="import-btn" type="button" data-icon="plus" aria-haspopup="true" title="Agregar videos">Agregar</button>
     <div class="popover import-pop" id="import-pop" hidden>
       <form class="field" id="yt">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/></svg>
-        <input id="yt-url" type="text" placeholder="Pega un enlace de YouTube o Dropbox" spellcheck="false" aria-label="Enlace de YouTube o Dropbox">
-        <div class="split sm">
-          <button class="btn sm dark" id="import-go" type="submit" data-icon="plus" disabled>Agregar</button>
-          <button class="btn sm dark icon split-more" id="import-more" type="button" data-icon="chevron" aria-label="Más opciones de Agregar" title="Más opciones" disabled></button>
-        </div>
+        <input id="yt-url" type="text" placeholder="Enlace de YouTube o Dropbox" spellcheck="false" aria-label="Enlace de YouTube o Dropbox">
+        <button class="btn sm dark" id="import-go" type="submit" data-icon="plus">Agregar</button>
       </form>
-      <!-- las otras fuentes, como tarjetas -->
+      <!-- traducir o solo transcribir lo que se agregue (no aparece en «Transcribir y resumir») -->
+      <div class="import-task" id="import-task"></div>
       <div class="import-acts">
-        <label class="src-card" id="file-btn" title="Videos o audios de este equipo"><span class="src-ic" data-icon="folder"></span>Archivos<input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
-        <button class="src-card" id="cap-btn" type="button" title="Una pestaña, una ventana o la pantalla, traducida en vivo" hidden><span class="src-ic" data-icon="record"></span>Grabar pantalla</button>
-        <button class="src-card" id="multi-btn" type="button" title="Muchos enlaces a la vez, pegados o en un .csv"><span class="src-ic" data-icon="queue"></span>Varios enlaces</button>
+        <label class="src-row" id="file-btn"><span class="src-ic" data-icon="upload"></span><strong>Subir archivos</strong><small>videos o audios</small><input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
+        <button class="src-row" id="cap-btn" type="button" hidden><span class="src-ic" data-icon="record"></span><strong>Grabar pantalla</strong><small>una pestaña, una ventana o toda la pantalla, con su sonido</small></button>
+        <button class="src-row" id="multi-btn" type="button"><span class="src-ic" data-icon="queue"></span><strong>Varios enlaces</strong><small>listas y canales también</small></button>
       </div>
     </div>
   </div>
@@ -114,7 +110,7 @@
       <button class="btn xs ghost" id="queue-clear" type="button" data-icon="check" hidden>Limpiar terminados</button>
     </div>
   </div>
-  <button class="btn" id="prefs-btn" type="button" data-icon="sliders">Preferencias</button>
+  <button class="btn" id="prefs-btn" type="button" data-icon="gear">Ajustes</button>
   <button class="btn" id="login-btn" type="button" data-icon="user" hidden>Entrar</button>
   <button class="btn" id="view" type="button" data-icon="grid">Biblioteca</button>
 </header>
@@ -221,7 +217,7 @@
   <div class="prefs-body" id="prefs-body"></div>
 </section>
 
-<!-- cuenta e importar sesión de YouTube: se muestran dentro de la sección YouTube de Preferencias -->
+<!-- cuenta e importar sesión de YouTube: se muestran dentro de la sección YouTube de Ajustes -->
 <div id="stash" hidden><div class="pref yt-account" id="yt-account">
   <span class="pref-label">Cuenta de YouTube</span>
   <div class="pref-ctl">
@@ -434,5 +430,7 @@
 <script src="js/contextmenu.js"></script>
 <script src="js/capture.js"></script>
 <script>hydrateIcons();</script>
+<!-- al arrastrar archivos sobre la ventana -->
+<div class="drop-zone" id="drop-zone" hidden><div><span class="src-ic" data-icon="upload"></span><strong>Suelta para agregar</strong></div></div>
 </body>
 </html>

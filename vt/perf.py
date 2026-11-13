@@ -1,6 +1,6 @@
 """Rendimiento: el equipo, el perfil, los límites y cómo va ahora mismo.
 
-Preferencias → Rendimiento (web/js/perf.js) pide `perf_get` y cambia con `perf_set`.
+Ajustes → Rendimiento (web/js/perf.js) pide `perf_get` y cambia con `perf_set`.
 El perfil (vt/profiles.py) decide los modelos al arrancar: cambiarlo pide reiniciar el
 servidor (`server_restart`); los límites de RAM y CPU se aplican al momento (vt/limits.py).
 

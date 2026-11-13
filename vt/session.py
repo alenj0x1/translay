@@ -20,11 +20,11 @@ Cliente → servidor
    "video":"original"|"480p"|"360p", "layout":"flat"|"channel"|"collection"|"playlist"|"folder", "folder"}
                                                      exportar (vt/exporter.py). Desde este equipo, el dueño elige dónde
                                                      guardar en el cuadro de Windows, o va a la carpeta fija de
-                                                     Preferencias; si lo cancela, responde export_cancelled
+                                                     Ajustes; si lo cancela, responde export_cancelled
                                                      export_remove {job} · export_pick_folder · export_reveal {job}
   summarize {video, force?} · summary_cancel {video}   resumen del video (vt/summaries.py); el avance llega
                                                      como summary_state y el resultado como summary
-  storage_scan · storage_free {what, vault?, videos?, repo?}   Preferencias → Almacenamiento (vt/storage.py)
+  storage_scan · storage_free {what, vault?, videos?, repo?}   Ajustes → Almacenamiento (vt/storage.py)
   perf_plan {profile}                                qué modelos faltan para ese perfil (vt/modelset.py) · server_restart {prune?}
   comment_add / comment_edit / comment_delete {video, seg, id?, text}   comentarios por frase
   lib_delete {videos:[ids]} · lib_clear              videos o toda la biblioteca a la papelera (30 días)
@@ -66,7 +66,7 @@ from .vaults import VAULT_PREFS, RoutedStore
 
 # lo que solo hace el dueño; lo que además de ver puede hacer quien tiene "importar"
 OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "yt_disconnect", "queue_pause", "queue_resume", "queue_clear",
-              "queue_unblock", "queue_remove", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
+              "queue_unblock", "queue_remove", "queue_hold", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete",
               "export_pick_folder", "export_reveal"}
@@ -392,8 +392,9 @@ class Session:
                     # la voz que falte la completa la cola (vt/processor.py) al ver o
                     # procesar el video: hacerlo también aquí duplicaba el trabajo
             if self.tr is not None and self.st.ready():
-                if not self.st.language and self.tr.lang:
-                    self.st.language = self.tr.lang  # lo detectó la cola (o se eligió) mientras tanto
+                if self.tr.lang and self.st.language != self.tr.lang:
+                    # lo detectó la cola (o lo corrigió con el archivo completo, o se eligió) mientras tanto
+                    self.st.language = self.tr.lang
                 try:
                     await self._run(self.st.step)
                 except Exception:  # una falla no debe detener la sesión
@@ -459,7 +460,7 @@ class Session:
     async def _detected(self, tr: Transcript, ev: Detected):
         """Idioma detectado al reconocer en vivo: se guarda, decide el modo y avisa."""
         print(f"[vivo] {tr.data['id']}: idioma detectado {ev.lang} ({ev.prob:.2f})", flush=True)
-        tr.set_detected(ev.lang, self._own_lang())  # si la cola ya lo había detectado, queda el suyo
+        tr.set_detected(ev.lang, self._own_lang(), live=True, prob=ev.prob)  # si la cola ya lo había detectado, queda el suyo
         if self.tr is tr:
             self.st.language = tr.lang
         if self.processor:
@@ -480,7 +481,7 @@ class Session:
             await self.ws.send_json({"type": "update", "error": "No se pudo consultar GitHub. Revisa la conexión a internet."})
 
     def _own_lang(self) -> str | None:
-        """Idioma propio (Preferencias): lo que se habla en él solo se transcribe."""
+        """Idioma propio (Ajustes): lo que se habla en él solo se transcribe."""
         v = self.prefs.values.get("transcribe_lang", langs.TARGET) if self.prefs else langs.TARGET
         return v if langs.is_source(v) else None
 
@@ -709,7 +710,7 @@ class Session:
             for vid in ids:
                 lib.toggle(coll, vid, True)
         if self.processor and ids:
-            # "abrirlo": se descarga primero; «Solo descargar» (Preferencias): sin traducir
+            # "abrirlo": se descarga primero; «Solo descargar» (Ajustes): sin traducir
             dl_only = (mode == "descargar") if mode else self._download_only()  # mode: desde la API
             self.processor.add_many(ids, front=front, download_only=dl_only and not front,
                                     audio_only=self._audio_only())
@@ -724,6 +725,8 @@ class Session:
     def _import_lang(self, ids: list[str], known: set, lang: str, tmode: str = ""):
         """Idioma y modo elegidos al importar: para lo nuevo; lo que ya estaba conserva lo que
         se cambió a mano, salvo que se pida un idioma o un modo concreto."""
+        if not tmode and self.prefs and not self.prefs.translating:
+            tmode = "transcribe"  # solo transcribir (Ajustes › Uso): lo nuevo no se pone a traducir al volver
         for vid in ids:
             if vid not in known or langs.is_source(lang) or tmode:
                 self._set_lang(vid, lang, tmode)
@@ -802,7 +805,7 @@ class Session:
         if m["type"] == "export_pick_folder":  # el cuadro nativo de Windows, en este equipo
             if not self.access.local:
                 return
-            # la carpeta fija de Preferencias › Exportar (desde ahí o el diálogo de exportar)
+            # la carpeta fija de Ajustes › Exportar (desde ahí o el diálogo de exportar)
             p = self.prefs.values
             path = await asyncio.get_running_loop().run_in_executor(
                 None, pick_folder, "Dónde guardar lo exportado", p.get("export_dir") or p.get("export_last_dir") or "")
@@ -824,7 +827,7 @@ class Session:
             vids = [str(v) for v in m.get("videos", [])
                     if (o := self.vaults.of(str(v))) is not None and self.access.can_view(o.id)]
             # desde este mismo equipo (el dueño) se guarda en una carpeta: la que elige en «Guardar como»
-            # (empieza en la última que usó) o la fija de Preferencias › Exportar; desde otro equipo, el
+            # (empieza en la última que usó) o la fija de Ajustes › Exportar; desde otro equipo, el
             # resultado se descarga con el navegador
             loop = asyncio.get_running_loop()
             kinds, name, audio = list(m.get("kinds", [])), str(m.get("name", ""))[:120], str(m.get("audio") or "m4a")
@@ -1223,6 +1226,8 @@ class Session:
             self.processor.add_many([vid], front=bool(m.get("front")), download_only=bool(m.get("download_only")))
         elif kind == "queue_remove":
             self.processor.remove(vid)
+        elif kind == "queue_hold":  # detener o reanudar un solo video de la cola
+            self.processor.set_held(vid, bool(m.get("held")))
         elif kind == "queue_pause":
             self.processor.set_paused(True)
             # pausada y sin ningún video viéndose: reposo profundo inmediato
@@ -1285,7 +1290,7 @@ class Session:
 
     # ------------------------------------------------------- administración
     async def _admin(self, m: dict):
-        """Acceso, claves de API, webhooks y red: Preferencias → Acceso y API (solo el dueño)."""
+        """Acceso, claves de API, webhooks y red: Ajustes → Acceso y API (solo el dueño)."""
         a, t = self.admin, m["type"]
         if a is None:
             return

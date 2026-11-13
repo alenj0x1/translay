@@ -31,7 +31,10 @@
 .qbody strong { font: 700 var(--fs-sm)/1.3 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qbody small { display: flex; align-items: center; gap: 6px; min-width: 0; font: 600 var(--fs-xs)/1.3 var(--font); color: var(--fg-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qbody strong.open { cursor: pointer; }
+.qbody strong.open:hover { color: var(--accent); }
 .qbody .meter { height: 3px; }
+.qitem.held .meter > i { background: var(--fg-faint); }
 .qactions { display: flex; align-items: center; gap: 2px; }
 /* en el panel, las acciones son íconos (su nombre al pasar el mouse) */
 .queue-pop .qactions .btn { width: var(--h-xs); padding: 0; background: transparent; color: var(--fg-muted); }
@@ -52,7 +55,7 @@
 }
 
 /* ------------------------------------------------------------ importar (encabezado) */
-.import-pop { width: 480px; display: grid; gap: var(--s2); padding: var(--s3); }
+.import-pop { width: 440px; display: grid; gap: var(--s3); padding: var(--s3); }
 .import-pop .field { width: 100%; }
 
 @media (max-width: 760px) { .import-pop { width: auto; } }

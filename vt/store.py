@@ -65,7 +65,8 @@ class Transcript:
     def translates(self) -> bool:
         """¿Se traduce y dobla? No si la persona eligió solo transcribir, si ya está en el
         idioma de destino o si es un idioma que todavía no se traduce."""
-        return self.mode == "translate" and self.lang != langs.TARGET and langs.is_source(self.lang)
+        return (self.mode == "translate" and self.lang != langs.TARGET and langs.is_source(self.lang)
+                and TRANSLATION())
 
     @property
     def transcribe_only(self) -> bool:
@@ -83,6 +84,7 @@ class Transcript:
             if ok and lang != self.lang:  # detectando, lang es ""
                 if not detected:
                     self.data.update(segments=[], covered=[], comments={})
+                    self.data.pop("detected", None)  # lo eligió la persona: no se vuelve a revisar
                 self.data.update(lang=lang)
                 self.data.pop("detect", None)
                 changed = True
@@ -91,18 +93,42 @@ class Transcript:
                 changed = True
         return changed
 
-    def set_detected(self, code: str, own: str | None = None) -> bool:
+    def set_detected(self, code: str, own: str | None = None, live: bool = False, prob: float | None = None) -> bool:
         """Idioma que detectó Whisper. Si la persona no eligió el modo, lo que está en su
-        idioma (`own`, de Preferencias) solo se transcribe. True si cambió algo.
+        idioma (`own`, de Ajustes) solo se transcribe. True si cambió algo.
         Solo vale mientras se detecta: la cola y una pestaña pueden detectar a la vez y la
         segunda no debe cambiar un idioma ya decidido."""
         if not self.detecting:
             return False
         changed = self.set_lang(code, detected=True)
+        if not TRANSLATION() and "mode" not in self.data:
+            self.data["mode"] = "transcribe"  # agregado al solo transcribir: no se pone a traducir al volver
+            changed = True
+        if changed and live:
+            # en vivo se decide con pocos segundos: la cola lo confirma con todo el archivo (Processor._verify_lang)
+            self.data["detected"] = {"by": "vivo", "prob": round(float(prob or 0), 3)}
         if code == own and "mode" not in self.data:
             self.data["mode"] = "transcribe"
+            self.data["mode_auto"] = True  # por el idioma, no elegido: si el idioma cambia, se vuelve a decidir
             changed = True
         return changed
+
+    @property
+    def lang_unconfirmed(self) -> bool:
+        """¿El idioma salió de unos segundos en vivo y aún no se confirmó con el archivo completo?"""
+        return (self.data.get("detected") or {}).get("by") == "vivo"
+
+    def redetect(self, code: str) -> bool:
+        """La cola, con el archivo completo, encontró otro idioma que el detectado en vivo: lo
+        reconocido no sirve (se borra) y se rehace en el correcto. True si cambió."""
+        with self._lock:
+            self.data.pop("detected", None)
+            if code == self.lang or not _LANG_CODE.fullmatch(code or ""):
+                return False
+            self.data.update(lang=code, segments=[], covered=[], comments={})
+            if self.data.pop("mode_auto", None):
+                self.data.pop("mode", None)  # el modo lo había decidido el idioma equivocado
+            return True
 
     def set_mode(self, mode: str) -> bool:
         """Traducir o solo transcribir. No borra nada: lo reconocido sirve en los dos modos."""
@@ -110,6 +136,7 @@ class Transcript:
             return False
         with self._lock:
             self.data["mode"] = mode
+            self.data.pop("mode_auto", None)
         return True
 
     @property
@@ -197,6 +224,11 @@ class Transcript:
             self.comments[key] = items
         else:
             self.comments.pop(key, None)
+
+
+# ¿La app traduce? (Ajustes › Uso; vt/app.py lo conecta a la preferencia). Con «Transcribir y resumir»,
+# ningún video se traduce ni dobla, aunque lo tuviera elegido: lo hecho se conserva y sigue al volver.
+TRANSLATION = lambda: True  # noqa: E731
 
 
 class Store:

@@ -1,20 +1,24 @@
 ---
-title: Preferencias
-description: Qué se configura en cada sección de Preferencias y dónde se guarda.
+title: Ajustes
+description: Qué se configura en cada sección de Ajustes y dónde se guarda.
 sidebar:
   order: 8
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-«Preferencias», en el encabezado, abre una pantalla propia: las secciones a la izquierda y, a la derecha, la página de la sección elegida, con sus opciones agrupadas y una descripción de cada una. Las de sí o no son interruptores; las demás, botones para elegir una opción. Los cambios se aplican al instante, sin botón de guardar. Al tocar «Preferencias» de nuevo vuelves al video o a la biblioteca.
+«Ajustes», en el encabezado, abre una pantalla propia: las secciones a la izquierda y, a la derecha, la página de la sección elegida, con sus opciones agrupadas y una descripción de cada una. Las de sí o no son interruptores; las demás, botones para elegir una opción. Los cambios se aplican al instante, sin botón de guardar. Al tocar «Ajustes» de nuevo vuelves al video o a la biblioteca.
 
 Se guardan en el servidor (`data/prefs.json`) y valen para todas las pestañas y equipos. Algunas son propias de cada biblioteca y se guardan en ella (ver [Bibliotecas](../libraries/#qué-guarda-cada-una)). Solo el dueño puede cambiarlas.
 
 La tabla completa, con cada opción y su valor por defecto, está en la [referencia de preferencias](../../reference/preferences/).
 
-![Preferencias, página Audio y subtítulos](../../../../assets/capturas/preferencias.webp)
+![Ajustes, página Audio y subtítulos](../../../../assets/capturas/preferencias.webp)
 
+
+## Uso
+
+**Uso**, la primera página: **Usar Translay para** **Traducir y doblar** (por defecto) o **Transcribir y resumir**. El segundo es un modo para grabar y guardar videos y usar su transcripción y sus resúmenes: no aparece nada de traducción ni de voz (el cambio de audio, la vista dividida, los subtítulos y la voz en español, la página Glosario, «Traducir y doblar» en los menús y en el panel Agregar, y lo traducido al exportar), «Audio y subtítulos» pasa a «Subtítulos» y el servidor no carga el traductor ni la voz. Cada video se transcribe en el idioma en que se habla (uno en inglés queda en inglés; su resumen sale en español). Lo ya traducido se conserva, y lo que agregues en este modo queda como «solo transcribir», así volver a «Traducir y doblar» no se pone a traducir todo de golpe.
 ## Bibliotecas
 
 Tus bibliotecas como tarjetas, con su carpeta: abrirlas, editarlas, cambiarles el patrón, quitarlas de la lista o eliminarlas. «Abrir carpeta» agrega una carpeta que ya es biblioteca. Todo esto se explica en [Bibliotecas](../libraries/).
@@ -33,7 +37,7 @@ Con qué audio empieza cada video (en español u original; luego se cambia sobre
 
 ## Agregar y descargar
 
-Qué se hace con lo que agregas (descargar y traducir, o solo descargar), qué hace el botón «Agregar» del encabezado («Botón Agregar»: «Lo que más usas» o «Siempre «Agregar»»), qué idioma solo se transcribe al detectarlo («Solo transcribir lo que está en»: español, si no lo cambias, inglés, portugués o ninguno), qué se descarga (video y audio, o solo el audio), en qué orden se bajan las descargas (el de la cola o aleatorio), los avisos del navegador y si los canales aparecen en la barra lateral de la biblioteca. «Al agregar» y «Qué descargar» son propias de cada biblioteca. Detalle en [Agregar videos](../import/#solo-descargar-o-traducir), [Agregar videos › El botón «Agregar»](../import/#el-botón-agregar), [Agregar videos › Idioma](../import/#idioma-y-solo-transcribir) y [Cola](../queue/#descargas).
+Qué se hace con lo que agregas (descargar y traducir, o solo descargar), qué idioma solo se transcribe al detectarlo («Solo transcribir lo que está en»: español, si no lo cambias, inglés, portugués o ninguno), qué se descarga (video y audio, o solo el audio), en qué orden se bajan las descargas (el de la cola o aleatorio), los avisos del navegador y si los canales aparecen en la barra lateral de la biblioteca. «Al agregar» y «Qué descargar» son propias de cada biblioteca. Detalle en [Agregar videos](../import/#solo-descargar-o-traducir), [Agregar videos › «Grabar» y «Agregar»](../import/#grabar-y-agregar), [Agregar videos › Idioma](../import/#idioma-y-solo-transcribir) y [Cola](../queue/#descargas).
 
 ## Resumen
 

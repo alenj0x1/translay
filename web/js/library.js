@@ -235,6 +235,8 @@ function renderLibrary() {
   if (currentView() !== "library") return;
   if (typeof syncRoute === "function") syncRoute();
   lib.shelfSig = shelfSignature();
+  // con la caja de agregar a la vista, el «Agregar» del encabezado no es otro botón principal
+  document.body.classList.toggle("home-box", lib.sel === "home" && !lib.search);
   renderSidebar();
   if (!lib.loaded) return renderSkeleton();  // aún sin datos: la forma de la página, no «Traduce tu primer video»
   renderShelf();
@@ -264,7 +266,7 @@ function renderSidebar() {
   const groups = [["auto", null], ["propia", "Colecciones"], ["playlist", "Playlists"], ["canal", "Canales"],
     ["categoría", "Categorías"]];
   for (const [kind, label] of groups) {
-    if (kind === "canal" && prefs.lib_channels === false) continue;  // Preferencias → Biblioteca
+    if (kind === "canal" && prefs.lib_channels === false) continue;  // Ajustes → Biblioteca
     const items = lib.collections.filter((c) => c.kind === kind);
     if (label && (items.length || kind === "propia")) {
       nav.append(kind === "propia"
@@ -312,7 +314,7 @@ function renderShelf() {
   grid.classList.remove("results");
   grid.replaceChildren();
   if (!Object.keys(lib.videos).length) {  // biblioteca vacía: empezar aquí mismo
-    grid.append(welcome());
+    grid.append(addBox(true));
     return;
   }
   grid.classList.toggle("picking", lib.picked.size > 0);
@@ -448,18 +450,25 @@ function openPicked(c) {
   playItem(ids[0]);
 }
 
-function welcome() {
-  const input = el("input", { type: "text", placeholder: "Enlace de YouTube o Dropbox", spellcheck: "false" });
-  const file = el("input", { type: "file", accept: "video/*,audio/*", multiple: true, hidden: true,
-    on: { change: (e) => { openFiles([...e.target.files]); e.target.value = ""; } } });
+// Agregar desde la página: el campo del enlace y, a la vista, subir, grabar y varios enlaces.
+// Grande, con su título, arriba del inicio (con o sin videos); compacta donde haga falta.
+function addBox(big, more = false) {
+  const input = el("input", { type: "text", spellcheck: "false", "aria-label": "Enlace de YouTube o Dropbox",
+    placeholder: "Enlace de YouTube o Dropbox" });
+  const file = el("input", { type: "file", accept: "video/*,audio/*,.csv,text/csv", multiple: true, hidden: true,
+    on: { change: (e) => { $("#file").files = e.target.files; $("#file").dispatchEvent(new Event("change")); e.target.value = ""; } } });
+  const form = el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (addFromText(input.value.trim())) input.value = ""; } } },
+    icon("link"), input, btn("Agregar", { icon: "plus", variant: "dark", type: "submit" }));
+  const acts = el("div", { class: "add-acts" },
+    el("label", { class: "btn sm" + (big ? "" : " ghost"), title: "Videos o audios de este equipo" }, icon("upload"), el("span", { class: "btn-text", text: "Subir archivos" }), file),
+    canCapture() ? btn("Grabar pantalla", { icon: "record", variant: big ? "" : "ghost", title: "Una pestaña, una ventana o toda la pantalla, con su sonido", onClick: openCapture }) : null,
+    btn("Varios enlaces", { icon: "queue", variant: big ? "" : "ghost", title: "Listas y canales también", onClick: () => openMulti("") }));
+  if (!big) return el("div", { class: "addbar" }, form, acts);
   return el("div", { class: "welcome" },
-    patternEl("translay", "welcome-band", 24, 2),
-    el("h2", { text: "Traduce tu primer video" }),
-    el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (!openYouTube(input.value.trim())) importTask = ""; } } },
-      icon("link"), input, el("div", { class: "split sm" }, btn("Agregar", { icon: "plus", variant: "dark", type: "submit" }),
-        btn("Más opciones de Agregar", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
-          onClick: (e) => { e.stopPropagation(); importMenu(e.currentTarget, e.currentTarget.closest("form")); } }))),
-    el("label", { class: "btn", "data-icon": "upload" }, icon("upload"), document.createTextNode("Agregar archivos"), file),
+    // el título sigue a lo que se va a hacer (el modo de la app o «Solo transcribir» elegido aquí)
+    el("h2", { text: transcribeMode() || importTask === "transcribe" ? (more ? "Transcribe un video" : "Transcribe tu primer video")
+      : (more ? "Traduce un video" : "Traduce tu primer video") }),
+    form, importTaskSegs(), acts,
     el("small", { text: "o arrastra un video aquí" }));
 }
 
@@ -510,8 +519,6 @@ function card(v, coll, i) {
   const acts = [
     // «Ver» primero; luego lo que se puede hacer según su estado; a la derecha, exportar
     canOpen ? (canDownload(v) ? watchSplit(v, open) : btn(v.position > 5 ? "Continuar" : "Ver", { icon: "play", variant: "dark", onClick: open })) : null,
-    job && job.state === "en cola" && !job.prio ? btn("Priorizar", { icon: "up", variant: "ghost", cls: "import-only", title: "Procesar esto antes que lo demás",
-      onClick: () => send({ type: "queue_add", video: v.id, front: true }) }) : null,
     canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", cls: "import-only", title: "Traducir y doblar en segundo plano",
       onClick: () => send({ type: "queue_add", video: v.id }) }) : null,
     v.audio_only && isRemote(v) ? btn(fetchLabel(job) || "Bajar video", { icon: "film", variant: "ghost", cls: "import-only act-fetch",
@@ -522,7 +529,7 @@ function card(v, coll, i) {
     coll.kind === "propia" ? btn("Quitar de la colección", { icon: "x", variant: "ghost", cls: "owner-only icon",
       title: "Quitar de la colección", onClick: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) }) : null,
     btn("Exportar", { icon: "download", variant: "ghost", cls: "icon", title: "Exportar (video, audio, subtítulos…)", onClick: () => openExport([v.id]) }),
-  ].filter(Boolean);
+  ].flat().filter(Boolean);
   return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") + (pending ? " pending" : ""),
     "data-id": v.id, "data-coll": coll.id }, thumb,
     el("div", { class: "meta" }, el("h3", { class: canOpen ? "open" : "", text: v.title || v.id, on: { click: open } }), el("p", { text: sub })),
@@ -537,17 +544,11 @@ function downloadOnly(v) {
   send({ type: "queue_add", video: v.id, front: true, download_only: true });
   toast("Se descarga primero; queda en la biblioteca sin abrirse.", "ok");
 }
-// «Ver ▾»: ver (se abre al terminar de bajarse) o solo descargarlo
+// «Ver» (se abre al terminar de bajarse) y, al lado, descargarlo sin abrirlo
 function watchSplit(v, open) {
-  const more = btn("Más opciones de Ver", { icon: "chevron", variant: "dark", cls: "icon split-more", title: "Más opciones",
-    onClick: (e) => {
-      e.stopPropagation();
-      openMenu([
-        { label: "Ver", icon: "play", onClick: open },
-        { label: "Descargar sin abrir", icon: "download", onClick: () => downloadOnly(v) },
-      ], more.getBoundingClientRect());
-    } });
-  return el("div", { class: "split" }, btn("Ver", { icon: "play", variant: "dark", onClick: open }), more);
+  return [btn("Ver", { icon: "play", variant: "dark", onClick: open }),
+    btn("Descargar sin abrir", { icon: "download", variant: "ghost", cls: "icon", title: "Descargar sin abrir",
+      onClick: () => downloadOnly(v) })];
 }
 
 function playDisc(dl) {
@@ -670,7 +671,7 @@ function renderUpNext(scroll) {
 }
 
 function playNextInContext() {
-  if (!lib.ctx || prefs.autoplay_next === false) return;  // Preferencias → Video
+  if (!lib.ctx || prefs.autoplay_next === false) return;  // Ajustes → Video
   const items = contextItems();
   const i = items.indexOf(state.videoId);
   if (i >= 0 && i + 1 < items.length) playItem(items[i + 1]);
@@ -751,17 +752,19 @@ function renderQueuePanel() {
   const badge = $("#queue-badge");
   badge.textContent = String(active.length + nDown + nExp);
   badge.hidden = !(active.length + nDown + nExp);
-  $("#queue-btn").classList.toggle("busy", nDown > 0 || nExp > 0 || q.jobs.some((j) => j.state === "procesando" || j.dl));
+  $("#queue-btn").classList.toggle("busy", nDown > 0 || nExp > 0 || state.power === "cargando"
+    || q.jobs.some((j) => j.state === "procesando" || j.dl));
   const running = q.jobs.find((j) => j.state === "procesando");
   const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
   const downloading = q.jobs.find((j) => j.dl);
-  $("#queue-state").textContent = cap(blocked ? `descargas en pausa · YouTube pidió verificación · ${blocked} min`
+  $("#queue-state").textContent = cap(blocked ? `descargas en espera · YouTube pidió verificación · ${blocked} min`
     : q.paused
-    ? (running && running.watching ? "procesamiento en pausa · sigue el video que ves"
-      : downloading ? "procesamiento en pausa · descargando" : "procesamiento en pausa · reposo")
+    ? (running && running.watching ? "cola detenida · sigue el video que ves" : "cola detenida")
     : running ? "procesando" : downloading ? (q.careful ? "descargando · modo cuidadoso" : "descargando")
-    : active.length ? "en espera" : "sin trabajos · reposo");
-  setBtn($("#queue-toggle"), q.paused ? "Reanudar" : "Pausar", q.paused ? "play" : "pause");
+    : state.power === "cargando" ? "preparando los modelos"
+    : active.length ? "en espera" : "sin trabajos");
+  setBtn($("#queue-toggle"), q.paused ? "Continuar todo" : "Detener todo", q.paused ? "resume" : "stop");
+  $("#queue-toggle").title = q.paused ? "Seguir descargando y procesando la cola" : "Detener las descargas y el procesamiento de la cola";
   $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error" || j.state === "descargado")
     && !lib.exports.some((x) => x.state === "listo" || x.state === "error");
   const ul = $("#queue-list");
@@ -805,7 +808,7 @@ const jobKind = (j) => (j.dl ? "descargando" : j.fetch_video ? "en cola" : j.sta
 function orderedJobs(kind = null, base = null) {
   const q = base || queueJobs();
   const list = kind ? q.filter((j) => jobKind(j) === kind) : q.slice();
-  // estable: dentro de cada estado se respeta el orden de la cola (lo priorizado ya va primero)
+  // estable: dentro de cada estado se respeta el orden de la cola (lo que se hace primero ya va adelante)
   return list.map((j, i) => [j, i]).sort((a, b) => (JOB_ORDER[jobKind(a[0])] ?? 9) - (JOB_ORDER[jobKind(b[0])] ?? 9) || a[1] - b[1])
     .map(([j]) => j);
 }
@@ -814,51 +817,64 @@ function jobLabel(j, v) {
   const q = lib.queue;
   const dl = !j.downloaded && j.state !== "listo" && j.state !== "error";
   const pct = dl ? (j.dl?.pct || 0) : Math.round(j.dub * 100);
-  const label = j.fetch_video && !j.dl ? (q.blocked_until ? "video en espera · descargas en pausa" : "en espera para bajar el video")
+  const label = j.held && !j.watching && j.state !== "listo" && j.state !== "error" ? `detenido${pct ? ` · ${pct} %` : ""}`
+    : j.fetch_video && !j.dl ? (q.blocked_until ? "video en espera · YouTube pidió verificación" : "en espera para bajar el video")
     : j.state === "listo" ? "listo"
     : j.state === "error" ? "error"
-    : j.state === "descargado" ? "descargado · sin traducir"
+    : j.state === "descargado" ? (transcribeMode() ? "descargado · sin transcribir" : "descargado · sin traducir")
     : j.dl ? dlText(j.dl)
     : dl && j.retry_at ? "falló la descarga · se reintenta en unos minutos"
-    : dl && q.blocked_until ? "esperando · descargas en pausa"
+    : dl && q.blocked_until ? "en espera · YouTube pidió verificación"
     : dl ? pendingText(v) || "sin descargar"
-    : j.state === "procesando" ? (j.watching ? `viendo · ${pct} %` : `procesando · ${pct} %`)
-    : q.paused && !j.watching ? "en pausa" : j.prio ? "siguiente · con prioridad" : "en espera";
+    : j.state === "procesando" ? `procesando · ${pct} %`
+    : j.prio ? "es el siguiente" : "en espera";
   return { pct, text: cap(j.error || label) };
 }
 
+// ¿Se puede detener o hacer primero? (lo terminado o solo descargado ya no está en curso)
+const jobActive = (j) => j.state === "en cola" || j.state === "procesando" || !!j.dl || !!j.fetch_video;
+
+// Abrir el video de un trabajo (desde su título o el clic derecho)
+function openJob(j, v) {
+  closeQueue();
+  if (j.lib && j.lib !== vaults.current) return playAcross(v.id, j.lib);  // de otra biblioteca
+  const pl = playlistOf(j.id);
+  if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
+  playItem(v.id);
+}
+
+// Acciones de la cola sobre un video: detener o seguir, hacer primero y quitar. Ver el video no va como botón
+// (reproducir junto a «en espera» se confundía con reanudar la cola): se abre desde su título.
 function jobItem(j) {
   const v = videoInfo(j.id) || { id: j.id, title: j.id };
   const { pct, text } = jobLabel(j, v);
-  const pl = playlistOf(j.id);
   // de otra biblioteca: se nota con su insignia
   const away = j.lib && j.lib !== vaults.current ? vaultById(j.lib) : null;
-  return el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : ""), "data-id": j.id },
+  const canOpen = !!v.media || isRemote(v);
+  return el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : "") + (j.held ? " held" : ""), "data-id": j.id },
     el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
     el("div", { class: "qbody" },
-      el("strong", { text: v.title || j.id }),
+      el("strong", { text: v.title || j.id, class: canOpen ? "open" : "", title: canOpen ? "Abrir el video" : null,
+        on: canOpen ? { click: () => openJob(j, v) } : {} }),
       meter(pct),
       el("small", {}, away ? vaultBadge(away, "xs") : null, away ? `${away.name} · ${text}` : text)),
     el("div", { class: "qactions" },
-      btn("Ver", { icon: "play", size: "xs", title: "Ver", disabled: !v.media && !isRemote(v),
-        onClick: () => {
-          closeQueue();
-          if (away) return playAcross(v.id, away.id);
-          if (pl) setContext({ name: pl.name, coll: pl.id, auto: true });
-          playItem(v.id);
-        } }),
       j.state === "descargado" ? btn("Procesar", { icon: "spark", size: "xs", cls: "import-only", title: "Traducir y doblar",
         onClick: () => send({ type: "queue_add", video: j.id }) }) : null,
-      j.state === "en cola" && !j.prio ? btn("Priorizar", { icon: "up", size: "xs", cls: "import-only", title: "Procesar esto antes que lo demás",
-        onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
-      btn("Quitar de la cola", { icon: "x", variant: "ghost", size: "xs", cls: "owner-only", title: "Quitar de la cola", onClick: () => send({ type: "queue_remove", video: j.id }) })));
+      jobActive(j) && !j.watching ? btn(j.held ? "Continuar" : "Detener", { icon: j.held ? "resume" : "stop", size: "xs", cls: "owner-only",
+        title: j.held ? "Seguir descargando y procesando este video" : "Detener la descarga y el procesamiento de este video",
+        onClick: () => send({ type: "queue_hold", video: j.id, held: !j.held }) }) : null,
+      j.state === "en cola" && !j.prio && !j.watching ? btn("Hacer primero", { icon: "first", size: "xs", cls: "import-only",
+        title: "Pasar este video al primer lugar de la cola", onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
+      btn("Quitar de la cola", { icon: "x", variant: "ghost", size: "xs", cls: "owner-only", title: "Quitar de la cola",
+        onClick: () => send({ type: "queue_remove", video: j.id }) })));
 }
 
 /* ------------------------------------------------------------ pantalla de la Cola */
 // Como la página de descargas del navegador: estados a la izquierda (con su cantidad)
 // y la lista a la derecha, de a 100. El avance se actualiza en su lugar (sin perder clics).
 const QSECTIONS = [["todo", "Todo"], ["descargando", "Descargando"], ["procesando", "Procesando"],
-  ["en cola", "En cola"], ["descargado", "Descargados sin traducir"], ["error", "Con error"], ["listo", "Listos"]];
+  ["en cola", "En cola"], ["descargado", "Descargados sin procesar"], ["error", "Con error"], ["listo", "Listos"]];
 lib.qsec = "todo";
 lib.qlimit = 100;
 
@@ -904,7 +920,8 @@ function renderQueueScreen() {
       el("h2", { text: title }),
       el("span", { class: "label", text: $("#queue-state").textContent }),
       el("div", { class: "acts owner-only" },
-        btn(q.paused ? "Reanudar procesamiento" : "Pausar procesamiento", { icon: q.paused ? "play" : "pause",
+        btn(q.paused ? "Continuar todo" : "Detener todo", { icon: q.paused ? "resume" : "stop",
+          title: q.paused ? "Seguir descargando y procesando la cola" : "Detener las descargas y el procesamiento de la cola",
           onClick: () => send({ type: q.paused ? "queue_resume" : "queue_pause" }) }),
         blocked ? btn("Reintentar descargas", { icon: "download", onClick: () => send({ type: "queue_unblock" }) }) : null,
         counts.listo + counts.error + counts.descargado ? btn("Limpiar terminados", { icon: "check", variant: "ghost",
@@ -921,7 +938,7 @@ function renderQueueScreen() {
   }
   const jobs = orderedJobs(lib.qsec === "todo" ? null : lib.qsec);
   const shown = jobs.slice(0, lib.qlimit);
-  const sig = lib.qsec + ":" + shown.map((j) => j.id + jobKind(j) + (j.prio ? "p" : "")).join("|");
+  const sig = lib.qsec + ":" + shown.map((j) => j.id + jobKind(j) + (j.prio ? "p" : "") + (j.held ? "h" : "") + (j.watching ? "w" : "")).join("|");
   if (ul.dataset.sig === sig) {  // misma lista: solo el avance y el texto, en su lugar
     for (const li of ul.querySelectorAll(".qitem[data-id]")) {
       const j = lib.queue.jobs.find((x) => x.id === li.dataset.id);
@@ -1033,7 +1050,7 @@ function syncExportOpts() {
   seg("#export-video", "v", exportVideoQ);
   for (const s of $("#export-form").querySelectorAll(".audio-fmt")) s.textContent = exportAudio === "opus" ? "Opus" : exportAudio.toUpperCase();
   const folder = $("#export-dest-folder");
-  // la carpeta fija (Preferencias › Exportar): sus dos últimas partes (la ruta entera al pasar el mouse)
+  // la carpeta fija (Ajustes › Exportar): sus dos últimas partes (la ruta entera al pasar el mouse)
   const dir = prefs.export_dir || "";
   setBtn(folder, dir ? shortPath(dir) : "Elegir carpeta", "folder");
   folder.title = dir;
@@ -1065,7 +1082,7 @@ $("#export-video").addEventListener("click", (e) => {
 $("#export-dest").addEventListener("click", (e) => {
   const b = e.target.closest(".seg");
   if (!b) return;
-  // «Elegir carpeta» (o la ya elegida, otra vez): el cuadro de Windows; el servidor la guarda en Preferencias
+  // «Elegir carpeta» (o la ya elegida, otra vez): el cuadro de Windows; el servidor la guarda en Ajustes
   if (b.dataset.dest === "folder" && (!prefs.export_dir || prefs.export_ask === "carpeta")) return send({ type: "export_pick_folder" });
   setPref("export_ask", b.dataset.dest === "folder" ? "carpeta" : "preguntar");
   syncExportOpts();

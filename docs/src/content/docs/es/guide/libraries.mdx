@@ -9,7 +9,7 @@ import { Aside } from "@astrojs/starlight/components";
 
 Una biblioteca es una carpeta con todo lo suyo, como las bóvedas de Obsidian. Puedes tener una para documentales y otra para charlas, cada una en otro disco si quieres, y pasar de una a otra desde el encabezado.
 
-![Pantalla Bibliotecas con Ciencia, Espacio y Océanos, cada una con su banner Bauhaus](../../../../assets/capturas/bibliotecas.webp)
+![Pantalla Bibliotecas con Ciencia, Espacio y Océanos, cada una con su banner](../../../../assets/capturas/bibliotecas.webp)
 
 ## Qué guarda cada una
 
@@ -25,7 +25,7 @@ Dentro de la carpeta de una biblioteca:
 | `audio/` y `voices/` | La voz en español de cada frase y las voces de referencia de cada persona. |
 | `people/` | Las personas guardadas para usar su voz en otros videos (ver [Personas](../transcript-and-people/#personas-guardadas)). |
 
-Tres preferencias también son propias de cada biblioteca: **Modo** (claro, oscuro o según el sistema), **Al agregar** y **Qué descargar**. Una biblioteca nueva empieza con los valores de la que estaba abierta. Cuando tienes más de una biblioteca, las secciones de Preferencias que las incluyen lo indican con «Se guarda en» y el nombre de la biblioteca abierta.
+Tres preferencias también son propias de cada biblioteca: **Modo** (claro, oscuro o según el sistema), **Al agregar** y **Qué descargar**. Una biblioteca nueva empieza con los valores de la que estaba abierta. Cuando tienes más de una biblioteca, las secciones de Ajustes que las incluyen lo indican con «Se guarda en» y el nombre de la biblioteca abierta.
 
 Lo demás es común a todas y queda en `data/`: la cola, la sesión de YouTube (`cookies.txt` y la cuenta conectada en `yt-session/`), las preferencias generales y la lista de bibliotecas (`data/libraries.json`). El detalle está en [Datos en disco](../../how-it-works/data/).
 
@@ -50,7 +50,7 @@ Arriba se ve una vista previa del banner. «Al azar» elige color, ícono y patr
 
 Cada biblioteca tiene un banner con su patrón geométrico, usando su color como principal, y un distintivo con su ícono. «Otro patrón», en el diálogo o en el menú de su tarjeta, cambia el patrón y lo guarda en el servidor, así que se ve igual en todos los navegadores.
 
-Con Preferencias › Apariencia › «Color de cada biblioteca», los botones, el avance y la reproducción usan el color de la biblioteca abierta en vez del color de énfasis (Preferencias › Apariencia › «Color de énfasis»).
+Con Ajustes › Apariencia › «Color de cada biblioteca», los botones, el avance y la reproducción usan el color de la biblioteca abierta en vez del color de énfasis (Ajustes › Apariencia › «Color de énfasis»).
 
 ## Pantalla «Bibliotecas»
 
@@ -62,7 +62,7 @@ Con Preferencias › Apariencia › «Color de cada biblioteca», los botones, e
 - **Vaciar…**: manda todos sus videos y colecciones a la [papelera](../trash/). Pide escribir el nombre de la biblioteca.
 - **Eliminar**: manda la biblioteca entera (solo lo que es suyo: los archivos y carpetas de la tabla de arriba) a la papelera de Principal, desde donde se puede devolver durante 30 días. También pide escribir su nombre.
 
-En la cabecera están «Abrir carpeta», para agregar una carpeta que ya es biblioteca (de un disco externo u otro equipo), y «Administrar», que lleva a Preferencias › Bibliotecas, donde se ve además la ruta de cada una.
+En la cabecera están «Abrir carpeta», para agregar una carpeta que ya es biblioteca (de un disco externo u otro equipo), y «Administrar», que lleva a Ajustes › Bibliotecas, donde se ve además la ruta de cada una.
 
 ## Mover videos
 
@@ -76,7 +76,7 @@ La cola es una sola para todas (una GPU, un orden), pero el panel «Cola» y su 
 
 ## Enlace directo
 
-Cada biblioteca tiene su dirección: `http://127.0.0.1:8765/b/<id>` abre la app directo en ella. Para quien entra desde otro equipo como invitado, es la única biblioteca que ve. El enlace para compartir aparece en Preferencias › Acceso y API cuando la biblioteca es pública o tiene contraseña. Ver [Acceso](../../integrations/access/).
+Cada biblioteca tiene su dirección: `http://127.0.0.1:8765/b/<id>` abre la app directo en ella. Para quien entra desde otro equipo como invitado, es la única biblioteca que ve. El enlace para compartir aparece en Ajustes › Acceso y API cuando la biblioteca es pública o tiene contraseña. Ver [Acceso](../../integrations/access/).
 
 <Aside>
 El código de las bibliotecas está en `vt/vaults.py` (servidor) y `web/js/vaults.js` (interfaz).

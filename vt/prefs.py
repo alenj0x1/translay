@@ -1,4 +1,4 @@
-"""Preferencias guardadas en el servidor (data/prefs.json).
+"""Ajustes guardados en el servidor (data/prefs.json).
 
 Un solo lugar: el esquema define cada preferencia (tipo, opciones, valor por
 defecto, texto) y la vista arma el panel a partir de él. Para agregar una
@@ -11,8 +11,10 @@ from pathlib import Path
 
 from . import langs, summarize
 
-# [clave, título, descripción, ícono] — cada sección es una página de Preferencias
+# [clave, título, descripción, ícono, solo en el modo] — cada sección es una página de Ajustes. Con el
+# quinto valor, la página solo aparece en ese modo de la app (app_mode); ALT_SECTIONS: otro título en el otro
 SECTIONS = [
+    ["uso", "Uso", "", "sliders"],
     ["bibliotecas", "Bibliotecas", "Tus bibliotecas: cada una con sus videos, colecciones, glosario y forma de importar.", "library"],
     ["apariencia", "Apariencia", "Cómo se ve Translay en esta biblioteca.", "sun"],
     ["video", "Reproducción", "Qué pasa al abrir, terminar o agregar videos mientras miras.", "video"],
@@ -20,7 +22,7 @@ SECTIONS = [
     ["biblioteca", "Agregar y descargar", "Qué se hace con lo que agregas y cómo se descarga.", "download"],
     ["resumen", "Resumen", "Cuándo se resume cada video y con qué modelo.", "lines"],
     ["exportar", "Exportar", "Dónde se guarda lo que exportas.", "download"],
-    ["glosario", "Glosario", "Términos con traducción fija o que se dejan como en el original.", "book"],
+    ["glosario", "Glosario", "Términos con traducción fija o que se dejan como en el original.", "book", "traducir"],
     ["youtube", "YouTube", "La sesión que se usa para descargar.", "play"],
     ["acceso", "Acceso y API", "Quién entra desde otros equipos, claves de API y webhooks.", "lock"],
     ["rendimiento", "Rendimiento", "Tu equipo, qué modelos usa Translay y cuánto de la GPU, la RAM y la CPU puede ocupar.", "spark"],
@@ -28,6 +30,9 @@ SECTIONS = [
     ["papelera", "Papelera", "Lo que borraste en los últimos 30 días: se puede devolver tal como estaba.", "trash"],
 ]
 SCHEMA = [
+    # modo de la app: traducir y doblar, o solo transcribir y resumir (sin nada de traducción ni voz)
+    {"key": "app_mode", "section": "uso", "label": "Usar Translay para", "type": "choice", "default": "traducir",
+     "options": [["traducir", "Traducir y doblar"], ["transcribir", "Transcribir y resumir"]]},
     # rendimiento (vt/perf.py, web/js/perf.js): con su propia pantalla, no en filas
     {"key": "perf_profile", "section": "_perf", "label": "Perfil", "type": "choice", "default": "auto",
      "options": [["auto", "Automático"], ["calidad", "Máxima calidad"], ["equilibrado", "Equilibrado"],
@@ -68,8 +73,6 @@ SCHEMA = [
     {"key": "sub_orig", "section": "audio", "label": "Subtítulos del original", "type": "bool", "default": True},
     {"key": "import_mode", "section": "biblioteca", "label": "Al agregar", "type": "choice", "default": "traducir",
      "options": [["traducir", "Descargar y traducir"], ["descargar", "Solo descargar"]]},
-    {"key": "add_button", "section": "biblioteca", "label": "Botón Agregar", "type": "choice", "default": "auto",
-     "options": [["auto", "Lo que más usas"], ["agregar", "Siempre «Agregar»"]]},
     {"key": "download_what", "section": "biblioteca", "label": "Qué descargar", "type": "choice", "default": "video",
      "options": [["video", "Video y audio"], ["audio", "Solo el audio (más rápido)"]]},
     {"key": "transcribe_lang", "section": "biblioteca", "label": "Solo transcribir lo que está en",
@@ -101,6 +104,8 @@ SCHEMA = [
 ]
 # grupo (dentro de su página) y descripción de cada opción
 DETAILS = {
+    "app_mode": ("", "Transcribir y resumir oculta la traducción y la voz: agregas o grabas videos, lees su "
+                 "transcripción y pides resúmenes. Lo ya traducido se conserva."),
     "models_prune": ("Rendimiento", "Al reiniciar con otro perfil, borra los modelos que ese perfil no usa (se apaga sola después)."),
     "theme_mode": ("Tema", "Claro, oscuro o el que use tu sistema. Cada biblioteca recuerda el suyo."),
     "accent_color": ("Tema", "El color de botones, avance y reproducción."),
@@ -118,10 +123,8 @@ DETAILS = {
     "transcribe_lang": ("Al agregar", "Un video en este idioma se transcribe sin traducir ni doblar. Translay detecta "
                         "el idioma de cada video; en cada uno se puede cambiar."),
     "import_mode": ("Al agregar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
-    "add_button": ("Al agregar", "El botón de arriba hace lo que más usas (pegar un enlace, subir archivos, capturar la pantalla) "
-                   "y su flecha muestra todas las formas de agregar. O siempre «Agregar»."),
     "download_what": ("Al agregar", "Solo el audio es mucho más rápido y ocupa menos; el video se puede bajar después."),
-    "download_order": ("Descargas", "Aleatorio descarga variado de toda la cola; lo priorizado siempre va primero."),
+    "download_order": ("Descargas", "Aleatorio descarga variado de toda la cola; lo que pasaste a «Hacer primero» siempre va primero."),
     "notify": ("Avisos y vista", "Un aviso del sistema cuando termina una descarga, un video o una exportación."),
     "lib_channels": ("Avisos y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
     "summary_mode": ("Cuándo", "Al pedirlo, cada video tiene el botón Resumir. Al procesar, se resume solo "
@@ -132,8 +135,21 @@ DETAILS = {
                    "equipo, lo exportado se descarga con el navegador."),
     "yt_session": ("Sesión", "Con tu sesión, YouTube deja bajar videos con restricción de edad y pide menos verificaciones."),
 }
+# solo en un modo de la app (las de traducción y voz no aparecen al solo transcribir)
+ONLY = {k: "traducir" for k in ("layout", "wait_ready", "ready_chip", "audio", "duck", "sub_es", "transcribe_lang")}
+# otro texto en el modo «transcribir»: {clave: {"label", "desc", "options"}}
+ALT = {
+    "sub_orig": {"label": "Subtítulos", "desc": "Lo que se dice, sobre el video."},
+    "import_mode": {"desc": "Transcribir todo lo que agregas, o solo descargarlo (para verlo o exportar el original).",
+                    "options": [["traducir", "Descargar y transcribir"], ["descargar", "Solo descargar"]]},
+}
+ALT_SECTIONS = {"audio": ["Subtítulos", "Qué texto aparece sobre el video."]}
 for _p in SCHEMA:
     _p["group"], _p["desc"] = DETAILS.get(_p["key"], ("", ""))
+    if _p["key"] in ONLY:
+        _p["only"] = ONLY[_p["key"]]
+    if _p["key"] in ALT:
+        _p["alt"] = ALT[_p["key"]]
 _BY_KEY = {p["key"]: p for p in SCHEMA}
 
 
@@ -151,7 +167,7 @@ class Prefs:
 
     @staticmethod
     def _migrate(saved: dict) -> dict:
-        """Preferencias de antes con otro nombre: "theme" (un solo valor) pasa al modo claro u
+        """Ajustes de antes con otro nombre: "theme" (un solo valor) pasa al modo claro u
         oscuro; "sub_en" (subtítulos en inglés) a "sub_orig" (los del idioma del video)."""
         out = {}
         if "sub_en" in saved and "sub_orig" not in saved:
@@ -189,4 +205,10 @@ class Prefs:
         return (_BY_KEY.get(key) or {}).get("type", "")
 
     def public(self) -> dict:
-        return {"type": "prefs", "sections": SECTIONS, "schema": SCHEMA, "values": dict(self.values)}
+        return {"type": "prefs", "sections": SECTIONS, "schema": SCHEMA, "values": dict(self.values),
+                "alt_sections": ALT_SECTIONS}
+
+    @property
+    def translating(self) -> bool:
+        """¿La app traduce y dobla? En «Transcribir y resumir» no hay traducción ni voz."""
+        return self.values.get("app_mode") != "transcribir"

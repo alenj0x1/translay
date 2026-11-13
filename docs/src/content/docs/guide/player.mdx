@@ -16,7 +16,7 @@ Above the video are its title and its actions: «Guardar en…» (Save to…), �
 - **Ampliada** (Expanded) (default): a single large video, with the Spanish subtitle at the bottom and the original's small at the top, and the transcript on the side.
 - **Dividida** (Split): the original (with its language code, e.g. «EN · original» or «PT · original») and the translated one («ES · traducido») side by side. Under the Spanish video, a line marks the sentences already translated.
 
-The «Ver dividido» or «Ver ampliado» (Expanded view) button switches between the two and your choice is saved (Preferencias › Reproducción › «Vista del video»; Preferences › Playback › "Video view"). The subtitles of each language can be turned off in Preferencias › Audio y subtítulos (Audio and subtitles).
+The «Ver dividido» or «Ver ampliado» (Expanded view) button switches between the two and your choice is saved (Ajustes › Reproducción › «Vista del video»; Settings › Playback › "Video view"). The subtitles of each language can be turned off in Ajustes › Audio y subtítulos (Audio and subtitles).
 
 A video that is [only transcribed](../import/#language-and-transcribe-only) has no translation or voice: a single subtitle in its own language, a single column in the transcript and no audio switch.
 
@@ -30,7 +30,7 @@ The controls are custom and hide by themselves after a few seconds while the vid
 - **Time** elapsed and total.
 - **Progress line**: besides what has been played, a faint band marks what has already been recognized and a stronger one what already has Spanish voice (or translation, if the app runs without voice). Hovering shows the time; the little dots are [comments](../transcript-and-people/#comments).
 - **Speed**: each click moves to the next value between 0.75× and 2× (in steps of 0.25). The Spanish voice speeds up without changing pitch. The chosen speed is remembered in the browser.
-- **ES / EN** (or the original's code: PT…): ES is the Spanish voice with the original in the background; the other is the original at normal volume. Which language each video starts with and how loud the original stays under the voice is chosen in Preferencias › Audio y subtítulos.
+- **ES / EN** (or the original's code: PT…): ES is the Spanish voice with the original in the background; the other is the original at normal volume. Which language each video starts with and how loud the original stays under the voice is chosen in Ajustes › Audio y subtítulos.
 - **Volume** and mute.
 - **Full screen**, also with a double click on the video.
 
@@ -56,11 +56,13 @@ A video is processed while you watch it: the server starts from your playback po
 - **«Listo para reproducir»** (Ready to play): what is already dubbed ahead is enough to listen without interruptions.
 - **«Cargando modelos»** (Loading models): the models are coming back from [idle mode](../../how-it-works/gpu-and-idle/).
 
-The indicator compares what is already dubbed ahead of the playback point with the actual processing speed. By default it shows while paused and, while playing, only if the margin runs short; Preferencias › Reproducción › «Indicador de reproducción» (Playback indicator) lets you show it always or never.
+A video that isn't translated (it's already in Spanish, or it's [only transcribed](../import/#language-and-transcribe-only)) has no voice to wait for: it always plays, with a single subtitle, and the indicator doesn't appear. If the original and the translation of a subtitle say the same, only one is shown. What isn't transcribed yet is marked in the transcript and is transcribed while you listen.
+
+The indicator compares what is already dubbed ahead of the playback point with the actual processing speed. By default it shows while paused and, while playing, only if the margin runs short; Ajustes › Reproducción › «Indicador de reproducción» (Playback indicator) lets you show it always or never.
 
 ## Autoplay
 
-With Preferencias › Reproducción › «Reproducir al abrir un video» (Play when opening a video), the video starts by itself as soon as it is ready to be heard without interruptions.
+With Ajustes › Reproducción › «Reproducir al abrir un video» (Play when opening a video), the video starts by itself as soon as it is ready to be heard without interruptions.
 
 With «Pausar hasta que esté listo» (Pause until ready), if you reach a part that doesn't have Spanish voice yet (because of a jump, or because the dubbing fell behind), the video pauses, the indicator says «Sigue al estar listo NN %» (Continues when ready NN%) and it resumes by itself. If you press play by hand beforehand, it continues anyway, without waiting, until the next jump. This pause only applies when listening in Spanish.
 
@@ -68,11 +70,11 @@ With «Pausar hasta que esté listo» (Pause until ready), if you reach a part t
 
 When you open a video from a collection, a playlist or a home page row, the «Siguientes» (Up next) tab, next to «Transcripción», shows that list with the current video marked. With «Abrir» on a selection, it shows the selected ones.
 
-When a video ends, the next one in the list follows (Preferencias › Reproducción › «Reproducir el siguiente al terminar», Play the next one when finished). If the next one isn't downloaded yet, it is downloaded with priority and opens when it finishes. The tab only appears when the list has more than one video.
+When a video ends, the next one in the list follows (Ajustes › Reproducción › «Reproducir el siguiente al terminar», Play the next one when finished). If the next one isn't downloaded yet, it is downloaded with priority and opens when it finishes. The tab only appears when the list has more than one video.
 
 ## Floating thumbnail
 
-If you go to the library, the Cola (Queue) or Preferencias while the video is playing, it continues in a thumbnail at the bottom right, with «Volver al video» and «Cerrar» (Close). If you leave it paused, it isn't shown: the video stays saved until you return.
+If you go to the library, the Cola (Queue) or Ajustes while the video is playing, it continues in a thumbnail at the bottom right, with «Volver al video» and «Cerrar» (Close). If you leave it paused, it isn't shown: the video stays saved until you return.
 
 <Aside>
 Every processed segment is saved. When you rewind or reopen a video, the transcript, translation and voices come from disk; only what is new is processed. How it works under the hood: [Pipeline](../../how-it-works/pipeline/).

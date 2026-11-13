@@ -112,7 +112,7 @@ Si una voz tarda más de 5 s, la cola lo anota en la consola (`[cola] voz 42s ta
 
 ## Perfiles según el equipo
 
-Al arrancar, `vt/hardware.py` detecta la GPU (con `nvidia-smi`), la RAM y la CPU, sin dependencias nuevas; en Linux también lee los límites del contenedor (cgroups). `vt/profiles.py` elige el perfil con la tabla de velocidades medidas en los [labs de hardware](../../development/testing/#labs-de-hardware): el más completo cuya velocidad alcance para ver en vivo (1× o más) con la VRAM, la RAM y los hilos disponibles, recortados por los límites de Preferencias. Lo que se pasa por línea de comandos gana sobre el perfil. La guía de uso está en [Rendimiento](../../guide/performance/).
+Al arrancar, `vt/hardware.py` detecta la GPU (con `nvidia-smi`), la RAM y la CPU, sin dependencias nuevas; en Linux también lee los límites del contenedor (cgroups). `vt/profiles.py` elige el perfil con la tabla de velocidades medidas en los [labs de hardware](../../development/testing/#labs-de-hardware): el más completo cuya velocidad alcance para ver en vivo (1× o más) con la VRAM, la RAM y los hilos disponibles, recortados por los límites de Ajustes. Lo que se pasa por línea de comandos gana sobre el perfil. La guía de uso está en [Rendimiento](../../guide/performance/).
 
 | Perfil | Whisper | Traductor | Voz | VRAM pico | RAM comprometida |
 |---|---|---|---|---|---|

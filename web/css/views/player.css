@@ -147,3 +147,9 @@ body.mini .ctrl .ic { width: var(--h-xs); height: var(--h-xs); }
 
 /* video que ya está en español: sin voz que elegir ni subtítulo repetido */
 body.native #c-lang, body.native #cap-en, body.native #layout { display: none !important; }
+
+/* «Transcribir y resumir» (Ajustes › Uso): sin nada de traducción ni voz */
+body.app-transcribe #export-form label:has(> input[value^="es_"]),
+body.app-transcribe #export-form label:has(> input[value="srt_es"]),
+body.app-transcribe #export-form label:has(> input[value="txt_es"]),
+body.app-transcribe #export-form label:has(> input[value="txt"]) { display: none; }

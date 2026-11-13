@@ -1,18 +1,19 @@
 "use strict";
-// Patrones Bauhaus: círculos, cuartos de círculo, triángulos y cuadrados en cuadrícula.
-// Cada colección tiene el suyo, sacado de su nombre (siempre el mismo, nunca dos iguales);
-// «Otro patrón» cambia la semilla (se guarda en el navegador).
+// Campo de puntos: un fondo sólido y apagado con una cuadrícula pareja de puntos de su mismo tono.
+// Cada colección tiene el suyo, sacado de su nombre (siempre el mismo); «Otro patrón» cambia la semilla
+// (se guarda en el navegador). Los puntos miden lo mismo en cualquier caja (no se estiran con ella).
 // Íconos por categoría de YouTube; los canales usan su avatar y banner reales (/chan/…).
 
-const BAU_PALETTES = [
-  ["#e8a13a", "#d9534f", "#3a7ca5", "#f1e3c8"],
-  ["#5b8def", "#9b6bd6", "#2bb3a3", "#1f2a44"],
-  ["#f06c9b", "#ffb86b", "#7bd389", "#2b2340"],
-  ["#3fbf74", "#e3c14f", "#3a7bd5", "#16302b"],
-  ["#ff7a59", "#ffd166", "#118ab2", "#073b4c"],
-  ["#c084fc", "#60a5fa", "#f472b6", "#1e1b3a"],
-  ["#ef6f6c", "#f7b267", "#4d9de0", "#fdf0d5"],
-  ["#2ec4b6", "#ff9f1c", "#e71d36", "#011627"],
+// [principal (distintivo), fondo, puntos]: oscuros y apagados
+const DOT_PALETTES = [
+  ["#5b7db1", "#1f2a3a", "#3f5a80"],
+  ["#3f9a8c", "#17302d", "#2f6e65"],
+  ["#c0714f", "#33221c", "#7c4a35"],
+  ["#9aa04f", "#262a18", "#5e6232"],
+  ["#9a6aa8", "#2a1f2e", "#5f4469"],
+  ["#c06a85", "#301e25", "#7a4455"],
+  ["#b89a5e", "#2c2619", "#73603b"],
+  ["#7f8a99", "#22262c", "#4f5763"],
 ];
 
 // generador con semilla (FNV-1a + mezcla): el mismo texto da siempre la misma secuencia
@@ -33,41 +34,34 @@ function reshufflePattern(key) {
   try { localStorage.setItem("vt-pattern:" + key, String(Math.random()).slice(2, 8)); } catch (e) { /* sin almacenamiento */ }
 }
 
+// mezcla de dos colores #rrggbb (t: cuánto de b)
+function mixHex(a, b, t) {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return "#" + pa.map((x, i) => Math.round(x + (pb[i] - x) * t).toString(16).padStart(2, "0")).join("");
+}
+
 // colores fijos por clave (las bibliotecas usan su propio color como principal)
 const PALETTE_OVERRIDE = {};
 function patternPalette(key) {
-  const r = seeded(patternSeed(key));
-  const p = BAU_PALETTES[Math.floor(r() * BAU_PALETTES.length)];
   const main = PALETTE_OVERRIDE[key];
-  return main ? [main, p[1] === main ? p[0] : p[1], p[2], p[3]] : p;
+  if (main) return [main, mixHex(main, "#141518", 0.7), mixHex(main, "#141518", 0.32)];
+  const r = seeded(patternSeed(key));
+  return DOT_PALETTES[Math.floor(r() * DOT_PALETTES.length)];
 }
 
-// SVG de cols × rows celdas; `slice` lo recorta para llenar cualquier caja
-function bauhausSVG(key, cols = 12, rows = 3) {
-  const r = seeded(patternSeed(key) + "·shapes");
-  const c = patternPalette(key);
-  const z = 10;
-  let s = `<rect width="${cols * z}" height="${rows * z}" fill="${c[3]}"/>`;
-  for (let x = 0; x < cols; x++) {
-    for (let y = 0; y < rows; y++) {
-      const X = x * z, Y = y * z, cx = X + z / 2, cy = Y + z / 2;
-      const k = Math.floor(r() * 5), f = c[Math.floor(r() * 3)], rot = Math.floor(r() * 4) * 90;
-      const t = `transform="rotate(${rot} ${cx} ${cy})"`;
-      if (k === 0) s += `<circle cx="${cx}" cy="${cy}" r="${z / 2 - 0.8}" fill="${f}"/>`;
-      else if (k === 1) s += `<path d="M${X} ${Y + z}A${z} ${z} 0 0 1 ${X + z} ${Y}V${Y + z}Z" fill="${f}" ${t}/>`;
-      else if (k === 2) s += `<path d="M${X} ${Y}L${X + z} ${Y + z}H${X}Z" fill="${f}" ${t}/>`;
-      else if (k === 3) s += `<path d="M${X} ${Y + z}A${z / 2} ${z / 2} 0 0 1 ${X + z} ${Y + z}Z" fill="${f}" ${t}/>`;
-      else s += `<rect x="${X + 2}" y="${Y + 2}" width="${z - 4}" height="${z - 4}" rx="1" fill="${f}"/>`;
-    }
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cols * z} ${rows * z}" preserveAspectRatio="xMidYMid slice">${s}</svg>`;
+// el campo de puntos como estilo de fondo: color sólido + puntos de tamaño fijo en px
+function patternStyle(key) {
+  const r = seeded(patternSeed(key) + "·dots");
+  const [, bg, dot] = patternPalette(key);
+  const gap = [12, 14, 16][Math.floor(r() * 3)];
+  const rad = gap >= 16 ? 1.6 : 1.3;
+  return `background-color: ${bg}; background-image: radial-gradient(circle, ${dot} ${rad}px, transparent ${rad + 0.4}px);`
+    + ` background-size: ${gap}px ${gap}px; background-position: ${gap / 2}px ${gap / 2}px`;
 }
 
-const patternURL = (key, cols, rows) => `url("data:image/svg+xml,${encodeURIComponent(bauhausSVG(key, cols, rows))}")`;
-
-// un elemento con el patrón de fondo
-function patternEl(key, cls, cols, rows) {
-  return el("span", { class: "bau " + (cls || ""), "aria-hidden": "true", style: `background-image: ${patternURL(key, cols, rows)}` });
+// un elemento con el patrón de fondo (cols y rows quedan por compatibilidad: los puntos no se estiran)
+function patternEl(key, cls) {
+  return el("span", { class: "bau " + (cls || ""), "aria-hidden": "true", style: patternStyle(key) });
 }
 
 /* ------------------------------------------------------------ bibliotecas */

@@ -28,6 +28,16 @@ body.side-off .side { display: none; }
 .transcript p { margin: 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
 .transcript li.active p { color: var(--fg); }
 .transcript .pending { color: var(--fg-faint) !important; }
+/* tramo aún sin transcribir: una fila punteada entre las frases, que lleva a esa parte */
+.transcript li.gap { grid-template-columns: minmax(0, 1fr); margin: var(--s1) 0; border: 1px dashed var(--line-strong, var(--fg-faint)); }
+.transcript li.gap .cell { grid-template-columns: 48px minmax(0, 1fr); }
+.transcript li.gap time { line-height: 1.5; white-space: normal; }
+.transcript li.gap p { display: grid; gap: 2px; }
+.transcript li.gap strong { font: 600 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
+.transcript li.gap span { font: 500 var(--fs-xs)/1.4 var(--font); color: var(--fg-faint); }
+.transcript li.gap.busy strong { color: var(--fg); }
+.transcript li.gap.busy span { display: none; }
+body.layout-wide .transcript li.gap .cell { grid-template-columns: 1fr; }
 
 /* ampliado: inglés pequeño arriba, español debajo */
 body.layout-wide .transcript li { grid-template-columns: 1fr; gap: 0; }
@@ -110,3 +120,7 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
 /* video que ya está en español: una sola columna (el texto es el mismo) */
 body.native .transcript li { grid-template-columns: 1fr; gap: 0; }
 body.native .transcript .cell:first-child { display: none; }
+/* original y traducción iguales (un video en español marcado con otro idioma): una sola */
+.transcript li.same { grid-template-columns: 1fr; gap: 0; }
+.transcript li.same .cell:first-child { display: none; }
+body.layout-wide .transcript li.same .cell + .cell time { display: flex; }

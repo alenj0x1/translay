@@ -11,14 +11,14 @@ Todo lo que agregas va directo a la cola del servidor: aparece al instante en la
 
 ![Cuadro Agregar varios enlaces con cuatro enlaces de YouTube, uno de ellos una playlist](../../../../assets/capturas/importar.webp)
 
-## El botón «Agregar»
+## «Grabar» y «Agregar»
 
-El botón «Agregar» del encabezado, con un ícono de más, es un botón dividido:
+El encabezado tiene dos botones, sin botones divididos:
 
-- **La parte principal** hace lo que más usas en este navegador: «Agregar» (abre el panel con el campo para el enlace), «Subir» (elige videos o audios de tu equipo), «Capturar» (graba la pantalla; solo en los navegadores que lo permiten) o «Pegar enlaces» (abre el cuadro de varios enlaces). Los usos se cuentan solo en este navegador; una acción necesita al menos 3 usos para quedarse con el botón, y con un empate o menos usos queda «Agregar».
-- **La parte ▾** siempre abre el panel completo: el campo «Pega un enlace de YouTube o Dropbox» con su botón «Agregar ▾», y tres tarjetas para las demás fuentes: «Archivos», «Grabar pantalla» y «Varios enlaces». Si presionas Enter con algo que no es un enlace de YouTube ni de Dropbox, aparece un aviso en vez de no pasar nada.
+- **«Grabar»** abre directo la grabación de pantalla (solo en los navegadores que lo permiten; ver [Grabar pantalla](#grabar-la-pantalla)).
+- **«Agregar»** abre un panel con el campo «Enlace de YouTube o Dropbox» y su botón «Agregar», la elección entre **«Traducir y doblar»** y **«Solo transcribir»** para lo que agregues (se recuerda en este navegador), y una fila por fuente que dice qué acepta: «Subir archivos · videos o audios» (también acepta un .csv con enlaces), «Grabar pantalla · una pestaña, una ventana o toda la pantalla, con su sonido» y «Varios enlaces · listas y canales también». En el celular las filas muestran solo la acción y «Grabar» está solo en este panel. Si tocas «Agregar» o Enter sin un enlace de YouTube o Dropbox, un aviso dice qué falta.
 
-Para dejar el botón siempre en «Agregar», elige Preferencias › Agregar y descargar › «Botón Agregar» › «Siempre «Agregar»»; por defecto es «Lo que más usas».
+El inicio siempre empieza con lo mismo a mano: una caja («Traduce tu primer video» con la biblioteca vacía; «Traduce un video» después, o «Transcribe…» si eliges solo transcribir; mientras se ve, el «Agregar» del encabezado es un botón normal) con el campo del enlace, la elección de traducir o solo transcribir, «Subir archivos», «Grabar pantalla» y «Varios enlaces». Un enlace pegado en cualquier parte (Ctrl+V) se agrega, y al arrastrar archivos sobre la ventana aparece «Suelta para agregar».
 
 ## Enlaces de YouTube
 
@@ -38,7 +38,7 @@ Translay cambia `dl=0` por `dl=1` para recibir el archivo directo y quita los pa
 
 No hace falta decir en qué idioma está un video: Translay lo detecta con los primeros segundos de voz (inglés, portugués o español; ver [Idiomas](../../how-it-works/languages/)). La flecha junto a «Agregar» en el panel tiene dos opciones para lo que agregas en ese momento (YouTube o Dropbox, uno o varios enlaces):
 
-- «Agregar y traducir»: se traduce y dobla al español. Un video detectado en el idioma de Preferencias › Agregar y descargar › «Solo transcribir lo que está en» (español, si no lo cambias) solo se transcribe.
+- «Agregar y traducir»: se traduce y dobla al español. Un video detectado en el idioma de Ajustes › Agregar y descargar › «Solo transcribir lo que está en» (español, si no lo cambias) solo se transcribe.
 - «Agregar y solo transcribir»: se transcribe en su idioma y nada más, sea cual sea: sin traducción ni voz, se reproduce con el audio original y un solo subtítulo, la transcripción muestra una columna y la tarjeta dice «Transcrito» al terminar.
 
 Un idioma que Translay todavía no traduce solo se transcribe, en ese idioma.
@@ -101,8 +101,12 @@ A 15 cuadros por segundo el tope es dos tercios; una zona más chica pesa propor
 
 Al detenerla, el servidor arma el archivo (recortado a la zona y comprimido a H.264 + AAC) y entra a la cola, que completa el doblaje.
 
+Si lo que grabas cambia de forma a mitad (pasas de compartir un celular a la pantalla del escritorio, o el celular gira), el video se adapta: el archivo final usa un cuadro que entra a los dos, con el alto de la calidad y el ancho del más ancho, y cada parte cabe adentro sin deformarse, con franjas negras donde sobra espacio. La zona elegida se descarta en ese caso, porque era de la otra fuente.
+
+Si la fuente deja de enviar imagen (una ventana minimizada, un celular bloqueado o desconectado), la barra dice «Lo que se graba no envía imagen». Si desaparece o el navegador deja de compartirla, la grabación termina y se guarda sola, con un aviso.
+
 <Aside title="Nada se pierde si se corta la conexión">
-Cada segundo de grabación se guarda en el navegador antes de subirse y se borra solo cuando el servidor lo confirma. Sin conexión se sigue grabando («Sin conexión: se guarda en este equipo») y la subida se retoma al volver; la transcripción en vivo se reconecta sola y reenvía lo que no había confirmado. Si cierras la pestaña o se apaga el equipo, la próxima vez que abras Translay termina de subir lo grabado y lo arma.
+Cada segundo de grabación se guarda en el navegador antes de subirse y se borra solo cuando el servidor lo confirma. Sin conexión se sigue grabando («Sin conexión, se guarda en este equipo») y la subida se retoma al volver; la transcripción en vivo se reconecta sola y reenvía lo que no había confirmado (eso no cuenta como estar sin conexión: lo que no alcance, lo completa la cola con el archivo final). Si el servidor rechaza la grabación, lo dice en vez de reintentar sin fin. Si cierras la pestaña o se apaga el equipo, la próxima vez que abras Translay termina de subir lo grabado y lo arma.
 </Aside>
 
 ## Agregar dentro de una colección
@@ -113,7 +117,7 @@ Un video agregado en una categoría aparece en ella aunque YouTube lo tenga en o
 
 ## Solo descargar o traducir
 
-Preferencias › Agregar y descargar › «Al agregar» decide qué se hace con lo nuevo:
+Ajustes › Agregar y descargar › «Al agregar» decide qué se hace con lo nuevo:
 
 - **Descargar y traducir** (por defecto): se descarga, se traduce y se dobla.
 - **Solo descargar**: se descarga sin usar la GPU y queda «Descargado, sin traducir». Sirve para ver o exportar el original. Cuando quieras traducirlo, usa «Procesar» en su tarjeta o en la Cola; abrirlo para verlo también lo procesa.
@@ -122,7 +126,7 @@ En un video de YouTube o de Dropbox aún sin descargar, «Ver ▾» › «Descar
 
 ## Solo el audio
 
-Preferencias › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» baja solo la pista de audio. Se traduce y se dobla igual; el reproductor muestra la miniatura en lugar de la imagen y la tarjeta lleva la etiqueta «Solo audio».
+Ajustes › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» baja solo la pista de audio. Se traduce y se dobla igual; el reproductor muestra la miniatura en lugar de la imagen y la tarjeta lleva la etiqueta «Solo audio».
 
 Para tener la imagen después, usa «Bajar video» en la tarjeta (o en la selección): se descarga el video completo sin volver a traducir. Si exportas un video, original o traducido, el video completo se descarga primero.
 
@@ -130,7 +134,7 @@ Estas dos preferencias son propias de cada [biblioteca](../libraries/).
 
 ## Mientras ves un video
 
-El botón «Agregar» sigue disponible en el reproductor. Qué pasa con lo que agregas lo decide Preferencias › Reproducción › «Al agregar un video mientras ves otro»:
+El botón «Agregar» sigue disponible en el reproductor. Qué pasa con lo que agregas lo decide Ajustes › Reproducción › «Al agregar un video mientras ves otro»:
 
 | Opción | Qué hace |
 |---|---|

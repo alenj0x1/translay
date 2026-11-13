@@ -1,19 +1,30 @@
 /* Grabar pantalla (web/js/capture.js): elegir la zona sobre la vista previa y la
    barra mientras se graba. La vista previa va sobre fondo de video (siempre oscuro). */
 
-/* «Agregar»: las otras fuentes (archivos, grabar pantalla, varios enlaces) como tarjetas iguales */
-.import-acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: var(--s2); }
-/* compactas: una sola línea, el ícono al lado del texto */
-.src-card {
-  display: flex; align-items: center; gap: var(--s2); min-width: 0; height: var(--h-md); padding: 0 var(--s3) 0 var(--s1);
-  border: 0; border-radius: var(--r-md, 10px); background: transparent; color: var(--fg);
-  font: 600 var(--fs-sm)/1 var(--font); white-space: nowrap; cursor: pointer;
+/* «Agregar»: las otras fuentes como filas de una línea (acción + qué acepta, en gris) */
+.import-acts { display: grid; gap: 2px; padding-top: var(--s1); border-top: 1px solid var(--line); }
+.src-row {
+  display: flex; align-items: center; gap: var(--s3); min-width: 0; height: 40px; padding: 0 var(--s2);
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--fg); text-align: left; cursor: pointer;
 }
-.src-card:hover { background: var(--surface-2); }
-.src-card[hidden] { display: none; }
-.src-ic { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--surface-2); color: var(--fg); }
-.src-card:hover .src-ic { background: var(--surface-3); }
+.src-row:hover { background: var(--surface-2); }
+.src-row[hidden] { display: none; }
+.src-row strong { flex: none; font: 600 var(--fs-sm)/1 var(--font); }
+.src-row small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 var(--fs-xs)/1 var(--font); color: var(--fg-faint); }
+.src-ic { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); color: var(--fg); }
+.src-row:hover .src-ic { background: var(--surface-3); }
 .src-ic svg { display: block; width: 16px; height: 16px; }
+.import-task[hidden] { display: none; }
+.import-segs { width: 100%; }
+.import-segs .seg { flex: 1; justify-content: center; gap: 6px; }
+.import-segs .seg svg { width: 14px; height: 14px; }
+
+/* arrastrar archivos sobre la ventana */
+.drop-zone { position: fixed; inset: 12px; z-index: 90; display: grid; place-items: center; pointer-events: none;
+  border: 1.5px dashed var(--accent); border-radius: var(--r-lg); background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.drop-zone[hidden] { display: none; }
+.drop-zone > div { display: flex; align-items: center; gap: var(--s3); padding: var(--s4) var(--s5); border-radius: var(--r-md); background: var(--surface); }
+.drop-zone strong { font: 700 var(--fs-md)/1 var(--font); }
 
 .cap-dlg { width: min(760px, calc(100vw - 32px)); --cap-mark: #4c8dff; }
 /* la vista previa toma el alto que queda: el diálogo entero cabe en la ventana */

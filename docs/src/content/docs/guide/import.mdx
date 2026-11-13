@@ -11,14 +11,14 @@ Everything you add goes straight to the server's queue: it appears instantly in 
 
 ![The «Agregar varios enlaces» (Add several links) dialog with four YouTube links, one of them a playlist](../../../assets/capturas/importar.webp)
 
-## The «Agregar» button
+## «Grabar» and «Agregar»
 
-The «Agregar» (Add) button in the header, with a plus icon, is a split button:
+The header has two buttons, no split buttons:
 
-- **The main part** does what you use most in this browser: «Agregar» (opens the panel with the link field), «Subir» (Upload: picks videos or audio files from your machine), «Capturar» (Capture: records the screen, only in browsers that support it) or «Pegar enlaces» (Paste links: opens the several-links dialog). Uses are counted in this browser only; an action needs at least 3 uses to take over the button, and with a tie or fewer uses it stays «Agregar».
-- **The ▾ part** always opens the full panel: the «Pega un enlace de YouTube o Dropbox» (Paste a YouTube or Dropbox link) field with its «Agregar ▾» button, and three cards for the other sources: «Archivos» (Files), «Grabar pantalla» (Record screen) and «Varios enlaces» (Several links). Pressing Enter with something that isn't a YouTube or Dropbox link shows a notice instead of doing nothing.
+- **«Grabar»** (Record) opens screen recording directly (only in browsers that support it; see [Record the screen](#record-the-screen)).
+- **«Agregar»** (Add) opens a panel with the «Enlace de YouTube o Dropbox» (YouTube or Dropbox link) field and its «Agregar» button, a choice between **«Traducir y doblar»** (Translate and dub) and **«Solo transcribir»** (Only transcribe) for what you add (remembered in this browser), and one row per source, each saying what it accepts: «Subir archivos» (Upload files · videos or audio; a .csv with links works too), «Grabar pantalla» (Record screen · a tab, a window or the whole screen, with its sound) and «Varios enlaces» (Several links · playlists and channels too). On a phone the rows show only the action, and «Grabar» is only in this panel. Pressing «Agregar» or Enter without a YouTube or Dropbox link shows a notice saying what's missing.
 
-To keep the button as «Agregar» all the time, choose Preferencias › Agregar y descargar › «Botón Agregar» › «Siempre «Agregar»» (Preferences › Add and download › "Add button" › "Always Add"); the default is «Lo que más usas» (What you use most).
+The home page always starts with the same at hand: a box («Traduce tu primer video», Translate your first video, with an empty library; «Traduce un video», Translate a video, afterwards, or «Transcribe…» when only transcribing; while it's visible, the header's «Agregar» is a regular button) with the link field, the choice to translate or only transcribe, «Subir archivos», «Grabar pantalla» and «Varios enlaces». A link pasted anywhere (Ctrl+V) is added, and dragging files onto the window shows «Suelta para agregar» (Drop to add).
 
 ## YouTube links
 
@@ -38,7 +38,7 @@ Translay changes `dl=0` to `dl=1` to get the file directly and drops the trackin
 
 You don't say what language a video is in: Translay detects it from the first seconds of speech (English, Portuguese or Spanish; see [Languages](../../how-it-works/languages/)). The arrow next to «Agregar» in the panel has two options for what you're adding right now (YouTube or Dropbox, one link or several):
 
-- «Agregar y traducir» (Add and translate): translated and dubbed into Spanish. A video detected in the language set in Preferences › Agregar y descargar › «Solo transcribir lo que está en» (Only transcribe what is in; Spanish by default) is only transcribed.
+- «Agregar y traducir» (Add and translate): translated and dubbed into Spanish. A video detected in the language set in Settings › Agregar y descargar › «Solo transcribir lo que está en» (Only transcribe what is in; Spanish by default) is only transcribed.
 - «Agregar y solo transcribir» (Add and only transcribe): transcribed in its own language and that's it, whatever the language: no translation or voice, it plays with the original audio and a single subtitle, the transcript shows one column and the card says «Transcrito» (Transcribed) when it's done.
 
 A language Translay can't translate yet is only transcribed in that language.
@@ -101,8 +101,12 @@ At 15 frames per second the cap is two thirds; a smaller zone weighs proportiona
 
 When it stops, the server puts the file together (cropped to the zone and compressed to H.264 + AAC) and it enters the queue, which completes the dubbing.
 
+If what you record changes shape halfway (you switch from sharing a phone to a desktop screen, or a phone rotates), the video adapts: the final file uses a frame that fits both, at the quality's height and the width of the widest, and each part fits inside without stretching, with black bands where there is room left. The chosen zone is dropped in that case, since it belonged to the other source.
+
+If the source stops sending picture (a minimized window, a locked or disconnected phone), the bar says «Lo que se graba no envía imagen» (What is recorded sends no picture). If it disappears or the browser stops sharing it, the recording ends and is saved on its own, with a notice.
+
 <Aside title="Nothing is lost if the connection drops">
-Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión: se guarda en este equipo», No connection: saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
+Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión, se guarda en este equipo», No connection, saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed (it doesn't count as being offline: whatever it misses, the queue completes with the final file). If the server rejects the recording, it says why instead of retrying forever. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
 </Aside>
 
 ## Add to a collection
@@ -113,7 +117,7 @@ A video added to a category appears in it even if YouTube has it in another.
 
 ## Download only or translate
 
-Preferencias › Agregar y descargar › «Al agregar» (Preferences › Add and download › "On add") decides what is done with new items:
+Ajustes › Agregar y descargar › «Al agregar» (Settings › Add and download › "On add") decides what is done with new items:
 
 - **Descargar y traducir** (Download and translate) (default): it is downloaded, translated and dubbed.
 - **Solo descargar** (Download only): it is downloaded without using the GPU and stays «Descargado, sin traducir» (Downloaded, not translated). Useful for watching or exporting the original. When you want to translate it, use «Procesar» (Process) on its card or in the Cola; opening it to watch also processes it.
@@ -122,7 +126,7 @@ On a YouTube or Dropbox video not yet downloaded, «Ver ▾» › «Descargar si
 
 ## Audio only
 
-Preferencias › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» (What to download › Audio only (faster)) downloads only the audio track. It is translated and dubbed all the same; the player shows the thumbnail instead of the picture and the card carries the «Solo audio» (Audio only) label.
+Ajustes › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» (What to download › Audio only (faster)) downloads only the audio track. It is translated and dubbed all the same; the player shows the thumbnail instead of the picture and the card carries the «Solo audio» (Audio only) label.
 
 To get the picture afterward, use «Bajar video» (Download video) on the card (or in the selection): the full video is downloaded without translating again. If you export a video, original or translated, the full video is downloaded first.
 
@@ -130,7 +134,7 @@ These two preferences are specific to each [library](../libraries/).
 
 ## While you watch a video
 
-The «Agregar» button remains available in the player. What happens with what you add is decided by Preferencias › Reproducción › «Al agregar un video mientras ves otro» (Preferences › Playback › "When adding a video while watching another"):
+The «Agregar» button remains available in the player. What happens with what you add is decided by Ajustes › Reproducción › «Al agregar un video mientras ves otro» (Settings › Playback › "When adding a video while watching another"):
 
 | Option | What it does |
 |---|---|

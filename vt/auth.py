@@ -1,7 +1,7 @@
 """Acceso: quién puede ver y hacer qué.
 
   · Dueño: desde este mismo equipo entra sin iniciar sesión; desde otro equipo, con
-    la contraseña del dueño (Preferencias → Acceso).
+    la contraseña del dueño (Ajustes → Acceso).
   · Cada biblioteca tiene su visibilidad (vault.json → "access"):
         privada      solo el dueño
         clave        cualquiera con el enlace y la contraseña de la biblioteca

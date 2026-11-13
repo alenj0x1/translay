@@ -1,4 +1,4 @@
-"""Almacenamiento: cuánto ocupa cada cosa de Translay y qué se puede liberar (Preferencias → Almacenamiento).
+"""Almacenamiento: cuánto ocupa cada cosa de Translay y qué se puede liberar (Ajustes → Almacenamiento).
 
 Por biblioteca
   originales     youtube/ y library/: lo descargado (o subido) de cada video. Se puede liberar lo de

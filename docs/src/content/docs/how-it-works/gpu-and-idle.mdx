@@ -112,7 +112,7 @@ If a voice takes more than 5 s, the queue logs it to the console (`[cola] voz 42
 
 ## Profiles by hardware
 
-At startup, `vt/hardware.py` detects the GPU (with `nvidia-smi`), the RAM and the CPU, with no new dependencies; on Linux it also reads the container limits (cgroups). `vt/profiles.py` picks the profile using the table of speeds measured in the [hardware labs](../../development/testing/#hardware-labs): the most complete one whose speed is enough to watch live (1× or more) with the available VRAM, RAM and threads, trimmed by the limits in Preferencias (Preferences). What is passed on the command line wins over the profile. The usage guide is in [Performance](../../guide/performance/).
+At startup, `vt/hardware.py` detects the GPU (with `nvidia-smi`), the RAM and the CPU, with no new dependencies; on Linux it also reads the container limits (cgroups). `vt/profiles.py` picks the profile using the table of speeds measured in the [hardware labs](../../development/testing/#hardware-labs): the most complete one whose speed is enough to watch live (1× or more) with the available VRAM, RAM and threads, trimmed by the limits in Ajustes (Settings). What is passed on the command line wins over the profile. The usage guide is in [Performance](../../guide/performance/).
 
 | Profile | Whisper | Translator | Voice | Peak VRAM | Committed RAM |
 |---|---|---|---|---|---|

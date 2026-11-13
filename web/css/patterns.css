@@ -1,9 +1,9 @@
 /* =====================================================================
-   Patrones Bauhaus (web/js/patterns.js): banner y distintivo de cada colección,
+   Campo de puntos (web/js/patterns.js): banner y distintivo de cada colección,
    miniaturas que faltan, estados vacíos y la portada vacía
    ===================================================================== */
 
-.bau { display: block; background: center / cover no-repeat; }
+.bau { display: block; background-repeat: repeat; }
 .bau.fill { position: absolute; inset: 0; }
 
 /* distintivo: ícono sobre el color de la colección, o el avatar del canal */

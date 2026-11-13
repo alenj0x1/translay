@@ -7,9 +7,9 @@ sidebar:
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Translay distinguishes between the owner, who can do everything, and guests, who get into specific libraries. Everything is configured in **Preferencias → Acceso y API** (Preferences → Access and API), which only the owner can see.
+Translay distinguishes between the owner, who can do everything, and guests, who get into specific libraries. Everything is configured in **Ajustes → Acceso y API** (Settings → Access and API), which only the owner can see.
 
-![Preferencias, Acceso y API: owner password, access from other computers and the visibility of each library](../../../assets/capturas/acceso.webp)
+![Ajustes, Acceso y API: owner password, access from other computers and the visibility of each library](../../../assets/capturas/acceso.webp)
 
 ## The owner
 
@@ -27,7 +27,7 @@ A local proxy that does **not** add any of those headers (an SSH port forward, `
 
 ### Owner password
 
-In **Preferencias → Acceso y API → Contraseña** (Password), type one of at least 6 characters and click **Guardar** (Save), or **Cambiar** (Change) if there was already one.
+In **Ajustes → Acceso y API → Contraseña** (Password), type one of at least 6 characters and click **Guardar** (Save), or **Cambiar** (Change) if there was already one.
 
 - Without a password, you can only get in as the owner from this computer; the sign-in screen on other computers explains this.
 - **Cambiar** (Change) or **Quitar contraseña** (Remove password) closes the owner sessions open on other computers. Guest sessions to libraries stay as they are.
@@ -43,7 +43,7 @@ python run.py --owner-password "a-long-password"
 TRANSLAY_OWNER_PASSWORD="a-long-password" python run.py
 ```
 
-With the variable defined, whatever you change or remove in Preferencias lasts until the next startup: then the variable's value applies again.
+With the variable defined, whatever you change or remove in Ajustes lasts until the next startup: then the variable's value applies again.
 
 ## Docker
 
@@ -62,7 +62,7 @@ A single cookie can count as the owner and as a guest of several libraries at on
 
 ## Who gets into each library
 
-In **Preferencias → Acceso y API → Bibliotecas** (Libraries), each library has its own visibility:
+In **Ajustes → Acceso y API → Bibliotecas** (Libraries), each library has its own visibility:
 
 | Visibility | In the app | Who gets in |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ Each library has its own link, `/b/<id>`, which appears with the **Copiar enlace
 - with a `privada` one, it only lets them in with the owner password;
 - in both cases it lists the public libraries, if there are any.
 
-If **Acceso desde otros equipos** is on and you open Preferencias from this computer, the link uses the local network address instead of `localhost`, so it works when you share it.
+If **Acceso desde otros equipos** is on and you open Ajustes from this computer, the link uses the local network address instead of `localhost`, so it works when you share it.
 
 ### Change a library's password
 
@@ -104,14 +104,14 @@ To switch a library to `clave` for the first time you have to give it a password
 | Delete videos, change the glossary, remove from the queue | Yes | No | No | No | Yes |
 | Pause or resume the queue | Yes | No | No | No | Only if it is for all libraries |
 | Collections, comments and people | Yes | No | No | No | No |
-| Preferences, access, keys and webhooks | Yes | No | No | No | No |
+| Settings, access, keys and webhooks | Yes | No | No | No | No |
 | See each library's folder | Yes | No | No | No | No |
 
 Guests and keys only reach the libraries assigned to them. API keys are explained in [REST API](../api/).
 
 ## Access from other computers
 
-By default the server listens only on `127.0.0.1:8765`: nobody else can reach it. In **Preferencias → Acceso y API → Otros equipos** (Other computers), choose **Sí** (Yes) so it also listens on every IPv4 address of the computer's local network (excluding `127.*` and `169.254.*`), on the same port.
+By default the server listens only on `127.0.0.1:8765`: nobody else can reach it. In **Ajustes → Acceso y API → Otros equipos** (Other computers), choose **Sí** (Yes) so it also listens on every IPv4 address of the computer's local network (excluding `127.*` and `169.254.*`), on the same port.
 
 <Steps>
 1. Set an owner password, if you will sign in as the owner from another computer.

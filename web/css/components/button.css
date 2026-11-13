@@ -71,8 +71,4 @@
 .contents { display: contents; }
 
 /* botón dividido: acción principal + flecha con más opciones */
-.split { display: inline-flex; gap: 1px; }
-.split > .btn:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); padding-right: 10px; }
-.split > .split-more { width: 28px; border-radius: 0 var(--r-pill) var(--r-pill) 0; }
-.btn.sm + .split-more, .split > .btn.sm.split-more { width: 26px; }
-.split-more svg { width: 14px; height: 14px; }
+

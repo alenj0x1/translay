@@ -15,7 +15,7 @@ La biblioteca es la pantalla con la que abre Translay. A la izquierda está la b
 
 ## Portada
 
-**Inicio** muestra arriba el último video que estabas viendo, con la frase donde quedaste en español y en el idioma original, y los botones «Continuar», «Desde el inicio» y «Exportar». Si no hay ninguno a medias, aparece el último agregado.
+**Inicio** empieza con la caja para agregar un video («Traduce un video»; ver [Agregar videos](../import/#grabar-y-agregar)): el campo del enlace, la elección de traducir o solo transcribir, «Subir archivos», «Grabar pantalla» y «Varios enlaces».
 
 Debajo van las filas, cada una con su «Ver todo» cuando tiene más de cuatro videos:
 
@@ -41,7 +41,7 @@ Se arman solas a partir de los videos; no se pueden renombrar ni eliminar.
 |---|---|
 | Recientes | Los videos que ya están en el equipo y lo recién importado (aunque aún se esté descargando), del último abierto o agregado al primero. Lo pendiente de una playlist aparece solo en su playlist. |
 | Todos | Cada video de la biblioteca, también lo que falta descargar, del último agregado al primero. |
-| Canales | Una por canal de YouTube, con el avatar y el banner reales del canal. Se pueden ocultar en Preferencias › Agregar y descargar › «Canales en la barra lateral». |
+| Canales | Una por canal de YouTube, con el avatar y el banner reales del canal. Se pueden ocultar en Ajustes › Agregar y descargar › «Canales en la barra lateral». |
 | Categorías | Una por categoría de YouTube, con su nombre en español (Educación, Ciencia y tecnología, Música…). |
 
 Las categorías y los canales se calculan con los videos de Recientes. La lista completa de categorías está en `vt/library.py`.
@@ -69,7 +69,6 @@ Un clic en la miniatura o en el título abre el video. Los botones de la tarjeta
 | Botón | Cuándo aparece |
 |---|---|
 | «Ver» o «Continuar» | Siempre que se pueda abrir. En un video de YouTube aún sin descargar es «Ver ▾», con «Descargar sin abrir». |
-| «Priorizar» | Si está esperando en la cola: pasa primero. |
 | «Procesar» | Si no está traducido y no está en la cola. |
 | «Bajar video» | Si solo se descargó el audio. |
 | Exportar | Siempre (el ícono de descarga). Ver [Exportar](../export/). |
@@ -107,12 +106,12 @@ El clic derecho abre un menú que depende de dónde hagas clic:
 
 | Dónde | Qué ofrece |
 |---|---|
-| Tarjeta de video | Ver o Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (o Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
+| Tarjeta de video | Ver o Continuar, Ver desde el inicio, Traducir y doblar (o Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
 | Colección (barra lateral, fila de la portada o banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
-| Trabajo de la cola | Ver, Priorizar, Traducir y doblar, Copiar enlace, Quitar de la cola. |
+| Trabajo de la cola | Abrir el video, Detener o Continuar, Hacer primero, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
 | Frase de la transcripción | Ir a este momento, Copiar en español y en el idioma del original (o solo Copiar si solo se transcribe), Copiar enlace a este momento, Comentar. |
 | Video | Reproducir o Pausar, Escuchar el original o en español (si se traduce), Pantalla completa, Mostrar u Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
-| Espacio libre | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
+| Espacio libre | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Ajustes, contraer la barra lateral, Recargar. |
 
 Sobre la casilla de una tarjeta es el menú del video. En campos de texto, sobre un enlace o con texto seleccionado queda el menú del navegador. El código está en `web/js/contextmenu.js`.
 
@@ -130,7 +129,7 @@ La dirección de la página cambia con cada pantalla, así que recargar te deja 
 | `#/c/<colección>` | Una colección, playlist, canal o categoría |
 | `#/video/<id>` | El reproductor con ese video |
 | `#/cola` | La pantalla de la Cola |
-| `#/preferencias/<sección>` | Una sección de Preferencias |
+| `#/preferencias/<sección>` | Una sección de Ajustes |
 
 Mientras llegan los datos al recargar se ve la silueta de la página. El código está en `web/js/route.js`.
 

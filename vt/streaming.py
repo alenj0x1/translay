@@ -101,6 +101,32 @@ def speech_sample(audio: np.ndarray, seconds: float = 15.0, scan_s: float = 300.
     return np.concatenate([audio[i * FRAME:(i + 1) * FRAME] for i in idx])
 
 
+def speech_samples(audio: np.ndarray, points: int = 3, seconds: float = 15.0, scan_s: float = 300.0) -> list[np.ndarray]:
+    """Voz de varios puntos del audio (inicio, un tercio, dos tercios…): un solo trozo del
+    comienzo engaña cuando el video abre con música, una sala de espera o alguien que saluda
+    en otro idioma. Cada trozo, como `speech_sample`."""
+    total = len(audio)
+    out = []
+    for i in range(points):
+        a = int(total * i / points)
+        if i and total - a < 10 * SR:
+            break
+        s = speech_sample(audio[a:], seconds, scan_s)
+        if len(s) >= SR:
+            out.append(s)
+    return out or [audio[: 30 * SR]]
+
+
+def vote_language(probs: list[dict[str, float]]) -> tuple[str, float]:
+    """El idioma con más probabilidad sumada entre varios trozos, y su promedio."""
+    total: dict[str, float] = {}
+    for p in probs:
+        for code, v in p.items():
+            total[code] = total.get(code, 0.0) + v
+    code = max(total, key=total.get)
+    return code, total[code] / max(1, len(probs))
+
+
 def _norm(w: Word) -> str:
     return _NORM.sub("", w.text.lower())
 
@@ -124,6 +150,9 @@ class Config:
     detect_prob: float = 0.7       # confianza para darlo por detectado (si no, se espera más voz)
     detect_max_s: float = 15.0     # con esta voz se decide aunque la confianza sea menor
     detect_final_s: float = 1.5    # al cerrar (pausa, otro video), voz mínima para decidir; si no, se espera
+    detect_min_prob: float = 0.5   # por debajo nunca se decide en vivo: con ruido, música o silencio Whisper
+                                   # suele decir «inglés» y todo se reconocería (traducido) en otro idioma;
+                                   # lo decide la cola con el archivo completo (Processor._detect)
 
 
 @dataclass
@@ -212,8 +241,11 @@ class StreamingTranscriber:
 
         if not self.language:
             # búfer lleno sin decidir: se decide con lo que hay (Whisper mira hasta 30 s)
-            det = self._detect(final=self.duration > self.cfg.max_buffer_s)
+            full = self.duration > self.cfg.max_buffer_s
+            det = self._detect(final=full)
             if not det:
+                if full:  # sin idioma claro: lo más viejo se suelta sin darlo por cubierto (lo hace la cola)
+                    self._drop_undecided(self.end_t - self.cfg.max_buffer_s / 2)
                 return [Partial("", "")]  # se espera más voz para saber el idioma
             events.append(det)
 
@@ -292,7 +324,9 @@ class StreamingTranscriber:
         speech_s = self.flags.sum() * FRAME / SR
         if speech_s < (self.cfg.detect_final_s if final else self.cfg.detect_speech_s):
             return None
-        code, prob = self.asr.detect(self.audio[-30 * SR:])
+        code, prob = self.asr.detect(self._voiced()[-30 * SR:])
+        if prob < self.cfg.detect_min_prob:
+            return None
         if prob < self.cfg.detect_prob and speech_s < self.cfg.detect_max_s and not final:
             return None
         self.language = code
@@ -412,6 +446,21 @@ class StreamingTranscriber:
         b = max(a, int((words[-1].end + 0.1 - self.t0) * SR))
         clip = self.audio[a:b].copy() if b > a else None
         return [Segment(round(words[0].start, 3), round(words[-1].end, 3), text, clip)]
+
+    def _voiced(self) -> np.ndarray:
+        """Solo las tramas con voz del búfer (con su vecindad): el silencio y el ruido entre
+        frases confunden la detección del idioma."""
+        n = min(len(self.flags), len(self.audio) // FRAME)
+        if not n or not self.flags[:n].any():
+            return self.audio
+        keep = np.convolve(self.flags[:n].astype(np.int8), np.ones(5, np.int8), mode="same") > 0
+        return self.audio[: n * FRAME].reshape(n, FRAME)[keep].reshape(-1)
+
+    def _drop_undecided(self, t: float):
+        """Suelta el audio anterior a t sin idioma decidido: no se reconoció, así que el tramo
+        no queda cubierto (empieza de nuevo en t)."""
+        self._trim_to(t)
+        self.start_t = self.final_t = self.commit_t = self.t0
 
     def _trim_to(self, t: float):
         frames = int((t - self.t0) * SR) // FRAME

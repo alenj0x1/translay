@@ -209,7 +209,7 @@ class YouTube:
         return got
 
     def _session_opts(self, session: str) -> dict:
-        """Sesión de YouTube de la persona, solo si la eligió en Preferencias: la cuenta
+        """Sesión de YouTube de la persona, solo si la eligió en Ajustes: la cuenta
         conectada (vt/ytsession.py, sus cookies se cargan en memoria en _ydl), su
         navegador (Firefox se puede leer abierto; los de tipo Chrome bloquean sus
         cookies mientras están abiertos) o un cookies.txt exportado en data/."""
@@ -283,10 +283,10 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
     if "confirm you" in msg and "bot" in msg:
         if session == "ninguna":
             return ("YouTube pidió verificar que no eres un bot. Conecta tu cuenta de YouTube en "
-                    "Preferencias → YouTube, o espera unas horas.")
+                    "Ajustes → YouTube, o espera unas horas.")
         if session == "cuenta":
             return ("YouTube sigue pidiendo verificación con tu cuenta conectada: espera unas horas o "
-                    "vuelve a conectarla en Preferencias → YouTube.")
+                    "vuelve a conectarla en Ajustes → YouTube.")
         return (f"YouTube sigue pidiendo verificación con la sesión de {browser}: revisa que hayas iniciado "
                 "sesión en YouTube en ese navegador.")
     if "Could not copy" in msg and "cookie" in msg:
@@ -294,12 +294,12 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
                 "mientras están abiertos. Ciérralo durante la descarga, usa Firefox, o exporta un cookies.txt.")
     if "decrypt" in msg.lower() or "app-bound" in msg.lower():
         return (f"{browser} cifra sus cookies y no se pueden leer desde aquí. Usa Firefox o exporta un "
-                "cookies.txt (Preferencias → «Archivo cookies.txt»).")
+                "cookies.txt (Ajustes → «Archivo cookies.txt»).")
     if "confirm your age" in msg:
-        return ("El video tiene restricción de edad: hace falta tu cuenta de YouTube (Preferencias → YouTube)."
+        return ("El video tiene restricción de edad: hace falta tu cuenta de YouTube (Ajustes → YouTube)."
                 if session != "cuenta" else "El video tiene restricción de edad y tu cuenta no puede verlo.")
     if isinstance(e, FileNotFoundError) and "cuenta de YouTube" in msg:
-        return "La cuenta de YouTube no está conectada: conéctala en Preferencias → YouTube."
+        return "La cuenta de YouTube no está conectada: conéctala en Ajustes → YouTube."
     if isinstance(e, FileNotFoundError) and "cookies.txt" in msg:
         return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
     if "playlist" in msg.lower() and ("does not exist" in msg or "private" in msg.lower()):

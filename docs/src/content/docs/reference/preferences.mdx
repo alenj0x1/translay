@@ -1,5 +1,5 @@
 ---
-title: Preferences
+title: Settings
 description: All preferences, their options and defaults, generated from vt/prefs.py.
 sidebar:
   order: 2
@@ -7,7 +7,7 @@ sidebar:
 
 import PrefTable from "../../../components/PrefTable.astro";
 
-They are stored on the server (`data/prefs.json`) and apply to all tabs. Those marked as **propias** (per library) are stored in each library (`vault.json`), so each one can have its own. In the app: Preferences, one page per section. How to use them: [Preferences](../../guide/preferences/).
+They are stored on the server (`data/prefs.json`) and apply to all tabs. Those marked as **propias** (per library) are stored in each library (`vault.json`), so each one can have its own. In the app: Settings, one page per section. How to use them: [Settings](../../guide/preferences/).
 
 ## Appearance
 
@@ -59,13 +59,13 @@ The **Bibliotecas** (Libraries), **Glosario** (Glossary) and **Acceso y API** (A
 ## Add a preference
 
 1. Add an entry to `SCHEMA` in `vt/prefs.py` (with its `section`) and its group and description in `DETAILS`.
-2. Read it in the UI (`prefs.<key>` in `web/js/`). The Preferences screen builds itself.
+2. Read it in the UI (`prefs.<key>` in `web/js/`). The Settings screen builds itself.
 3. If it should be per library, add it to `VAULT_PREFS` in `vt/vaults.py`.
 
 This page regenerates itself when the documentation is built.
 
 ## Performance
 
-The profile and the limits. In the app they have their own screen (Preferences › **Rendimiento**); see [Performance](../../guide/performance/). `0` means "Sin límite" (no limit).
+The profile and the limits. In the app they have their own screen (Settings › **Rendimiento**); see [Performance](../../guide/performance/). `0` means "Sin límite" (no limit).
 
 <PrefTable section="_perf" />

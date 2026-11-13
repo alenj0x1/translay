@@ -31,8 +31,9 @@ Translay reconoce videos en inglés, portugués y español y los traduce al espa
 
 Un video nuevo (enlace importado, archivo de tu equipo o grabación de pantalla) no tiene idioma: Whisper lo detecta con los primeros segundos de voz, antes de reconocer nada (`WhisperASR.detect`).
 
-- **Cola.** Usa los primeros ~15 s de voz que encuentra el VAD de energía (`speech_sample`, dentro de los primeros 5 minutos), así una intro musical o un silencio no lo confunden.
-- **En vivo.** `StreamingTranscriber` espera 3 s de voz y acepta el idioma si su probabilidad es 0,7 o más; si no, espera más voz, hasta 15 s, y entonces decide igual. El idioma llega antes que la primera frase (mensaje `lang`).
+- **Cola.** Toma ~15 s de voz que encuentra el VAD de energía en tres puntos del archivo (el inicio, un tercio y dos tercios; `speech_samples`) y suma la probabilidad de cada idioma (`vote_language`), así una intro musical, una sala de espera o alguien que saluda en otro idioma no lo confunden.
+- **En vivo.** `StreamingTranscriber` espera 3 s de voz (solo las tramas con voz) y acepta el idioma si su probabilidad es 0,7 o más; si no, espera más voz, hasta 15 s, y entonces decide. Por debajo de 0,5 nunca decide: con ruido, música o casi silencio Whisper suele decir inglés, y un video en español se reconocería en inglés, cosa que Whisper hace traduciéndolo (una clase de Zoom salió «traducida» al inglés y de vuelta al español). Ese tramo no queda cubierto: lo procesa la cola con el archivo completo. El idioma llega antes que la primera frase (mensaje `lang`).
+- **Confirmación.** Un idioma decidido en vivo (`detected: {by: "vivo"}` en la transcripción) lo revisa la cola con el archivo completo antes de procesarlo. Si era otro, lo reconocido se borra y se rehace en el idioma correcto (`Transcript.redetect`, mensaje `lang` con `reset`); si el idioma lo eligió la persona, no se revisa.
 
 Un idioma detectado que Translay todavía no traduce solo se transcribe, en ese idioma. Un video de antes de los idiomas, sin `lang`, sigue en inglés. Un modelo `.en` elegido con `--model` no detecta: para él todo es inglés.
 

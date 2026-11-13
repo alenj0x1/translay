@@ -2,7 +2,7 @@
 // Bibliotecas (vt/vaults.py): varias bibliotecas, cada una en su carpeta, con sus videos,
 // colecciones, glosario, personas guardadas, tema y modo de importar.
 //   · selector en el encabezado (cambiar, crear)
-//   · Preferencias → Bibliotecas (editar, ubicación, quitar o eliminar)
+//   · Ajustes → Bibliotecas (editar, ubicación, quitar o eliminar)
 //   · «Mover a…» en la selección de videos
 // Usa lo global de app.js y library.js (state, send, lib, toast, confirmDlg…).
 
@@ -44,7 +44,7 @@ function vaultsUpdate(m) {
   }
   renderVaultBtn();
   renderVaultPop();
-  if (typeof syncAccent === "function") syncAccent();  // Preferencias → Apariencia
+  if (typeof syncAccent === "function") syncAccent();  // Ajustes → Apariencia
   if (typeof applyCan === "function") applyCan();  // los permisos son por biblioteca
   if (typeof renderQueuePanel === "function") {  // la cola muestra lo de la biblioteca abierta
     for (const n of ["#qnav", "#qhead", "#qlist"]) $(n).dataset.sig = "";
@@ -214,7 +214,7 @@ function vaultFolder(m) {
   $("#vault-folder").value = m.path;
 }
 
-/* ------------------------------------------------------------ Preferencias → Bibliotecas */
+/* ------------------------------------------------------------ Ajustes → Bibliotecas */
 const VAULTS_BLOCK = el("div", { class: "pref vaults-pref", id: "pref-vaults" },
   el("span", { class: "pref-label", text: "Tus bibliotecas" }), el("div", { class: "pref-ctl" }));
 function renderVaultsPref() {

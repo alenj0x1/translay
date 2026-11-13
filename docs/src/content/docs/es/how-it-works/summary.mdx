@@ -34,7 +34,7 @@ El código está en `vt/summarize.py` (el modelo, los tramos y las instrucciones
 | **Qwen3 1.7B** (int8) | Apache 2.0 | 3,0 GB | 63 s, 50 puntos | Bueno, pero deja términos en inglés y se equivoca en algunos detalles. En la CPU (6 hilos), 11 minutos. |
 | **Qwen3 0.6B** (int8) | Apache 2.0 | 1,8 GB | 47 s, 45 puntos | Vago: puntos genéricos, sin contenido. Solo si no entra ninguno de los otros. |
 
-**Automático** (por defecto) usa el mejor cuyo pico entra en tu GPU, con 500 MB de margen: con 8 GB, el 4B; con 4 o 6 GB, el 1.7B. Si no entra ninguno, el 1.7B corre en la CPU con la mitad de los hilos (con al menos 8 GB de RAM), y solo si no, el 0.6B. Puedes elegir otro en Preferencias › Resumen › **Modelo**; se descarga de Hugging Face (`jncraton/…-ct2-int8`) la primera vez que se usa, con su avance en el botón, y se puede borrar en [Almacenamiento](../../guide/storage/).
+**Automático** (por defecto) usa el mejor cuyo pico entra en tu GPU, con 500 MB de margen: con 8 GB, el 4B; con 4 o 6 GB, el 1.7B. Si no entra ninguno, el 1.7B corre en la CPU con la mitad de los hilos (con al menos 8 GB de RAM), y solo si no, el 0.6B. Puedes elegir otro en Ajustes › Resumen › **Modelo**; se descarga de Hugging Face (`jncraton/…-ct2-int8`) la primera vez que se usa, con su avance en el botón, y se puede borrar en [Almacenamiento](../../guide/storage/).
 
 ## GPU
 

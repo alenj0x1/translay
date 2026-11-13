@@ -2,7 +2,7 @@
 // Acceso (vt/auth.py), API (vt/api.py) y webhooks (vt/webhooks.py):
 //   · inicio de sesión (dueño desde otro equipo, o una biblioteca con contraseña)
 //   · vista de invitado: sin lo que no puede hacer (body.guest / body.can-import)
-//   · Preferencias → Acceso y API: contraseña, red local, acceso por biblioteca, claves y webhooks
+//   · Ajustes → Acceso y API: contraseña, red local, acceso por biblioteca, claves y webhooks
 // Usa lo global de app.js, library.js y vaults.js.
 
 state.access = { owner: true, perms: {}, local: true };
@@ -30,7 +30,7 @@ function authUpdate(m) {
   if (none) showLogin(m);
   else hideLogin();
   if (m.owner) send({ type: "admin_get" });
-  else if (currentView() === "prefs") setView("library");  // Preferencias es solo del dueño
+  else if (currentView() === "prefs") setView("library");  // Ajustes es solo del dueño
 }
 
 /* ------------------------------------------------------------ inicio de sesión */
@@ -42,7 +42,7 @@ function showLogin(m, asOwner = false) {
   $("#login-sub").textContent = lockVault ? "Esta biblioteca pide contraseña."
     : m.owner_set ? "Contraseña del dueño."
     : m.asked && m.asked_mode === "privada" ? "Esta biblioteca es privada."
-    : "Desde otro equipo se entra con la contraseña del dueño, y aún no hay una: ponla en Preferencias → Acceso y API desde el equipo donde corre la app.";
+    : "Desde otro equipo se entra con la contraseña del dueño, y aún no hay una: ponla en Ajustes → Acceso y API desde el equipo donde corre la app.";
   $("#login-form").hidden = !lockVault && !m.owner_set;
   $("#login-err").textContent = "";
   $("#login-pw").value = "";
@@ -99,7 +99,7 @@ function baseUrl() {
   return a && a.network && a.urls.length && ["localhost", "127.0.0.1"].includes(location.hostname) ? a.urls[0] : location.origin;
 }
 
-/* ------------------------------------------------------------ Preferencias → Acceso y API */
+/* ------------------------------------------------------------ Ajustes → Acceso y API */
 const accBlock = (id, label) => el("div", { class: "pref acc", id }, el("span", { class: "pref-label", text: label }), el("div", { class: "pref-ctl" }));
 const ACC = {
   owner: accBlock("pref-acc-owner", "Contraseña del dueño"),

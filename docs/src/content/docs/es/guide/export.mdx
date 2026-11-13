@@ -26,7 +26,7 @@ En el cuadro de exportar marcas cualquier combinación de:
 | Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), lo que se dice, su traducción (solo si el video se traduce) y los comentarios. |
 | Resumen | TXT | De qué se trató el video y sus puntos importantes con su minuto (ver [Resumen](../transcript-and-people/#resumen)). Si el video aún no tiene, se resume antes de exportarlo. |
 
-La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Preferencias › Audio y subtítulos › «Original bajo la voz en español». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
+La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Ajustes › Audio y subtítulos › «Original bajo la voz en español». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
 
 Al marcar un audio, la fila «Audio» elige el formato y la calidad. El navegador recuerda los dos.
 
@@ -42,7 +42,7 @@ Al marcar un video, la fila «Video» elige **Original** (se copia tal cual, has
 
 ## Dónde se guarda
 
-Desde el equipo donde corre Translay (el dueño), al tocar **Exportar** se abre el cuadro de Windows para elegir dónde guardar: «Guardar como» con el nombre propuesto si es un solo archivo, o una carpeta si son varios. Empieza en la última carpeta que usaste (la primera vez, en Descargas) y avisa antes de reemplazar un archivo. Si lo cancelas, no se exporta nada. Si prefieres no elegir cada vez, «Guardar en» › «Elegir carpeta» (o Preferencias › Exportar › **Al exportar** › **Guardar siempre en una carpeta**) deja una carpeta fija, que puede estar en otro disco; «Preguntar» vuelve a lo de antes. Las dos cosas son la misma preferencia.
+Desde el equipo donde corre Translay (el dueño), al tocar **Exportar** se abre el cuadro de Windows para elegir dónde guardar: «Guardar como» con el nombre propuesto si es un solo archivo, o una carpeta si son varios. Empieza en la última carpeta que usaste (la primera vez, en Descargas) y avisa antes de reemplazar un archivo. Si lo cancelas, no se exporta nada. Si prefieres no elegir cada vez, «Guardar en» › «Elegir carpeta» (o Ajustes › Exportar › **Al exportar** › **Guardar siempre en una carpeta**) deja una carpeta fija, que puede estar en otro disco; «Preguntar» vuelve a lo de antes. Las dos cosas son la misma preferencia.
 
 Todo se arma dentro de la carpeta elegida (en una carpeta temporal `.translay-exportando-…`) y el resultado se mueve ahí: no pasa por el disco de tus datos ni deja una segunda copia. Varios archivos no van en un `.zip` sino sueltos, en una carpeta con el nombre de lo exportado y las mismas subcarpetas que tendría el `.zip` (una por canal, colección…): se reproducen directo desde un pendrive, y uno en FAT32 no admite archivos de más de 4 GB. Con la carpeta fija, si ya hay un archivo o carpeta con ese nombre, se guarda como `nombre (2)`.
 
@@ -56,7 +56,6 @@ Desde otros equipos no se elige: el navegador lo descarga donde descarga siempre
 - **Tarjeta**: el ícono de descarga, o «Exportar…» en su menú contextual.
 - **Colección o playlist**: «Exportar» en su cabecera, o «Exportar todo…» en el menú contextual. Si parte de la colección no está descargada, el botón de la cabecera dice «Exportar descargados (N)» y exporta solo lo que ya está en tu equipo, así que nunca va a YouTube; «Exportar todo…» sigue exportando todo.
 - **Selección**: «Exportar» con varios videos elegidos.
-- **Portada**: «Exportar» junto al video destacado.
 
 ## Un archivo o un .zip
 

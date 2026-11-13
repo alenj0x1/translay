@@ -33,6 +33,7 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 
 ### Traducción y doblaje
 
+- **Dos modos** (Ajustes › Uso): **Traducir y doblar**, o **Transcribir y resumir** para grabar o subir clases y reuniones y usar su transcripción y sus resúmenes, sin nada de traducción ni voz (tampoco se cargan esos modelos).
 - **Reconocimiento** con Whisper large-v3-turbo en streaming: el video se procesa mientras lo ves, desde tu punto de reproducción, y si saltas, el procesamiento salta contigo.
 - **Idiomas**: inglés, portugués y español, **detectados solos** con los primeros segundos de voz. Cualquier video se puede **solo transcribir**, en su idioma, y una preferencia decide qué idioma solo se transcribe al detectarlo (español, si no la cambias).
 - **Traducción** con un traductor por idioma, elegido en el laboratorio: Opus-MT big para el inglés y Opus-MT itc-itc para el portugués (tan bueno como MADLAD-3B y diez veces más rápido), NLLB-1.3B para el resto. Capas propias para **español latinoamericano**: separa oraciones, reescribe modismos antes de traducir («call it a day», «pisou na bola») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
@@ -75,7 +76,7 @@ Traduce y dobla videos al español, del inglés o del portugués, **con la voz d
 ### App de escritorio
 
 - **Instalador para Windows**, sin permisos de administrador. Al abrir por primera vez, la app instala sola el servidor y el motor de voz (paquetes fijados con su huella SHA-256) y muestra el avance en el botón; luego abre Translay en su propia ventana. Te avisa cuando hay una versión nueva en GitHub y abre su descarga (la búsqueda automática se puede apagar).
-- **Barra de título propia** que sigue el tema claro u oscuro, con Preferencias y el cambio de tema como íconos.
+- **Barra de título propia** que sigue el tema claro u oscuro, con Ajustes y el cambio de tema como íconos.
 - **Bandeja del sistema** opcional para que la cola siga trabajando con la ventana cerrada (al terminar, Translay se cierra); una sola instancia; el servidor, sus modelos y todo lo que lanza se cierran con la app, así nada sigue usando la GPU ni la RAM.
 - **Tu biblioteca donde quieras** (por defecto `Videos\Translay`), elegida al instalar y cambiable después.
 
@@ -95,7 +96,7 @@ Desde el reproductor, una tarjeta, una colección entera o una selección. En tu
 
 ## Rendimiento: qué equipo necesitas
 
-Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Preferencias › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://alenj0x1.github.io/translay/es/how-it-works/gpu-and-idle/#memoria-unificada-dgx-spark)).
+Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Ajustes › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://alenj0x1.github.io/translay/es/how-it-works/gpu-and-idle/#memoria-unificada-dgx-spark)).
 
 ### Perfiles
 

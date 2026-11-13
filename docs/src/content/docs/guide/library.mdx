@@ -15,7 +15,7 @@ The library is the screen Translay opens with. On the left is the sidebar with t
 
 ## Home page
 
-**Inicio** (Home) shows at the top the last video you were watching, with the sentence where you stopped in Spanish and in the original language, and the buttons «Continuar» (Continue), «Desde el inicio» (From the start) and «Exportar» (Export). If none is half-watched, it shows the most recently added one.
+**Inicio** (Home) starts with the box to add a video («Traduce un video», Translate a video; see [Add videos](../import/#grabar-and-agregar)): the link field, the choice to translate or only transcribe, «Subir archivos», «Grabar pantalla» and «Varios enlaces».
 
 Below are the rows, each with its «Ver todo» (See all) when it has more than four videos:
 
@@ -41,7 +41,7 @@ They are built from the videos themselves; they can't be renamed or deleted.
 |---|---|
 | Recientes | Videos already on the machine and what was just added (even if it is still downloading), from the last opened or added to the first. What is pending in a playlist appears only in its playlist. |
 | Todos (All) | Every video in the library, including those still to download, from the last added to the first. |
-| Canales (Channels) | One per YouTube channel, with the channel's real avatar and banner. They can be hidden in Preferencias › Agregar y descargar › «Canales en la barra lateral» (Preferences › Add and download › "Channels in the sidebar"). |
+| Canales (Channels) | One per YouTube channel, with the channel's real avatar and banner. They can be hidden in Ajustes › Agregar y descargar › «Canales en la barra lateral» (Settings › Add and download › "Channels in the sidebar"). |
 | Categorías (Categories) | One per YouTube category, with its Spanish name (Educación, Ciencia y tecnología, Música…). |
 
 Categories and channels are calculated from the videos in Recientes. The full list of categories is in `vt/library.py`.
@@ -69,7 +69,6 @@ One click on the thumbnail or the title opens the video. The card's buttons chan
 | Button | When it appears |
 |---|---|
 | «Ver» (Watch) or «Continuar» | Whenever it can be opened. On a YouTube video not yet downloaded it is «Ver ▾», with «Descargar sin abrir» (Download without opening). |
-| «Priorizar» (Prioritize) | If it is waiting in the queue: moves it to the front. |
 | «Procesar» (Process) | If it is not translated and not in the queue. |
 | «Bajar video» (Download video) | If only the audio was downloaded. |
 | Export | Always (the download icon). See [Export](../export/). |
@@ -107,12 +106,12 @@ Right-clicking opens a menu that depends on where you click:
 
 | Where | What it offers |
 |---|---|
-| Video card | Ver or Continuar, Ver desde el inicio, Priorizar, Traducir y doblar (or Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
+| Video card | Ver or Continuar, Ver desde el inicio, Traducir y doblar (or Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
 | Collection (sidebar, home page row or banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
-| Queue job | Ver, Priorizar, Traducir y doblar, Copiar enlace, Quitar de la cola. |
+| Queue job | Abrir el video, Detener or Continuar, Hacer primero, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
 | Transcript sentence | Ir a este momento, Copiar en español and in the original's language (or just Copiar if it is only transcribed), Copiar enlace a este momento, Comentar. |
 | Video | Reproducir or Pausar, Escuchar el original or en español (if it is translated), Pantalla completa, Mostrar or Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
-| Empty space | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Preferencias, contraer la barra lateral, Recargar. |
+| Empty space | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Ajustes, contraer la barra lateral, Recargar. |
 
 On a card's checkbox it's the video's menu. In text fields, on a link or with selected text, the browser's menu is kept. The code is in `web/js/contextmenu.js`.
 
@@ -130,7 +129,7 @@ The page address changes with each screen, so reloading leaves you in the same p
 | `#/c/<colección>` | A collection, playlist, channel or category |
 | `#/video/<id>` | The player with that video |
 | `#/cola` | The Cola (Queue) screen |
-| `#/preferencias/<sección>` | A Preferencias section |
+| `#/preferencias/<sección>` | A Ajustes section |
 
 While data arrives after a reload, you see the page's silhouette. The code is in `web/js/route.js`.
 

@@ -41,6 +41,7 @@
 
 /* ------------------------------------------------------------ portada */
 .grid.home { display: flex; flex-direction: column; gap: var(--s8); }
+.grid.home > .welcome { flex: none; }
 #shelf-head[hidden] { display: none; }
 .shelf:has(#shelf-head[hidden]) { grid-template-rows: minmax(0, 1fr); }
 
@@ -102,12 +103,19 @@
 
 /* ------------------------------------------------------------ biblioteca vacía */
 .welcome {
-  grid-column: 1 / -1; display: grid; justify-items: center; gap: var(--s4); padding: 0 var(--s6) var(--s8);
-  border-radius: var(--r-lg); background: var(--surface); text-align: center; overflow: hidden;
+  grid-column: 1 / -1; display: grid; justify-items: center; gap: var(--s4); padding: var(--s8) var(--s6);
+  border-radius: var(--r-lg); background: transparent; text-align: center; overflow: hidden;
 }
-.welcome-band { justify-self: stretch; height: 72px; margin: 0 calc(-1 * var(--s6)) var(--s6); }
 .welcome h2 { font: 800 var(--fs-2xl)/1.15 var(--font); }
 .welcome .field { width: min(560px, 100%); }
+.welcome .import-segs { width: min(560px, 100%); justify-self: center; }
+.welcome .add-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); }
+/* agregar, compacta arriba del inicio: el campo y, al lado, las otras formas */
+.addbar { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s3); min-width: 0; padding: var(--s2); border-radius: var(--r-lg); background: var(--surface); }
+.addbar .field { flex: 1; min-width: 0; }
+.addbar .add-acts { flex: none; display: flex; gap: var(--s1); }
+@media (max-width: 1100px) { .addbar .add-acts .btn-text { display: none; } .addbar .add-acts .btn { width: var(--h-md); padding: 0; justify-content: center; } }
+@media (max-width: 760px) { .addbar { flex-wrap: wrap; } .addbar .add-acts { width: 100%; justify-content: flex-end; } }
 .welcome small { font: 500 var(--fs-sm)/1.4 var(--font); color: var(--fg-muted); }
 
 /* ------------------------------------------------------------ búsqueda */
@@ -152,7 +160,7 @@
   .hero-copy { padding: var(--s4) var(--s4) var(--s5); }
   .strip { grid-auto-columns: 78%; gap: var(--s3); }
   .hitcard { grid-template-columns: minmax(0, 1fr); }
-  .welcome { padding: 0 var(--s4) var(--s6); }
+  .welcome { padding: var(--s6) var(--s4); }
 }
 
 /* ------------------------------------------------------------ silueta al cargar */

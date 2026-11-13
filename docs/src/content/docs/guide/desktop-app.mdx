@@ -12,18 +12,19 @@ The desktop app is the same Translay interface inside its own window: everything
 ## The window
 
 - The Translay header is the title bar: drag it to move the window and double-click to maximize or restore it. It follows the light or dark theme, like the window border.
-- On the right, **Preferencias** (Preferences) and the light/dark switch appear as icons, next to minimize, maximize and close. When the window is narrow, the buttons switch to icons and the search box shrinks, so the window buttons are always visible.
+- On the right, **Ajustes** (Settings) and the light/dark switch appear as icons, next to minimize, maximize and close. When the window is narrow, the buttons switch to icons and the search box shrinks, so the window buttons are always visible.
+- On Windows 11, resting the mouse on maximize or holding it down opens the snap layouts, to choose where the window goes, as in any window (Windows 10 doesn't have them).
 - When a new version is available, an extra icon appears there; it opens the updates section.
 - Translay opens only once: if you open it again from the Start menu, the window that was already open comes back.
 - On launch you see **Abriendo Translay** (Opening Translay) while the models load, with the theme you used last time.
 
-## Preferences › App de escritorio
+## Settings › App de escritorio
 
 This page only appears in the app.
 
 | Option | What it does |
 |---|---|
-| **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray while the queue has work: it keeps downloading, translating and exporting; when it finishes, Translay quits by itself and frees everything. From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
+| **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Seguir en la bandeja** (Keep running in the tray) hides the window and leaves Translay in the system tray while the queue has work: it keeps downloading, translating and exporting; when it finishes, Translay quits by itself and frees everything. If the queue is stopped or nothing is being processed, it quits anyway (the setting says so). From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
 | **Biblioteca Principal** (Main library) | The folder where the Main library is stored. **Abrir carpeta** (Open folder) opens it in Explorer; **Cambiar…** (Change…) picks another and Translay restarts with it. Other libraries can be in any folder (see [Libraries](../libraries/)). |
 | **Registros** (Logs) | Opens the folder with `setup.log` (the installation) and `server.log` (what the server writes). Useful for reporting a problem. |
 
@@ -41,4 +42,4 @@ The window shows **Translay se detuvo** (Translay stopped) with the server's las
 
 ## Same machine, another browser
 
-The app's server listens on `127.0.0.1` (port 8765 or the next free one). To connect from your phone or another device on the network, turn on access in **Preferencias › Acceso y API** (Preferences › Access and API) (see [Access](../../integrations/access/)).
+The app's server listens on `127.0.0.1` (port 8765 or the next free one). To connect from your phone or another device on the network, turn on access in **Ajustes › Acceso y API** (Settings › Access and API) (see [Access](../../integrations/access/)).
