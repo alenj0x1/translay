@@ -22,6 +22,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 ### Fixed
 
 - Library: with videos selected, the title, how many and the actions stay on one row; when the actions don't fit, they show only their icon instead of overlapping or spilling out.
+- Player: «Listo para reproducir» (Ready to play) no longer covers the English subtitle at the top of the expanded view, and in the split view the transcript shows the original small above the Spanish instead of two very narrow columns.
 
 ## 1.12.0 · 2026-11-12
 

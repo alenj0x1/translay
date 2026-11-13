@@ -44,7 +44,8 @@ const shots = {
   async dividido() {
     const p = await page(); await player(p, "Power of Light", 47);
     await p.evaluate(() => [...document.querySelectorAll("button")].find((x) => x.textContent.trim() === "Ver dividido" && x.offsetParent)?.click()); await sleep(800);
-    await p.evaluate(() => [...document.querySelectorAll("button")].find((x) => x.textContent.trim() === "Transcripción" && x.offsetParent && !x.closest(".side-tabs"))?.click()); await sleep(1500); await p.mouse.move(700, 450); return p;
+    // con la transcripción al costado (si quedó oculta, se muestra)
+    await p.evaluate(() => document.body.classList.contains("side-off") && [...document.querySelectorAll("button")].find((x) => x.textContent.trim() === "Transcripción" && x.offsetParent && !x.closest(".side-tabs"))?.click()); await sleep(1500); await p.mouse.move(700, 450); return p;
   },
   async personas() {
     const p = await page(); await player(p, "Wiseman", 62);

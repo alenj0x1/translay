@@ -37,18 +37,18 @@ body.side-off .side { display: none; }
 .transcript li.gap span { font: 500 var(--fs-xs)/1.4 var(--font); color: var(--fg-faint); }
 .transcript li.gap.busy strong { color: var(--fg); }
 .transcript li.gap.busy span { display: none; }
-body.layout-wide .transcript li.gap .cell { grid-template-columns: 1fr; }
+.transcript li.gap .cell { grid-template-columns: 1fr; }
 
-/* ampliado: inglés pequeño arriba, español debajo */
-body.layout-wide .transcript li { grid-template-columns: 1fr; gap: 0; }
-body.layout-wide .transcript .cell:first-child p { font-size: var(--fs-sm); color: var(--fg-faint); }
-body.layout-wide .transcript li.active .cell:first-child p { color: var(--fg-muted); }
-body.layout-wide .transcript .cell:last-child p { font: 600 var(--fs-body)/1.45 var(--font); }
-body.layout-wide .transcript .cell { grid-template-columns: 1fr; gap: 2px; }
-body.layout-wide .transcript .cell + .cell { padding-top: 0; }
-body.layout-wide .transcript .cell + .cell time { display: none; }
-body.layout-wide .transcript time { display: flex; gap: var(--s2); line-height: 1.5; }
-body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
+/* en las dos vistas el panel es angosto: inglés pequeño arriba, español debajo (nunca dos columnas) */
+.transcript li { grid-template-columns: 1fr; gap: 0; }
+.transcript .cell:first-child p { font-size: var(--fs-sm); color: var(--fg-faint); }
+.transcript li.active .cell:first-child p { color: var(--fg-muted); }
+.transcript .cell:last-child p { font: 600 var(--fs-body)/1.45 var(--font); }
+.transcript .cell { grid-template-columns: 1fr; gap: 2px; }
+.transcript .cell + .cell { padding-top: 0; }
+.transcript .cell + .cell time { display: none; }
+.transcript time { display: flex; gap: var(--s2); line-height: 1.5; }
+.transcript .spk { display: inline; font-size: var(--fs-xs); }
 
 /* ------------------------------------------------------------ comentarios */
 .transcript .cbtn {
@@ -57,7 +57,7 @@ body.layout-wide .transcript .spk { display: inline; font-size: var(--fs-xs); }
 }
 .transcript .cbtn svg { width: 12px; height: 12px; stroke-width: 1.8; }
 .transcript li:hover .cbtn { display: grid; }
-.transcript li .cell:last-child, body.layout-wide .transcript li .cell { padding-right: 40px; }
+.transcript li .cell { padding-right: 40px; }
 .transcript .cbtn.has { display: inline-flex; align-items: center; gap: 3px; width: auto; padding: 0 7px; border-radius: var(--r-pill); font: 700 11px/1 var(--font); }
 .transcript .cbtn.has svg { width: 11px; height: 11px; }
 
@@ -128,4 +128,4 @@ body.native .transcript .cell:first-child { display: none; }
 /* original y traducción iguales (un video en español marcado con otro idioma): una sola */
 .transcript li.same { grid-template-columns: 1fr; gap: 0; }
 .transcript li.same .cell:first-child { display: none; }
-body.layout-wide .transcript li.same .cell + .cell time { display: flex; }
+.transcript li.same .cell + .cell time { display: flex; }

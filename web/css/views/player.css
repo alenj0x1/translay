@@ -54,8 +54,8 @@ body.no-sub-en #cap-en { display: none !important; }
 body.layout-wide .ready { top: var(--s4); left: var(--s4); right: auto; }
 .ready[data-state="ok"] { animation: ready-out .4s 2.5s forwards; }
 @keyframes ready-out { to { opacity: 0; visibility: hidden; } }
-/* mientras prepara, el subtítulo en inglés baja un poco para no encimarse */
-body.layout-wide .screen:has(.ready:not([hidden]):not([data-state="ok"])) #cap-en { top: 56px; }
+/* con el indicador a la vista, el subtítulo en inglés baja para no encimarse */
+body.layout-wide .screen:has(.ready:not([hidden])) #cap-en { top: 56px; }
 
 /* ------------------------------------------------------------- controles */
 .ctrl {

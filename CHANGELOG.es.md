@@ -22,6 +22,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 ### Corregido
 
 - Biblioteca: con videos elegidos, el título, cuántos y las acciones quedan en una fila; si las acciones no caben, muestran solo su ícono en vez de encimarse o salirse.
+- Reproductor: «Listo para reproducir» ya no tapa el subtítulo en inglés arriba de la vista ampliada, y en la vista dividida la transcripción muestra el original pequeño arriba del español en vez de dos columnas muy angostas.
 
 ## 1.12.0 · 2026-11-12
 
