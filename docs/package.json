@@ -2,7 +2,7 @@
   "name": "translay-docs",
   "private": true,
   "type": "module",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "license": "MIT",
   "description": "Documentación de Translay en inglés y español (Astro + Starlight)",
   "scripts": {
