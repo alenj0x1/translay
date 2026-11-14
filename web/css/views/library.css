@@ -10,7 +10,7 @@
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s3) var(--s4);
   padding-bottom: var(--s5);
 }
-.shelf-head h2, #qhead h2 { font: 800 var(--fs-2xl)/1.15 var(--font); letter-spacing: -.02em;
+.shelf-head h2, #qhead h2 { font: 800 var(--fs-2xl)/1.22 var(--font); letter-spacing: -.02em;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sh-title { display: grid; gap: 6px; min-width: 0; }
 .sh-title small, .shelf-head > .label { font: 600 var(--fs-sm)/1.3 var(--font); color: var(--fg-muted); }
@@ -48,6 +48,45 @@
 
 /* ------------------------------------------------------------ portada */
 .grid.home { display: flex; flex-direction: column; gap: var(--s8); }
+/* fondo del inicio: una luz detrás de lo primero (home.js › homeLight), que se apaga hacia abajo */
+/* el inicio ocupa todo su panel (hasta la barra lateral, el borde y la barra de arriba): así la luz llega a los
+   bordes y solo se apaga hacia abajo */
+.grid.home { position: relative; isolation: isolate; margin: calc(-1 * var(--s6)) calc(-1 * var(--pad)) 0;
+  padding: var(--s6) var(--pad) var(--s8); }
+.grid.home > :not(.home-light) { position: relative; z-index: 1; }
+.home-light { position: absolute; left: 0; right: 0; top: 0; height: 700px; z-index: 0; pointer-events: none; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent); }
+.home-light img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.25); filter: blur(64px) saturate(1.3); opacity: .5; }
+.home-light.imagen img { transform: none; filter: none; opacity: .3; }
+[data-theme="light"] .home-light img { opacity: .32; }
+[data-theme="light"] .home-light.imagen img { opacity: .22; }
+/* lo que sigues viendo, sin tarjeta: la miniatura y el texto sobre la luz */
+/* G1: la miniatura crece con la pantalla (hasta ~1000 px) y al lado van el texto y lo del resumen */
+.hero.lite { background: transparent; overflow: visible; min-height: 0; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
+  gap: clamp(var(--s6), 3vw, var(--s10, 40px)); align-items: center; max-width: 1700px; }
+.hero-sum { display: grid; gap: var(--s2); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.hero-sum h4 { margin: 0; font: 700 var(--fs-xs)/1.4 var(--font); color: var(--fg); }
+.hero-sum ul { margin: 0; padding-left: 1.1em; display: grid; gap: var(--s1); font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
+.hero-chs { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+.hero-ch { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: var(--h-xs); padding: 0 var(--s3); border: 0;
+  border-radius: var(--r-pill); background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--fg); cursor: pointer;
+  font: 600 var(--fs-xs)/1 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-ch b { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.hero-ch:hover { background: color-mix(in srgb, var(--fg) 14%, transparent); }
+@media (max-width: 1100px) { .hero-sum { display: none; } }
+.hero.lite .hero-media { aspect-ratio: 16 / 9; min-height: 0; border-radius: var(--r-lg); overflow: hidden; }
+.hero.lite .hero-media::after { display: none; }
+.hero.lite .hero-copy { padding: 0; }
+
+/* encabezado de una colección: distintivo grande, nombre y acciones, con la luz de su banner detrás */
+.shelf-head.has-light { position: relative; isolation: isolate; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--s4);
+  align-items: center; padding-top: var(--s4); }
+.coll-light { position: absolute; left: calc(-1 * var(--pad)); right: calc(-1 * var(--pad)); top: calc(-1 * var(--s6));
+  height: 420px; z-index: -1; display: flex; pointer-events: none; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent); }
+.coll-light img { flex: 1; min-width: 0; height: 100%; object-fit: cover; filter: blur(56px) saturate(1.3); opacity: .5; transform: scale(1.2); }
+.coll-light .tint { position: absolute; inset: 0; background: radial-gradient(45% 60% at 22% 55%, color-mix(in srgb, var(--c) 45%, transparent), transparent 72%); }
+[data-theme="light"] .coll-light img { opacity: .3; }
 .grid.home > .welcome { flex: none; }
 #shelf-head[hidden] { display: none; }
 .shelf:has(#shelf-head[hidden]) { grid-template-rows: minmax(0, 1fr); }
@@ -69,7 +108,7 @@
 .hero-play svg { width: 22px; height: 22px; margin-left: 3px; }
 .hero-copy { position: relative; display: flex; flex-direction: column; justify-content: center; gap: var(--s4); min-width: 0; padding: var(--s8) var(--s8) var(--s8) var(--s6); }
 .hero-copy .label { font-size: var(--fs-sm); }
-.hero-copy h2 { font: 800 clamp(24px, 2.4vw, 34px)/1.12 var(--font); letter-spacing: -.02em;
+.hero-copy h2 { font: 800 clamp(24px, 2.4vw, 34px)/1.22 var(--font); letter-spacing: -.02em;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 /* la frase en los dos idiomas: una cita, sin caja */
 .hero-line { margin: 0; padding: 0; }
@@ -165,6 +204,10 @@
 @media (max-width: 760px) {
   .shelf-head, #qhead, .shelf-head.has-banner { grid-template-columns: minmax(0, 1fr); }
   .shelf-head.has-banner { grid-template-columns: auto minmax(0, 1fr); }
+  .shelf-head.has-light { grid-template-columns: auto minmax(0, 1fr); }
+  .grid.home { margin-top: calc(-1 * var(--s4)); padding-top: var(--s4); }
+  .coll-light { top: calc(-1 * var(--s4)); }
+  .hero.lite { grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
   .shelf-head .acts, #qhead .acts { grid-column: 1 / -1; justify-content: flex-start; }
   /* celular: título y cuántos arriba, las acciones en su propia fila (solo íconos si no caben) */
   .shelf-head.picking { grid-template-columns: auto minmax(0, 1fr); row-gap: var(--s3); }
@@ -195,3 +238,18 @@
 .sk-thumb { aspect-ratio: 16 / 9; }
 .sk-line { height: 14px; border-radius: var(--r-xs); }
 .sk-line.short { width: 55%; }
+
+/* texto del destacado sobre la luz: claro u oscuro según lo que queda detrás (home.js › lightTone), con el
+   texto secundario más fuerte que de costumbre para que no se pierda sobre los colores */
+:is(.grid.home, .hp-stage).on-dark .hero-copy { --hl-fg: #ffffff; --hl-muted: rgba(255, 255, 255, .84); }
+:is(.grid.home, .hp-stage).on-bright .hero-copy { --hl-fg: #121212; --hl-muted: rgba(18, 18, 18, .8); }
+.hero.lite .hero-copy h2, .hero.lite .hero-line .es, .hero.lite .hero-sum h4, .hero.lite .hero-ch,
+.hero.lite .hero-acts .btn.ghost { color: var(--hl-fg, var(--fg)); }
+.hero.lite .hero-copy .label, .hero.lite .hero-line .en, .hero.lite .hero-sum ul, .hero.lite .hero-prog small,
+.hero.lite .hero-ch b { color: var(--hl-muted, var(--fg-muted)); }
+.hero.lite .hero-ch { background: color-mix(in srgb, var(--hl-fg, var(--fg)) 12%, transparent); }
+.hero.lite .hero-sum { border-top-color: color-mix(in srgb, var(--hl-fg, var(--fg)) 16%, transparent); }
+
+/* la escena en la vista previa de Ajustes (en la app va en #scene-layer, layout.css) */
+.home-light.scene-bg { height: calc(100vh - var(--head-h)); }
+.home-light .scene { display: block; width: 100%; }

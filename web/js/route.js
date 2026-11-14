@@ -13,7 +13,7 @@ function routeNow() {
   const view = currentView();
   if (view === "player") return state.videoId && lib.videos[state.videoId] ? `#/video/${encodeURIComponent(state.videoId)}` : "#/";
   if (view === "queue") return "#/cola";
-  if (view === "prefs") return lib.prefSec ? `#/preferencias/${encodeURIComponent(lib.prefSec)}` : "#/preferencias";
+  if (view === "prefs") return lib.prefSec && lib.prefSec !== "inicio" ? `#/preferencias/${encodeURIComponent(lib.prefSec)}` : "#/preferencias";
   return lib.sel && lib.sel !== "home" ? `#/c/${encodeURIComponent(lib.sel)}` : "#/";
 }
 
@@ -36,7 +36,7 @@ function applyRoute(hash) {
     } else if (kind === "cola") {
       setView("queue");
     } else if (kind === "preferencias" && can("owner")) {  // invitados: la biblioteca
-      if (id) lib.prefSec = id;
+      lib.prefSec = id || "inicio";
       setView("prefs");
       if (typeof renderPrefs === "function") renderPrefs();
     } else {

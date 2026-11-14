@@ -24,7 +24,7 @@ function buildMenu(items, depth = 0) {
       disabled: !!it.disabled, title: it.title || null },
       it.badge || (it.icon ? icon(it.icon) : el("i", { class: "menu-gap" })),
       el("span", { class: "mi-label", text: it.label }),
-      it.check ? icon("check") : it.kbd ? el("kbd", { text: it.kbd }) : null);
+      it.check ? icon("check") : it.kbd ? (it.kbd instanceof Node ? it.kbd : el("kbd", { text: it.kbd })) : null);
     if (it.sub) {
       let child = null;
       const open = () => {
@@ -32,7 +32,7 @@ function buildMenu(items, depth = 0) {
         for (const m of document.querySelectorAll(`.menu.d${depth + 1}`)) m.remove();
         child = buildMenu(it.sub, depth + 1);
         (document.querySelector("dialog[open]") || document.body).append(child);
-        place(child, b.getBoundingClientRect(), true);
+        place(child, b.getBoundingClientRect(), true, { parent: b.closest(".menu") });
         for (const s of box.querySelectorAll(".menu-item.hl")) s.classList.remove("hl");
         b.classList.add("hl");
       };
@@ -52,12 +52,19 @@ function buildMenu(items, depth = 0) {
 }
 
 // lo ubica dentro de la ventana: si no cabe abajo/derecha, se abre hacia arriba/izquierda
-function place(m, at, side = false) {
+function place(m, at, side = false, opts = {}) {
   const vw = innerWidth, vh = innerHeight, pad = 8;
-  const r = m.getBoundingClientRect();
+  // el tamaño real, sin la escala de la animación de entrada (con ella el menú parecía más chico y
+  // el submenú quedaba encimado sobre el menú)
+  const r = { width: m.offsetWidth, height: m.offsetHeight };
   let x, y;
   if (at instanceof DOMRect) {
-    if (side) { x = at.right + 4; y = at.top - 6; if (x + r.width > vw - pad) x = at.left - r.width - 4; }
+    if (side) {
+      // al lado del menú entero (no de la opción, que está adentro): con aire, sin encimarse
+      const box = opts.parent ? opts.parent.getBoundingClientRect() : at;
+      x = box.right + 6; y = at.top - 6;
+      if (x + r.width > vw - pad) x = Math.max(pad, box.left - r.width - 6);
+    }
     else {
       // debajo si cabe (o hay lugar razonable, con scroll); si no, arriba
       const below = vh - at.bottom - 6 - pad, above = at.top - 6 - pad;
@@ -118,7 +125,8 @@ document.addEventListener("keydown", (e) => {
 
 /* ------------------------------------------------------------ lista desplegable */
 // Reemplaza la vista de un <select> (que sigue guardando el valor) por un botón y un
-// menú propio. decorate(option) → elemento opcional (distintivo, ícono) para cada opción.
+// menú propio. decorate(option) → elemento opcional (distintivo, ícono) para cada opción;
+// data-hint de una opción: un dato corto a la derecha; o._hint(), uno armado (p. ej. la calidad de un modelo con su color).
 function dropdown(select, decorate = null) {
   if (select._dd) {
     if (decorate) select._dd.decorate = decorate;
@@ -146,7 +154,7 @@ function dropdown(select, decorate = null) {
         for (const o of node.children) items.push(opt(o));
       } else items.push(opt(node));
     }
-    function opt(o) { return { label: o.textContent, badge: deco(o), check: o.value === select.value, onClick: () => choose(o.value) }; }
+    function opt(o) { return { label: o.textContent, badge: deco(o), kbd: o._hint?.() || o.dataset.hint || null, check: o.value === select.value, onClick: () => choose(o.value) }; }
     const m = openMenu(items, btnEl.getBoundingClientRect(), { anchorWidth: true, onClose: () => btnEl.classList.remove("open") });
     if (m) {
       menuOpen.owner = btnEl;

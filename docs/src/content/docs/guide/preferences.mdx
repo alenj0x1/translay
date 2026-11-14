@@ -7,7 +7,7 @@ sidebar:
 
 import { Aside } from "@astrojs/starlight/components";
 
-**Ajustes** (Settings), in the header, opens its own screen: the sections on the left and, on the right, the page for the selected section, with its options grouped and a description of each. Yes/no options are switches; the rest are buttons to choose an option. Changes apply instantly, with no save button. Tapping **Ajustes** again takes you back to the video or the library.
+**Ajustes** (Settings), in the header, opens its own screen. It starts on a page with a card for each section (its icon, its name and what it holds), in five blocks: **General** (Uso, Apariencia and the desktop app), **Mirar** (Watching: playback, audio and subtitles, the agent), **Videos** (adding and downloading, exporting, glossary), **Bibliotecas y acceso** (Libraries and access) and **Equipo** (Computer: performance, storage, trash). The search box at the top also finds the options inside each section (for example «subtítulos» leads to Audio y subtítulos). **Ajustes**, above each section's title (or the header's Ajustes button), goes back to that page. On the left, the same sections by block; on the right, the page for the chosen one, with its options grouped and a description of each. Yes/no options are switches; the rest are buttons to choose an option. Changes apply instantly, with no save button. Tapping **Ajustes** again takes you back to the video or the library.
 
 They are saved on the server (`data/prefs.json`) and apply to all tabs and devices. Some belong to each library and are saved in it (see [Libraries](../libraries/#what-each-one-stores)). Only the owner can change them.
 
@@ -33,15 +33,15 @@ The full table, with each option and its default value, is in the [preferences r
 
 ## Audio and subtitles
 
-**Audio y subtítulos** (Audio and subtitles). Which audio each video starts with (Spanish or original; you switch later over the video), how loud the original stays under the Spanish voice (silent, low or medium), and which subtitles are shown: Spanish at the bottom, the original's at the top (**Subtítulos del original**, Original subtitles), or none. The original's level is also used when you [export](../export/).
+**Audio y subtítulos** (Audio and subtitles). Which audio each video starts with (Spanish or original; you switch later over the video), how loud the original stays under the Spanish voice (silent, low or medium), and which subtitles are shown: Spanish at the bottom, the original's at the top (**Subtítulos del original**, Original subtitles), or none. The original's level is also used when you [export](../export/). **Texto del video en español** (Video text in Spanish) translates what is written in the video and puts it on top in the same place ([how](../../how-it-works/screen-text/)).
 
 ## Add and download
 
-**Agregar y descargar** (Add and download). What is done with what you add (download and translate, or download only), which language is only transcribed when detected (**Solo transcribir lo que está en**, Only transcribe what is in: Spanish by default, English, Portuguese or none), what is downloaded (video and audio, or audio only), in what order downloads run (the queue's or random), browser notifications, and whether channels appear in the library sidebar. **Al agregar** (On add) and **Qué descargar** (What to download) belong to each library. Details in [Add videos](../import/#download-only-or-translate), [Add videos › «Grabar» and «Agregar»](../import/#grabar-and-agregar), [Add videos › Language](../import/#language-and-transcribe-only) and [Queue](../queue/#downloads).
+**Agregar y descargar** (Add and download). What is done with what you add (download and translate, or download only), which language is only transcribed when detected (**Solo transcribir videos en**, Only transcribe videos in: Spanish by default, English, Portuguese or none), what is downloaded (video and audio, or audio only), in what order downloads run (the queue's or random), browser notifications, whether channels appear in the library sidebar, and the YouTube session used to download (none, the connected account, a browser or a `cookies.txt` file), with the buttons to connect your account or import a session (see [YouTube](../youtube/#youtube-session)). **Al agregar** (On add) and **Qué descargar** (What to download) belong to each library. Details in [Add videos](../import/#download-only-or-translate), [Add videos › «Grabar» and «Agregar»](../import/#grabar-and-agregar), [Add videos › Language](../import/#language-and-transcribe-only) and [Queue](../queue/#downloads).
 
 ## Summary
 
-**Resumen** (Summary). When each video is summarized (**Resumir**: **Al pedirlo**, When you ask, the default, with the button in the «Resumen» tab, or **Al procesar cada video**, When each video is processed, as soon as the queue finishes it) and with which model (**Modelo**: **Automático**, which says which one it uses on your computer, or Qwen3 4B, 1.7B or 0.6B). The larger ones summarize in more detail; the light ones are faster and work without a GPU. See [Transcript › Summary](../transcript-and-people/#summary).
+**Resumen** (Summary), in **Agente**. When each video is summarized (**Resumir**: **Al procesar cada video**, When each video is processed, the default, as soon as the queue finishes it, or **Manualmente**, Manually, from «Generar el resumen» among the agent's suggestions). It uses the agent's model. See [Transcript › Summary](../transcript-and-people/#summary).
 
 ## Export
 
@@ -50,10 +50,6 @@ The full table, with each option and its default value, is in the [preferences r
 ## Glossary
 
 **Glosario** (Glossary). Terms that are not translated or that are always translated the same way, specific to the open library. See [Glossary and search](../glossary-and-search/).
-
-## YouTube
-
-The session used to download (none, the connected account, a browser or a `cookies.txt` file), the button to connect your YouTube account and the buttons to import a session. See [YouTube](../youtube/#youtube-session).
 
 ## Access and API
 

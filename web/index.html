@@ -42,16 +42,16 @@
 <!-- inicio de sesión: dueño desde otro equipo, o una biblioteca con contraseña (vt/auth.py) -->
 <section class="login" id="login" hidden>
   <div class="login-box">
-    <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>Translay</div>
-    <h2 id="login-title">Entrar</h2>
+    <div class="brand"><span class="wordmark" data-size="44">translay</span></div>
+    <h2 id="login-title">Iniciar sesión</h2>
     <p class="login-sub" id="login-sub"></p>
     <form class="field login-form" id="login-form">
       <input id="login-pw" type="password" placeholder="Contraseña" autocomplete="current-password" aria-label="Contraseña">
-      <button class="btn sm dark" type="submit" data-icon="check">Entrar</button>
+      <button class="btn sm dark" type="submit" data-icon="check">Iniciar sesión</button>
     </form>
     <p class="login-err" id="login-err"></p>
     <div class="acts">
-      <button class="btn xs ghost" id="login-owner" type="button" data-icon="user" hidden>Entrar como dueño</button>
+      <button class="btn xs ghost" id="login-owner" type="button" data-icon="user" hidden>Iniciar sesión como propietario</button>
       <button class="btn xs ghost" id="login-back" type="button" data-icon="x" hidden>Volver</button>
     </div>
     <div class="login-public" id="login-public"></div>
@@ -60,7 +60,7 @@
 
 <!-- encabezado: el mismo en todas las vistas -->
 <header class="bar">
-  <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path class="solid" d="M5 3.6v6.3l5.3-3.15z"/><path d="M3.5 12.6h9M6 14.6h4"/></svg></span>Translay</div>
+  <div class="brand"><span class="wordmark" data-size="26">translay</span></div>
   <button class="btn ghost icon side-btn" id="side-btn" type="button" data-icon="sidebar" title="Contraer la barra lateral" aria-label="Contraer la barra lateral"></button>
   <div class="vault-wrap">
     <button class="btn vault-btn" id="vault-btn" type="button" aria-haspopup="true">Principal</button>
@@ -74,7 +74,7 @@
   </div>
   <form class="field search" id="lib-search" role="search">
     <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
-    <input id="lib-q" type="search" placeholder="Buscar videos y lo que se dice" spellcheck="false" aria-label="Buscar videos, colecciones y lo que se dice">
+    <input id="lib-q" type="search" placeholder="Buscar en videos y transcripciones" spellcheck="false" aria-label="Buscar en videos, colecciones y transcripciones">
   </form>
   <!-- estado: solo se ve sin conexión o con algo puntual (buscando un video); el resto va en la Cola -->
   <div class="status" id="status" data-state="busy" data-base="1"><i></i><span>conectando</span></div>
@@ -92,8 +92,8 @@
       <div class="import-task" id="import-task"></div>
       <div class="import-acts">
         <label class="src-row" id="file-btn"><span class="src-ic" data-icon="upload"></span><strong>Subir archivos</strong><small>videos o audios</small><input id="file" type="file" accept="video/*,audio/*,.csv,text/csv" multiple hidden></label>
-        <button class="src-row" id="cap-btn" type="button" hidden><span class="src-ic" data-icon="record"></span><strong>Grabar pantalla</strong><small>una pestaña, una ventana o toda la pantalla, con su sonido</small></button>
-        <button class="src-row" id="multi-btn" type="button"><span class="src-ic" data-icon="queue"></span><strong>Varios enlaces</strong><small>listas y canales también</small></button>
+        <button class="src-row" id="cap-btn" type="button" hidden><span class="src-ic" data-icon="record"></span><strong>Grabar pantalla</strong><small>pestaña, ventana o pantalla completa, con audio</small></button>
+        <button class="src-row" id="multi-btn" type="button"><span class="src-ic" data-icon="queue"></span><strong>Varios enlaces</strong><small>incluye playlists y canales</small></button>
       </div>
     </div>
   </div>
@@ -110,14 +110,15 @@
       <button class="btn xs ghost" id="queue-clear" type="button" data-icon="check" hidden>Limpiar terminados</button>
     </div>
   </div>
-  <button class="btn" id="prefs-btn" type="button" data-icon="gear">Ajustes</button>
-  <button class="btn" id="login-btn" type="button" data-icon="user" hidden>Entrar</button>
+  <!-- botones fijos: siempre el mismo texto y lugar; el de la pantalla abierta se marca con su tono -->
   <button class="btn" id="view" type="button" data-icon="grid">Biblioteca</button>
+  <button class="btn" id="prefs-btn" type="button" data-icon="gear">Ajustes</button>
+  <button class="btn" id="login-btn" type="button" data-icon="user" hidden>Iniciar sesión</button>
 </header>
 
 <!-- acciones del video abierto -->
 <div class="vbar" id="vbar">
-  <div class="vtitle" id="file-name"></div>
+  <div class="vhead"><div class="vtitle" id="file-name"></div><p class="vdesc" id="file-desc" hidden></p></div>
   <div class="vacts">
     <div class="save-wrap">
       <button class="btn sm" id="save" type="button" data-icon="bookmark" title="Guardar en una colección">Guardar en…</button>
@@ -126,9 +127,8 @@
         <form class="inline-form" id="save-new"><input class="input" id="save-name" type="text" placeholder="Nueva colección" maxlength="80"><button class="btn sm" type="submit">Crear</button></form>
       </div>
     </div>
-    <button class="btn sm on" id="side-toggle" type="button" data-icon="comment" title="Ocultar la transcripción">Transcripción</button>
     <button class="btn sm" id="layout" type="button" data-icon="columns" title="Cambiar la vista">Ver dividido</button>
-    <button class="btn sm import-only" id="fetch-video" type="button" data-icon="film" title="Solo se descargó el audio: bajar el video completo (sin volver a traducir)" hidden>Bajar video</button>
+    <button class="btn sm import-only" id="fetch-video" type="button" data-icon="film" title="Solo se descargó el audio. Descarga el video completo sin volver a traducirlo" hidden>Descargar video</button>
     <button class="btn sm" id="export-btn" type="button" data-icon="download" title="Exportar">Exportar</button>
   </div>
 </div>
@@ -138,6 +138,7 @@
     <div class="tag chip">EN · original</div>
     <div class="screen">
       <video id="v-en" playsinline preload="auto"></video>
+      <div class="st-layer" aria-hidden="true"></div>
       <div class="caption" id="cap-en"><span class="c"></span><span class="t"></span></div>
       <div class="caption es-wide" id="cap-es-wide"><span class="c"></span></div>
       <div class="ready" id="ready" hidden><i></i><span></span><b><em></em></b></div>
@@ -167,6 +168,7 @@
         <button class="ic" id="c-mute" type="button" data-icon="speaker" aria-label="Silenciar"></button>
         <input type="range" id="c-vol" min="0" max="1" step="0.05" value="1" aria-label="Volumen">
       </div>
+      <button class="ic" id="c-cc" type="button" data-icon="captions" aria-label="Subtítulos" title="Subtítulos (C)"></button>
       <button class="ic" id="c-full" type="button" data-icon="fullscreen" aria-label="Pantalla completa"></button>
     </div>
   </section>
@@ -174,6 +176,7 @@
     <div class="tag chip">ES · traducido</div>
     <div class="screen">
       <video id="v-es" muted playsinline preload="auto"></video>
+      <div class="st-layer" aria-hidden="true"></div>
       <div class="caption" id="cap-es"><span class="c"></span></div>
     </div>
     <div class="timeline" id="tl-es"></div>
@@ -188,7 +191,7 @@
     <button type="button" data-tab="people">Personas</button>
   </nav>
   <ol class="transcript" id="transcript"></ol>
-  <div class="summary" id="summary" hidden></div>
+  <div class="agent" id="summary" hidden></div>  <!-- web/js/agentview.js -->
   <ol class="upnext" id="upnext" hidden></ol>
   <div class="people" id="people" hidden></div>
 </section>
@@ -273,7 +276,7 @@
 
 <dialog class="dlg" id="pl-dlg">
   <form method="dialog">
-    <h3>Este enlace es de una playlist</h3>
+    <h3>El enlace pertenece a una playlist</h3>
     <div class="dlg-actions">
       <button class="btn ghost" value="video" type="submit">Solo este video</button>
       <button class="btn dark" value="playlist" type="submit" data-icon="queue">Agregar playlist</button>
@@ -303,7 +306,6 @@
     <div class="vdlg-head">
       <h3 id="vault-dlg-title">Nueva biblioteca</h3>
       <div class="acts">
-        <button class="btn sm ghost" id="vault-shuffle" type="button" data-icon="shuffle">Otro patrón</button>
         <button class="btn sm" id="vault-random" type="button" data-icon="dice">Al azar</button>
       </div>
     </div>
@@ -311,7 +313,7 @@
       <input class="input" id="vault-name" type="text" maxlength="60" placeholder="Ciencia, Comedia…" autocomplete="off"></label>
     <div class="dlg-row"><span class="label">Color</span><div class="vcolors" id="vault-colors"></div></div>
     <div class="dlg-row"><span class="label">Ícono</span><div class="vicons" id="vault-icons"></div></div>
-    <div class="dlg-row" id="vault-where"><span class="label">Dónde se guarda</span>
+    <div class="dlg-row" id="vault-where"><span class="label">Ubicación</span>
       <div class="segs" id="vault-where-segs">
         <button class="seg" type="button" data-where="app" data-icon="library">En la carpeta de la app</button>
         <button class="seg" type="button" data-where="folder" data-icon="folder">En otra carpeta</button>
@@ -340,6 +342,20 @@
       </div>
     </header>
     <div class="vcards big" id="vault-grid"></div>
+  </form>
+</dialog>
+
+<dialog class="dlg wide" id="agent-dlg">
+  <form method="dialog">
+    <h3>Personalizar el agente</h3>
+    <div class="agent-dlg-grid">
+      <div class="set-rows agent-dlg-rows" id="agent-dlg-rows"></div>
+      <div class="agent-dlg-preview" id="agent-dlg-preview"></div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="more" type="submit" data-icon="gear">Más ajustes</button>
+      <button class="btn dark" value="ok" type="submit">Listo</button>
+    </div>
   </form>
 </dialog>
 
@@ -385,7 +401,7 @@
     <h3>Grabar pantalla</h3>
     <div class="cap-stage" id="cap-stage"><video id="cap-preview" muted playsinline></video><canvas id="cap-boxes"></canvas></div>
     <div class="dlg-line" id="cap-zone-row"><span class="cap-zone" id="cap-zone"></span>
-      <button class="btn xs ghost" id="cap-all" type="button" data-icon="fullscreen">Toda la imagen</button></div>
+      <button class="btn xs ghost" id="cap-all" type="button" data-icon="fullscreen">Área completa</button></div>
     <p class="dlg-note cap-warn" id="cap-warn"></p>
     <div class="cap-opts">
       <div class="dlg-row"><span class="label">Calidad</span><div class="segs" id="cap-q"></div></div>
@@ -416,12 +432,19 @@
 <script src="js/desktop.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/theme.js"></script>
+<script src="js/brand.js"></script>
+<script src="js/scenes.js"></script>
 <script src="js/app.js"></script>
 <script src="js/patterns.js"></script>
 <script src="js/library.js"></script>
+<script src="js/agentview.js"></script>
 <script src="js/summary.js"></script>
+<script src="js/agentui.js"></script>
+<script src="js/codetheme.js"></script>
+<script src="js/screentext.js"></script>
 <script src="js/vaults.js"></script>
 <script src="js/home.js"></script>
+<script src="js/panels.js"></script>
 <script src="js/access.js"></script>
 <script src="js/trash.js"></script>
 <script src="js/storage.js"></script>

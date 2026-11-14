@@ -7,7 +7,9 @@ sidebar:
 
 import { Aside } from "@astrojs/starlight/components";
 
-Above the video are its title and its actions: «Guardar en…» (Save to…), «Transcripción» (Transcript; shows or hides the side panel), «Ver dividido» (Split view) and «Exportar» (Export). The «Biblioteca» (Library) button in the header goes back to the library; from there, «Volver al video» (Back to the video) returns.
+Above the video are its title, a short description of what it is about and its actions. The description (one or two sentences) is written by the agent's smallest model (Qwen3.5 0.8B, downloaded the first time) when the video finishes processing, or when you open one that doesn't have it yet; if the video already has its summary, it takes its first sentences. The actions are «Guardar en…» (Save to…), «Ver dividido» (Split view) and «Exportar» (Export). The side panels change width by dragging their edge: the sidebar on the left and the video's panel on the right (transcript, agent and people). At its minimum the panel stops; keep dragging and the sidebar turns into icons only and the video's panel hides, leaving its edge on the right to drag it back out. A double click on an edge restores the usual width, and widths are remembered in the browser. The video's panel can also be shown or hidden from the video's right-click menu.
+
+The header's buttons never change: Grabar, Agregar, Cola, «Biblioteca» (Library) and Ajustes, always in that order; the one for the open screen is highlighted.
 
 ![Player with Spanish subtitles at the bottom, English at the top and the aligned transcript on the side, with a comment](../../../assets/capturas/reproductor.webp)
 
@@ -17,6 +19,8 @@ Above the video are its title and its actions: «Guardar en…» (Save to…), �
 - **Dividida** (Split): the original (with its language code, e.g. «EN · original» or «PT · original») and the translated one («ES · traducido») side by side. Under the Spanish video, a line marks the sentences already translated.
 
 The «Ver dividido» or «Ver ampliado» (Expanded view) button switches between the two and your choice is saved (Ajustes › Reproducción › «Vista del video»; Settings › Playback › "Video view"). The subtitles of each language can be turned off in Ajustes › Audio y subtítulos (Audio and subtitles).
+
+Text written in the video (titles, signs, slides, code comments) shows up translated on top of the original, in the same place and colors; hover over it to see what it said. Code, commands and links are left as they are. Everything written in the video can be used on the video itself: hovering over it (or clicking it) marks it with a box that glides from one text to the next and shows **Copiar** (Copy) and **Preguntar a Lumi** (Ask Lumi; it opens the agent with the question started and that text in it), plus **Abrir** (Open) for a link; the right-click menu has the same options. The translated text on top can also be selected to copy part of it. It is turned off with **Texto del video en español** (Video text in Spanish) in the same page. How it works: [Text in the video](../../how-it-works/screen-text/).
 
 A video that is [only transcribed](../import/#language-and-transcribe-only) has no translation or voice: a single subtitle in its own language, a single column in the transcript and no audio switch.
 
@@ -32,6 +36,7 @@ The controls are custom and hide by themselves after a few seconds while the vid
 - **Speed**: each click moves to the next value between 0.75× and 2× (in steps of 0.25). The Spanish voice speeds up without changing pitch. The chosen speed is remembered in the browser.
 - **ES / EN** (or the original's code: PT…): ES is the Spanish voice with the original in the background; the other is the original at normal volume. Which language each video starts with and how loud the original stays under the voice is chosen in Ajustes › Audio y subtítulos.
 - **Volume** and mute.
+- **Subtitles** (CC): which ones are shown (Spanish, the original's and the video's text in Spanish) or turn them all off. Dim when they're off.
 - **Full screen**, also with a double click on the video.
 
 ## Keyboard shortcuts
@@ -44,6 +49,7 @@ They work in the player, outside text fields.
 | <kbd>←</kbd> / <kbd>→</kbd> | 5 seconds back or forward |
 | <kbd>F</kbd> | Full screen |
 | <kbd>M</kbd> | Mute or unmute |
+| <kbd>C</kbd> | Turn all subtitles off, or back on as they were |
 | <kbd>Shift</kbd> + <kbd>{"<"}</kbd> / <kbd>{">"}</kbd> | Decrease or increase speed |
 
 In the library, <kbd>/</kbd> takes you to the search field (see [Glossary and search](../glossary-and-search/#search)).
@@ -74,7 +80,7 @@ When a video ends, the next one in the list follows (Ajustes › Reproducción �
 
 ## Floating thumbnail
 
-If you go to the library, the Cola (Queue) or Ajustes while the video is playing, it continues in a thumbnail at the bottom right, with «Volver al video» and «Cerrar» (Close). If you leave it paused, it isn't shown: the video stays saved until you return.
+If you go to the library, the Cola (Queue) or Ajustes with a video open, it stays in a thumbnail at the bottom right, playing or paused, with «Volver al video» (Back to the video) and «Cerrar» (Close): it is how you return to it.
 
 <Aside>
 Every processed segment is saved. When you rewind or reopen a video, the transcript, translation and voices come from disk; only what is new is processed. How it works under the hood: [Pipeline](../../how-it-works/pipeline/).

@@ -15,16 +15,20 @@ The library is the screen Translay opens with. On the left is the sidebar with t
 
 ## Home page
 
-**Inicio** (Home) starts with the box to add a video («Traduce un video», Translate a video; see [Add videos](../import/#grabar-and-agregar)): the link field, the choice to translate or only transcribe, «Subir archivos», «Grabar pantalla» and «Varios enlaces».
+**Inicio** (Home) starts with what you are watching: its thumbnail, title, the sentence you were on in both languages, **Continuar** (Continue), **Desde el inicio** (From the start) and **Exportar**, with the light of its thumbnail behind (or the last video added, if you haven't started any). On large screens it grows with the window and also shows its summary's key ideas and first chapters; a chapter starts the video at that moment. Adding and recording are in the top bar, on every screen.
+
+The background is chosen in Settings › Apariencia › **Fondo** (Background), with the real home page as a preview beside the options: an animated scene made only of characters, **Translay** (the logo's voice wave speaking in the center, with a music note, a video, a class, the agent, a microphone, subtitles, languages and a chat floating around it; the default), **Fondo marino** (seabed with fish), **Atardecer** (sunset), **Medusas** (jellyfish) **Arañas** (spiders, with webs and dew) or **Arañas, Shade y Manchita** (the same, with Shade, a little dog that walks by, stops to tilt its head when a toy squeaks, and goes on, while Manchita, a kitten with a spot on its nose, sits, blinks and twitches its ears), or **Imagen propia** (your own image, darkened; it is reduced in the browser and saved in `data/ui/home-bg.jpg`). The scene sits behind every screen (on screens other than the home page it is dimmer, so it doesn't compete with the text), takes the theme's accent color (soft pastels in light mode, more intense ones in dark mode) and stays still when the system asks to reduce motion. The featured text turns light or dark depending on what is behind it, so it can always be read.
+
+Hovering over a downloaded video's thumbnail for half a second plays it without sound, from where you left off (or from 10 %), like YouTube; it stops when the pointer leaves.
 
 Below are the rows, each with its «Ver todo» (See all) when it has more than four videos:
 
-- **Seguir viendo** (Continue watching): videos you started and haven't finished, from the last one opened to the first.
+- **Seguir viendo** (Continue watching): the other videos you started and haven't finished, from the last one opened to the first.
 - **Recientes** (Recent).
 - Up to eight of your collections and playlists.
 - The four channels with the most videos and the two categories with the most videos (only those with more than one).
 
-With an empty library, the home page is replaced by «Traduce tu primer video» (Translate your first video): a field to paste a link with «Agregar ▾» (Add), «Agregar archivos» (Add files) and the option to drag a video onto the page.
+With an empty library, the home page says so and offers **Agregar video** (Add video), the same as the top bar's button.
 
 <div class="capturas-par">
   <Image src={movil} alt="The home page on a phone, with the collections as tabs" width={390} />
@@ -70,16 +74,14 @@ One click on the thumbnail or the title opens the video. The card's buttons chan
 |---|---|
 | «Ver» (Watch) or «Continuar» | Whenever it can be opened. On a YouTube video not yet downloaded it is «Ver ▾», with «Descargar sin abrir» (Download without opening). |
 | «Procesar» (Process) | If it is not translated and not in the queue. |
-| «Bajar video» (Download video) | If only the audio was downloaded. |
+| «Descargar video» (Download video) | If only the audio was downloaded. |
 | Export | Always (the download icon). See [Export](../export/). |
 
 The library draws cards 200 at a time; «Mostrar más» (Show more) adds the next ones.
 
-## Banners and patterns
+## Headers and their light
 
-Collections, playlists and categories have a banner with a pattern of geometric shapes (circles, quarter circles, triangles and squares) and a badge with their icon. The pattern comes from the name, so it is always the same. «Otro patrón» (Another pattern), on the banner or in the context menu, changes it; this choice is stored in the browser, not on the server. Channels use their YouTube banner and don't have «Otro patrón».
-
-Libraries also have a pattern, but theirs is stored on the server: see [Libraries](../libraries/#color-icon-and-pattern).
+A collection, playlist, channel or category opens with its badge (the channel's avatar, or its icon on its color), its name, how many videos it has and its actions. Behind it there is a soft light, like YouTube's ambient mode: the channel's YouTube banner, or the thumbnails of its videos, blurred and dimmed; without images, the light of its color. Each collection's color comes from its name, so it is always the same; «Otro color» (Another color) in the context menu changes it, and the choice is stored in the browser.
 
 ## Multiple selection
 
@@ -88,7 +90,7 @@ Each card has a checkbox. In a collection that mixes downloaded videos with othe
 - «Abrir» (Open): plays them in order; they stay in the «Siguientes» (Up next) tab.
 - «Procesar»: sends them to the queue to be translated and dubbed.
 - «Exportar».
-- «Bajar video (N)»: of the selected ones that only have the audio.
+- «Descargar video (N)» (Download video): of the selected ones that only have the audio.
 - «Mover a…» (Move to…): to another library (appears if you have more than one).
 - «Eliminar» (Delete) and «Quitar selección» (Clear selection).
 
@@ -108,9 +110,9 @@ Right-clicking opens a menu that depends on where you click:
 |---|---|
 | Video card | Ver or Continuar, Ver desde el inicio, Traducir y doblar (or Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
 | Collection (sidebar, home page row or banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
-| Queue job | Abrir el video, Detener or Continuar, Hacer primero, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
+| Queue job | Abrir el video, Detener or Continuar, Priorizar, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
 | Transcript sentence | Ir a este momento, Copiar en español and in the original's language (or just Copiar if it is only transcribed), Copiar enlace a este momento, Comentar. |
-| Video | Reproducir or Pausar, Escuchar el original or en español (if it is translated), Pantalla completa, Mostrar or Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
+| Video | Reproducir or Pausar, Escuchar el original or en español (if it is translated), Pantalla completa, Mostrar or Ocultar el panel, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
 | Empty space | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Ajustes, contraer la barra lateral, Recargar. |
 
 On a card's checkbox it's the video's menu. In text fields, on a link or with selected text, the browser's menu is kept. The code is in `web/js/contextmenu.js`.

@@ -69,6 +69,14 @@ const ICONS = {
   search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/>',
   chevron: '<path d="M4.5 6.2L8 9.7l3.5-3.5"/>',
   copy: '<rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 3.5V2.5h-8v8h1"/>',
+  power: '<path d="M8 2.5v5"/><path d="M4.6 4.8a4.8 4.8 0 1 0 6.8 0"/>',
+  theme: '<circle cx="8" cy="8" r="5.6"/><path class="solid" d="M8 2.4a5.6 5.6 0 0 1 0 11.2z"/>',
+  bell: '<path d="M4.2 11.2V7.4a3.8 3.8 0 0 1 7.6 0v3.8l1.2 1.3H3zM6.6 13.8a1.5 1.5 0 0 0 2.8 0"/>',
+  mic: '<rect x="5.6" y="1.8" width="4.8" height="8" rx="2.4"/><path d="M3.4 7.6a4.6 4.6 0 0 0 9.2 0M8 12.2v2"/>',
+  captions: '<rect x="1.8" y="3.5" width="12.4" height="9" rx="1.5"/><path d="M7 6.7a1.7 1.7 0 1 0 0 2.6M11.3 6.7a1.7 1.7 0 1 0 0 2.6"/>',
+  code: '<path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"/>',
+  terminal: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.5 6.5L6.5 8l-2 1.5M8 10h3.5"/>',
+  agent: '<rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2.5V5M1.5 8.5v2M14.5 8.5v2"/><circle class="solid" cx="6" cy="9" r=".9"/><circle class="solid" cx="10" cy="9" r=".9"/>',
   user: '<circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 13.8c.6-2.6 2.7-4.1 5.2-4.1s4.6 1.5 5.2 4.1"/>',
   lock: '<rect x="3" y="7" width="10" height="7"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/>',
   arrow: '<path d="M3 8h10M9 4l4 4-4 4"/>',
@@ -146,17 +154,63 @@ watchSegs();
 // ancho); la primera vez, sin animación. En los grupos que no caben en una fila (.wrapped, una
 // lista) se marca como antes, sin píldora.
 const PILL_GROUPS = ".segs, .side-tabs, .lang";
+// dónde estaba la píldora de cada grupo: muchas pantallas (Ajustes) se vuelven a dibujar al elegir, y el grupo
+// nuevo nace sin píldora; con esto sale desde la opción anterior y se desliza igual. La clave es el id del
+// contenedor más cercano (pref-subs_lang…) y el orden del grupo dentro de él.
+const PILL_LAST = new Map();
+const pillKey = (s) => {
+  if (s.dataset.pillKey) return s.dataset.pillKey;
+  const host = s.parentElement?.closest("[id]");
+  if (!host) return null;
+  return `${host.id}:${[...host.querySelectorAll(PILL_GROUPS)].indexOf(s)}`;
+};
 const placePill = (s, animate = true) => {
   if (!s.isConnected) return;
   let pill = s.querySelector(":scope > .seg-pill");
   const on = s.querySelector(":scope > .on");
   if (s.classList.contains("wrapped") || !on || !on.offsetWidth) { if (pill && !pill.classList.contains("off")) pill.classList.add("off"); return; }
-  if (!pill) { pill = el("i", { class: "seg-pill", "aria-hidden": "true" }); s.prepend(pill); animate = false; }
+  const key = pillKey(s);
+  const to = { w: on.offsetWidth, h: on.offsetHeight, x: on.offsetLeft, y: on.offsetTop };
+  if (!pill) {
+    pill = el("i", { class: "seg-pill", "aria-hidden": "true" });
+    s.prepend(pill);
+    const last = key && PILL_LAST.get(key);
+    let from = null;
+    animate = false;
+    if (last && (last.x !== to.x || last.y !== to.y)) from = last;  // redibujado: sale de donde estaba
+    else if (last && last.from && performance.now() - last.t0 < 300) {
+      // se volvió a dibujar a mitad del deslizamiento (Ajustes se redibuja otra vez al confirmar el servidor):
+      // sigue desde donde iba, no desde el principio
+      const k = (performance.now() - last.t0) / 300, e = 1 - (1 - k) ** 3;
+      from = {};
+      for (const q of ["w", "h", "x", "y"]) from[q] = last.from[q] + (to[q] - last.from[q]) * e;
+    }
+    if (from && from.w) {
+      pill.classList.add("still");
+      Object.assign(pill.style, { width: `${from.w}px`, height: `${from.h}px`, transform: `translate(${from.x}px, ${from.y}px)` });
+      void pill.offsetWidth;
+      animate = true;
+      to.from = { w: from.w, h: from.h, x: from.x, y: from.y };
+      to.t0 = performance.now();
+    }
+  } else if (key && animate) {
+    const last = PILL_LAST.get(key);
+    if (last && (last.x !== to.x || last.y !== to.y)) { to.from = { w: last.w, h: last.h, x: last.x, y: last.y }; to.t0 = performance.now(); }
+  }
+  // el primer aviso de tamaño del grupo nuevo llega justo después: si la píldora está deslizándose hacia el mismo
+  // lugar, que siga (sin «still» saltaría al final)
+  const prev = key && PILL_LAST.get(key);
+  if (!animate && prev && prev.t0 && performance.now() - prev.t0 < 300 && prev.x === to.x && prev.y === to.y) {
+    animate = true;
+    to.from = prev.from;
+    to.t0 = prev.t0;
+  }
+  if (key) PILL_LAST.set(key, to);
   pill.classList.toggle("still", !animate);
   pill.classList.remove("off");
-  pill.style.width = `${on.offsetWidth}px`;
-  pill.style.height = `${on.offsetHeight}px`;
-  pill.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+  pill.style.width = `${to.w}px`;
+  pill.style.height = `${to.h}px`;
+  pill.style.transform = `translate(${to.x}px, ${to.y}px)`;
   if (!s.classList.contains("has-pill")) s.classList.add("has-pill");  // solo si cambia: el observador reacciona a las clases
 };
 const hasClass = (list, c) => (list || "").split(/\s+/).includes(c);

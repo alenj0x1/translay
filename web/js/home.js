@@ -4,20 +4,21 @@
 // Usa lo global de app.js, library.js y vaults.js.
 
 /* ------------------------------------------------------------ acento: el color de la biblioteca */
+// el color elegido va en --accent-base; tokens.css lo vuelve pastel en claro (y su texto, un tono profundo del mismo
+// color) y lo deja tal cual en oscuro (texto blanco o casi negro según su luz)
 function applyAccent(color) {
   const root = document.documentElement.style;
   // data-lib-accent: con el color de la biblioteca, los interruptores también lo usan (controls.css)
   if (!/^#[0-9a-f]{6}$/i.test(color || "")) {
-    for (const k of ["--accent", "--on-accent", "--accent-soft"]) root.removeProperty(k);
+    for (const k of ["--accent-base", "--on-accent-dark"]) root.removeProperty(k);
     delete document.documentElement.dataset.libAccent;
     return;
   }
   document.documentElement.dataset.libAccent = "";
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
   const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  root.setProperty("--accent", color);
-  root.setProperty("--on-accent", lum > 0.55 ? "#111111" : "#ffffff");
-  root.setProperty("--accent-soft", `color-mix(in srgb, ${color} 35%, transparent)`);
+  root.setProperty("--accent-base", color);
+  root.setProperty("--on-accent-dark", lum > 0.55 ? "#111111" : "#ffffff");
 }
 
 // Ajustes › Apariencia: el color de énfasis elegido; con «Color de cada biblioteca», el de la abierta
@@ -33,11 +34,11 @@ const fmtLong = (s) => {
 };
 const ROW_MAX = 24;
 
-function homeRows() {
+function homeRows(skip) {
   const vs = lib.videos;
   const rows = [];
   const watching = Object.values(vs).filter((v) => v.media && v.duration && (v.position || 0) > 5 && v.position < v.duration - 10)
-    .sort((a, b) => (b.opened || 0) - (a.opened || 0)).map((v) => v.id);
+    .sort((a, b) => (b.opened || 0) - (a.opened || 0)).map((v) => v.id).filter((id) => id !== skip);  // el destacado no se repite
   if (watching.length) rows.push({ id: "recent", title: "Seguir viendo", items: watching, more: false });
   const byId = Object.fromEntries(lib.collections.map((c) => [c.id, c]));
   if (byId.recent?.items.length) rows.push({ id: "recent", title: "Recientes", items: byId.recent.items });
@@ -53,10 +54,11 @@ function homeRows() {
 
 function heroVideo() {
   const h = lib.hero && lib.videos[lib.hero.video];
-  if (h) return { v: h, en: lib.hero.en, es: lib.hero.es, label: "Seguir viendo" };
+  if (h) return { v: h, en: lib.hero.en, es: lib.hero.es, ideas: lib.hero.ideas, chapters: lib.hero.chapters,
+    label: (h.position || 0) > 5 ? "Seguir viendo" : "Recién agregado" };
   const recent = lib.collections.find((c) => c.id === "recent")?.items || [];
   const v = recent.map((id) => lib.videos[id]).find((x) => x && x.media) || lib.videos[recent[0]];
-  return v ? { v, label: "Recién agregado" } : null;
+  return v ? { v, label: (v.position || 0) > 5 ? "Seguir viendo" : "Recién agregado" } : null;
 }
 
 function renderHome() {
@@ -67,17 +69,83 @@ function renderHome() {
   const grid = $("#grid");
   grid.className = "grid home";
   grid.replaceChildren();
-  // agregar, siempre arriba del inicio; lo que sigues viendo va en su fila (un destacado grande debajo de la
-  // caja competía con ella y repetía «Seguir viendo»)
-  grid.append(addBox(true, Object.keys(lib.videos).length > 0));
-  for (const r of homeRows()) grid.append(row(r));
+  if (!Object.keys(lib.videos).length) { grid.append(emptyLibrary()); return; }
+  // lo que sigues viendo, grande y con su luz detrás; agregar y grabar están en la barra de arriba
+  const lead = heroVideo();
+  const light = homeLight(lead?.v);
+  if (light) grid.append(light);
+  if (lead) grid.append(hero(lead));
+  for (const r of homeRows(lead?.v.id)) grid.append(row(r));
 }
 
-function hero({ v, en, es, label }) {
+// la biblioteca vacía: lo que se puede hacer y el botón de Agregar (el mismo de la barra)
+function emptyLibrary() {
+  return emptyState("film", "Tu biblioteca está vacía",
+    "Agrega un enlace de YouTube o Dropbox, sube un archivo o graba la pantalla. Los videos aparecen aquí mientras se traducen.",
+    "div", btn("Agregar video", { icon: "plus", variant: "dark", onClick: () => $("#import-btn").click() }));
+}
+
+/* ------------------------------------------------------------ fondo del inicio (Ajustes › Apariencia)
+   una escena ASCII con los colores del tema (web/js/scenes.js) o una imagen propia, oscurecida
+   (se sube a data/ui/home-bg.jpg). */
+function homeBgMode() {
+  const m = prefs.home_bg;
+  return m === "imagen" ? (prefs.home_bg_rev ? m : "translay") : SCENES[m] ? m : "translay";  // los fondos de antes: la escena por defecto
+}
+
+function homeLight(v, mode = homeBgMode(), preview = false) {
+  const box = el("div", { class: "home-light " + (mode === "imagen" ? "imagen" : "scene-bg"), "aria-hidden": "true" });
+  if (mode === "imagen") {
+    const img = el("img", { src: `/ui/home-bg.jpg?v=${prefs.home_bg_rev}`, alt: "" });
+    img.addEventListener("load", () => lightTone(box, img), { once: true });
+    box.append(img);
+    return box;
+  }
+  // la escena va en la capa de toda la app (web/js/scenes.js › syncSceneBg); aquí solo en la vista previa de Ajustes
+  if (preview) mountScene(box, mode);
+  requestAnimationFrame(() => lightTone(box, null));
+  return box;
+}
+
+/* el texto sobre la luz siempre legible: se mide el color que queda detrás del texto (la mitad derecha de la
+   imagen, ya mezclada con el fondo según su opacidad) y el texto del destacado va claro u oscuro (--hl-fg) */
+function lightTone(box, img) {
+  const host = box.parentElement;
+  if (!host) return;
+  const rgb = (c) => (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+  const bg = rgb(getComputedStyle(document.documentElement).backgroundColor);
+  let src = [0, 0, 0];
+  let alpha = 0.3;
+  if (img) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = 16; c.height = 9;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0, 16, 9);
+      const d = g.getImageData(8, 0, 8, 9).data;  // la mitad derecha: donde va el texto
+      const sum = [0, 0, 0];
+      for (let i = 0; i < d.length; i += 4) { sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; }
+      src = sum.map((x) => x / (d.length / 4));
+      alpha = parseFloat(getComputedStyle(img).opacity) || 0.5;
+    } catch { return; }  // imagen de otro origen: queda el color del tema
+  } else {
+    const probe = el("i", { style: "color: var(--accent)" });
+    box.append(probe);
+    src = rgb(getComputedStyle(probe).color);
+    probe.remove();
+  }
+  const mix = src.map((x, i) => x * alpha + bg[i] * (1 - alpha));
+  const lin = mix.map((x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+  const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  host.classList.toggle("on-bright", lum > 0.36);
+  host.classList.toggle("on-dark", lum <= 0.36);
+}
+
+function hero({ v, en, es, label, ideas, chapters }) {
   const pct = v.duration ? Math.min(100, (v.position || 0) / v.duration * 100) : 0;
   const play = () => { setContext({ name: label, items: [v.id], auto: false }); playItem(v.id); };
   const canOpen = !!v.media || isRemote(v);
-  return el("section", { class: "hero", style: v.thumb ? `--img: url("${v.thumb}")` : null },
+  return el("section", { class: "hero lite", style: v.thumb ? `--img: url("${v.thumb}")` : null },
     el("div", { class: "hero-media" + (canOpen ? " open" : ""), on: { click: () => canOpen && play() } },
       v.thumb ? el("img", { src: v.thumb.startsWith("/thumb/yt/") ? v.thumb.replace(/\.jpg$/, "_hd.jpg") : v.thumb, alt: "" }) : null,
       canOpen ? el("span", { class: "hero-play", "aria-hidden": "true" }, icon("play")) : null),
@@ -92,7 +160,19 @@ function hero({ v, en, es, label }) {
         btn(pct > 1 ? "Continuar" : "Ver", { icon: "play", variant: "dark", disabled: !canOpen, onClick: play }),
         pct > 1 ? btn("Desde el inicio", { variant: "ghost", onClick: () => { v.position = 0; play(); } }) : null,
         btn("Exportar", { icon: "download", variant: "ghost", onClick: () => openExport([v.id]) })),
-      pct > 1 ? el("div", { class: "hero-prog" }, meter(pct), el("small", { text: v.duration >= 3600 ? `${fmtLong(v.position)} de ${fmtLong(v.duration)}` : `${fmtDur(v.position)} de ${fmtDur(v.duration)}` })) : null));
+      pct > 1 ? el("div", { class: "hero-prog" }, meter(pct), el("small", { text: v.duration >= 3600 ? `${fmtLong(v.position)} de ${fmtLong(v.duration)}` : `${fmtDur(v.position)} de ${fmtDur(v.duration)}` })) : null,
+      heroSummary(ideas, chapters, (t) => { v.position = t; play(); })));
+}
+
+// lo del resumen que ayuda a retomar: ideas clave y los primeros capítulos (cada uno lleva a su momento);
+// en una pantalla angosta se oculta (CSS)
+function heroSummary(ideas, chapters, seek) {
+  if (!ideas?.length && !chapters?.length) return null;
+  return el("div", { class: "hero-sum" },
+    ideas?.length ? el("h4", { text: "Ideas clave" }) : null,
+    ideas?.length ? el("ul", {}, ...ideas.map((t) => el("li", { text: t }))) : null,
+    chapters?.length ? el("div", { class: "hero-chs" }, ...chapters.map((c) => el("button", { type: "button", class: "hero-ch",
+      title: "Ver desde aquí", on: { click: () => seek(c.t) } }, el("b", { text: fmtDur(c.t) }), c.title))) : null);
 }
 
 function row(r) {
@@ -155,14 +235,12 @@ for (const ev of ["mousemove", "pointerdown", "keydown", "touchstart"]) document
 vEn.addEventListener("pause", wake);
 vEn.addEventListener("play", wake);
 
-// transcripción plegable (se recuerda)
+// el panel del video (transcripción, agente, personas): se oculta arrastrando su borde (web/js/panels.js)
+// o desde el clic derecho; se recuerda
 function setSide(open) {
   document.body.classList.toggle("side-off", !open);
-  const b = $("#side-toggle");
-  if (b) { b.classList.toggle("on", open); b.title = open ? "Ocultar la transcripción" : "Mostrar la transcripción"; }
   try { localStorage.setItem("vt-side", open ? "1" : "0"); } catch (e) {}
 }
-$("#side-toggle")?.addEventListener("click", () => setSide(document.body.classList.contains("side-off")));
 try { setSide(localStorage.getItem("vt-side") !== "0"); } catch (e) { setSide(true); }
 
 /* ------------------------------------------------------------ scroll sin barras: bordes que se desvanecen */

@@ -1,7 +1,6 @@
 "use strict";
-// Campo de puntos: un fondo sólido y apagado con una cuadrícula pareja de puntos de su mismo tono.
-// Cada colección tiene el suyo, sacado de su nombre (siempre el mismo); «Otro patrón» cambia la semilla
-// (se guarda en el navegador). Los puntos miden lo mismo en cualquier caja (no se estiran con ella).
+// Color de cada colección: un tono sólido y apagado, sacado de su nombre (siempre el mismo). El campo de
+// puntos que llevaba encima se quitó (2026-11-14): los encabezados usan la luz de su banner (collLight).
 // Íconos por categoría de YouTube; los canales usan su avatar y banner reales (/chan/…).
 
 // [principal (distintivo), fondo, puntos]: oscuros y apagados, siempre con color (nada del gris de las superficies)
@@ -48,14 +47,9 @@ function patternPalette(key) {
   return DOT_PALETTES[Math.floor(r() * DOT_PALETTES.length)];
 }
 
-// el campo de puntos como estilo de fondo: color sólido + puntos de tamaño fijo en px
+// el fondo de un elemento sin imagen (tarjeta sin miniatura, biblioteca): su color, liso
 function patternStyle(key) {
-  const r = seeded(patternSeed(key) + "·dots");
-  const [, bg, dot] = patternPalette(key);
-  const gap = [12, 14, 16][Math.floor(r() * 3)];
-  const rad = gap >= 16 ? 1.6 : 1.3;
-  return `background-color: ${bg}; background-image: radial-gradient(circle, ${dot} ${rad}px, transparent ${rad + 0.4}px);`
-    + ` background-size: ${gap}px ${gap}px; background-position: ${gap / 2}px ${gap / 2}px`;
+  return `background-color: ${patternPalette(key)[1]}`;
 }
 
 // un elemento con el patrón de fondo (cols y rows quedan por compatibilidad: los puntos no se estiran)
@@ -105,7 +99,25 @@ function collBadge(c, cls = "") {
   return b;
 }
 
-// banner de la colección: el del canal o su patrón
+// luz detrás del encabezado de una colección (como el modo ambiente de YouTube): el banner del canal,
+// o las miniaturas de sus videos, difuminados y tenues; sin imagen, la luz de su color
+function collLight(c) {
+  const box = el("div", { class: "coll-light", "aria-hidden": "true" });
+  const tint = () => box.replaceChildren(el("i", { class: "tint", style: `--c: ${patternPalette(c.id)[0]}` }));
+  const thumbs = () => {
+    const srcs = c.items.map((id) => lib.videos[id]?.thumb).filter(Boolean).slice(0, 4);
+    if (srcs.length) box.replaceChildren(...srcs.map((src) => el("img", { src, alt: "", loading: "lazy" })));
+    else tint();
+  };
+  if (c.kind === "canal") {
+    const img = el("img", { src: chanArt("banner", c.name), alt: "" });
+    img.addEventListener("error", thumbs);  // el canal no tiene banner: sus videos
+    box.append(img);
+  } else thumbs();
+  return box;
+}
+
+// banner de la colección: el del canal o su color (ya no se usa en los encabezados: collLight)
 function collBanner(c, onShuffle) {
   const b = el("div", { class: "cbanner" }, patternEl(c.id, "fill", 16, 3));
   if (c.kind === "canal") {

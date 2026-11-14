@@ -15,16 +15,20 @@ La biblioteca es la pantalla con la que abre Translay. A la izquierda está la b
 
 ## Portada
 
-**Inicio** empieza con la caja para agregar un video («Traduce un video»; ver [Agregar videos](../import/#grabar-y-agregar)): el campo del enlace, la elección de traducir o solo transcribir, «Subir archivos», «Grabar pantalla» y «Varios enlaces».
+**Inicio** empieza con lo que estás viendo: su miniatura, el título, la frase donde ibas en los dos idiomas, **Continuar**, **Desde el inicio** y **Exportar**, con la luz de su miniatura detrás (o el último video agregado, si aún no empezaste ninguno). En pantallas grandes crece con la ventana y muestra también las ideas clave y los primeros capítulos de su resumen; un capítulo empieza el video en ese momento. Agregar y grabar están en la barra de arriba, en todas las pantallas.
+
+El fondo se elige en Ajustes › Apariencia › **Fondo**, con el inicio de verdad como vista previa al lado de las opciones: una escena animada hecha solo de caracteres, **Translay** (la onda de voz del logo hablando en el centro y, flotando alrededor, una nota musical, un video, una clase, el agente, un micrófono, subtítulos, idiomas y una conversación; por defecto), **Fondo marino** (con peces), **Atardecer**, **Medusas** **Arañas** (con telarañas y rocío) o **Arañas, Shade y Manchita** (lo mismo, con Shade, un perrito que pasa caminando, se detiene a inclinar la cabeza cuando suena un juguete y sigue, mientras Manchita, una gatita con una manchita en la nariz, mira, parpadea y mueve las orejas), o **Imagen propia** (una imagen tuya, oscurecida; se reduce en el navegador y se guarda en `data/ui/home-bg.jpg`). La escena va detrás de todas las pantallas (fuera del inicio, más tenue para no competir con el texto), toma el color de énfasis del tema (pasteles suaves en claro, más intensos en oscuro) y queda quieta si el sistema pide reducir el movimiento. El texto del destacado pasa a claro u oscuro según lo que tenga detrás, así siempre se lee.
+
+Al dejar el mouse medio segundo sobre la miniatura de un video descargado, se reproduce sin sonido desde donde ibas (o desde el 10 %), como en YouTube; se detiene al salir.
 
 Debajo van las filas, cada una con su «Ver todo» cuando tiene más de cuatro videos:
 
-- **Seguir viendo**: los videos empezados y sin terminar, del último abierto al primero.
+- **Seguir viendo**: los demás videos empezados y sin terminar, del último abierto al primero.
 - **Recientes**.
 - Hasta ocho de tus colecciones y playlists.
 - Los cuatro canales con más videos y las dos categorías con más videos (solo las que tienen más de uno).
 
-Con la biblioteca vacía, la portada se cambia por «Traduce tu primer video»: un campo para pegar un enlace con «Agregar ▾», «Agregar archivos» y la opción de arrastrar un video a la página.
+Con la biblioteca vacía, el inicio lo dice y ofrece **Agregar video**, lo mismo que el botón de la barra de arriba.
 
 <div class="capturas-par">
   <Image src={movil} alt="La portada en un celular, con las colecciones como pestañas" width={390} />
@@ -70,16 +74,14 @@ Un clic en la miniatura o en el título abre el video. Los botones de la tarjeta
 |---|---|
 | «Ver» o «Continuar» | Siempre que se pueda abrir. En un video de YouTube aún sin descargar es «Ver ▾», con «Descargar sin abrir». |
 | «Procesar» | Si no está traducido y no está en la cola. |
-| «Bajar video» | Si solo se descargó el audio. |
+| «Descargar video» | Si solo se descargó el audio. |
 | Exportar | Siempre (el ícono de descarga). Ver [Exportar](../export/). |
 
 La biblioteca dibuja las tarjetas de a 200; «Mostrar más» agrega las siguientes.
 
-## Banners y patrones
+## Encabezados y su luz
 
-Las colecciones, playlists y categorías tienen un banner con un patrón de figuras geométricas (círculos, cuartos de círculo, triángulos y cuadrados) y un distintivo con su ícono. El patrón sale del nombre, así que siempre es el mismo. «Otro patrón», sobre el banner o en el menú contextual, lo cambia; esta elección se guarda en el navegador, no en el servidor. Los canales usan su banner de YouTube y no tienen «Otro patrón».
-
-Las bibliotecas también tienen patrón, pero el suyo se guarda en el servidor: ver [Bibliotecas](../libraries/#color-ícono-y-patrón).
+Una colección, playlist, canal o categoría abre con su distintivo (el avatar del canal, o su ícono sobre su color), su nombre, cuántos videos tiene y sus acciones. Detrás hay una luz suave, como el modo ambiente de YouTube: el banner de YouTube del canal, o las miniaturas de sus videos, difuminados y tenues; sin imágenes, la luz de su color. El color de cada colección sale de su nombre, así que siempre es el mismo; «Otro color», en el menú contextual, lo cambia, y la elección se guarda en el navegador.
 
 ## Selección múltiple
 
@@ -88,7 +90,7 @@ Cada tarjeta tiene una casilla. En una colección que mezcla videos descargados 
 - «Abrir»: los reproduce en orden; quedan en la pestaña «Siguientes».
 - «Procesar»: los manda a la cola para traducirlos y doblarlos.
 - «Exportar».
-- «Bajar video (N)»: de los elegidos que solo tienen el audio.
+- «Descargar video (N)»: de los elegidos que solo tienen el audio.
 - «Mover a…»: a otra biblioteca (aparece si tienes más de una).
 - «Eliminar» y «Quitar selección».
 
@@ -108,9 +110,9 @@ El clic derecho abre un menú que depende de dónde hagas clic:
 |---|---|
 | Tarjeta de video | Ver o Continuar, Ver desde el inicio, Traducir y doblar (o Transcribir), Idioma y traducción, Renombrar…, Guardar en, Mover a, Exportar…, Abrir en YouTube, Copiar enlace, Seleccionar, Eliminar video. |
 | Colección (barra lateral, fila de la portada o banner) | Abrir, Reproducir, Agregar aquí…, Exportar todo…, Otro patrón, Renombrar…, Eliminar. |
-| Trabajo de la cola | Abrir el video, Detener o Continuar, Hacer primero, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
+| Trabajo de la cola | Abrir el video, Detener o Continuar, Priorizar, Traducir y doblar, Detener toda la cola, Copiar enlace, Quitar de la cola. |
 | Frase de la transcripción | Ir a este momento, Copiar en español y en el idioma del original (o solo Copiar si solo se transcribe), Copiar enlace a este momento, Comentar. |
-| Video | Reproducir o Pausar, Escuchar el original o en español (si se traduce), Pantalla completa, Mostrar u Ocultar la transcripción, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
+| Video | Reproducir o Pausar, Escuchar el original o en español (si se traduce), Pantalla completa, Mostrar u Ocultar el panel, Renombrar…, Guardar en…, Exportar…, Copiar enlace a este momento. |
 | Espacio libre | Agregar enlaces…, Agregar archivos…, Nueva colección…, Inicio, Cola, Ajustes, contraer la barra lateral, Recargar. |
 
 Sobre la casilla de una tarjeta es el menú del video. En campos de texto, sobre un enlace o con texto seleccionado queda el menú del navegador. El código está en `web/js/contextmenu.js`.

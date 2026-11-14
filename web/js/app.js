@@ -32,6 +32,7 @@ const state = {
 let prefs = { theme_mode: "sistema", layout: "ampliada", audio: "es", duck: "bajo", sub_es: true, sub_orig: true, ready_chip: "auto",
   autoplay: true, autoplay_next: true };
 let prefsAltSections = {};
+let prefsGroups = [];  // bloques del inicio de Ajustes (vt/prefs.py › SECTION_GROUPS)
 let prefsSchema = [];
 let prefsSections = [];
 let prefsVaultKeys = [];  // las que son de cada biblioteca (vt/vaults.py)
@@ -133,7 +134,7 @@ function onMessage(m) {
       hooksLog(m);
       break;
     case "denied":
-      toast("No tienes permiso para hacer eso en esta biblioteca.", "warn");
+      toast("No tienes permiso para esta acción en esta biblioteca", "warn");
       break;
     case "vault_folder":
       vaultFolder(m);
@@ -144,15 +145,15 @@ function onMessage(m) {
       break;
     case "vault_moved":
       toast(m.moved ? `${m.moved === 1 ? "1 video movido" : `${m.moved} videos movidos`} a «${m.to}».`
-        + (m.skipped ? ` ${m.skipped} se están descargando o procesando: muévelos al terminar.` : "")
-        : "Esos videos se están descargando o procesando: muévelos al terminar.", m.moved ? "ok" : "warn");
+        + (m.skipped ? ` ${m.skipped} siguen en descarga o proceso. Muévelos cuando terminen.` : "")
+        : "Los videos siguen en descarga o proceso. Muévelos cuando terminen.", m.moved ? "ok" : "warn");
       break;
     case "lib_meta":
       libMeta(m);
       break;
     case "video_fetch":
-      toast(m.count ? `${m.count === 1 ? "El video se baja" : `${m.count} videos se bajan`} en la cola (sin volver a traducir).`
-        : "Ya tienen el video completo.", m.count ? "ok" : "warn");
+      toast(m.count ? `${m.count === 1 ? "Video completo en la cola de descargas" : `${m.count} videos completos en la cola de descargas`}, sin volver a traducir.`
+        : "Ya tienen el video completo", m.count ? "ok" : "warn");
       break;
     case "people_saved":
       if (m.vault === state.videoVault) { state.peopleSaved = m.items; renderPeople(); }
@@ -187,14 +188,14 @@ function onMessage(m) {
     case "trash_restored": trashRestored(m); break;
     case "yt_blocked":
       if (canConnectYouTube(m.account) && m.session !== "cuenta")
-        toast("YouTube pidió verificar que no eres un bot: las descargas se pausan 20 min.", "warn",
+        toast("YouTube solicitó verificar que no eres un bot. Las descargas se pausan 20 min.", "warn",
           { label: "Conectar YouTube", onClick: () => connectYouTube() });
-      else toast(m.account?.expired ? "Tu sesión de YouTube se cerró: las descargas se pausan 20 min." : m.error, "warn",
+      else toast(m.account?.expired ? "Tu sesión de YouTube expiró. Las descargas se pausan 20 min." : m.error, "warn",
         m.account?.expired && canConnectYouTube(m.account) ? { label: "Volver a conectar", onClick: () => connectYouTube() } : null);
       break;
     case "yt_need_account":
       if (canConnectYouTube(m.account))
-        toast("Un video tiene restricción de edad: hace falta tu cuenta de YouTube.", "warn",
+        toast("Un video tiene restricción de edad. Conecta tu cuenta de YouTube.", "warn",
           { label: "Conectar YouTube", onClick: () => connectYouTube() });
       break;
     case "library_changed":
@@ -211,7 +212,7 @@ function onMessage(m) {
       // un video vive en una sola biblioteca: los que ya están en otra no se duplican
       const away = Object.entries(m.elsewhere || {});
       if (away.length) toast(away.map(([n, k]) => `${k === 1 ? "1 ya estaba" : `${k} ya estaban`} en «${n}»`).join(" · ")
-        + ": se quedan allá (puedes moverlos desde esa biblioteca).", "warn");
+        + ". Puedes moverlos desde esa biblioteca.", "warn");
       break;
     }
     case "playlist_added":
@@ -248,6 +249,45 @@ function onMessage(m) {
       renderTranscript();
       renderTimeline();
       summaryFromTranscript(m);
+      screenTextLoad(m.screen_text);   // web/js/screentext.js
+      break;
+    case "screen_text":
+      screenTextAdd(m);
+      break;
+    case "agent_power":
+    case "agent_chat":
+    case "agent_state":
+    case "agent_delta":
+    case "agent_done":
+    case "agent_error":
+    case "agent_dictated":
+      agentEvent(m);   // web/js/agentui.js
+      break;
+    case "agent_models":  // Ajustes › Agente › Modelo: cuáles son compatibles con este equipo
+      state.agentModels = m;
+      if (currentView() === "prefs" && lib.prefSec === "agente") renderPrefs();
+      break;
+    case "video_description": {  // la descripción corta llegó (vt/agentsvc.py)
+      const v = lib.videos[m.video];
+      if (v) v.description = m.text;
+      if (m.video === state.videoId) renderVideoDesc();
+      break;
+    }
+    case "agent_model_dl": {  // un modelo del agente bajando desde Ajustes
+      const x = state.agentModels?.models.find((y) => y.key === m.key);
+      if (x) {
+        x.downloading = m.state === "descargando" ? m.pct : null;
+        if (m.state === "listo") x.downloaded = true;
+      }
+      if (m.state === "error") toast(m.error);
+      if (currentView() === "prefs" && lib.prefSec === "agente") renderPrefs();
+      break;
+    }
+    case "agent_context":
+      if (m.video === state.agentCopy) {
+        state.agentCopy = null;
+        copyText(m.text, "Contexto del video copiado para tu agente, con marcas de tiempo y texto en pantalla");
+      }
       break;
     case "summary":
     case "summary_state":
@@ -414,6 +454,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   if (state.videoId) send({ type: "stop" });
   state.videoId = id;
   state.videoName = name;
+  if (typeof screenTextLoad === "function") screenTextLoad(null);  // lo del video anterior no queda encima
   state.segments = [];
   state.covered = [];
   state.live = { committed: "", tentative: "" };
@@ -446,6 +487,7 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   setView("player");
   $("#file-name").textContent = name;
   $("#file-name").title = name;
+  renderVideoDesc();
   document.title = `${name} · Translay`;
   renderTranscript();
   renderTimeline();
@@ -470,7 +512,7 @@ async function openFiles(files) {
   if (mode !== "abrir") {  // a la cola (y viendo un video, sin interrumpirlo)
     files.forEach((f, i) => importLocal(f, ids[i]));
     if (mode === "siguiente") addedWhileWatching(ids);
-    else toast(ids.length === 1 ? "Importado: ya está en la cola." : `${ids.length} archivos importados a la cola.`, "ok");
+    else toast(ids.length === 1 ? "Importado y agregado a la cola" : `${ids.length} archivos importados a la cola`, "ok");
     return;
   }
   if (files.length > 1) {
@@ -540,13 +582,13 @@ function afterImport(ids, mode) {
   if (!ids.length) return;
   if (mode === "abrir") {
     lib.openWhenReady = ids[0];  // se abre apenas termine de descargarse
-    toast("Se abrirá en cuanto termine de descargarse.", "ok");
+    toast("Se abrirá cuando termine la descarga", "ok");
   } else if (mode === "siguiente") {
     addedWhileWatching(ids);
   } else {
     const only = prefs.import_mode === "descargar";
     const without = transcribeMode() ? "sin transcribir" : "sin traducir";
-    toast(ids.length === 1 ? (only ? `Importado: se descarga ${without}.` : "Importado: ya está en la cola.")
+    toast(ids.length === 1 ? (only ? `Importado. Se descargará ${without}` : "Importado y agregado a la cola")
       : `${ids.length} videos importados${only ? `: se descargan ${without}` : " a la cola"}.`, "ok");
     // importado desde una colección o categoría: se queda ahí
     if (currentView() === "library" && !$("#multi-coll").value) { lib.sel = "home"; renderLibrary(); }
@@ -564,13 +606,15 @@ function addedWhileWatching(ids) {
     renderUpNext();
     toast(ids.length === 1 ? "Se reproducirá a continuación." : `${ids.length} videos a continuación.`, "ok");
   } else {
-    toast(ids.length === 1 ? "Agregado a la cola: se procesa en segundo plano." : `${ids.length} videos a la cola.`, "ok");
+    toast(ids.length === 1 ? "Agregado a la cola. Se procesará en segundo plano" : `${ids.length} videos a la cola.`, "ok");
   }
 }
 
 function openVideoLink(url) {
   if (classify(url)?.kind === "video") return importVideos([url]);
   $("#file-name").textContent = "";
+  $("#file-desc").hidden = true;
+  $("#file-desc").textContent = "";
   setStatus("busy", "buscando video", false);
   send({ type: "youtube", url });
 }
@@ -600,14 +644,14 @@ syncImportTask();
 
 // un enlace (o varios) desde el panel, la portada o pegado: true si se agregó
 function addFromText(text) {
-  if (!text) { toast("Pega un enlace de YouTube o Dropbox primero.", "warn"); return false; }
+  if (!text) { toast("Pega un enlace de YouTube o Dropbox", "warn"); return false; }
   if (ytLinks(text).length > 1) { openMulti(text); return true; }
   if (!ytLinks(text).length && !/^[\w-]{11}$/.test(text)) {
-    toast("Eso no es un enlace de YouTube ni de Dropbox: copia el enlace del video y pégalo aquí.", "warn");
+    toast("El enlace no es de YouTube ni de Dropbox. Copia el enlace del video y pégalo aquí.", "warn");
     return false;
   }
   if (/dropbox\.com\//i.test(text) && !classify(text)) {
-    toast("Ese enlace de Dropbox no es de un video: abre el video en Dropbox y copia su enlace.", "warn");
+    toast("El enlace de Dropbox no corresponde a un video. Abre el video en Dropbox y copia su enlace.", "warn");
     return false;
   }
   return openYouTube(text);
@@ -1046,7 +1090,7 @@ setInterval(() => {
   // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
   box.querySelector("span").textContent = ok ? "Listo para reproducir"
     : state.power === "cargando" ? "Cargando modelos"
-    : `${state.autoWait ? "Sigue al estar listo" : "Preparando"} ${Math.min(99, Math.round(lead / need * 100))} %`;
+    : `${state.autoWait ? "Se reanuda al estar listo" : "Preparando"} ${Math.min(99, Math.round(lead / need * 100))} %`;
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
   // visible en pausa (para saber cuándo dar play) y mientras se reproduce solo si
   // el doblaje se queda corto; la preferencia puede ocultarlo del todo
@@ -1372,8 +1416,12 @@ function renderTranscript() {
   const gaps = state.segments.length || state.covered.length ? transcriptGaps() : [];
   state.gapSig = gapSig(gaps);
   let g = 0;
+  // lo escrito en el video (código, comandos, enlaces…), en su momento entre las frases (web/js/screentext.js)
+  const els = state.elements || [];
+  let k = 0;
   for (const s of state.segments) {
     while (g < gaps.length && gaps[g][0] <= s.start) frag.appendChild(gapItem(gaps[g++]));
+    while (k < els.length && els[k].start <= s.start) frag.appendChild(elementItem(els[k++]));
     const li = document.createElement("li");
     li.dataset.start = s.start;
     li.dataset.id = s.id;
@@ -1401,9 +1449,10 @@ function renderTranscript() {
     frag.appendChild(li);
   }
   while (g < gaps.length) frag.appendChild(gapItem(gaps[g++]));
+  while (k < els.length) frag.appendChild(elementItem(els[k++]));
   const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
   ol.replaceChildren(frag);
-  if (!state.segments.length) ol.append(emptyState("comment", "Todavía no hay frases",
+  if (!state.segments.length) ol.append(emptyState("comment", "Aún no hay transcripción",
     "La transcripción aparece aquí a medida que se reconoce el audio.", "li"));
   if (focused) {  // al redibujar (llega una frase nueva) el cuadro sigue donde estaba
     const ta = ol.querySelector(".ceditor .area");
@@ -1548,6 +1597,7 @@ function closeVideo() {
   state.segments = [];
   state.comments = {};
   state.editing = null;
+  screenTextLoad(null);
   vEn.removeAttribute("src");
   vEs.removeAttribute("src");
   vEn.load();
@@ -1703,6 +1753,17 @@ function renderPower() {
   if (typeof renderQueuePanel === "function" && lib.queue) renderQueuePanel();  // «preparando los modelos» en la Cola
 }
 
+// bajo el título: la descripción corta del video (aparece con un fundido cuando llega)
+function renderVideoDesc() {
+  const p = $("#file-desc");
+  const text = lib.videos[state.videoId]?.description || "";
+  if (p.textContent === text) return;
+  p.textContent = text;
+  p.title = text;
+  p.hidden = !text;
+  if (text) p.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+}
+
 /* ------------------------------------------------------------ vista ampliada / dividida */
 function setLayout(wide, save = true) {
   document.body.classList.toggle("layout-wide", wide);
@@ -1744,6 +1805,10 @@ function setPref(key, value) {
   send({ type: "prefs_set", key, value });
   if (key === "app_mode") applyAppMode();
   if (key.startsWith("accent_") && typeof syncAccent === "function") syncAccent();
+  if (key.startsWith("agent_") && typeof refreshAgentPreviews === "function") { refreshAgentPreviews(); renderAgent(); }
+  if (key === "agent_device") { state.agentModels = null; }  // cambia cuál entra y cuál se recomienda
+  if (key.startsWith("home_bg") && typeof syncSceneBg === "function") syncSceneBg();
+  if (key.startsWith("home_bg") && currentView() === "library" && typeof renderHome === "function" && lib.sel === "home") renderHome();
 }
 
 function applyPrefs(m) {
@@ -1751,17 +1816,20 @@ function applyPrefs(m) {
   prefsSchema = m.schema;
   prefsSections = m.sections || [];
   prefsAltSections = m.alt_sections || {};
+  prefsGroups = m.groups || [];
   if (DESKTOP) prefsSections = [...prefsSections, DESKTOP_SECTION];  // web/js/desktop.js
   // dónde guardar lo exportado solo se elige en este equipo (desde otro, lo descarga el navegador)
   if (!(state.access?.local && state.access?.owner)) prefsSections = prefsSections.filter(([k]) => k !== "exportar");
   prefsVaultKeys = m.vault_keys || [];
   prefs = { ...prefs, ...m.values };
   applyTheme();
+  if (typeof syncSceneBg === "function") syncSceneBg();
   applyAppMode();
   if (typeof syncAccent === "function") syncAccent();
   setLayout(!state.translates || prefs.layout !== "dividida", false);
-  document.body.classList.toggle("no-sub-es", !prefs.sub_es);
-  document.body.classList.toggle("no-sub-en", !prefs.sub_orig);
+  applySubs();
+  if (typeof applyCodeTheme === "function") applyCodeTheme();
+  if (typeof renderAgent === "function") renderAgent();
   if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
   renderPrefs();
   if (typeof renderLibrary === "function") renderLibrary();
@@ -1775,32 +1843,32 @@ const YT_ACCOUNT = $("#yt-account");
 const PREF_BLOCKS = {
   escritorio: () => desktopPrefsBlocks(),
   bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
-  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Vacío a la derecha: el término queda como en el original (nombres, marcas, siglas). Al guardar, las frases que lo usan se traducen de nuevo."]],
-  youtube: () => [[YT_ACCOUNT, "Cuenta de YouTube", "Inicias sesión una vez en una ventana aparte del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva solo. Mejor con una cuenta secundaria."],
-    [YT_IMPORT, "Importar sesión", "Toma la sesión de un navegador de este equipo o sube un cookies.txt. Solo se guarda lo de YouTube."]],
+  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas). Al guardar, se vuelven a traducir las frases que lo usan."]],
+  biblioteca: () => [[YT_ACCOUNT, "Cuenta de YouTube", "Inicia sesión una vez en una ventana del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva automáticamente. Se recomienda una cuenta secundaria."],
+    [YT_IMPORT, "Importar sesión", "Importa la sesión de un navegador de este equipo o sube un archivo cookies.txt. Solo se guardan las cookies de YouTube."]],
   rendimiento: () => {
     perfStart();
     renderPerf();
-    return [[PERF_HW, "Tu equipo", ""], [PERF_PROFILE, "Perfil", "Qué modelos usa Translay. Los tiempos y el estado salen de mediciones reales en equipos como el tuyo."],
-      [PERF_LIMITS, "Límites", "Cuánto del equipo puede usar Translay. La RAM y la CPU se aplican al momento."],
+    return [[PERF_HW, "Tu equipo", ""], [PERF_PROFILE, "Perfil", "Modelos que usa Translay. Los tiempos y el estado se basan en mediciones reales en equipos similares al tuyo."],
+      [PERF_LIMITS, "Límites", "Recursos del equipo que puede usar Translay. Los límites de RAM y CPU se aplican de inmediato."],
       [PERF_ALERTS, "Avisos", ""]];
   },
   almacenamiento: () => {
     storageScan();
     renderStorage();
     return [[STORAGE_SUMMARY, "Espacio usado", ""],
-      [STORAGE_LIBS, "Bibliotecas", "Lo que liberes de una descarga sigue en la biblioteca y se vuelve a bajar al abrirlo."],
-      [STORAGE_LARGEST, "Lo que más ocupa", ""],
+      [STORAGE_LIBS, "Bibliotecas", "Los videos liberados siguen en la biblioteca y se descargan de nuevo al abrirlos."],
+      [STORAGE_LARGEST, "Mayor uso de espacio", ""],
       [STORAGE_MODELS, "Modelos", "Los del perfil que usas no se pueden borrar. Los demás se vuelven a descargar si los necesitas."],
       [STORAGE_APP, "Translay", ""]];
   },
-  papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, "En la papelera", "Cada cosa se borra sola a los 30 días de borrarla."]]; },
+  papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, "En la papelera", "Los elementos se eliminan automáticamente a los 30 días."]]; },
   acceso: () => [
-    [ACC.owner, "Contraseña del dueño", "Con ella entras como dueño desde otros equipos. Desde este equipo no se pide."],
-    [ACC.net, "Acceso desde otros equipos", "Abre Translay a tu red local: otros equipos y celulares de la misma red."],
-    [ACC.libs, "Quién entra a cada biblioteca", "Privada, con contraseña o pública; y si quien entra solo mira o también importa."],
+    [ACC.owner, "Contraseña de propietario", "Permite acceder como propietario desde otros equipos. En este equipo no se solicita."],
+    [ACC.net, "Acceso desde otros equipos", "Permite acceder a Translay desde otros equipos y celulares de tu red local."],
+    [ACC.libs, "Acceso a cada biblioteca", "Privada, con contraseña o pública, y si los invitados solo pueden ver o también importar."],
     [ACC.keys, "Claves de API", "Para que otras apps y scripts usen Translay. Cada clave sirve para todas las bibliotecas o una, de lectura o escritura."],
-    [ACC.hooks, "Webhooks", "Avisos a otras apps cuando algo pasa: un video listo, cambios en la cola, descargas, exportaciones…"],
+    [ACC.hooks, "Webhooks", "Notificaciones a otras apps cuando ocurre un evento: un video listo, cambios en la cola, descargas, exportaciones…"],
   ],
 };
 
@@ -1813,6 +1881,13 @@ function prefControl(p) {
   }
   if (p.key === "export_ask") return exportAskRow(p);
   if (p.key === "accent_color") return accentRow(p);
+  if (p.key === "code_theme") return codeThemeRow(p);
+  if (p.key === "agent_color") return swatchRow(p);
+  if (p.key === "agent_avatar") return avatarRow(p);
+  if (p.key === "agent_model") return agentModelRow(p);
+  if (p.key === "home_bg") return homeBgRow(p);
+  if (p.type === "text") return textRow(p);
+  if (p.type === "range") return rangeRow(p);
   if (p.type === "bool") {  // interruptor
     const on = prefs[p.key] === true;
     return el("button", { type: "button", class: "switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), "aria-label": p.label,
@@ -1829,13 +1904,238 @@ function prefControl(p) {
     on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, text)));
 }
 
+// una cantidad: deslizador propio con el valor en números. Se arrastra hasta donde uno quiera y se detiene un
+// instante en los niveles habituales (topes suaves); doble clic vuelve al valor por defecto; rueda y flechas
+// ajustan de a un paso. Se guarda al soltar.
+function rangeRow(p) {
+  let v = prefs[p.key] ?? p.default;
+  const pct = (x) => ((x - p.min) / (p.max - p.min)) * 100;
+  const fill = el("i", { class: "rg-fill" });
+  const thumb = el("b", { class: "rg-thumb" });
+  const track = el("div", { class: "rg-track" }, fill, thumb);
+  const out = el("output", { class: "rg-val" });
+  const box = el("div", { class: "rg", role: "slider", tabindex: "0", "aria-label": p.label,
+    "aria-valuemin": p.min, "aria-valuemax": p.max }, track, out);
+  const show = (x) => {
+    v = x;
+    fill.style.width = thumb.style.left = `${pct(x)}%`;
+    out.textContent = `${x} ${p.unit || ""}`.trim();
+    box.setAttribute("aria-valuenow", x);
+  };
+  const clamp = (x) => Math.min(p.max, Math.max(p.min, Math.round(x / p.step) * p.step));
+  const save = () => { if (v !== prefs[p.key]) setPref(p.key, v); };
+  const at = (e) => {
+    const r = track.getBoundingClientRect();
+    let x = p.min + ((e.clientX - r.left) / r.width) * (p.max - p.min);
+    const stop = (p.stops || []).find((s) => Math.abs(s - x) <= (p.max - p.min) * 0.03);  // tope suave
+    return clamp(stop ?? x);
+  };
+  box.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    box.setPointerCapture(e.pointerId);
+    box.classList.add("drag");
+    show(at(e));
+    const move = (ev) => show(at(ev));
+    const up = () => { box.classList.remove("drag"); box.removeEventListener("pointermove", move); save(); };
+    box.addEventListener("pointermove", move);
+    box.addEventListener("pointerup", up, { once: true });
+    box.addEventListener("pointercancel", up, { once: true });
+  });
+  box.addEventListener("dblclick", () => { show(p.default); save(); });
+  box.addEventListener("keydown", (e) => {
+    const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    show(clamp(v + d * p.step));
+    save();
+  });
+  box.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    show(clamp(v + (e.deltaY < 0 ? 1 : -1) * p.step));
+    clearTimeout(box._t);
+    box._t = setTimeout(save, 400);
+  }, { passive: false });
+  show(v);
+  return box;
+}
+
 // color de énfasis: muestras (la primera, el del tema); con «Color de cada biblioteca» manda el de la biblioteca
 function accentRow(p) {
   const cur = prefs.accent_color || "";
   return el("div", { class: "vcolors accent-colors" + (prefs.accent_lib ? " off" : "") }, ...p.options.map(([value, name]) =>
+    el("button", { type: "button", class: "vcolor" + (value ? " split" : " theme") + (cur === value ? " on" : ""), title: name,
+      "aria-label": name, "aria-pressed": String(cur === value), style: value ? `--vc: ${value}` : null,
+      on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, value ? splitSwatch() : icon("theme"))));
+}
+
+// muestra de un color partida en diagonal: arriba a la izquierda como se ve en claro (pastel), abajo a la derecha como
+// en oscuro; el corte, una línea ondulada. El cuadro por fuera queda igual.
+function splitSwatch() {
+  const n = 28, amp = 1.6, waves = 2.5;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, off = Math.sin(t * Math.PI * 2 * waves) * amp;  // a lo largo de la diagonal, de arriba a la derecha
+    pts.push(`${(30 * (1 - t) + off * 0.7071).toFixed(2)} ${(30 * t + off * 0.7071).toFixed(2)}`);
+  }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 30 30");
+  svg.setAttribute("class", "swatch-split");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `<rect class="dk" width="30" height="30"/><path class="lt" d="M0 0 L30 0 L${pts.join(" L")} L0 30 Z"/>`;
+  return svg;
+}
+
+// texto libre (el nombre y el tono del agente): se guarda al dejar de escribir
+function textRow(p) {
+  const multi = !!p.multiline;
+  const f = el(multi ? "textarea" : "input", { class: multi ? "area pref-text" : "field pref-text", maxlength: p.max || 200,
+    "aria-label": p.label, rows: multi ? 3 : null, placeholder: p.key === "agent_tone"
+      ? "Ejemplo: explícame como a alguien que recién empieza, con ejemplos y en viñetas" : p.label });
+  f.value = prefs[p.key] ?? "";
+  let timer;
+  const save = () => { clearTimeout(timer); const v = f.value.trim(); if (v !== (prefs[p.key] ?? "")) setPref(p.key, v); };
+  f.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(save, 700); });
+  f.addEventListener("blur", save);
+  return el("div", { class: "pref-textwrap" + (multi ? " multi" : "") }, f);
+}
+
+const HOME_PREVIEW_W = 1120;
+// fondo del inicio: las opciones a la izquierda y, al lado, el inicio de verdad
+// (la misma luz y el mismo destacado de web/js/home.js, con lo que sigues viendo)
+function homeBgRow(p) {
+  const cur = homeBgMode();
+  const ICON = { translay: "mic", mar: "globe", atardecer: "theme", medusas: "spark", "arañas": "atom", "arañas y perro": "paw", imagen: "upload" };
+  const list = el("div", { class: "opt-list" }, ...p.options.map(([value, text]) => el("button", { type: "button",
+    class: "code-theme" + (cur === value ? " on" : ""), "aria-pressed": String(cur === value), on: { click: () => {
+      if (value === "imagen" && !prefs.home_bg_rev) { pickHomeBg(); return; }  // sin imagen aún: primero elegirla
+      setPref(p.key, value); renderPrefs();
+    } } }, icon(ICON[value] || "film"), text)),
+    cur === "imagen" ? btn("Cambiar imagen", { icon: "upload", size: "sm", variant: "ghost", onClick: pickHomeBg }) : null);
+  const lead = typeof heroVideo === "function" ? heroVideo() : null;
+  // el inicio se arma a tamaño de escritorio (HOME_PREVIEW_W) y se reduce entero: una miniatura fiel, sin apretar nada
+  const first = typeof homeRows === "function" ? homeRows(lead?.v.id)[0] : null;  // y la primera fila, como en el inicio
+  const stage = el("div", { class: "hp-stage" }, homeLight(lead?.v, cur, true),
+    lead ? hero(lead) : el("p", { class: "home-preview-empty", text: "Aquí aparecerá lo que sigues viendo" }),
+    first ? row(first) : null);
+  const preview = el("div", { class: "home-preview", "aria-label": "Vista previa del inicio" }, stage);
+  const fit = () => {
+    const k = preview.clientWidth / HOME_PREVIEW_W;
+    stage.style.transform = `scale(${k})`;
+    preview.style.height = `${Math.round(stage.offsetHeight * k)}px`;
+  };
+  new ResizeObserver(fit).observe(preview);
+  new ResizeObserver(fit).observe(stage);
+  return el("div", { class: "opt-split" }, list, preview);
+}
+
+// la imagen propia: se reduce en el navegador (hasta 1920 px, JPEG) y se guarda en data/ui/home-bg.jpg
+function pickHomeBg() {
+  const f = el("input", { type: "file", accept: "image/*" });
+  f.addEventListener("change", async () => {
+    const file = f.files[0];
+    if (!file) return;
+    try {
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 1920 / bmp.width);
+      const c = el("canvas", { width: Math.round(bmp.width * k), height: Math.round(bmp.height * k) });
+      c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+      const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+      const r = await fetch("/api/home-bg", { method: "PUT", body: blob });
+      if (!r.ok) throw new Error(await r.text());
+      setPref("home_bg_rev", String(Date.now()));
+      setPref("home_bg", "imagen");
+      renderPrefs();
+    } catch {
+      toast("No se pudo usar esa imagen. Prueba con otra.");
+    }
+  });
+  f.click();
+}
+
+// color propio (el del agente): muestras como las del color de énfasis
+function swatchRow(p) {
+  const cur = prefs[p.key] || "";
+  return el("div", { class: "vcolors" }, ...p.options.map(([value, name]) =>
     el("button", { type: "button", class: "vcolor" + (value ? "" : " theme") + (cur === value ? " on" : ""), title: name,
       "aria-label": name, "aria-pressed": String(cur === value), style: value ? `--vc: ${value}` : null,
-      on: { click: () => { setPref(p.key, value); renderPrefs(); } } })));
+      on: { click: () => { setPref(p.key, value); renderPrefs(); if (typeof renderAgent === "function") renderAgent(); } } },
+    value ? null : icon("theme"))));
+}
+
+// modelo del agente: agrupados por si son compatibles con este equipo, con su calidad en el laboratorio y su tamaño
+// (vt/agentsvc.py › catalog); «Automático» dice cuál usaría
+// calidad en el laboratorio: palabra y su color (de verde a ámbar; «Poco confiable», el que inventa respuestas, en un rojo apagado)
+const QUALITY_LEVEL = (q) => (q == null ? null : q >= 0.97 ? ["Excelente", "exc"] : q >= 0.9 ? ["Muy buena", "good"]
+  : q >= 0.8 ? ["Buena", "ok"] : ["Básica", "low"]);
+function agentModelRow(p) {
+  const cat = state.agentModels;
+  if (!cat) send({ type: "agent_models" });  // llega en un momento y la página se redibuja
+  const info = new Map((cat?.models || []).map((m) => [m.key, m]));
+  const name = (k) => info.get(k)?.name || (p.options.find(([v]) => v === k) || [k, k])[1];
+  const gb = (m) => `${m.gb.toLocaleString("es", { maximumFractionDigits: 1 })} GB`;
+  const opt = (k, text, hint) => { const o = new Option(text, k, false, (prefs[p.key] || "auto") === k); if (hint) o._hint = hint; return o; };
+  const sel = el("select", { class: "select", "aria-label": p.label, on: { change: (e) => { setPref(p.key, e.target.value); renderPrefs(); } } });
+  sel.append(opt("auto", cat?.recommended ? `Automático (${name(cat.recommended)})` : "Automático"));
+  if (cat) {
+    const ms = [...info.values()].sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0));
+    const hint = (m) => () => {
+      const [word, tone] = m.honest ? QUALITY_LEVEL(m.quality) || ["", ""] : ["Poco confiable", "bad"];
+      return el("kbd", { class: "model-hint" }, word ? el("b", { class: "q-" + tone, text: word }) : null,
+        word ? " · " : "", m.downloaded ? "descargado" : gb(m));
+    };
+    const groups = [
+      ["Recomendado", ms.filter((m) => m.key === cat.recommended)],
+      ["Compatibles", ms.filter((m) => m.key !== cat.recommended && m.fits && !m.slow)],
+      ["Lentos en este equipo", ms.filter((m) => m.key !== cat.recommended && m.fits && m.slow)],
+      ["Necesitan más memoria", ms.filter((m) => m.key !== cat.recommended && !m.fits)],
+    ];
+    for (const [label, list] of groups) {
+      if (!list.length) continue;
+      const g = el("optgroup", { label });
+      for (const m of list) g.append(opt(m.key, m.name, hint(m)));
+      sel.append(g);
+    }
+  } else {
+    for (const [k, t] of p.options) if (k !== "auto") sel.append(opt(k, t));
+  }
+  return el("div", { class: "pref-model" }, el("div", { class: "pref-dd" }, sel), agentModelFile(cat));
+}
+
+// el archivo del modelo que se va a usar: descargado, bajando (avance en el botón) o «Descargar» de antemano
+function agentModelFile(cat) {
+  const key = prefs.agent_model && prefs.agent_model !== "auto" ? prefs.agent_model : cat?.recommended;
+  const m = cat?.models.find((x) => x.key === key);
+  if (!m) return null;
+  const size = `${m.gb.toLocaleString("es", { maximumFractionDigits: 1 })} GB`;
+  if (m.downloaded) return el("p", { class: "pref-model-file" }, icon("check"), `Descargado · ${size}`);
+  if (!canImport()) return el("p", { class: "pref-model-file", text: `Se descarga con la primera pregunta · ${size}` });
+  const busy = m.downloading != null;
+  return btn(busy ? `Descargando ${m.downloading} %` : `Descargar · ${size}`, { icon: "download", size: "sm", variant: "ghost",
+    disabled: busy, onClick: () => { m.downloading = 0; send({ type: "agent_model_download", key: m.key }); renderPrefs(); } });
+}
+
+// avatar del agente: íconos de línea, el elegido con su color
+function avatarRow(p) {
+  const cur = prefs[p.key] || "agent";
+  return el("div", { class: "avatars" }, ...p.options.map(([value, name]) =>
+    el("button", { type: "button", class: "avatar-opt" + (cur === value ? " on" : ""), title: name, "aria-label": name,
+      "aria-pressed": String(cur === value), on: { click: () => { setPref(p.key, value); renderPrefs(); if (typeof renderAgent === "function") renderAgent(); } } },
+    icon(value))));
+}
+
+// colores del código (web/js/codetheme.js): los temas a la izquierda y, al lado, cómo se ve un ejemplo
+function codeThemeRow(p) {
+  const cur = CODE_THEMES[prefs.code_theme] ? prefs.code_theme : CODE_THEME_DEFAULT;
+  const pre = el("pre", { class: "code-sample" });
+  pre.append(highlight(CODE_SAMPLE));
+  const list = el("div", { class: "code-themes opt-list" }, ...p.options.map(([value, name]) => {
+    const t = codeThemeFor(value);  // su muestra en la versión del modo actual (claro u oscuro)
+    return el("button", { type: "button", class: "code-theme" + (cur === value ? " on" : ""), "aria-pressed": String(cur === value),
+      style: `--b: ${t.bg}; --c1: ${t.kw}; --c2: ${t.str}; --c3: ${t.fn}; --c4: ${t.com}`,
+      on: { click: () => { setPref(p.key, value); applyCodeTheme(value); renderPrefs(); } } },
+    el("i", { class: "code-swatch" }, el("b"), el("b"), el("b"), el("b")), name);
+  }));
+  return el("div", { class: "opt-split" }, list, pre);
 }
 
 // dónde guardar lo exportado: preguntar o una carpeta fija (que se elige con el cuadro de Windows)
@@ -1867,7 +2167,8 @@ function renderPrefs() {
     STORAGE_SUMMARY, STORAGE_LIBS, STORAGE_LARGEST, STORAGE_MODELS, STORAGE_APP, PERF_HW, PERF_PROFILE, PERF_LIMITS, PERF_ALERTS,
     ...Object.values(ACC));  // se vuelven a poner en su página
   if (!prefsSections.length) return;
-  if (!prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = prefsSections[0][0];
+  if (lib.prefSec === "youtube") lib.prefSec = "biblioteca";  // YouTube ahora está en Agregar y descargar
+  if (!lib.prefSec || !prefsSections.some(([k]) => k === lib.prefSec)) lib.prefSec = "inicio";
   if (typeof syncRoute === "function" && currentView() === "prefs") syncRoute();
   const vaultKeys = new Set(prefsVaultKeys);
   const vaultName = typeof currentVault === "function" && vaults.list.length > 1 ? currentVault().name : "";
@@ -1875,13 +2176,22 @@ function renderPrefs() {
   const mode = transcribeMode() ? "transcribir" : "traducir";
   const sections = prefsSections.filter((s) => !s[4] || s[4] === mode).map((s) =>
     mode === "transcribir" && prefsAltSections[s[0]] ? [s[0], ...prefsAltSections[s[0]], s[3]] : s);
-  if (!sections.some(([k]) => k === lib.prefSec)) lib.prefSec = sections[0][0];
-  nav.replaceChildren(el("h4", { text: "Ajustes" }), ...sections.map(([k, title, , ic]) =>
-    el("button", { type: "button", class: "item" + (k === lib.prefSec ? " active" : ""),
-      on: { click: () => { lib.prefSec = k; renderPrefs(); body.scrollTop = 0; } } }, el("span", {}, icon(ic || "sliders"), title))));
+  if (lib.prefSec !== "inicio" && !sections.some(([k]) => k === lib.prefSec)) lib.prefSec = "inicio";
+  // la barra lateral: el inicio y, debajo, las secciones por bloque (como en el inicio)
+  const navItem = (k, title, ic) => el("button", { type: "button", class: "item" + (k === lib.prefSec ? " active" : ""),
+    on: { click: () => { lib.prefSec = k; renderPrefs(); body.scrollTop = 0; } } }, el("span", {}, icon(ic || "sliders"), title));
+  nav.replaceChildren(...prefsBlocks(sections).flatMap(([g, list]) => [el("h4", { text: g }), ...list.map(([k, title, , ic]) => navItem(k, title, ic))]));
+  if (lib.prefSec === "inicio") {
+    body.replaceChildren(renderPrefsHome(sections));
+    body.dataset.sec = lib.prefSec;
+    return;
+  }
   const [sec, title, desc] = sections.find(([k]) => k === lib.prefSec);
+  // volver al inicio de Ajustes (también con el botón Ajustes del encabezado)
+  const back = el("button", { type: "button", class: "pref-back", on: { click: () => { lib.prefSec = "inicio"; renderPrefs(); body.scrollTop = 0; } } },
+    icon("chevron"), "Ajustes");
   const page = el("div", { class: "pref-page" },
-    el("header", { class: "pref-head" }, el("h2", { text: title }), desc ? el("p", { text: desc }) : null,
+    el("header", { class: "pref-head" }, back, el("h2", { text: title }), desc ? el("p", { text: desc }) : null,
       vaultName && prefsSchema.some((p) => p.section === sec && vaultKeys.has(p.key)) || sec === "glosario" && vaultName
         ? el("span", { class: "pref-scope" }, vaultBadge(currentVault(), "xs"), `Se guarda en «${vaultName}»`) : null));
   // opciones, por grupo
@@ -1895,7 +2205,9 @@ function renderPrefs() {
     const rows = items.map((p) => {
       const ctl = prefControl(p);
       if (!ctl) return null;
-      return el("div", { class: "set-row", id: `pref-${p.key}` },
+      // un texto largo (el tono del agente) o la cuadrícula de temas de código: a lo ancho, debajo del título
+      const wide = (p.type === "text" && p.multiline) || p.key === "code_theme" || p.key === "home_bg";
+      return el("div", { class: "set-row" + (wide ? " wide" : ""), id: `pref-${p.key}` },
         el("div", { class: "set-text" }, el("strong", { text: p.label }), p.desc ? el("p", { text: p.desc }) : null),
         el("div", { class: "set-ctl" }, ctl));
     }).filter(Boolean);
@@ -1908,8 +2220,54 @@ function renderPrefs() {
   for (const [block, t, d] of (PREF_BLOCKS[sec] ? PREF_BLOCKS[sec]() : [])) {
     page.append(el("section", { class: "set-group block" }, el("h3", { text: t }), d ? el("p", { class: "set-desc", text: d }) : null, block));
   }
+  // Ajustes › Agente: la vista previa es la misma al redibujar la página (no vuelve arriba al cambiar algo)
+  let keep = null;
+  if (sec === "agente" && typeof agentPreview === "function") {
+    const old = body.querySelector(".pref-split-side .ag-preview");
+    keep = old ? [old, old.querySelector(".ag-scroll").scrollTop] : null;
+    if (old) refreshAgentPreviews();
+    const [head, ...rest] = page.children;
+    page.replaceChildren(head, el("div", { class: "pref-split" }, el("div", { class: "pref-split-main" }, ...rest),
+      el("aside", { class: "pref-split-side" }, old || agentPreview())));
+  }
   body.replaceChildren(page);
+  if (keep) keep[0].querySelector(".ag-scroll").scrollTop = keep[1];
   body.dataset.sec = lib.prefSec;
+}
+// las secciones repartidas en sus bloques; las que no están en ninguno, en uno sin título al final
+function prefsBlocks(sections) {
+  const byKey = new Map(sections.map((s) => [s[0], s]));
+  const used = new Set();
+  const out = prefsGroups.map(([g, keys]) => [g, keys.filter((k) => byKey.has(k)).map((k) => { used.add(k); return byKey.get(k); })])
+    .filter(([, list]) => list.length);
+  const rest = sections.filter((s) => !used.has(s[0]));
+  if (rest.length) out.push(["Más", rest]);
+  return out;
+}
+
+// el inicio de Ajustes: una tarjeta por sección (ícono, título y qué hay dentro), por bloque, y una búsqueda que
+// también encuentra las opciones de cada sección («subtítulos» lleva a Audio y subtítulos)
+function renderPrefsHome(sections) {
+  const grid = el("div", { class: "set-home-grid" });
+  const draw = (q) => {
+    q = (q || "").trim().toLowerCase();
+    const hit = (s) => !q || [s[1], s[2], ...prefsSchema.filter((p) => p.section === s[0]).flatMap((p) => [p.label, p.desc])]
+      .some((t) => (t || "").toLowerCase().includes(q));
+    const blocks = prefsBlocks(sections).map(([g, list]) => [g, list.filter(hit)]).filter(([, list]) => list.length);
+    grid.replaceChildren(...(blocks.length ? blocks.map(([g, list]) => el("section", { class: "set-home-block" },
+      el("h3", { text: g }),
+      el("div", { class: "set-cards" }, ...list.map(([k, title, desc, ic]) => el("button", { type: "button", class: "set-card",
+        on: { click: () => { lib.prefSec = k; renderPrefs(); $("#prefs-body").scrollTop = 0; } } },
+        el("span", { class: "set-card-ic" }, icon(ic || "sliders")), el("strong", { text: title }), desc ? el("p", { text: desc }) : null)))))
+      : [emptyState("search", "Sin resultados", "Prueba con otra palabra, como «subtítulos» o «modelo».")]));
+  };
+  const input = el("input", { type: "search", placeholder: "Buscar en ajustes", "aria-label": "Buscar en ajustes",
+    on: { input: (e) => draw(e.target.value) } });
+  draw("");
+  return el("div", { class: "pref-page set-home" },
+    el("header", { class: "pref-head set-home-head" }, el("h2", { text: "Ajustes" }),
+      el("label", { class: "field set-search" }, icon("search"), input)),
+    grid);
 }
 function markPrefsNav() {}  // (antes: índice que seguía el scroll; ahora cada sección es su página)
 function openPrefs(sec) {
@@ -1944,7 +2302,7 @@ function setSideTab(tab) {
   $("#summary").hidden = tab !== "summary";
   if (tab === "transcript") renderActive(true);
   else if (tab === "people") renderPeople();
-  else if (tab === "summary") renderSummary();
+  else if (tab === "summary") { renderSummary(); agentOpen(); renderAgent(); $("#ag-input").focus({ preventScroll: true }); }
   else renderUpNext(true);
 }
 
@@ -1957,6 +2315,7 @@ function updateSideTabs() {
   up.hidden = items.length < 2;
   pe.hidden = !state.segments.some((s) => s.speaker != null);
   su.hidden = !state.segments.length && !state.summary;
+  if (typeof agentTabLabel === "function") agentTabLabel();
   $("#side-tabs").hidden = up.hidden && pe.hidden && su.hidden;
   const on = $("#side-tabs button.on");
   if (!on || on.hidden) setSideTab("transcript");
@@ -2028,7 +2387,7 @@ function renderAccount(a) {
     return;
   }
   if (!browsers.length) {
-    status.textContent = "No hay un navegador compatible (Brave, Chrome, Edge, Vivaldi o Chromium): usa «Subir cookies.txt».";
+    status.textContent = "No se encontró un navegador compatible (Brave, Chrome, Edge, Vivaldi o Chromium). Usa «Subir cookies.txt».";
     return;
   }
   const label = busy || (a.expired ? `Volver a conectar con ${name}` : `Conectar con ${name}`);
@@ -2040,14 +2399,14 @@ function renderAccount(a) {
       openMenu(browsers.map((b) => ({ label: b.name, check: b.key === ytAcc.browser,
         onClick: () => { ytAcc.browser = b.key; renderAccount(ytAcc.status); } })), e.currentTarget.getBoundingClientRect());
     } }));
-  status.textContent = !state.access.local ? "Se conecta desde el equipo donde corre Translay."
+  status.textContent = !state.access.local ? "Solo se puede conectar desde el equipo donde se ejecuta Translay."
     : a.busy === "conectando" ? `Inicia sesión en YouTube en la ventana de ${name} y ciérrala.`
-    : a.expired ? "La sesión se cerró en YouTube." : "Sin cuenta conectada";
+    : a.expired ? "La sesión de YouTube expiró" : "Sin cuenta conectada";
 }
 
 function renderCookies(m) {
   if (m.account) renderAccount(m.account);
-  if (m.connected_now) toast("Cuenta de YouTube conectada. Las descargas ya la usan.", "ok");
+  if (m.connected_now) toast("Cuenta de YouTube conectada. Se usará en las descargas.", "ok");
   if (m.disconnected) toast("Cuenta de YouTube desconectada y borrada de este equipo.", "ok");
   if (m.cancelled) toast("Se cerró la ventana sin iniciar sesión en YouTube.", "warn");
   const box = $("#yt-browsers");
@@ -2065,8 +2424,8 @@ function renderCookies(m) {
   if (m.error) toast(m.error);
   if (m.imported) {
     const src = m.imported.source === "archivo" ? "del archivo" : `de ${m.imported.source}`;
-    if (m.imported.logged_in) toast(`Sesión de YouTube importada ${src}. Las descargas ya la usan.`, "ok");
-    else toast(`Se importaron cookies ${src}, pero sin sesión iniciada en YouTube: inicia sesión ahí y vuelve a importar.`, "warn");
+    if (m.imported.logged_in) toast(`Sesión de YouTube importada ${src}. Se usará en las descargas.`, "ok");
+    else toast(`Se importaron cookies ${src}, pero no hay una sesión de YouTube iniciada. Inicia sesión en YouTube y vuelve a importar.`, "warn");
   }
 }
 
@@ -2079,7 +2438,7 @@ $("#cookies-file").addEventListener("change", async (e) => {
     const r = await fetch("/api/cookies", { method: "PUT", body: f });
     if (!r.ok) toast(`No se pudo importar: ${await r.text()}`);
   } catch (err) {
-    toast("No se pudo subir el archivo.");
+    toast("No se pudo subir el archivo");
   }
 });
 
@@ -2164,6 +2523,52 @@ function toggleFull() {
 $("#c-full").addEventListener("click", toggleFull);
 vEn.addEventListener("dblclick", toggleFull);
 
+/* ------------------------------------------------------------ subtítulos: botón, tecla C y clic derecho */
+const subsOn = () => !!(prefs.sub_es || prefs.sub_orig || prefs.screen_text !== false);
+function setSub(key, on) {
+  setPref(key, on);
+  applySubs();
+}
+function applySubs() {
+  document.body.classList.toggle("no-sub-es", !prefs.sub_es);
+  document.body.classList.toggle("no-sub-en", !prefs.sub_orig);
+  $("#c-cc").classList.toggle("on", !!(prefs.sub_es || prefs.sub_orig));
+  if (typeof renderScreenText === "function") renderScreenText();
+}
+// C: apaga todos los subtítulos (y el texto del video), o vuelve a prender los que estaban
+function toggleSubs() {
+  if (subsOn()) {
+    state.subsWere = { sub_es: !!prefs.sub_es, sub_orig: !!prefs.sub_orig, screen_text: prefs.screen_text !== false };
+    for (const k of Object.keys(state.subsWere)) if (state.subsWere[k]) setPref(k, false);
+    toast("Subtítulos desactivados", "ok");
+  } else {
+    const was = state.subsWere || { sub_es: true, sub_orig: true, screen_text: true };
+    for (const [k, v] of Object.entries(was)) if (v) setPref(k, true);
+    toast("Subtítulos activados", "ok");
+  }
+  applySubs();
+}
+const subsMenu = () => [
+  state.translates && { label: "En español", icon: "captions", check: !!prefs.sub_es, onClick: () => setSub("sub_es", !prefs.sub_es) },
+  { label: state.translates ? `Del original (${langName(state.lang)})` : "Subtítulos", icon: "captions", check: !!prefs.sub_orig,
+    onClick: () => setSub("sub_orig", !prefs.sub_orig) },
+  state.translates && { label: "Texto del video en español", icon: "eye", check: prefs.screen_text !== false,
+    onClick: () => setSub("screen_text", prefs.screen_text === false) },
+  "sep",
+  { label: subsOn() ? "Apagar todos" : "Prender todos", icon: subsOn() ? "x" : "check", kbd: "C", onClick: toggleSubs },
+].filter(Boolean);
+$("#c-cc").addEventListener("click", (e) => {
+  openMenu(subsMenu(), e.currentTarget.getBoundingClientRect());  // DOMRect: abajo si cabe, si no arriba
+});
+
+/* ------------------------------------------------------------ copiar todo el video para un agente */
+// el servidor arma el Markdown (vt/videocontext.py): transcripción con hora y persona, traducción,
+// resumen y lo escrito en pantalla; con la posición, también hasta dónde se vio
+function copyForAgent(vid, withPosition) {
+  state.agentCopy = vid;
+  send({ type: "agent_context", video: vid, ...(withPosition ? { position: vEn.currentTime } : {}) });
+}
+
 // teclado: espacio reproduce, flechas ±5 s, f pantalla completa, m silencio
 document.addEventListener("keydown", (e) => {
   if (currentView() !== "player" || e.target.closest("input, textarea, select, dialog") || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -2171,6 +2576,7 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "ArrowLeft") { e.preventDefault(); vEn.currentTime = Math.max(0, vEn.currentTime - 5); }
   else if (e.key === "ArrowRight") { e.preventDefault(); vEn.currentTime = Math.min(vEn.duration || 0, vEn.currentTime + 5); }
   else if (e.key === "f") toggleFull();
+  else if (e.key === "c") toggleSubs();
   else if (e.key === "m") setVolume(player.volume || 1, !player.muted);
   else if (e.key === ">" || e.key === "<") {
     const i = RATES.indexOf(vEn.playbackRate);
@@ -2247,7 +2653,7 @@ function renderPeople() {
       el("span", { class: "pacts" },
         previewBtn(p.url, "Escuchar esta voz"),
         btn("Olvidar", { icon: "x", size: "xs", variant: "ghost", cls: "owner-only", onClick: async () => {
-          if (await confirmDlg(`¿Olvidar a ${p.name}?`, "Los videos que usan su voz vuelven a la voz de cada persona al rehacerse.", "Olvidar")) {
+          if (await confirmDlg(`¿Olvidar a ${p.name}?`, "Los videos que usan esta voz recuperarán la voz original de cada persona al procesarse de nuevo.", "Olvidar")) {
             send({ type: "people_forget", id: p.id, vault: state.videoVault });
           }
         } }))))) : null;
@@ -2271,7 +2677,7 @@ function renderGlossary(entries) {
   const rows = el("div", { class: "grows" });
   const addRow = (e = { src: "", dst: "" }) => {
     const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Como en el original", value: e.src });
-    const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Igual (no traducir)", value: e.dst });
+    const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Sin traducir", value: e.dst });
     const row = el("div", { class: "grow" }, src, el("span", { class: "arrow", text: "→" }), dst,
       btn("Quitar", { icon: "x", size: "xs", variant: "ghost", onClick: () => { row.remove(); glossary.dirty = true; } }));
     for (const i of [src, dst]) i.addEventListener("input", () => { glossary.dirty = true; });
@@ -2287,29 +2693,29 @@ function renderGlossary(entries) {
     }).filter((x) => x.src);
     glossary.dirty = false;
     send({ type: "glossary_set", entries: items });
-    toast("Glosario guardado. Las frases que lo usan se traducen de nuevo.", "ok");
+    toast("Glosario guardado. Se volverán a traducir las frases afectadas.", "ok");
   } });
   ctl.replaceChildren(rows, el("div", { class: "acts" },
     btn("Agregar término", { icon: "plus", onClick: () => addRow().focus() }), save),
-    el("small", { class: "label", text: "Vacío a la derecha: el término queda como en el original (nombres, marcas, siglas)." }));
+    el("small", { class: "label", text: "Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas)." }));
 }
 renderGlossary([]);
 
 /* ------------------------------------------------------------ avisos del navegador */
 function requestNotify() {
   if (!("Notification" in window)) {
-    toast("Este navegador no permite avisos.", "warn");
+    toast("Este navegador no admite notificaciones", "warn");
     setPref("notify", false);
     renderPrefs();
     return;
   }
   Notification.requestPermission().then((p) => {
     if (p !== "granted") {
-      toast("El navegador no dio permiso para mostrar avisos.", "warn");
+      toast("El navegador bloqueó las notificaciones", "warn");
       setPref("notify", false);
       renderPrefs();
     } else {
-      notifyUser("Avisos activados", "Te avisaré cuando termine una descarga, un video o una exportación.", true);
+      notifyUser("Notificaciones activadas", "Recibirás un aviso cuando termine una descarga, un video o una exportación.", true);
     }
   });
 }

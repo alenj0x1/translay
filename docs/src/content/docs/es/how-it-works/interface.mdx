@@ -57,7 +57,7 @@ Los scripts se cargan en ese orden al final de `index.html` y comparten variable
 
 </Steps>
 
-La tipografía es una sola familia, Plus Jakarta Sans, con tamaños de 12 a 28 px definidos en los tokens.
+La tipografía es Plus Jakarta Sans en la interfaz, con tamaños de 12 a 28 px definidos en los tokens, y JetBrains Mono (`--mono`) en el código, los comandos y los datos técnicos como el modelo y el tiempo del agente. Las dos las sirve el propio Translay (`web/fonts`, SIL Open Font License), así que funcionan sin internet. El logo (`web/js/brand.js`) es una onda de voz, las barras de una voz hablando, en el color de énfasis y centradas con el texto, junto a «translay» en la letra de la interfaz. Las escenas del inicio (`web/js/scenes.js`) son funciones de densidad: cada celda de caracteres recibe una intensidad de 0 a 1 y se dibuja con el carácter que le toca de ` .·:-=+*#%@`; agregar una escena es agregar una función. Se dibujan en un worker (`web/js/scene-worker.js`, OffscreenCanvas), fuera del hilo de la interfaz: cada carácter se copia de un atlas dibujado una vez por color y nivel de opacidad, y solo se redibujan las celdas que cambiaron. Lo que cambia una vez por cuadro (dónde está cada pez, medusa, araña o ícono) se calcula una vez, no por cada celda, y lejos de cada objeto se salta. Las celdas crecen en pantallas grandes (no más de ~9 000), va a hasta 8 cuadros por segundo y nunca pasa del 15 % de un núcleo: si un cuadro tardó, el siguiente espera (`node tools/scene_bench.js` lo mide; en un i5-12400 un cuadro en Full HD tarda 11–36 ms, o sea 4–8 cuadros por segundo). Se detiene con la ventana oculta y, por defecto, mientras se reproduce un video y cuando usas otra ventana (Ajustes › Apariencia › Fondo, **Pausar al reproducir un video** y **Pausar con la ventana en segundo plano**).
 
 ### Modo claro y grafito
 
@@ -142,7 +142,7 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `glossary_get`, `glossary_set` | Glosario. |
 | `search {q}` | Busca en lo que se dice (transcripciones, traducción y comentarios). Los títulos, canales y colecciones se buscan en el navegador (`searchLibrary` en `library.js`) y `renderSearch` muestra los tres grupos juntos. |
 | `prefs_set {key, value}` | Cambiar una preferencia. |
-| `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | Sesión y cuenta de YouTube, acceso, claves y webhooks (solo el dueño; conectar la cuenta, solo desde el equipo donde corre Translay). |
+| `cookies_browsers`, `cookies_import`, `yt_connect`, `yt_disconnect`, `admin_*` | Sesión y cuenta de YouTube, acceso, claves y webhooks (solo el propietario; conectar la cuenta, solo desde el equipo donde corre Translay). |
 
 ### Del servidor al navegador
 
@@ -157,14 +157,14 @@ El audio en vivo va por el mismo WebSocket como mensaje binario: `float64` littl
 | `library`, `library_changed`, `vaults`, `prefs`, `glossary` | Estado de la biblioteca, las bibliotecas, las preferencias y el glosario. |
 | `queue`, `exports` | Estado de la cola y de las exportaciones. |
 | `yt_progress`, `yt_ready`, `yt_queued`, `yt_error`, `yt_blocked` | Descargas de YouTube. |
-| `yt_need_account` | Un video con restricción de edad necesita la cuenta de YouTube; el aviso ofrece conectarla (solo el dueño). |
+| `yt_need_account` | Un video con restricción de edad necesita la cuenta de YouTube; el aviso ofrece conectarla (solo el propietario). |
 | `search_results`, `comments`, `people`, `people_saved` | Respuestas de búsqueda, comentarios y personas. |
 | `denied` | El mensaje no está permitido para tu acceso. |
 
 El avance de la cola en segundo plano llega envuelto como `bg {video, msg}`; `Session.forward_bg` lo desenvuelve y lo manda solo a las pestañas que tienen ese video abierto. A un invitado la cola le llega filtrada a las bibliotecas que puede ver, y las exportaciones, solo las suyas.
 
 <Aside>
-Los permisos se revisan en el servidor (`Session._allowed`): `OWNER_ONLY` lista lo que solo hace el dueño e `IMPORT_ONLY` lo que además puede hacer quien tiene permiso de importar. La interfaz oculta esos botones con las clases `guest` y `can-import` en `body`, pero no es lo que protege. Ver [Acceso](../../integrations/access/).
+Los permisos se revisan en el servidor (`Session._allowed`): `OWNER_ONLY` lista lo que solo hace el propietario e `IMPORT_ONLY` lo que además puede hacer quien tiene permiso de importar. La interfaz oculta esos botones con las clases `guest` y `can-import` en `body`, pero no es lo que protege. Ver [Acceso](../../integrations/access/).
 </Aside>
 
 ## Agregar una preferencia

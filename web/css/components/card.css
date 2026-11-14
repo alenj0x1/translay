@@ -98,3 +98,54 @@
 .ring .r2 { stroke: var(--accent); }
 .ring.done { background: var(--ok); color: #fff; }
 .ring.done svg { width: 14px; height: 14px; transform: none; stroke-width: 2.4; }
+
+/* ------------------------------------------------------------ código con colores (web/js/codetheme.js)
+   El fondo y los colores son los del tema elegido en Ajustes › Apariencia › Colores del código. */
+.codeblk, .code-sample {
+  margin: 0; overflow: auto; white-space: pre; padding: var(--s2) var(--s3); border-radius: var(--r-sm);
+  background: var(--code-bg, #1f1f1f); color: var(--code-fg, #cccccc);
+  font: 500 var(--fs-sm)/1.55 var(--mono);
+}
+.tk-com { color: var(--tk-com); font-style: italic; }
+.tk-str { color: var(--tk-str); }
+.tk-num { color: var(--tk-num); }
+.tk-kw { color: var(--tk-kw); }
+.tk-ctl { color: var(--tk-ctl); }
+.tk-fn { color: var(--tk-fn); }
+.tk-ty { color: var(--tk-ty); }
+.tk-var { color: var(--tk-var); }
+.tk-tag { color: var(--tk-tag); }
+.tk-attr { color: var(--tk-attr); }
+.tk-op { color: var(--tk-op); }
+.tk-prompt { color: var(--tk-prompt); }
+.tk-flag { color: var(--tk-flag); }
+/* en oscuro, un tema claro (o al revés) lleva un borde fino para no fundirse con la tarjeta */
+.codeblk, .code-sample { box-shadow: inset 0 0 0 1px var(--line); }
+
+/* Ajustes: los temas en una cuadrícula (cada uno con sus colores) y el ejemplo debajo */
+.code-theme-row { display: grid; gap: var(--s3); min-width: 0; }
+.code-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--s2); }
+.code-theme {
+  display: flex; align-items: center; gap: var(--s2); min-width: 0; height: var(--h-sm); padding: 0 var(--s3);
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: transparent; color: var(--fg-muted);
+  font: 600 var(--fs-sm)/1 var(--font); cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden;
+}
+.code-theme:hover { background: var(--surface-2); color: var(--fg); }
+.code-theme.on { background: var(--sel); color: var(--fg); border-color: transparent; }
+.code-theme svg { width: 15px; height: 15px; flex: none; }
+.code-swatch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 4px; background: var(--b); flex: none; }
+.code-swatch b { width: 6px; height: 10px; border-radius: 1px; }
+.code-swatch b:nth-child(1) { background: var(--c1); }
+.code-swatch b:nth-child(2) { background: var(--c2); }
+.code-swatch b:nth-child(3) { background: var(--c3); }
+.code-swatch b:nth-child(4) { background: var(--c4); }
+
+/* vista previa al pasar el mouse (library.js › hoverPreview): el video, sin sonido, sobre la miniatura y bajo
+   las etiquetas; aparece cuando ya se está reproduciendo y el botón de reproducir se aparta */
+.card .thumb > .hover-preview { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover;
+  background: #000; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.card .thumb > .hover-preview.on { opacity: 1; }
+.card .thumb:has(> .hover-preview.on) .play { opacity: 0; }
+
+/* en claro, el código va en blanco con una línea fina que lo separa de lo que tiene alrededor */
+[data-theme="light"] .code-sample, [data-theme="light"] .codeblk { box-shadow: inset 0 0 0 1px var(--line-strong); }

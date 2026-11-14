@@ -17,6 +17,7 @@ function applyTheme(p = prefs) {
     requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switch")));
   }
   root.dataset.theme = block;
+  if (typeof applyCodeTheme === "function") applyCodeTheme();  // los bloques de código siguen el modo
   try { localStorage.setItem("vt-theme-block", block); } catch (e) { /* sin almacenamiento */ }
 }
 

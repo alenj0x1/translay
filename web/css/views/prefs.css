@@ -4,6 +4,30 @@
    ===================================================================== */
 
 .pref-page { display: grid; gap: var(--s5); max-width: 880px; margin: 0 auto; }
+/* Ajustes › Agente: la vista previa a la derecha, fija mientras se baja por las opciones */
+.pref-page:has(.pref-split) { max-width: 1200px; container-type: inline-size; }
+/* la vista previa cede ancho (380 → 300 px) antes que las opciones, que necesitan ~460 px para que sus grupos
+   quepan en una fila; si ni así caben, pasa arriba (consulta del contenedor, no de la ventana) */
+.pref-split { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 36%, 380px); gap: var(--s5); align-items: start; }
+.pref-split-main { display: grid; gap: var(--s5); min-width: 0; }
+/* el modelo del agente: la lista y, debajo, si ya está descargado o el botón para bajarlo */
+.pref-model { display: grid; gap: var(--s2); justify-items: start; }
+.pref-model-file { display: inline-flex; align-items: center; gap: 6px; margin: 0; font: 500 var(--fs-sm)/1.4 var(--font); color: var(--fg-muted); }
+.pref-model-file svg { width: 14px; height: 14px; }
+/* la calidad de cada modelo en su lista, con su color (apagado, del tema claro u oscuro) */
+.model-hint b { font-weight: 700; }
+.model-hint .q-exc { color: var(--ok); }
+.model-hint .q-good { color: color-mix(in srgb, var(--ok) 60%, var(--fg-muted)); }
+.model-hint .q-ok { color: color-mix(in srgb, var(--warn) 55%, var(--fg-muted)); }
+.model-hint .q-low { color: var(--warn); }
+.model-hint .q-bad { color: color-mix(in srgb, var(--danger) 75%, var(--fg-muted)); }
+/* junto a la vista previa la columna es angosta: cada control va debajo de su título, a lo ancho */
+.pref-split-main .set-row > .set-ctl { flex: 1 1 100%; min-width: 0; justify-content: flex-start; }
+.pref-split-side { position: sticky; top: var(--s4); display: grid; height: min(640px, calc(100vh - 140px)); }
+@container (max-width: 780px) {
+  .pref-split { grid-template-columns: minmax(0, 1fr); }
+  .pref-split-side { position: static; order: -1; height: 380px; }
+}
 .pref-head { display: grid; gap: var(--s2); margin-bottom: var(--s2); }
 .pref-head h2 { font: 800 var(--fs-2xl)/1.15 var(--font); letter-spacing: -.02em; }
 .pref-head p { margin: 0; font: 500 var(--fs-body)/1.5 var(--font); color: var(--fg-muted); }
@@ -20,6 +44,7 @@
 .set-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3) var(--s5); padding: var(--s4) 0; }
 .set-row > .set-text { flex: 1 1 260px; min-width: 0; }
 .set-row > .set-ctl { flex: 0 1 auto; }
+.set-row.wide > .set-ctl { flex: 1 1 100%; min-width: 0; }  /* texto largo o cuadrícula: a lo ancho, debajo del título */
 .set-row:first-child { padding-top: 0; }
 .set-row:last-child { padding-bottom: 0; }
 .set-row + .set-row { border-top: 1px solid var(--line); }
@@ -64,7 +89,7 @@
 .trow-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-3); color: var(--fg-muted); }
 .trow-ic svg { width: 18px; height: 18px; }
 .trow .vacts { display: flex; align-items: center; gap: var(--s1); }
-.empty-state.small { padding: var(--s6) var(--s4); background: var(--surface-2); }
+.empty-state.small { padding: var(--s6) var(--s4); background: none; }  /* sin caja: directo sobre su tarjeta */
 .empty-state.small h3 { font-size: var(--fs-lg); }
 #confirm-type-row:has(#confirm-input[hidden]) { display: none; }
 @media (max-width: 760px) { .trow { grid-template-columns: auto minmax(0, 1fr); } .trow .vacts { grid-column: 1 / -1; } }
@@ -148,4 +173,84 @@
 /* color de énfasis (Preferencias › Apariencia): la primera muestra es el del tema; con «Color de cada
    biblioteca» activo las muestras quedan atenuadas (manda el de la biblioteca) */
 .accent-colors .vcolor.theme { --vc: var(--primary); }
+/* «El de énfasis» del agente: la muestra lleva el color de énfasis actual (sin esto quedaba invisible) */
+.vcolors:not(.accent-colors) .vcolor.theme { --vc: var(--accent); }
+/* «Del tema»: se distingue de los colores fijos por su ícono (sigue al tema de la app) */
+.vcolor.theme { display: grid; place-items: center; color: var(--on-accent, #fff); }
+.vcolor.theme svg { width: 16px; height: 16px; display: block; }
 .accent-colors.off .vcolor { opacity: .4; }
+
+/* Ajustes › Apariencia › Fondo del inicio: opciones y, debajo, el inicio de verdad en pequeño */
+.home-preview { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg);
+  pointer-events: none; }
+/* el escenario mide como un inicio de escritorio y se reduce con scale (app.js › homeBgRow) */
+.hp-stage { position: absolute; left: 0; top: 0; width: 1120px; padding: 48px 56px; isolation: isolate; transform-origin: 0 0;
+  display: flex; flex-direction: column; gap: var(--s8); }
+.hp-stage > :not(.home-light) { position: relative; z-index: 1; }
+.hp-stage .home-light { top: 0; height: 100%; }
+.home-preview-empty { margin: 0; color: var(--fg-muted); font-size: var(--fs-xl); }
+
+/* opciones con vista previa (colores del código, fondo del inicio): la lista a la izquierda y la vista previa
+   al lado; en una columna angosta, una debajo de la otra */
+.opt-split { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: var(--s5); align-items: start; width: 100%; }
+.opt-list { display: grid; gap: var(--s2); align-content: start; justify-items: stretch; }
+.opt-list > .btn { justify-self: start; }
+.opt-split .code-themes { grid-template-columns: minmax(0, 1fr); }
+.opt-split:has(> .code-sample) { align-items: stretch; }
+.opt-split .code-sample { margin: 0; height: 100%; max-height: none; }  /* tan alto como la lista: sin espacio vacío */
+.set-row.wide > .set-ctl:has(> .opt-split) { container-type: inline-size; }
+@container (max-width: 640px) { .opt-split { grid-template-columns: minmax(0, 1fr); } .opt-split .code-sample { height: auto; } }
+
+/* deslizador (preferencias de cantidad): pista fina, pulgar cómodo de agarrar, valor en números a la derecha */
+.rg { display: flex; align-items: center; gap: var(--s3); min-width: 220px; padding: 8px 0; cursor: pointer; touch-action: none; outline: none; }
+.rg-track { position: relative; flex: 1; height: 4px; border-radius: 999px; background: var(--surface-3); }
+.rg-fill { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--accent); }
+.rg-thumb { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent); transition: transform .12s var(--ease); }
+.rg:hover .rg-thumb, .rg:focus-visible .rg-thumb { transform: scale(1.12); }
+.rg.drag .rg-thumb { transform: scale(1.2); }
+.rg-val { min-width: 44px; text-align: right; font: 600 var(--fs-sm)/1 var(--font); font-variant-numeric: tabular-nums; color: var(--fg); }
+
+/* color de énfasis: cada muestra muestra cómo se ve en claro (pastel, arriba a la izquierda) y en oscuro */
+.vcolor.split { overflow: hidden; background: none; }
+.swatch-split { display: block; width: 100%; height: 100%; stroke: none; }
+.swatch-split .dk { fill: var(--vc); }
+.swatch-split .lt { fill: color-mix(in oklab, var(--vc) 60%, #fff); }
+
+/* en la vista previa del fondo, las miniaturas van lisas (del color del tema): lo que se elige es el fondo, y un
+   cuadro de video con colores fuertes distrae de él */
+.home-preview .hero-media, .home-preview .card .thumb { background: var(--surface-2); }
+[data-theme="light"] .home-preview .hero-media, [data-theme="light"] .home-preview .card .thumb { background: #ffffff; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.home-preview .hero-media img, .home-preview .card .thumb img { visibility: hidden; }
+
+/* inicio de Ajustes: una tarjeta por sección, por bloque, y la búsqueda arriba a la derecha */
+.set-home-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
+.set-search { width: min(320px, 100%); background: var(--surface-2); box-shadow: none; }
+.set-search:focus-within { box-shadow: none; background: var(--surface-3); }
+.set-search input::-webkit-search-cancel-button { display: none; }
+.set-home-grid { display: grid; gap: var(--s6); }
+.set-home-block h3 { margin: 0 0 var(--s3); font: 700 var(--fs-xs)/1.2 var(--font); color: var(--fg-faint); }
+.set-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s3); }
+.set-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--s3); row-gap: 4px;
+  padding: var(--s4); border: 0; border-radius: var(--r-md); background: var(--surface); color: var(--fg); text-align: left; cursor: pointer;
+  transition: background-color .15s; }
+.set-card:hover { background: var(--surface-2); }
+.set-card-ic { grid-row: 1; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg-muted); }
+.set-card:hover .set-card-ic { background: var(--surface-3); color: var(--fg); }
+.set-card-ic svg { width: 17px; height: 17px; transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.set-card:hover .set-card-ic svg { transform: rotate(-6deg); }
+.set-card strong { font: 700 var(--fs-md)/1.25 var(--font); }
+.set-card p { grid-column: 1 / -1; margin: 0; font: 500 var(--fs-sm)/1.45 var(--font); color: var(--fg-muted); }
+@media (prefers-reduced-motion: reduce) { .set-card-ic svg { transition: none; } .set-card:hover .set-card-ic svg { transform: none; } }
+/* en claro, el cuadro del ícono va con un toque del color de énfasis, no gris */
+[data-theme="light"] .set-card-ic { background: color-mix(in srgb, var(--accent) 16%, #fff); color: color-mix(in oklab, var(--accent) 70%, #000); }
+[data-theme="light"] .set-card:hover { background: #fff; box-shadow: inset 0 0 0 1px var(--line-strong); }
+[data-theme="light"] .set-card:hover .set-card-ic { background: color-mix(in srgb, var(--accent) 24%, #fff); color: color-mix(in oklab, var(--accent) 60%, #000); }
+[data-theme="light"] .set-search, [data-theme="light"] .set-search:focus-within { background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+
+/* volver al inicio de Ajustes, sobre el título de cada sección */
+.pref-back { display: inline-flex; align-items: center; gap: 4px; width: fit-content; margin: 0 0 var(--s2) -6px; padding: 4px 8px 4px 4px;
+  border: 0; border-radius: var(--r-pill); background: none; color: var(--fg-muted); font: 600 var(--fs-sm)/1 var(--font); cursor: pointer; }
+.pref-back:hover { background: var(--surface-2); color: var(--fg); }
+.pref-back svg { width: 15px; height: 15px; transform: rotate(90deg); transition: transform .25s var(--ease); }
+.pref-back:hover svg { transform: rotate(90deg) translateY(2px); }

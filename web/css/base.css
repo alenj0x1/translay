@@ -6,9 +6,10 @@
 html, body { height: 100%; margin: 0; }
 [hidden] { display: none !important; }
 
+/* el fondo va en html: así la escena de fondo (#scene-layer, z-index -1) queda entre él y el contenido */
+html { background: var(--bg); }
 body {
   color: var(--fg);
-  background: var(--bg);
   font: 400 var(--fs-body)/var(--lh) var(--font);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
@@ -44,3 +45,6 @@ html.theme-switch *, html.theme-switch *::before, html.theme-switch *::after { t
 /* íconos (web/js/ui.js): trazo con el color del texto; las partes .solid van rellenas */
 svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 svg .solid { fill: currentColor; stroke: none; }
+/* el texto seleccionado toma el color del tema (pastel en claro, más intenso en oscuro) */
+::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); color: inherit; }
+[data-theme="dark"] ::selection { background: color-mix(in srgb, var(--accent) 50%, transparent); color: #fff; }

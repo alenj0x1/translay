@@ -15,6 +15,10 @@
 }
 .navlist .item > span:first-child { display: flex; align-items: center; gap: var(--s3); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navlist .item > span:first-child > svg { flex: none; width: 18px; height: 18px; }
+/* al pasar el mouse, el ícono gira un poco y vuelve con un pequeño rebote */
+.navlist .item > span:first-child > svg { transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.navlist .item:hover > span:first-child > svg { transform: rotate(-6deg); }
+@media (prefers-reduced-motion: reduce) { .navlist .item > span:first-child > svg { transition: none; } .navlist .item:hover > span:first-child > svg { transform: none; } }
 .navlist .item > span + span { flex: none; font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
 .navlist .item:hover { background: var(--surface-2); color: var(--fg); }
 .navlist .item.active, .navlist .item.on { background: var(--surface-2); color: var(--fg); }

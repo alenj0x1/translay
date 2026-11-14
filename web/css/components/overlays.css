@@ -54,7 +54,8 @@
 .dlg[open]::backdrop { animation: dlg-fade .18s var(--ease); }
 @keyframes dlg-in { from { opacity: 0; transform: scale(.97); } }
 @keyframes dlg-fade { from { opacity: 0; } }
-.dlg form { display: grid; gap: var(--s4); padding: var(--s6); }
+/* solo el form del diálogo: no los que lleva adentro (el panel del agente en la vista previa) */
+.dlg > form { display: grid; gap: var(--s4); padding: var(--s6); }
 .dlg h3 { font: 800 var(--fs-xl)/1.2 var(--font); overflow-wrap: anywhere; }
 .dlg-sub, .dlg-note { margin: 0; font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
 .dlg-sub:empty, .dlg-note:empty { display: none; }

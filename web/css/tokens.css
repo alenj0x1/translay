@@ -8,6 +8,7 @@
 :root {
   /* tipo: una sola familia */
   --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, "Cascadia Mono", monospace;
   --fs-xs: 12px;      /* datos secundarios, chips */
   --fs-sm: 13px;      /* botones chicos, ayudas */
   --fs-md: 14px;      /* botones, filas de listas */
@@ -39,6 +40,7 @@
   --head-h: 64px;
   --side-w: 256px;
   --side-w-min: 68px;
+  --panel-w: 380px;      /* el panel del video; los dos se ajustan arrastrando (web/js/panels.js) */
   --pad: 28px;
 
   --ease: cubic-bezier(.2, .7, .2, 1);
@@ -75,28 +77,30 @@
   --danger: #c4402f;
 }
 
-/* ------------------------------------------------------------------ oscuro «grafito» */
+/* ------------------------------------------------------------------ oscuro «grafito neutro» */
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #18191c;
-  --surface: #1c1d21;
-  --surface-2: #25272b;   /* campos, botones secundarios: apenas sobre las barras */
-  --surface-3: #2e3035;
-  --raised: #1f2024;      /* menús y diálogos: el gris nuevo, separado por su anillo */
-  --fg: #e6e7e9;
-  --fg-muted: #9a9ea6;
-  --fg-faint: #62666d;
+  /* grises puros, sin el tinte azulado del grafito anterior (elegido 2026-11-14 entre tres opciones); los paneles,
+     campos y menús bajaron un tono después, más cerca del fondo */
+  --bg: #161616;
+  --surface: #181818;
+  --surface-2: #1f1f1f;   /* campos, botones secundarios: apenas sobre las barras */
+  --surface-3: #272727;
+  --raised: #1a1a1a;      /* menús y diálogos, separados por su anillo */
+  --fg: #e8e8e8;
+  --fg-muted: #9a9a9a;
+  --fg-faint: #636363;
   --line: rgba(255, 255, 255, .07);
   --line-strong: rgba(255, 255, 255, .12);
-  --primary: #e6e7e9;
-  --on-primary: #18191c;
-  --primary-hover: #cfd1d5;
-  --sel: #34363b;         /* opción elegida: un tono sobre los campos, con su anillo fino */
-  --video-bg: #0e0f11;
-  --backdrop: rgba(8, 9, 11, .55);
+  --primary: #e8e8e8;
+  --on-primary: #161616;
+  --primary-hover: #d0d0d0;
+  --sel: #2a2a2a;         /* opción elegida: un tono sobre los campos, con su anillo fino */
+  --video-bg: #0e0e0e;
+  --backdrop: rgba(8, 8, 8, .55);
   --menu-shadow: 0 16px 40px -14px rgba(0, 0, 0, .6), 0 0 0 1px var(--line-strong);
-  --track-cov: #3a3d43;
-  --track-dub: #6f737b;
+  --track-cov: #3a3a3a;
+  --track-dub: #6f6f6f;
   --ok: #3fbf74;
   --warn: #e3a43f;
   --st-media: #5c9ae6; --st-models: #a68ae0; --st-voice: #3fb8a8; --st-text: #dcae4f; --st-trash: #db82ad; --st-other: #8e939b;
@@ -109,4 +113,15 @@
   --accent: var(--primary);
   --on-accent: var(--on-primary);
   --accent-soft: var(--track-dub);
+}
+/* un color elegido: tal cual en oscuro; en claro, pastel, con el texto en un tono profundo del mismo color (no negro) */
+:root[data-lib-accent] {
+  --accent: var(--accent-base);
+  --on-accent: var(--on-accent-dark);
+  --accent-soft: color-mix(in srgb, var(--accent-base) 35%, transparent);
+}
+:root[data-lib-accent][data-theme="light"] {
+  --accent: color-mix(in oklab, var(--accent-base) 60%, #fff);
+  --on-accent: color-mix(in oklab, var(--accent-base) 40%, #000);
+  --accent-soft: color-mix(in srgb, var(--accent-base) 22%, transparent);
 }
