@@ -39,6 +39,7 @@ BYTES = {
     "onnx-community/wespeaker-voxceleb-resnet34-LM": 27_000_000,
     "jncraton/Qwen3-4B-Instruct-2507-ct2-int8": 4_040_000_000, "jncraton/Qwen3-1.7B-ct2-int8": 1_740_000_000,
     "jncraton/Qwen3-0.6B-ct2-int8": 620_000_000,
+    "PaddlePaddle/PP-OCRv5_mobile_det_onnx": 4_830_000, "PaddlePaddle/latin_PP-OCRv5_mobile_rec_onnx": 8_050_000,
 }
 VOICE_ENV_BYTES = 4_800_000_000  # el entorno del motor de voz (app de escritorio, locks/voice.txt)
 
@@ -62,14 +63,20 @@ def info() -> dict[str, dict]:
         srcs = {a for a, b in p if b == langs.TARGET}
         return "del inglés al español" if srcs == {"en"} else "del portugués y otras lenguas romances al español"
 
-    out = {repo: {"label": f"Reconocimiento · Whisper {name}", "purpose": "Pasa a texto lo que se dice en el video"}
+    out = {repo: {"label": f"Reconocimiento · Whisper {name}", "purpose": "Transcribe el audio del video"}
            for name, repo in ASR.items()}
     out |= {m[1]: {"label": f"Traducción · {name}", "purpose": "Traduce " + pairs(name)} for name, m in MT.items()}
     out |= {repo: {"label": f"Voz · {VOICE_NAMES[name]}", "purpose": "Dobla al español con la voz de cada persona"}
             for name, repo in VOICE_REPOS.items()}
-    out[SpeakerEmbedder.REPO] = {"label": "Personas · separar quién habla", "purpose": "Distingue quién habla en cada frase"}
+    out[SpeakerEmbedder.REPO] = {"label": "Personas · identificación de hablantes", "purpose": "Distingue quién habla en cada frase"}
+    from .ocr import DET, REC
+    out[DET[0]] = {"label": "Texto en pantalla · PP-OCRv5 detección", "purpose": "Encuentra lo que está escrito en el video"}
+    out[REC[0]] = {"label": "Texto en pantalla · PP-OCRv5 lectura", "purpose": "Lee el texto del video para traducirlo en pantalla"}
     from .summarize import MODELS as SUM
-    out |= {m.repo: {"label": f"Resumen · {m.name}", "purpose": "Resume de qué se trató cada video"} for m in SUM.values()}
+    out |= {m.repo: {"label": f"Resumen · {m.name}", "purpose": "Resume el contenido de cada video"} for m in SUM.values()}
+    from .llm import MODELS as AGENT  # el agente de cada video (vt/agentsvc.py): también escribe el resumen
+    out |= {m.repo: {"label": f"Agente · {m.name}", "purpose": "Responde sobre cada video y escribe su resumen"}
+            for m in AGENT.values()}
     for i in out.values():
         i["profiles"] = []
     for pid, prof in PROFILES.items():
@@ -93,6 +100,8 @@ def repos(profile: str) -> list[str]:
         if src != langs.TARGET and MT[route(src, prof["mt"])][1] not in out:
             out.append(MT[route(src, prof["mt"])][1])
     out.append(SpeakerEmbedder.REPO)
+    from .ocr import REPOS as OCR_REPOS
+    out += list(OCR_REPOS)  # texto en pantalla (vt/screentext.py): 13 MB, en la CPU
     if prof["voice"]:
         out.append(VOICE_REPOS[VOICE_ENGINE])
     return out
@@ -157,8 +166,14 @@ def download(repo: str, tqdm_class=None):
     from .speakers import SpeakerEmbedder
     from .translate import _FILES as MT_FILES, MODELS as MT, model_dir
 
+    from . import ocr
+
     if repo == SpeakerEmbedder.REPO:
         hf_hub_download(repo, "onnx/model.onnx", tqdm_class=tqdm_class)
+    elif repo in ocr.REPOS:  # con la revisión fija (vt/ocr.py)
+        rev = dict((ocr.DET, ocr.REC))[repo]
+        for f in ("inference.yml", "inference.onnx"):
+            hf_hub_download(repo, f, revision=rev, tqdm_class=tqdm_class)
     elif repo.startswith("opus:"):
         model_dir(repo)
     elif repo in {m[1] for m in MT.values()}:  # lo mismo que translate.model_dir

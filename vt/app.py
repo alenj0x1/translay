@@ -217,6 +217,20 @@ def main():
         out.write_bytes(data)
         library.set_field(vid, thumb=f"/media/lib/{out.name}")
         return 200, "OK"
+    ui_dir = DATA / "ui"  # lo propio de la interfaz: la imagen de fondo del inicio
+    ui_dir.mkdir(parents=True, exist_ok=True)
+
+    async def put_home_bg(rest, query, headers, body):
+        """Ajustes › Apariencia › Fondo del inicio › Imagen propia: un JPEG (ya reducido por el navegador)."""
+        data = b""
+        async for c in body:  # como mucho 4 MB: lo demás no se guarda en memoria
+            data += c[: (4 << 20) - len(data)]
+        if not data.startswith(b"\xff\xd8"):
+            return 400, "no es una imagen JPEG"
+        tmp = ui_dir / "home-bg.tmp"
+        tmp.write_bytes(data)
+        tmp.replace(ui_dir / "home-bg.jpg")
+        return 200, "OK"
     thumbs_dir = DATA / "youtube" / "thumbs"
     thumbs_dir.mkdir(parents=True, exist_ok=True)
     thumb_locks: dict = {}
@@ -383,6 +397,22 @@ def main():
     summaries = Summaries(store, library, res, prefs, notify, hw=lambda: hw, limits=lambda: lim, device=a.device,
                           vaults=vaults, threads=lim["threads"] or max(1, (hw["cpu"]["usable_threads"] or 2) // 2))
     processor.on_done = summaries.auto
+    # texto en pantalla (vt/screentext.py): lo escrito en el video, en la CPU con un cuarto de los hilos
+    from .screentext import ScreenText
+
+    # el agente de cada video (vt/agentsvc.py): llama.cpp con el modelo que entra en este equipo
+    from .agentsvc import AgentService
+
+    processor.agent = AgentService(DATA, vaults, prefs, notify, hw=lambda: hardware.detect())
+    processor.screen = ScreenText(store, library, res, gpu, translator, prefs, notify, processor.video_file,
+                                  vaults=vaults, threads=max(1, (lim["threads"] or hw["cpu"]["usable_threads"] or 4) // 4))
+    processor.agent.screen = processor.screen  # el agente también lee lo escrito en pantalla
+    summaries.agent = processor.agent  # el resumen completo sale del mismo modelo (vt/digest.py)
+
+    def on_done(vid: str):  # un video terminó: su resumen (si es automático) y la descripción corta
+        summaries.auto(vid)
+        processor.agent.describe(vid)
+    processor.on_done = on_done
     info["summary"] = {"recommended": summarize.recommend(hw, lim)}
     exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults, summaries=summaries)
 
@@ -395,6 +425,11 @@ def main():
         out = {ASR_MODELS.get(a.model, a.model), SpeakerEmbedder.REPO, VOICE_REPOS.get(a.voice, "")}
         if summaries._model is not None:  # el del resumen, mientras está cargado
             out.add(summaries._model.model.repo)
+        if processor.agent:
+            out.update(processor.agent.in_use())  # el modelo del agente, mientras está cargado
+        if processor.screen and processor.screen._ocr is not None:  # el del texto en pantalla, mientras lee
+            from .ocr import REPOS as OCR_REPOS
+            out.update(OCR_REPOS)
         for src in langs.SOURCES:
             if src != langs.TARGET and translator.name_for(src) in MT_MODELS:
                 out.add(MT_MODELS[translator.name_for(src)][1])
@@ -446,10 +481,10 @@ def main():
     (DATA / "audio").mkdir(parents=True, exist_ok=True)
     server = AppServer({"/samples/": ROOT / "samples", "/audio/": DATA / "audio",
                         "/media/yt/": DATA / "youtube", "/media/lib/": lib_dir,
-                        "/exports/": DATA / "exports", "/voices/": DATA / "voices",
+                        "/exports/": DATA / "exports", "/voices/": DATA / "voices", "/ui/": ui_dir,
                         "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb, "/api/capture/": put_capture,
-                                             "/api/cookies": put_cookies},
+                                             "/api/cookies": put_cookies, "/api/home-bg": put_home_bg},
                        {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page},
                        {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults),
                        origin_ok=lambda h: same_origin(h, origins))

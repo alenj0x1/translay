@@ -11,6 +11,10 @@ import { summary } from "../../../../diagrams";
 
 El resumen cuenta de qué se trató un video y enumera todos sus puntos importantes con su minuto. Se hace en tu equipo, sin ningún servicio en internet, con un modelo de lenguaje pequeño que corre sobre [CTranslate2](https://github.com/OpenNMT/CTranslate2), el mismo motor de Whisper y del traductor, así que no suma dependencias. Cómo se usa: [Transcripción › Resumen](../../guide/transcript-and-people/#resumen).
 
+<Aside type="note">
+Desde que llegó el agente, el resumen lo escribe el modelo del agente con llama.cpp y es mucho más completo (capítulos, conceptos clave, ideas clave y recursos del video): ver [Agente › El resumen completo](../agent/#el-resumen-completo). Esta página describe el resumidor anterior, que queda de respaldo cuando el agente no puede correr.
+</Aside>
+
 <Diagram {...summary("es")} />
 
 ## Cómo se arma

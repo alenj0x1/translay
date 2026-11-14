@@ -11,6 +11,10 @@ import { summary } from "../../../diagrams";
 
 The summary tells what a video was about and lists all its important points with their minute. It is made on your computer, with no service on the internet, by a small language model that runs on [CTranslate2](https://github.com/OpenNMT/CTranslate2), the same engine as Whisper and the translator, so it adds no new dependency. How to use it: [Transcript › Summary](../../guide/transcript-and-people/#summary).
 
+<Aside type="note">
+Since the agent arrived, the summary is written by the agent's model with llama.cpp, and is much more complete (chapters, key terms, key ideas and video resources): see [Agent › The full summary](../agent/#the-full-summary). This page describes the earlier summarizer, which stays as the fallback when the agent can't run.
+</Aside>
+
 <Diagram {...summary("en")} />
 
 ## How it's made

@@ -143,8 +143,10 @@ def test_summaries_queue_and_prefs():
         tr.data["segments"] = segs(40)
         tr.save()
         prefs = Prefs(root / "prefs.json")
-        assert prefs.values["summary_mode"] == "manual" and prefs.values["summary_model"] == "auto"
-        assert not prefs.set("summary_model", "gpt-9") and prefs.set("summary_model", "qwen3-0.6b")
+        # automático por defecto: así cada video queda con su resumen y sus sugerencias para el agente
+        assert prefs.values["summary_mode"] == "auto"
+        assert not prefs.set("summary_model", "qwen3-0.6b")  # el modelo ahora es el del agente
+        prefs.set("summary_mode", "manual")
         assert not prefs.set("export_dir", 3) and prefs.set("export_dir", "D:/Exportado")
         lib = type("L", (), {"data": {"videos": {"yt_aaaaaaaaaaa": {"title": "Charla"}}},
                              "set_field": lambda self, vid, **kw: self.data["videos"][vid].update(kw)})()

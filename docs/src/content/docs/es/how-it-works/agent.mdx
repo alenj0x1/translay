@@ -1,0 +1,70 @@
+---
+title: Agente
+description: Cómo corre el agente de cada video en tu equipo (llama.cpp en la GPU, la gráfica integrada o el procesador), qué lee, cómo cita el momento y cómo se eligieron sus modelos.
+sidebar:
+  order: 4.6
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+El agente responde preguntas sobre el video abierto: lo que se dice, lo que está escrito en pantalla (código, comandos, enlaces), en qué minuto pasa algo y qué te falta desde donde vas. Corre en tu equipo, sin internet, con un modelo de lenguaje pequeño. Cómo se usa: [Transcripción › Agente](../../guide/transcript-and-people/#agente).
+
+## Motor
+
+`vt/llm.py` corre [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`, MIT) con la versión fija y su SHA-256 verificado, que Translay baja la primera vez sin pedir permisos de administrador. Escucha solo en `127.0.0.1`.
+
+| Build | Dónde corre |
+|---|---|
+| Vulkan (38 MB) | Tarjetas NVIDIA y gráficas integradas (Intel UHD/Iris/Arc, AMD Radeon) |
+| CPU (25 MB) | Cualquier equipo |
+
+El plan depende del equipo (`vt/agentsvc.py`): la tarjeta gráfica si tiene memoria libre (mientras se dobla un video puede no tenerla), la gráfica integrada si hay una, o el procesador, con un modelo según la RAM. En **Ajustes › Agente** se puede fijar el modelo o el **Dispositivo** (**Automático**, **Tarjeta gráfica**, **Integrada** o **Procesador**).
+
+El modelo queda cargado mientras lo usas: la segunda pregunta sobre el mismo video reutiliza lo ya leído y responde en décimas de segundo. Tras 5 minutos sin preguntas entra en reposo y deja la memoria; el botón **Apagar** de la pestaña lo saca al momento y **Encender** lo carga y lee el video de antemano. Las sugerencias de preguntas salen del resumen, así funcionan aunque esté apagado: al tocar una, se enciende y responde. Si Translay se cierra de golpe, Windows cierra también el servidor del modelo (queda atado a la app con un Job Object).
+
+## Qué lee
+
+`vt/agent.py` arma lo que lee el modelo con el mismo documento que [Copiar para un agente](../../guide/transcript-and-people/#copiar-para-un-agente): cada frase con su hora y su persona, su traducción, lo escrito en pantalla, el resumen y tus comentarios.
+
+- Si el video entero entra en el presupuesto del modelo (tarjetas gráficas: unos 24.000 tokens; gráfica integrada: 6.000), lo lee completo.
+- Si no (solo procesador), lee el resumen, la parte de donde vas y las partes que más se parecen a la pregunta, encontradas con la búsqueda por palabras propia de Translay sobre la traducción y el original (sin otro modelo).
+
+El video va primero y la pregunta al final, así el servidor reutiliza su caché entre preguntas.
+
+## Acciones
+
+`vt/agentintents.py` reconoce los pedidos que la app puede hacer por sí misma (exportar el video para otro agente, ir a un momento, cambiar los subtítulos, guardar en una colección, poner avisos mientras ves) y los responde sin el modelo, así que son instantáneos y funcionan con el agente apagado. Cada respuesta lleva una tarjeta y una acción; la tarjeta se guarda con la conversación y la vista hace la acción. Cualquier otra pregunta va al modelo.
+
+## Citar el momento
+
+Cada dato de una respuesta lleva su momento como `[m:ss]`, que el reproductor convierte en un botón que lleva ahí. Los modelos chicos casi nunca escriben las horas solos, así que Translay las agrega: cada frase de la respuesta sin hora se busca en la transcripción y recibe el momento de la parte que más se le parece. En el laboratorio esto llevó las citas correctas de 0–3 % a 66–93 %.
+
+## Cómo se eligieron los modelos
+
+`tools/lab/agent.py` mide cada candidato con cinco videos públicos (marketing, un curso de Python, una charla técnica, un explicativo de economía y una clase del MIT de 35 minutos) y 43 preguntas de referencia: el momento que debe citar, palabras clave que debe tener la respuesta y preguntas trampa sobre cosas que el video no dice (para medir si inventa). Mide el tiempo hasta la primera palabra, la velocidad de generación y la memoria máxima en cada perfil: CPU de laptop (4 hilos), CPU de escritorio (6 hilos), gráfica integrada (Intel UHD 730) y una tarjeta NVIDIA por Vulkan y por CUDA.
+
+<Aside type="note">
+Medir con otra cosa en la GPU arruina los números: la primera tanda midió 200 tokens/s en vez de 5.200 porque Whisper transcribía al mismo tiempo. El laboratorio espera a que la GPU esté libre antes de medir.
+</Aside>
+
+### Modelos por defecto
+
+| Plan | Cuándo | Modelo | Medido |
+|---|---|---|---|
+| Tarjeta gráfica grande | 7 GB de memoria de video libre o más | Qwen3.5 4B | calidad 1,00, 63 tokens/s |
+| Tarjeta gráfica | 3,5 a 7 GB libres | Gemma 4 E2B | calidad 0,98, 106 tokens/s, la mitad de memoria |
+| Gráfica integrada | Intel o AMD por Vulkan | Qwen3.5 0.8B | calidad 0,95, 15 tokens/s |
+| Procesador, 12 GB de RAM o más | | Qwen3.5 2B | calidad 0,88 con 4 hilos, primera palabra en ~18 s |
+| Procesador | menos de 12 GB | Qwen3.5 0.8B | calidad 0,84 con 4 hilos, ~14 s, 2,3 GB en uso |
+
+La calidad es la parte de los datos clave que la respuesta acierta con el momento correcto, y las preguntas trampa respondidas con honestidad (RTX 4060 e Intel UHD 730). Los modelos de 1B o menos de otras familias (LFM2.5, Gemma 3 1B, Qwen3 0.6B) inventaron respuestas a las preguntas trampa, así que solo se usan si se eligen en Ajustes.
+
+## El resto del equipo
+
+`tools/lab/footprint.py` mide lo que nota quien sigue usando el equipo: una ventana chica de WebGL que cronometra cada cuadro y otro proceso con trabajo fijo de CPU. En la RTX 4060 con Qwen3.5 4B, el escritorio solo se traba mientras el modelo lee el prompt en la GPU (unos 5 s con un video de 20 minutos la primera vez; las preguntas siguientes reutilizan lo leído), nunca mientras escribe, y la CPU casi no lo nota. La prioridad baja (del proceso y del planificador de la GPU), `--poll 0`, menos hilos y tandas más chicas no suavizaron esa lectura de forma constante (la misma configuración dio entre 2 % y 45 % de cuadros trabados según lo que hacía el resto del equipo), y las tandas de 32 triplicaron la espera.
+
+Lo que sí se controla es cuánto tiempo trabaja seguido. **Uso del equipo** (Ajustes › Agente, 25–100 %, 50 % por defecto) se aplica a lo que el agente hace solo (el resumen, la descripción de cada video): tras cada pedido descansa en proporción a lo que tardó (al 50 %, lo mismo que trabajó), y una pregunta en espera corta el descanso. Tus preguntas siempre van a toda velocidad. En equipos sin tarjeta gráfica también decide cuántos núcleos usa el modelo (nunca todos) y lo corre con prioridad baja.
+
+## El resumen completo
+
+`vt/digest.py` escribe el resumen con el mismo modelo del agente: lee el video por partes (lo que se dice y lo que aparece en pantalla) y pide capítulos con sus puntos y conceptos clave; luego un cierre escribe la idea general, las ideas clave y sugerencias de preguntas. El modelo responde en JSON limitado por un esquema; si se corta en el límite de tokens, Translay conserva lo que quedó completo. El momento de cada punto se busca por su contenido en la transcripción, porque los modelos chicos copian mal las horas. Los enlaces, comandos y código que aparecen en pantalla se listan en «Recursos del video».

@@ -26,46 +26,88 @@ function requestSummary(force = false) {
 function summaryText() {
   const s = state.summary;
   if (!s) return "";
-  return [s.overview, "", ...s.points.map((p) => `[${fmtDur(p.t)}] ${p.text}`)].join("\n");
+  const out = [s.overview, ""];
+  if (s.takeaways?.length) out.push("Ideas clave", ...s.takeaways.map((t) => `- ${t}`), "");
+  if (s.chapters?.length) for (const ch of s.chapters) out.push(`[${fmtDur(ch.t)}] ${ch.title}`, ...ch.points.map((p) => `  [${fmtDur(p.t)}] ${p.text}`), "");
+  else out.push(...s.points.map((p) => `[${fmtDur(p.t)}] ${p.text}`), "");
+  if (s.terms?.length) out.push("Conceptos clave", ...s.terms.map((x) => `- ${x.term}: ${x.meaning}`), "");
+  if (s.resources?.length) out.push("Recursos", ...s.resources.map((r) => `[${fmtDur(r.t)}] ${r.text}`));
+  return out.join("\n").trim();
 }
 
 function renderSummary() {
-  const box = $("#summary");
-  if (box.hidden) return;
+  // el resumen es una tarjeta al comienzo de la conversación con el agente (web/js/agentui.js)
+  const box = $("#ag-summary");
+  if ($("#summary").hidden) return;
   const job = state.summaryJob;
   const s = state.summary;
   const can = canImport();
   if (job && job.state !== "error") {
     const label = `${SUMMARY_STEP[job.state] || "Resumiendo"}${job.state === "en cola" ? "" : ` ${job.pct || 0} %`}`;
-    box.replaceChildren(emptyState("lines", s ? "Rehaciendo el resumen" : "Resumiendo el video",
-      job.state === "descargando" ? "Solo la primera vez: después se resume sin conexión."
-        : "Puedes seguir viendo el video. Te aviso cuando esté listo.", "div", btn(label, { icon: "lines", variant: "dark", disabled: true, cls: "sum-run" }),
+    box.replaceChildren(el("div", { class: "sum-card busy" }, el("div", { class: "sum-title" }, icon("lines"), label),
+      el("p", { class: "sum-note", text: job.state === "descargando" ? "Solo la primera vez. Después funciona sin conexión."
+        : "Puedes seguir viendo el video." }),
       can ? btn("Cancelar", { icon: "x", variant: "ghost", onClick: () => send({ type: "summary_cancel", video: state.videoId }) }) : null));
     return;
   }
   if (!s || s.empty) {
-    const ready = summaryReady();
     const err = job?.state === "error" ? job.error : "";
-    box.replaceChildren(emptyState("lines", err ? "No se pudo resumir" : "Aún sin resumen",
-      err || (ready ? "Translay lo escribe en tu equipo, sin internet, a partir de lo que se dice en el video."
-        : "Se puede resumir cuando termine la transcripción."),
-      "div", can && ready ? btn(err ? "Reintentar" : "Resumir", { icon: "lines", variant: "dark", onClick: () => requestSummary(!!s) }) : null));
+    box.replaceChildren(...(err ? [el("div", { class: "sum-card" }, el("div", { class: "sum-title" }, icon("lines"), "No se pudo resumir"),
+      el("p", { class: "sum-note", text: err }), can ? btn("Reintentar", { icon: "reload", variant: "ghost", onClick: () => requestSummary(true) }) : null)] : []));
     return;
   }
-  const overview = el("div", { class: "sum-overview" }, ...s.overview.split(/\n+/).filter(Boolean).map((t) => el("p", { text: t })));
-  const points = el("ol", { class: "sum-points" }, ...s.points.map((p) =>
-    el("li", { "data-t": p.t, title: "Ver desde aquí" }, el("time", { text: fmtDur(p.t) }), el("p", { text: p.text }))));
-  const fresh = box.dataset.shown !== String(s.created);  // otro resumen (o recién hecho): desde arriba
-  box.replaceChildren(overview, points);
-  if (fresh) box.scrollTop = 0;
+  const card = summaryCard(s, box.dataset.closed !== String(s.created));
+  card.addEventListener("toggle", () => { box.dataset.closed = card.open ? "" : String(s.created); });
+  box.replaceChildren(card);
   box.dataset.shown = String(s.created);
   markSummaryPoint(true);
 }
 
+// la tarjeta del resumen (la del video y la de las vistas previas del agente, con un resumen de ejemplo)
+function summaryCard(s, open = true) {
+  return el("details", { class: "sum-card", open: open ? "" : null },
+    el("summary", { class: "sum-title" }, icon("lines"), "Resumen del video", icon("chevron")), ...summaryParts(s));
+}
+
+// el contenido de la tarjeta (también la vista previa de Ajustes › Agente, con un resumen de ejemplo)
+function summaryParts(s) {
+  // versión 2 (vt/digest.py): panorama, ideas, capítulos, conceptos y recursos; la 1 traía solo puntos
+  const parts = [el("div", { class: "sum-overview" }, ...s.overview.split(/\n+/).filter(Boolean).map((t) => el("p", { text: t })))];
+  if (s.takeaways?.length) {
+    parts.push(el("div", { class: "sum-block" }, el("h4", { text: "Ideas clave" }),
+      el("ul", { class: "sum-take" }, ...s.takeaways.map((t) => el("li", { text: t })))));
+  }
+  const point = (p) => el("li", { "data-t": p.t, title: "Ver desde aquí" }, el("time", { text: fmtDur(p.t) }), el("p", { text: p.text }));
+  if (s.chapters?.length) {
+    parts.push(el("div", { class: "sum-block" }, el("h4", { text: "Capítulos" }), ...s.chapters.map((ch) =>
+      el("div", { class: "sum-chapter" },
+        el("button", { type: "button", class: "sum-ch-title", "data-t": ch.t, title: "Ver desde aquí" },
+          el("time", { text: fmtDur(ch.t) }), el("span", { text: ch.title })),
+        el("ol", { class: "sum-points" }, ...ch.points.map(point))))));
+  } else {
+    parts.push(el("ol", { class: "sum-points" }, ...s.points.map(point)));
+  }
+  if (s.terms?.length) {
+    parts.push(el("div", { class: "sum-block" }, el("h4", { text: "Conceptos clave" }),
+      el("dl", { class: "sum-terms" }, ...s.terms.flatMap((x) => [
+        el("dt", {}, el("button", { type: "button", class: "ag-ts", "data-t": x.t, title: "Ir a este momento" }, fmtDur(x.t)), x.term),
+        el("dd", { text: x.meaning })]))));
+  }
+  if (s.resources?.length) {
+    parts.push(el("div", { class: "sum-block" }, el("h4", { text: "Recursos del video" }), ...s.resources.map((r) => {
+      const code = r.kind === "code" || r.kind === "command";
+      const body = code ? el("pre", { class: "codeblk" }) : el("p", { class: "sum-res-text", text: r.text });
+      if (code) body.append(highlight(r.text));
+      return el("div", { class: "sum-res" }, el("button", { type: "button", class: "ag-ts", "data-t": r.t, title: "Ir a este momento" }, fmtDur(r.t)), body);
+    })));
+  }
+  return parts;
+}
+
 // el punto que se está viendo, marcado como la frase de la transcripción
 function markSummaryPoint(force = false) {
-  const box = $("#summary");
-  if (box.hidden || !state.summary) return;
+  const box = $("#ag-summary");
+  if ($("#summary").hidden || !state.summary) return;
   const t = vEn.currentTime || 0;
   const items = box.querySelectorAll(".sum-points li");
   let now = null;
@@ -76,8 +118,8 @@ function markSummaryPoint(force = false) {
 }
 vEn.addEventListener("timeupdate", () => markSummaryPoint());
 
-$("#summary").addEventListener("click", (e) => {
-  const li = e.target.closest(".sum-points li[data-t]");
+$("#ag-summary").addEventListener("click", (e) => {
+  const li = e.target.closest(".sum-points li[data-t], .sum-ch-title[data-t], .ag-ts[data-t]");
   if (li) vEn.currentTime = +li.dataset.t;
 });
 
@@ -92,7 +134,7 @@ function summaryUpdate(m) {
     state.summary = m.summary;
     state.summaryJob = null;
     renderSummary();
-    toast("Resumen listo.", "ok", $("#summary").hidden ? { label: "Ver", onClick: () => setSideTab("summary") } : undefined);
+    toast("Resumen listo", "ok", $("#summary").hidden ? { label: "Ver", onClick: () => setSideTab("summary") } : undefined);
     return;
   }
   const before = state.summaryJob;

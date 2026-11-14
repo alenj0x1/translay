@@ -21,9 +21,9 @@ from . import events, hardware, modelset, summarize
 def reason(e: Exception) -> str:
     s = str(e)
     if "out of memory" in s.lower() or "CUDA failed" in s:
-        return "No hubo memoria suficiente para el modelo de resumen: elige uno más liviano en Ajustes."
+        return "Memoria insuficiente para el modelo de resumen. Elige uno más ligero en Ajustes."
     if "Connection" in type(e).__name__ or "HTTP" in s or "resolve" in s.lower():
-        return "No se pudo descargar el modelo de resumen: revisa la conexión a internet."
+        return "No se pudo descargar el modelo de resumen. Revisa la conexión a internet."
     return "No se pudo resumir este video."
 
 
@@ -118,6 +118,30 @@ class Summaries:
         v = self.vaults.of(vid) if self.vaults else None
         return v.id if v else None
 
+    def _run_agent(self, vid: str, job: dict):
+        """El resumen completo (vt/digest.py) con el modelo del agente: GPU, gráfica integrada o CPU."""
+        v = self.library.data["videos"].get(vid) or {}
+        job.update(state="resumiendo", pct=0)
+        self._send(vid)
+
+        def progress(done, total):
+            job["pct"] = int(done * 100 / total)
+            self._send(vid)
+        result = self.agent.summarize(vid, progress, cancelled=lambda: job.get("cancel", False))
+        if result is None or job.get("cancel"):
+            self.jobs.pop(vid, None)
+            self._send(vid)
+            return
+        tr = self.store.open(vid)
+        with tr._lock:
+            tr.data["summary"] = result
+        tr.save()
+        self.jobs.pop(vid, None)
+        self.library.set_field(vid, summarized=True)
+        self._send(vid, summary=result)
+        events.emit("resumen.listo", self._vault(vid), video=vid, title=v.get("title") or "",
+                    points=len(result["points"]), model=result["model"])
+
     def _summarizer(self) -> summarize.Summarizer:
         key = self.model_key()
         m = summarize.MODELS[key]
@@ -149,6 +173,8 @@ class Summaries:
             done.set()
 
     def _run(self, vid: str, job: dict):
+        if getattr(self, "agent", None) is not None:
+            return self._run_agent(vid, job)
         s = self._summarizer()
         self._download(s, vid, job)
         tr = self.store.open(vid)

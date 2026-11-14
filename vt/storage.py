@@ -100,7 +100,7 @@ class Storage:
 
     def _vault(self, v) -> dict:
         videos = v.library.data["videos"]
-        transcripts = {p.stem for p in (v.root / "transcripts").glob("*.json")}
+        transcripts = {p.stem for p in (v.root / "transcripts").glob("*.json") if "." not in p.stem}
         used: dict[str, str] = {}  # nombre de archivo en youtube/ o library/ → video
         for vid, x in videos.items():
             for f in ("media", "audio", "thumb"):
@@ -171,10 +171,12 @@ class Storage:
         in_use = self.in_use()
         usage = modelusage.snapshot()
         models = []
+        from .llm import MODELS as AGENT
+        agent = {m.repo for m in AGENT.values()}
         for repo, info in modelset.info().items():
             p = model_path(repo)
             if p.exists():
-                models.append({"repo": repo, **info, "bytes": dir_size(p), "in_use": repo in in_use,
+                models.append({"repo": repo, **info, "bytes": dir_size(p), "in_use": repo in in_use, "agent": repo in agent,
                                "used": usage["used"].get(repo), "downloaded": p.stat().st_mtime})
         # en uso; después lo usado alguna vez (lo más reciente primero); al final lo nunca usado, por tamaño
         models.sort(key=lambda m: (not m["in_use"], m["used"] is None, -(m["used"] or 0), -m["bytes"]))
@@ -248,22 +250,23 @@ class Storage:
         if what == "labs":
             return self._rmtree(self.data / "labs")
         if what == "unused_models":  # todos los que el perfil que corre no usa
-            in_use = self.in_use()
+            from .llm import MODELS as AGENT  # los del agente no dependen del perfil: se borran de a uno
+            in_use = self.in_use() | {m.repo for m in AGENT.values()}
             return sum(modelset.remove(r) for r in known_models() if r not in in_use)
         if what == "model":
             if repo not in known_models() or repo in self.in_use():
-                raise ValueError("ese modelo está en uso")
+                raise ValueError("El modelo está en uso")
             return self._rmtree(model_path(repo))
         if what == "install":
             cache = install_cache()
             if not cache:
-                raise ValueError("solo en la app de escritorio")
+                raise ValueError("Disponible solo en la app de escritorio")
             freed = unique_size(cache) if cache.exists() else 0
             shutil.rmtree(cache, ignore_errors=True)
             cache.mkdir(parents=True, exist_ok=True)
             self._install = {"bytes": 0, "at": time.time()}
             return freed
-        raise ValueError("no sé qué liberar")
+        raise ValueError("No se indicó qué liberar")
 
     def _orphan_dubs(self, v, videos, transcripts) -> list[Path]:
         d = v.root / "audio"

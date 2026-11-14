@@ -1,0 +1,906 @@
+[
+ {
+  "video": "funnel",
+  "q": "¿Cuáles son las cuatro etapas del embudo?",
+  "at": [
+   [
+    40,
+    64
+   ]
+  ],
+  "keys": [
+   [
+    "conocimiento",
+    "awareness",
+    "descubr",
+    "conciencia"
+   ],
+   [
+    "consideraci",
+    "consideration"
+   ],
+   [
+    "conversi",
+    "compra"
+   ],
+   [
+    "lealtad",
+    "fidelidad",
+    "loyalty",
+    "fideliza"
+   ]
+  ]
+ },
+ {
+  "video": "funnel",
+  "q": "¿Qué ejemplo real usa el video?",
+  "at": [
+   [
+    64,
+    104
+   ]
+  ],
+  "keys": [
+   [
+    "café",
+    "coffee"
+   ],
+   [
+    "suscrip"
+   ]
+  ]
+ },
+ {
+  "video": "funnel",
+  "q": "¿Cuántos días dura la prueba del ejemplo?",
+  "at": [
+   [
+    78,
+    92
+   ]
+  ],
+  "keys": [
+   [
+    "30",
+    "treinta"
+   ]
+  ]
+ },
+ {
+  "video": "funnel",
+  "q": "¿Por qué funciona el embudo, según el video?",
+  "at": [
+   [
+    104,
+    124
+   ]
+  ],
+  "keys": [
+   [
+    "comportamiento",
+    "conducta",
+    "humano"
+   ],
+   [
+    "confianza",
+    "contacto",
+    "educaci",
+    "veces"
+   ]
+  ]
+ },
+ {
+  "video": "funnel",
+  "q": "¿Qué precio tiene la suscripción de café del ejemplo?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no menciona",
+    "no dice",
+    "no especifica",
+    "no indica"
+   ]
+  ]
+ },
+ {
+  "video": "funnel",
+  "q": "¿Qué me falta por ver?",
+  "position": 100,
+  "at": [
+   [
+    100,
+    150
+   ]
+  ],
+  "keys": [
+   [
+    "consejo",
+    "tip",
+    "recorrido",
+    "viaje",
+    "journey",
+    "boceto",
+    "suscrib",
+    "coment"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué versión de Python instala?",
+  "at": [
+   [
+    95,
+    110
+   ],
+   [
+    420,
+    430
+   ]
+  ],
+  "keys": [
+   [
+    "3.11"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué extensión hay que instalar en Visual Studio Code y qué trae?",
+  "at": [
+   [
+    190,
+    240
+   ]
+  ],
+  "keys": [
+   [
+    "python"
+   ],
+   [
+    "intellisense",
+    "depura",
+    "debug",
+    "lint"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Con qué atajo se abre la paleta de comandos?",
+  "at": [
+   [
+    255,
+    290
+   ]
+  ],
+  "keys": [
+   [
+    "shift",
+    "mayús"
+   ],
+   [
+    "p"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué comando usa en Windows para ver la versión de Python, y cuál en Mac o Linux?",
+  "at": [
+   [
+    378,
+    420
+   ]
+  ],
+  "keys": [
+   [
+    "py"
+   ],
+   [
+    "python3",
+    "python 3"
+   ],
+   [
+    "--version",
+    "versión",
+    "version"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué significan las tres flechas >>> que aparecen?",
+  "at": [
+   [
+    455,
+    470
+   ]
+  ],
+  "keys": [
+   [
+    "read",
+    "leer",
+    "lee"
+   ],
+   [
+    "eval"
+   ],
+   [
+    "print",
+    "imprim"
+   ],
+   [
+    "loop",
+    "bucle",
+    "ciclo"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Cómo se llama el archivo que crea y qué muestra al correrlo?",
+  "at": [
+   [
+    630,
+    790
+   ]
+  ],
+  "keys": [
+   [
+    "hello"
+   ],
+   [
+    "hello world",
+    "hola mundo"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Muestra cómo instalar Django?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no muestra",
+    "no menciona"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué atajo abre una terminal nueva y cuál abre la que ya existe?",
+  "at": [
+   [
+    315,
+    350
+   ]
+  ],
+  "keys": [
+   [
+    "shift"
+   ],
+   [
+    "back",
+    "acento",
+    "`",
+    "tilde",
+    "comilla"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Quién da la charla y dónde trabaja?",
+  "at": [
+   [
+    5,
+    25
+   ]
+  ],
+  "keys": [
+   [
+    "ben holmes",
+    "holmes"
+   ],
+   [
+    "warp"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Qué métricas usan para calificar a los agentes?",
+  "at": [
+   [
+    165,
+    200
+   ],
+   [
+    370,
+    470
+   ]
+  ],
+  "keys": [
+   [
+    "eficiencia",
+    "efficien"
+   ],
+   [
+    "calidad",
+    "quality"
+   ],
+   [
+    "prueba",
+    "test",
+    "cobertura"
+   ],
+   [
+    "verbos",
+    "verbosidad",
+    "detallad"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Cada cuánto revisan las conversaciones automáticamente?",
+  "at": [
+   [
+    775,
+    800
+   ]
+  ],
+  "keys": [
+   [
+    "24"
+   ],
+   [
+    "cron",
+    "cada día",
+    "diari"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Cómo se llama la herramienta que mencionan y dónde se encuentra?",
+  "at": [
+   [
+    825,
+    840
+   ]
+  ],
+  "keys": [
+   [
+    "skill doctor"
+   ],
+   [
+    "warp.dev"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Qué hizo el agente con los números de puerto?",
+  "at": [
+   [
+    500,
+    530
+   ],
+   [
+    950,
+    980
+   ]
+  ],
+  "keys": [
+   [
+    "puerto",
+    "port"
+   ]
+  ]
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Qué precio tiene Warp para equipos?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no menciona",
+    "no dice",
+    "no especifica"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Cuáles son las tres escuelas de pensamiento económico del video?",
+  "at": [
+   [
+    190,
+    205
+   ],
+   [
+    1350,
+    1365
+   ]
+  ],
+  "keys": [
+   [
+    "clásic",
+    "classical"
+   ],
+   [
+    "austriac",
+    "austrian"
+   ],
+   [
+    "keynes"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Qué ejemplo usa para explicar la división del trabajo?",
+  "at": [
+   [
+    470,
+    520
+   ]
+  ],
+  "keys": [
+   [
+    "alfiler",
+    "pin",
+    "clavo",
+    "aguja"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Qué critica Paul Krugman de la escuela austriaca?",
+  "at": [
+   [
+    1020,
+    1040
+   ]
+  ],
+  "keys": [
+   [
+    "krugman"
+   ],
+   [
+    "austr"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Qué propuso Keynes sobre el ciclo económico?",
+  "at": [
+   [
+    1080,
+    1300
+   ]
+  ],
+  "keys": [
+   [
+    "ciclo"
+   ],
+   [
+    "gast",
+    "impuest",
+    "gobierno"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Quién patrocina el video y qué ofrece?",
+  "at": [
+   [
+    235,
+    250
+   ],
+   [
+    1530,
+    1550
+   ]
+  ],
+  "keys": [
+   [
+    "acorns"
+   ],
+   [
+    "5",
+    "cinco"
+   ]
+  ]
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿Qué dice el video sobre las criptomonedas?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no menciona",
+    "no habla",
+    "no dice"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Quién da la clase y de qué materia es?",
+  "at": [
+   [
+    5,
+    30
+   ]
+  ],
+  "keys": [
+   [
+    "gruber"
+   ],
+   [
+    "microeconom"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Qué es el costo de oportunidad según la clase?",
+  "at": [
+   [
+    285,
+    330
+   ]
+  ],
+  "keys": [
+   [
+    "costo de oportunidad",
+    "coste de oportunidad",
+    "opportunity"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Qué impulsa la microeconomía, según el profesor?",
+  "at": [
+   [
+    205,
+    230
+   ]
+  ],
+  "keys": [
+   [
+    "escasez",
+    "scarcity"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Qué ejemplo famoso de Adam Smith usa?",
+  "at": [
+   [
+    675,
+    760
+   ]
+  ],
+  "keys": [
+   [
+    "smith"
+   ],
+   [
+    "agua",
+    "diamante",
+    "water",
+    "diamond"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Dónde se encuentra el equilibrio de mercado?",
+  "at": [
+   [
+    895,
+    915
+   ]
+  ],
+  "keys": [
+   [
+    "equilibrio"
+   ],
+   [
+    "oferta",
+    "supply"
+   ],
+   [
+    "demanda",
+    "demand"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Cuál es la diferencia entre análisis positivo y normativo?",
+  "at": [
+   [
+    990,
+    1080
+   ]
+  ],
+  "keys": [
+   [
+    "positiv"
+   ],
+   [
+    "normativ"
+   ]
+  ]
+ },
+ {
+  "video": "mit-supply",
+  "q": "Voy en el minuto 15, ¿qué me falta por ver?",
+  "position": 900,
+  "at": [
+   [
+    900,
+    2100
+   ]
+  ],
+  "keys": [
+   [
+    "positiv",
+    "normativ",
+    "equilibrio",
+    "problem",
+    "ejercicio",
+    "tarea"
+   ]
+  ]
+ },
+ {
+  "video": "python-vscode",
+  "q": "En la consola de Python, ¿qué nombre de variable crea y qué valor le asigna?",
+  "at": [
+   [
+    475,
+    495
+   ]
+  ],
+  "keys": [
+   [
+    "name"
+   ],
+   [
+    "dave"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿De qué dos formas ejecuta el archivo hello.py?",
+  "at": [
+   [
+    685,
+    700
+   ],
+   [
+    740,
+    790
+   ]
+  ],
+  "keys": [
+   [
+    "botón",
+    "play",
+    "reproducir",
+    "run python file",
+    "ejecutar archivo"
+   ],
+   [
+    "py hello",
+    "python3 hello",
+    "hello.py"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Por qué dice que Python es un lenguaje de alto nivel?",
+  "at": [
+   [
+    515,
+    535
+   ]
+  ],
+  "keys": [
+   [
+    "leer",
+    "legible",
+    "entender"
+   ],
+   [
+    "persona",
+    "humano",
+    "gente"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Qué hace el agente de auto-mejora con las conversaciones que fallan?",
+  "at": [
+   [
+    780,
+    830
+   ]
+  ],
+  "keys": [
+   [
+    "fall",
+    "fracas"
+   ],
+   [
+    "skill",
+    "habilidad",
+    "configura",
+    "cambio",
+    "mejora"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "talk-agents",
+  "q": "¿Qué problema encontraron con las pruebas que escribía el agente?",
+  "at": [
+   [
+    685,
+    700
+   ],
+   [
+    805,
+    820
+   ]
+  ],
+  "keys": [
+   [
+    "prueba",
+    "test"
+   ],
+   [
+    "unit",
+    "unitari",
+    "redundant",
+    "pirámide",
+    "pyramid",
+    "demasiad"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Cómo resuelve Adam Smith la paradoja del agua y los diamantes?",
+  "at": [
+   [
+    700,
+    770
+   ]
+  ],
+  "keys": [
+   [
+    "oferta",
+    "supply"
+   ],
+   [
+    "demanda",
+    "demand"
+   ],
+   [
+    "agua",
+    "water"
+   ],
+   [
+    "diamant"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "econ-schools",
+  "q": "¿En qué se diferencia la escuela austriaca de la clásica al valorar los bienes?",
+  "at": [
+   [
+    730,
+    760
+   ],
+   [
+    860,
+    900
+   ]
+  ],
+  "keys": [
+   [
+    "utilidad",
+    "utility",
+    "subjetiv"
+   ],
+   [
+    "marginal",
+    "valor"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "funnel",
+  "q": "En el ejemplo del café, ¿qué hace el cliente en la etapa de consideración?",
+  "at": [
+   [
+    72,
+    85
+   ]
+  ],
+  "keys": [
+   [
+    "perfil",
+    "profile"
+   ],
+   [
+    "reseñ",
+    "review",
+    "comentario",
+    "opinion"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "mit-supply",
+  "q": "¿Qué nota se necesita para aprobar el curso?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no menciona",
+    "no dice",
+    "no especifica"
+   ]
+  ],
+  "hard": true
+ },
+ {
+  "video": "python-vscode",
+  "q": "¿Qué versión de Visual Studio Code instala?",
+  "trap": true,
+  "keys": [
+   [
+    "no ",
+    "no se",
+    "no menciona",
+    "no dice",
+    "no especifica"
+   ]
+  ],
+  "hard": true
+ }
+]

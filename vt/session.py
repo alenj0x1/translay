@@ -71,7 +71,10 @@ OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "
               "comment_add", "comment_edit", "comment_delete",
               "export_pick_folder", "export_reveal"}
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch",
-               "summarize", "summary_cancel"}
+               "summarize", "summary_cancel", "agent_ask", "agent_continue", "agent_stop", "agent_clear", "agent_power",
+               "agent_dictate", "agent_model_download"}
+DICTATE_S = 60                  # el dictado del chat del agente: hasta un minuto por vez
+DICTATE_BYTES = 4 * 1024 * 1024  # ~1 min de opus con holgura (llega en base64 por el WebSocket)
 from .streaming import Detected, Partial, Segment, StreamingTranscriber
 from .translate import Translator
 
@@ -205,7 +208,8 @@ class Session:
             if t == "queue_video":
                 vs = [self.vaults.of(str(x)) for x in m.get("videos", [])]
                 return bool(vs) and all(v and a.can_import(v.id) for v in vs)
-            if t in ("lib_register", "watch", "video_lang", "summarize", "summary_cancel"):  # la del video, si ya está en alguna biblioteca
+            if t in ("lib_register", "watch", "video_lang", "summarize", "summary_cancel", "agent_ask", "agent_continue", "agent_stop",
+                     "agent_clear", "agent_power"):  # la del video, si ya está en alguna biblioteca
                 return a.can_import(self._vault_of(str(m.get("id") or m.get("video") or "")).id)
             return a.can_import(self.vault.id)
         if t == "open":
@@ -280,6 +284,15 @@ class Session:
                                 None, self._summaries.request, vid, bool(m.get("force")))
                             if not ok:  # sin transcripción (o ya tiene): la vista no queda «en cola»
                                 await self.ws.send_json({"type": "summary_state", "state": None})
+                    elif m.get("type") == "agent_model_download" and self._agent:  # bajarlo de antemano
+                        self._agent.download(str(m.get("key", "")))
+                    elif m.get("type") == "agent_models" and self._agent:  # Ajustes › Agente › Modelo
+                        out = await asyncio.get_running_loop().run_in_executor(None, self._agent.catalog)
+                        await self.ws.send_json({"type": "agent_models", **out})
+                    elif m.get("type") == "agent_context":
+                        asyncio.create_task(self._agent_context(m))
+                    elif m.get("type", "").startswith("agent_") and self._agent:
+                        asyncio.create_task(self._agent_msg(m))
                     elif m.get("type") == "search":
                         asyncio.create_task(self._search(str(m.get("q", ""))))
                     elif m.get("type") in ("glossary_get", "glossary_set"):
@@ -385,7 +398,14 @@ class Session:
                                              "summary_state": self._summaries.state(self.tr.data["id"])
                                              if self._summaries else None,
                                              "voice_refs": self._voice_refs(self.tr.data["id"]),
+                                             "screen_text": self.processor.screen.public(self.tr.data["id"])
+                                             if self.processor and self.processor.screen else None,
                                              "prefix": vault.prefix, "vault": vault.id})
+                    # la descripción bajo el título (vt/agentsvc.py), si falta y el video ya está reconocido
+                    ag = self.processor.agent if self.processor else None
+                    if ag and self.tr.data["id"] in vault.library.data["videos"] and \
+                            self.processor.progress(self.tr.data["id"])["asr"] >= 0.98:
+                        ag.describe(self.tr.data["id"])
                     if self._backfill:
                         self._backfill.cancel()
                     self._backfill = asyncio.create_task(self._translate_stale(self.tr))
@@ -512,7 +532,7 @@ class Session:
         except Exception as e:  # sin conexión, por ejemplo: se avisa (la cola lo reintenta al procesar)
             print(f"[traductor] {tr.lang}: {e}", flush=True)
             await self.ws.send_json({"type": "yt_error", "error": "No se pudo preparar el traductor de "
-                                     f"{langs.name(tr.lang)}. Revisa la conexión; se reintenta al procesar el video."})
+                                     f"{langs.name(tr.lang)}. Revisa la conexión. Se reintentará al procesar el video."})
             return
         tx = partial(self.translator.translate_many, glossary=self._gl(tr), src=tr.lang)
         while self.tr is tr and (todo := tr.stale(name)[:16]):
@@ -752,6 +772,95 @@ class Session:
         if (lang_changed or mode_changed) and had and self.processor:
             self.processor.add(vid)  # lo reconocido en otro idioma se rehace; con otro modo, se completa
         return lang_changed or mode_changed
+
+    @property
+    def _agent(self):
+        return getattr(self.processor, "agent", None) if self.processor else None
+
+    async def _agent_msg(self, m: dict):
+        """El agente del video (vt/agentsvc.py): abrir la conversación, preguntar, detener o borrarla."""
+        vid = str(m.get("video", ""))
+        v = self.vaults.of(vid) if _SAFE_VID.match(vid) else None
+        if not v or not self.access.can_view(v.id):
+            return
+        ag, t = self._agent, m["type"]
+        pos = m.get("position") if isinstance(m.get("position"), (int, float)) else None
+        loop = asyncio.get_running_loop()
+        if t == "agent_open":
+            out = await loop.run_in_executor(None, ag.public, vid, pos)
+            await self.ws.send_json({"type": "agent_chat", "video": vid, **out})
+        elif t == "agent_ask" and str(m.get("q", "")).strip():
+            ag.ask(vid, str(m["q"]), pos, str(m.get("id", ""))[:40])
+        elif t == "agent_continue":
+            ag.ask(vid, "", pos, str(m.get("id", ""))[:40], cont=True)
+        elif t == "agent_stop":
+            ag.stop()
+        elif t == "agent_power":
+            await loop.run_in_executor(None, ag.power, bool(m.get("on")), vid, pos)
+        elif t == "agent_dictate":
+            await self._dictate(vid, m)
+        elif t == "agent_clear":
+            await loop.run_in_executor(None, ag.clear, vid)
+            out = await loop.run_in_executor(None, ag.public, vid, pos)
+            await self.ws.send_json({"type": "agent_chat", "video": vid, **out})
+
+    async def _dictate(self, vid: str, m: dict):
+        """Dictado en el chat del agente: el audio grabado en el navegador (base64, hasta DICTATE_S) se
+        transcribe con el mismo Whisper de Translay, en la cola de la GPU, en el idioma de destino."""
+        import base64
+        import tempfile
+
+        from .processor import SR, decode_audio
+
+        qid = str(m.get("id", ""))[:40]
+
+        async def reply(text="", error=""):
+            await self.ws.send_json({"type": "agent_dictated", "video": vid, "id": qid, "text": text, "error": error})
+
+        asr = self.st.asr
+        if asr.name.endswith(".en"):
+            return await reply(error="El dictado necesita un modelo de reconocimiento en español. "
+                                     "Elige otro perfil en Ajustes › Rendimiento.")
+        try:
+            raw = base64.b64decode(str(m.get("audio", "")), validate=True)
+        except ValueError:
+            return await reply(error="No se pudo leer la grabación.")
+        if not raw or len(raw) > DICTATE_BYTES:
+            return await reply(error="La grabación supera un minuto. Dicta en partes más cortas.")
+        loop = asyncio.get_running_loop()
+
+        def decode() -> np.ndarray:
+            with tempfile.TemporaryDirectory() as d:
+                f = Path(d) / "dictado.webm"
+                f.write_bytes(raw)
+                return decode_audio(f)[: DICTATE_S * SR]
+
+        try:
+            audio = await loop.run_in_executor(None, decode)
+        except Exception:
+            return await reply(error="No se pudo leer la grabación.")
+        if audio.size < SR // 4:
+            return await reply()
+        words = await loop.run_in_executor(self.gpu, self.res.run, ("asr",),
+                                           partial(asr.transcribe, audio, None, langs.TARGET))
+        await reply(text="".join(w.text for w in words).strip())
+
+    async def _agent_context(self, m: dict):
+        """«Copiar para un agente»: todo el video en Markdown (vt/videocontext.py), con hasta dónde se vio."""
+        vid = str(m.get("video", ""))
+        v = self.vaults.of(vid) if _SAFE_VID.match(vid) else None
+        if not v or not self.access.can_view(v.id):
+            return
+        pos = m.get("position")
+
+        def build():
+            from .videocontext import markdown
+
+            screen = self.processor.screen.load(vid) if self.processor and self.processor.screen else None
+            return markdown(v.library.data["videos"].get(vid) or {}, v.store.open(vid), screen,
+                            float(pos) if isinstance(pos, (int, float)) else None)
+        text = await asyncio.get_running_loop().run_in_executor(None, build)
+        await self.ws.send_json({"type": "agent_context", "video": vid, "text": text})
 
     async def _video_lang(self, vid: str, lang: str, mode: str = ""):
         if not self._set_lang(vid, lang, mode):
@@ -995,7 +1104,7 @@ class Session:
             vault = self._vault_of(vid)
             ref = self._voice_meta(vid).get(spk)
             if not ref:
-                return await self.ws.send_json({"type": "yt_error", "error": "esa persona aún no tiene una voz de referencia"})
+                return await self.ws.send_json({"type": "yt_error", "error": "Esta persona aún no tiene una voz de referencia"})
             vault.save_person(str(m.get("name", "")), vault.root / "voices" / vid / ref["file"], ref.get("text", ""),
                               str(m.get("id") or "") or None)
         else:
@@ -1097,7 +1206,7 @@ class Session:
         try:
             out = await loop.run_in_executor(None, self.storage.scan)
         except OSError as e:
-            return await self.ws.send_json({"type": "vault_error", "error": f"no se pudo medir el espacio: {e}"})
+            return await self.ws.send_json({"type": "vault_error", "error": f"No se pudo medir el espacio. {e}"})
         await self.ws.send_json(out)
         if out["has_install"] and out["install"] is None:  # lo lento, aparte
             install = await loop.run_in_executor(None, self.storage.measure_install)
@@ -1129,7 +1238,7 @@ class Session:
             elif t == "trash_purge":
                 tid, everything = str(m.get("id") or ""), m.get("all") is True
                 if not tid and not everything:
-                    raise ValueError("falta qué borrar de la papelera")
+                    raise ValueError("No se indicó qué borrar de la papelera")
                 for v in ([self.vaults.get(str(m["vault"]))] if m.get("vault") else self.vaults.all()):
                     if v:
                         await loop.run_in_executor(None, lambda v=v: Trash(v.root).purge(tid=tid or None, everything=everything))
@@ -1208,15 +1317,26 @@ class Session:
             pos, dur = v.get("position") or 0, v.get("duration") or 0
             if v.get("media") and pos > 5 and dur and pos < dur - 10 and (best is None or (v.get("opened") or 0) > best[0]):
                 best = ((v.get("opened") or 0), vid, pos)
-        if best is None:
-            return None
+        if best is None:  # nada empezado: el último que se abrió o se agregó (con su resumen, si tiene)
+            ready = [(v.get("opened") or v.get("added") or 0, vid) for vid, v in videos.items() if v.get("media")]
+            if not ready:
+                return None
+            best = (0, max(ready)[1], 0)
         _, vid, pos = best
         try:
-            segs = self.vault.store.open(vid).segments
+            tr = self.vault.store.open(vid)
         except (ValueError, OSError):
             return {"video": vid}
-        seg = next((s for s in reversed(segs) if s["start"] <= pos + 0.5 and s.get("translation")), None)
-        return {"video": vid, "en": seg.get("text", "") if seg else "", "es": seg.get("translation", "") if seg else ""}
+        seg = next((s for s in reversed(tr.segments) if s["start"] <= pos + 0.5 and s.get("translation")), None) if pos else None
+        out = {"video": vid, "en": seg.get("text", "") if seg else "", "es": seg.get("translation", "") if seg else ""}
+        # lo del resumen que ayuda a retomar (inicio en pantalla grande): ideas clave y los primeros capítulos
+        s = tr.data.get("summary") or {}
+        if s.get("version") == 2:
+            out["ideas"] = [x for x in s.get("takeaways") or []][:3]
+            out["chapters"] = [{"t": c["t"], "title": c["title"]} for c in (s.get("chapters") or [])[:4] if c.get("title")]
+        elif s.get("points"):
+            out["ideas"] = [p["text"] for p in s["points"][:3]]
+        return out
 
     # --------------------------------------------------------- cola de fondo
     async def _queue(self, m: dict):
@@ -1298,7 +1418,7 @@ class Session:
             if t == "admin_owner_pw":
                 pw = str(m.get("password", ""))
                 if pw and len(pw) < 6:
-                    raise ValueError("la contraseña debe tener al menos 6 caracteres")
+                    raise ValueError("La contraseña debe tener al menos 6 caracteres")
                 a.auth.set_owner_password(pw)
             elif t == "admin_vault_access":
                 a.auth.set_vault_access(str(m.get("id", "")), str(m.get("mode", "")), str(m.get("perm", "ver")),

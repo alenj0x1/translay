@@ -50,6 +50,21 @@ body.side-off .side { display: none; }
 .transcript time { display: flex; gap: var(--s2); line-height: 1.5; }
 .transcript .spk { display: inline; font-size: var(--fs-xs); }
 
+/* ---------------------------------------------------------- elementos del video (web/js/screentext.js)
+   Código, comandos y enlaces que aparecen escritos, en su momento entre las frases: una caja con la
+   línea fina de las tarjetas, sin fondo de color; el código en letra monoespaciada. */
+.transcript li.el-row { display: grid; gap: var(--s1); margin: var(--s1) 0; padding: var(--s2) var(--s3) var(--s3);
+  border: 1px solid var(--line); }
+.transcript .el-head { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.transcript .el-kind { display: inline-flex; align-items: center; gap: 4px; font: 600 var(--fs-xs)/1.5 var(--font); color: var(--fg-muted); }
+.transcript .el-kind svg { width: 12px; height: 12px; stroke-width: 1.7; }
+.transcript .el-copy { margin-left: auto; width: 24px; height: 24px; opacity: 0; }
+.transcript li.el-row:hover .el-copy, .transcript .el-copy:focus-visible { opacity: 1; }
+.transcript li.el-row pre { margin: 0; max-height: 11.5em; }
+.transcript li.el-row p { font: 500 var(--fs-sm)/1.45 var(--font); color: var(--fg); overflow-wrap: anywhere; }
+.transcript li.el-row .el-es { color: var(--fg); font-family: var(--font); }
+@media (hover: none) { .transcript .el-copy { opacity: 1; } }
+
 /* ------------------------------------------------------------ comentarios */
 .transcript .cbtn {
   position: absolute; right: var(--s2); top: var(--s2); z-index: 1; display: none; place-items: center;
@@ -74,8 +89,8 @@ body.side-off .side { display: none; }
 /* ---------------------------------------------------------------- resumen */
 .summary { overflow-y: auto; min-height: 0; padding: 0 var(--s2) var(--s3); }
 .summary > .empty-state { margin-top: var(--s2); }
-.sum-overview { display: grid; gap: var(--s3); padding: var(--s2) var(--s3) var(--s4); }
-.sum-overview p { margin: 0; font: 500 var(--fs-body)/1.55 var(--font); color: var(--fg); }
+.sum-overview { display: grid; gap: var(--s2); padding: 0 var(--s3) var(--s3); }
+.sum-overview p { margin: 0; font: 500 var(--fs-md)/1.6 var(--font); color: var(--fg-muted); text-wrap: pretty; }
 .sum-points { list-style: none; margin: 0; padding: var(--s2) 0 0; border-top: 1px solid var(--line); }
 .sum-points li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: var(--s2); padding: 10px var(--s3);
   border-radius: var(--r-sm); cursor: pointer; }
@@ -129,3 +144,217 @@ body.native .transcript .cell:first-child { display: none; }
 .transcript li.same { grid-template-columns: 1fr; gap: 0; }
 .transcript li.same .cell:first-child { display: none; }
 .transcript li.same .cell + .cell time { display: flex; }
+
+/* ------------------------------------------------------------ agente (web/js/agentui.js)
+   Conversación arriba (con el resumen como primera tarjeta), sugerencias y el campo abajo, fijos. */
+.agent { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; min-height: 0; }
+.agent[hidden] { display: none; }
+.ag-scroll { overflow-y: auto; min-height: 0; padding: 0 var(--s3) var(--s3); }
+.ag-scroll > .summary { padding: 0; overflow: visible; }
+.sum-card { margin-bottom: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); }
+.sum-card .sum-title { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); cursor: pointer;
+  font: 600 var(--fs-sm)/1.6 var(--font); color: var(--fg); list-style: none; }
+.sum-card .sum-title::-webkit-details-marker { display: none; }
+.sum-card .sum-title svg { width: 14px; height: 14px; }
+.sum-card .sum-title svg:last-child { margin-left: auto; color: var(--fg-faint); transition: transform .2s var(--ease); }
+.sum-card[open] .sum-title svg:last-child { transform: rotate(180deg); }
+.sum-card.busy { display: grid; gap: var(--s2); padding-bottom: var(--s3); }
+.sum-card .sum-note { margin: 0; padding: 0 var(--s3); font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
+.sum-card .btn { margin: 0 var(--s3); justify-self: start; }
+
+.ag-msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.ag-hello { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); }
+.ag-hello .ag-intro { margin: 2px 0 0; font: 500 var(--fs-sm)/1.55 var(--font); color: var(--fg-muted); }
+.ag-avatar { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: color-mix(in srgb, var(--ag, var(--accent)) 18%, transparent); color: var(--ag, var(--accent)); }
+.ag-avatar svg { width: 15px; height: 15px; display: block; }
+.ag-name { margin: 0; font: 700 var(--fs-sm)/1.5 var(--font); color: var(--fg); }
+.ag-who { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); }
+.ag-msg { min-width: 0; }
+.ag-msg.user { justify-self: end; max-width: 88%; padding: var(--s2) var(--s3); border-radius: var(--r-md) var(--r-md) 4px var(--r-md);
+  background: var(--surface-2); }
+.ag-msg.user p { margin: 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; }
+.ag-text { display: grid; gap: var(--s2); font: 500 var(--fs-md)/1.6 var(--font); color: var(--fg); overflow-wrap: anywhere; }
+.ag-text p, .ag-text ul, .ag-text ol { margin: 0; }
+/* la respuesta en su burbuja (como las preguntas, del lado izquierdo): el borde derecho lo marca la caja */
+/* con un tinte del color del agente (Ajustes › Agente), para distinguirla de las preguntas, que van en gris */
+.ag-msg.bot .ag-text { padding: var(--s2) var(--s3); border-radius: 4px var(--r-md) var(--r-md) var(--r-md);
+  background: color-mix(in srgb, var(--ag, var(--accent)) 12%, var(--surface)); }
+.ag-msg.bot .ag-code { background: color-mix(in srgb, var(--ag, var(--accent)) 24%, var(--surface)); }
+.ag-text ul, .ag-text ol { padding-left: 1.2em; display: grid; gap: 2px; }
+.ag-text .ag-h { font-weight: 700; }
+.ag-text .codeblk { max-height: 16em; }
+.ag-code { padding: 1px 5px; border-radius: 4px; background: var(--surface-2); font: 500 .92em/1 var(--mono); }
+/* un minuto que lleva a ese momento: con el color del agente y un ▶ chico, para que se note que se toca */
+.ag-ts { display: inline-flex; align-items: center; gap: 4px; height: 20px; margin: 0 1px; padding: 0 7px 0 6px; border: 0;
+  border-radius: var(--r-pill); background: color-mix(in srgb, var(--ag, var(--accent)) 22%, transparent);
+  color: color-mix(in srgb, var(--ag, var(--accent)) 55%, var(--fg)); font: 700 var(--fs-xs)/1 var(--font); font-variant-numeric: tabular-nums;
+  cursor: pointer; vertical-align: 1px; }
+.ag-ts::before { content: ""; width: 6px; height: 7px; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.ag-ts:hover { background: color-mix(in srgb, var(--ag, var(--accent)) 34%, transparent); }
+.ag-meta { margin: var(--s1) 0 0 var(--s1); font: 500 11px/1.4 var(--mono); color: var(--fg-faint); }
+.ag-wait { display: flex; align-items: center; gap: var(--s2); color: var(--fg-muted); font-size: var(--fs-sm); }
+.ag-dots { display: inline-flex; gap: 3px; }
+.ag-dots b { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-faint); animation: ag-dot 1.2s infinite ease-in-out; }
+.ag-dots b:nth-child(2) { animation-delay: .15s; }
+.ag-dots b:nth-child(3) { animation-delay: .3s; }
+@keyframes ag-dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .ag-dots b { animation: none; } }
+
+.ag-suggest { display: flex; gap: var(--s2); overflow-x: auto; padding: var(--s2) var(--s3); scrollbar-width: none;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+.ag-suggest::-webkit-scrollbar { display: none; }
+.ag-suggest[hidden] { display: none; }
+.ag-chip { display: inline-flex; align-items: center; gap: 6px; flex: none; height: var(--h-xs); padding: 0 var(--s3);
+  border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--fg-muted);
+  font: 600 var(--fs-sm)/1 var(--font); cursor: pointer; white-space: nowrap; }
+.ag-chip:hover { background: var(--surface-2); color: var(--fg); }
+.ag-chip svg { width: 13px; height: 13px; }
+.ag-compose { display: flex; align-items: flex-end; gap: var(--s2); margin: 0 var(--s3) var(--s3); padding: var(--s1) var(--s1) var(--s1) var(--s3);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md); }
+.ag-compose textarea { flex: 1; min-width: 0; min-height: 34px; max-height: 140px; padding: 7px 0; border: 0; background: transparent;
+  resize: none; font: 500 var(--fs-md)/1.45 var(--font); color: var(--fg); outline: none; box-shadow: none; border-radius: 0; }
+.ag-compose textarea:focus { box-shadow: none; }
+.ag-compose:focus-within { border-color: color-mix(in srgb, var(--fg) 28%, transparent); }
+.ag-compose .ic { flex: none; background: var(--accent); color: var(--on-accent, #fff); }
+.ag-compose .ic.stop { background: var(--surface-3); color: var(--fg); }
+/* dictar: un botón sin relleno junto a Preguntar; mientras escucha, con el color del agente y un pulso suave */
+.ag-compose .ag-mic { background: transparent; color: var(--fg-muted); }
+.ag-compose .ag-mic:hover { background: var(--surface-2); color: var(--fg); }
+.ag-compose .ag-mic.on { background: color-mix(in srgb, var(--ag, var(--accent)) 22%, transparent); color: var(--ag, var(--accent));
+  animation: ag-listen 1.4s ease-in-out infinite; }
+.ag-compose .ag-mic.busy { opacity: .5; }
+.ag-compose .ag-mic[hidden] { display: none; }
+@keyframes ag-listen { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ag, var(--accent)) 18%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .ag-compose .ag-mic.on { animation: none; } }
+
+/* Ajustes › Agente */
+.pref-textwrap { display: grid; min-width: 0; width: min(420px, 100%); }
+.pref-textwrap.multi { width: 100%; }
+.pref-text { width: 100%; }
+.avatars { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.avatar-opt { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%;
+  background: transparent; color: var(--fg-muted); cursor: pointer; }
+.avatar-opt:hover { background: var(--surface-2); color: var(--fg); }
+.avatar-opt.on { background: var(--sel); color: var(--fg); border-color: transparent; }
+.avatar-opt svg { width: 17px; height: 17px; }
+
+/* barra del agente: quién es, en qué estado está y encender o apagar */
+.agent { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.ag-bar { display: flex; align-items: center; gap: var(--s2); min-width: 0; padding: 0 var(--s3) var(--s2); }
+.ag-bar .ag-name { flex: none; }
+.ag-status { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap;
+  text-overflow: ellipsis; font: 500 var(--fs-xs)/1.4 var(--font); color: var(--fg-muted); }
+.ag-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-faint); }
+.ag-dot.on { background: var(--ok, #2fb170); }
+.ag-dot.busy { background: var(--warn, #e0a030); animation: ag-dot 1.2s infinite ease-in-out; }
+.ag-power { margin-left: auto; flex: none; }
+.ag-custom { flex: none; margin-left: calc(-1 * var(--s1)); }
+.agent-dlg-rows { margin: var(--s2) 0 var(--s3); }
+.ag-power svg { width: 13px; height: 13px; }
+.ag-hello { padding: var(--s3); }
+
+/* resumen completo (vt/digest.py) */
+.sum-block { display: grid; gap: var(--s2); padding: var(--s3); border-top: 1px solid var(--line); }
+.sum-block h4 { margin: 0; font: 700 var(--fs-xs)/1.4 var(--font); color: var(--fg); }
+.sum-take { margin: 0; padding-left: 1.1em; display: grid; gap: var(--s1); font: 500 var(--fs-md)/1.6 var(--font); color: var(--fg-muted); }
+.sum-chapter + .sum-chapter { margin-top: var(--s2); }
+.sum-ch-title { display: flex; align-items: baseline; gap: var(--s2); width: 100%; padding: var(--s1) 0; border: 0; background: none;
+  color: var(--fg); font: 700 var(--fs-md)/1.4 var(--font); text-align: left; cursor: pointer; }
+.sum-ch-title time { font: 600 var(--fs-xs)/1.4 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; min-width: 40px; }
+/* título y puntos con la misma sangría: el minuto de ambos en la misma columna, y aire entre puntos */
+.sum-ch-title { padding: var(--s1) var(--s2); }
+.sum-chapter .sum-points { border-top: 0; padding-top: var(--s1); display: grid; gap: var(--s1); }
+.sum-chapter .sum-points li { grid-template-columns: 40px minmax(0, 1fr); padding: var(--s2); }
+.sum-terms { margin: 0; display: grid; gap: var(--s1) var(--s2); }
+.sum-terms dt { font: 700 var(--fs-sm)/1.5 var(--font); color: var(--fg); display: flex; align-items: center; gap: var(--s2); }
+.sum-terms dd { margin: 0 0 var(--s1); font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
+.sum-res { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s2); align-items: start; }
+.sum-res .codeblk { max-height: 8em; }
+.sum-res-text { margin: 0; font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg); overflow-wrap: anywhere; }
+
+/* cómo se ve hablar con el agente (Ajustes › Agente y Personalizar): una pregunta y una respuesta de ejemplo */
+.ag-preview { height: 100%; min-height: 0; padding-top: var(--s2); border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface); overflow: hidden; }
+.ag-preview button, .ag-preview .sum-points li, .ag-preview summary { pointer-events: none; }  /* se mira, no se usa */
+.ag-preview textarea { pointer-events: none; }
+
+/* Personalizar: opciones a la izquierda, la vista previa a la derecha (arriba en una pantalla angosta) */
+#agent-dlg { width: min(980px, calc(100vw - 32px)); }
+.agent-dlg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: var(--s5); align-items: start; }
+.agent-dlg-preview { position: sticky; top: 0; display: grid; height: min(560px, 62vh); }
+@media (max-width: 760px) {
+  .agent-dlg-grid { grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+  .agent-dlg-preview { order: -1; height: 34vh; }
+}
+
+/* lo que el agente sabe hacer (antes de la primera pregunta): chips que preguntan o dejan la pregunta empezada */
+.ag-hello .ag-can { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.ag-hello .ag-can .ag-chip { height: var(--h-sm); }
+
+/* hora y copiar de cada mensaje: aparecen al pasar el mouse */
+.ag-tools { display: inline-flex; align-items: center; gap: var(--s1); margin-left: auto; opacity: 0; transition: opacity .15s; }
+.ag-msg:hover .ag-tools, .ag-msg:focus-within .ag-tools { opacity: 1; }
+.ag-tools time { font: 500 var(--fs-xs)/1 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+.ag-copy { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--fg-muted); cursor: pointer; }
+.ag-copy:hover { background: var(--surface-2); color: var(--fg); }
+.ag-copy svg { width: 13px; height: 13px; display: block; }
+.ag-msg.user { position: relative; }
+.ag-msg.user .ag-tools { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); margin: 0 var(--s2) 0 0; }
+.ag-msg.bot .ag-who { width: 100%; }
+
+/* pasos mientras trabaja */
+.ag-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font: 500 var(--fs-sm)/1.3 var(--font); }
+.ag-steps li { display: flex; align-items: center; gap: var(--s2); color: var(--fg-muted); }
+.ag-steps li.now { color: var(--fg); }
+.ag-steps svg { width: 13px; height: 13px; color: var(--ok); }
+/* la marca (check o puntitos) ocupa siempre el mismo ancho, centrada: los textos de los pasos quedan alineados */
+.ag-steps li > svg, .ag-steps li > .ag-dots { flex: none; width: 21px; justify-content: center; }
+.ag-steps li > svg { padding: 0 4px; box-sizing: border-box; }
+
+/* tarjetas de las acciones */
+.ag-card { display: grid; gap: var(--s2); margin-top: var(--s2); padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface); }
+.ag-card-head { display: flex; align-items: center; gap: var(--s2); min-width: 0; font-size: var(--fs-sm); }
+.ag-card-head svg { width: 15px; height: 15px; flex: none; color: var(--ag, var(--accent)); }
+.ag-card-head small { margin-left: auto; color: var(--fg-faint); font-size: var(--fs-xs); white-space: nowrap; }
+.ag-card-pre { margin: 0; max-height: 9.5em; overflow: hidden; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--surface-2);
+  font: 500 11px/1.5 var(--mono); color: var(--fg-muted); white-space: pre-wrap; overflow-wrap: anywhere;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent); }
+.ag-card-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.ag-card-moment { display: flex; align-items: flex-start; gap: var(--s2); padding: 0; border: 0; background: none; color: var(--fg);
+  text-align: left; cursor: pointer; font: 500 var(--fs-sm)/1.45 var(--font); }
+.ag-card-times { display: flex; flex-wrap: wrap; gap: var(--s1); }
+
+/* en cola: la pregunta espera su turno (se puede quitar) */
+.ag-msg.user.queued { opacity: .6; }
+.ag-queued { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font: 600 var(--fs-xs)/1 var(--font); color: var(--fg-muted); }
+.ag-queued svg { width: 12px; height: 12px; }
+.ag-queued .ag-copy { width: 20px; height: 20px; }
+
+/* completado: la marca al pie de cada respuesta; la recién terminada aparece con un pequeño salto */
+.ag-meta { display: flex; align-items: center; gap: 6px; }
+.ag-ok { display: grid; place-items: center; flex: none; width: 16px; height: 16px; color: var(--ag, var(--accent)); }
+.ag-ok svg { width: 14px; height: 14px; display: block; stroke-width: 2.4; }
+.ag-meta.fresh .ag-ok { animation: ag-done .5s var(--ease); }
+.ag-meta.fresh { animation: ag-fade .4s var(--ease); }
+@keyframes ag-done { 0% { transform: scale(0); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes ag-fade { from { opacity: 0; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .ag-meta.fresh, .ag-meta.fresh svg { animation: none; } }
+
+/* el momento mencionado, sobre la caja de preguntar (clic derecho en la barra de avance) */
+.ag-compose { flex-wrap: wrap; }
+.ag-mention { flex: 1 1 100%; display: flex; align-items: center; gap: var(--s2); padding: 4px 0 2px; }
+.ag-mention small { font: 500 var(--fs-xs)/1 var(--font); color: var(--fg-muted); }
+.ag-mention .ag-copy { margin-left: auto; width: 22px; height: 22px; }
+.ag-msg.user .ag-ts { vertical-align: 0; }
+
+/* respuesta detenida: la marca de detener en gris, en vez del check */
+.ag-meta.stopped .ag-ok { color: var(--fg-muted); }
+
+/* «Continuar» junto a la marca de detenida: un botón de texto chico, con el color del agente */
+.ag-continue { display: inline-flex; align-items: center; gap: 4px; margin-left: var(--s2); padding: 2px 8px; border: 0; border-radius: 999px;
+  background: var(--surface-2); color: var(--ag, var(--accent)); font: 600 var(--fs-xs)/1.4 var(--font); cursor: pointer; }
+.ag-continue:hover { background: var(--surface-3); }
+.ag-continue svg { width: 11px; height: 11px; }
