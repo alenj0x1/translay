@@ -30,6 +30,7 @@ CATALOG = {
     "exportacion.error": "Exportación con error",
     "resumen.listo": "Resumen de un video listo (cuántos puntos y con qué modelo)",
     "resumen.error": "No se pudo resumir un video",
+    "texto.listo": "Texto en pantalla de un video leído (cuántos elementos y cuántos se tradujeron)",
     "glosario.cambio": "Glosario cambiado",
     "comentario.cambio": "Comentarios de una frase",
     "youtube.bloqueo": "YouTube pidió verificación (descargas en pausa)",

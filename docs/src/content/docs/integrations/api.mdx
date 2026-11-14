@@ -88,7 +88,7 @@ To walk through all of it, add `limit` to `offset` until you pass `total`.
 - `urls` accepts YouTube links to videos or playlists (or an 11-character id). `"url": "…"` also works for a single one. Anything that isn't from YouTube is ignored.
 - `mode`: `traducir` (translate and dub) or `descargar` (just download the video). If you omit it, it uses that library's **Al agregar** (On add) preference.
 - `lang`: `auto` (default: detected from the first seconds of speech), `en`, `pt` or `es`.
-- `task`: `translate` (translate and dub) or `transcribe` (only transcribe, in its own language). If you omit it, a video in the language of the **Solo transcribir lo que está en** preference is only transcribed and the rest are translated.
+- `task`: `translate` (translate and dub) or `transcribe` (only transcribe, in its own language). If you omit it, a video in the language of the **Solo transcribir videos en** (Only transcribe videos in) preference is only transcribed and the rest are translated.
 - `priority: true` puts them first in the queue, and then they are processed even if `mode` is `descargar`.
 - Each playlist is imported as a collection of the library.
 

@@ -1,0 +1,83 @@
+---
+title: Texto en el video
+description: Cómo Translay lee lo que está escrito en un video, decide qué traducir (y deja el código en paz) y pone el español encima en el mismo lugar.
+sidebar:
+  order: 4.7
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Además de lo que se dice, un video suele tener texto escrito: títulos, letreros, diapositivas, subtítulos grabados en la imagen, comentarios en un curso de programación. Translay lee ese texto, lo traduce y muestra el español encima del original, en el mismo lugar y con los mismos colores, como si fuera parte del video. El código, los comandos y los enlaces quedan como están: traducir `return data` o `pip install requests` arruinaría lo que estás viendo. Cómo activarlo o desactivarlo: [Ajustes › Audio y subtítulos](../../guide/preferences/).
+
+Corre en la CPU, en paralelo con el reconocimiento de voz y el doblaje, con un cuarto de los hilos: en una grabación de pantalla muy cargada lee unas dos veces más rápido que el tiempo real, y mucho más rápido en videos donde el texto cambia poco. La GPU solo traduce.
+
+## Lectura
+
+`vt/ocr.py` usa dos modelos oficiales PP-OCRv5 de [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (Apache 2.0) en ONNX, con la revisión fija y que Translay baja la primera vez (13 MB entre los dos):
+
+| Modelo | Qué hace |
+|---|---|
+| `PP-OCRv5_mobile_det` | Encuentra dónde hay texto: un mapa del cuadro reducido a 960 px por el lado largo. |
+| `latin_PP-OCRv5_mobile_rec` | Lee cada renglón, a 48 px de alto, con el alfabeto latino y sus tildes (inglés, portugués y español). |
+
+Alrededor de los modelos todo es propio de Translay y funciona sin OpenCV: el mapa se separa en regiones por tramos de fila, cada región se puntúa y se agranda como el post-proceso DB de PaddleOCR, las cajas de un mismo renglón se unen (el detector corta las palabras de una letra monoespaciada) y la lectura se decodifica con CTC voraz.
+
+## Seguir el video
+
+`vt/screentext.py` recorre el video una vez:
+
+1. **Muestreo.** Un cuadro cada medio segundo. Si el cuadro casi no cambió (una miniatura gris comparada por bloques de 8×8), no se vuelve a leer: lo que estaba sigue en pantalla.
+2. **Reutilización.** Un renglón en el mismo lugar y con la misma imagen que en el cuadro anterior conserva su lectura. En una grabación de pantalla casi todo queda quieto, así que solo se lee lo que cambió.
+3. **Bloques.** Los renglones cercanos, alineados y de alto parecido se juntan en un párrafo, para que el traductor reciba oraciones completas.
+4. **Seguimiento.** El mismo bloque en cuadros seguidos es un solo elemento con su inicio y su fin (medio segundo de precisión). Lo que se ve una sola vez y con poca confianza se descarta como un parpadeo.
+5. **Colores.** El fondo es la mediana del borde alrededor del bloque; el color del texto, los píxeles de adentro que más se alejan del fondo. La caja que tapa el original usa los dos.
+
+Lo leído se guarda por tandas cada 15 s de video, así que un video largo se puede ver mientras se lee, y una lectura que se cortó sigue donde quedó.
+
+## Qué se traduce
+
+`vt/textkind.py` le da un tipo a cada renglón. Es un registro: cada tipo es una función que lo reconoce, con su etiqueta, si se traduce y si domina su bloque.
+
+| Tipo | Ejemplo | Se traduce |
+|---|---|---|
+| Texto | `Welcome to the kitchen` | Sí |
+| Comentario | `# read the config file`, `// start the server` | Sí, conservando su marca (`#`, `//`, `/* */`) |
+| Código | `data = json.loads(path.read_text())` | No |
+| Comando | `$ pip install requests`, `npm install express --save` | No |
+| Enlace | `https://docs.python.org/3/` | No |
+| Correo | `dev@example.com` | No |
+| Usuario | `@monarchwebworld` | No |
+| Hashtag | `#rtgfx4all` | No |
+| Interfaz | Pestañas, marcadores y menús de una pantalla compartida, `^X Exit`, un teclado dibujado | No |
+
+El código se reconoce por puntaje: símbolos, operadores, llamadas, nombres con forma de código (`camelCase`, `snake_case`, `a.b.c`), palabras clave, números de línea del editor, volcados de datos, nombres de archivo, instrucciones de Dockerfile y renglones de terminal (un prompt en cualquier parte, permisos de `ls -l`, «programa: error»). En un bloque donde la mayoría de los renglones es código, los dudosos (`data`, `else`) también lo son. Un comentario al final de una línea de código (`return data  # parsed settings`) se separa y se traduce solo.
+
+Algunos tipos necesitan más que las palabras, así que una regla también puede recibir dónde está el renglón: su alto, qué tan seguro se leyó y cuántos textos chicos tiene el cuadro. La letra chica en un cuadro lleno de letra chica es la interfaz de una pantalla (la barra lateral de un navegador); el mismo tamaño en una animación con pocos textos es contenido. Si el cuadro muestra una terminal, los renglones cortos a su lado y con su misma letra también son terminal: en un listado, `is` o `for` son nombres de archivo.
+
+El texto que aparece letra por letra (tipografía cinética, máquina de escribir) es un solo elemento: cuando una lectura nueva empieza como la anterior en el mismo lugar, se queda el texto completo en vez de traducir cada trozo.
+
+<Aside type="tip" title="Agregar un tipo">
+Un tipo de elemento nuevo es una función en `vt/textkind.py`:
+
+```python
+@register("hashtag", "Etiqueta", order=5)
+def _hashtag(t: str) -> bool:
+    return t.startswith("#") and " " not in t
+```
+
+Las funciones que devuelven `True`/`False` deciden según su `order`; las que devuelven un número compiten y gana la más alta si llega a su `threshold`. Con `where=True` la función también recibe `ctx` (`h`, `conf`, `small`). El guardado, la API y el reproductor usan el nombre del registro.
+</Aside>
+
+## Cómo se mejora
+
+Las reglas se ajustan con videos reales en un loop: `tools/lab/screentext.py` lee una vez videos de programación, terminal, charlas, clases y marketing, y `tools/lab/screentext_eval.py` vuelve a puntuar las reglas actuales en menos de un segundo contra una referencia etiquetada (`tools/lab/screentext_gold.json`). Cada video nuevo se mide antes de etiquetarlo, y un cambio se queda solo si no baja ningún tipo; `tests/test_screentext.py` falla si la referencia empeora.
+
+El texto que ya está en español (la traducción vuelve igual) no se tapa.
+
+## En el reproductor
+
+Cada elemento traducido es una caja plana con el color de fondo original y el texto en su color, ubicada sobre la imagen real del video (sin las franjas negras). El texto se achica hasta que entra en su caja; antes, una caja de un renglón puede crecer hasta 1,6 veces su ancho sin salir del cuadro, porque el español suele ser más largo. Los comentarios usan letra monoespaciada y quedan alineados a la izquierda, como el editor del video. Al pasar el mouse por una caja se ve lo que decía el original.
+
+## Al exportar
+
+El video en español lleva las mismas cajas grabadas en la imagen: `vt/screentext.py` las escribe como subtítulos ASS (una caja dibujada con el color del fondo y el texto con su color y tamaño) y FFmpeg las graba con `subtitles`. Grabarlas obliga a recodificar el video con H.264, aunque la calidad sea «original».

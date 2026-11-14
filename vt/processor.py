@@ -44,6 +44,7 @@ CAREFUL_GAP_S = (8, 15)       # modo cuidadoso: tras una verificación de YouTub
 BLOCK_PAUSE_S = 20 * 60       # pausa tras la verificación de YouTube
 RETRY_AFTER_S = 10 * 60       # un video que falla espera antes de reintentar…
 MAX_ATTEMPTS = 3              # …y tras 3 intentos queda en error
+AUDIO_EXT = {".m4a", ".mp3", ".opus", ".ogg", ".wav", ".flac", ".aac", ".weba"}  # sin imagen
 
 
 class Stopped(Exception):
@@ -72,6 +73,7 @@ class Processor:
         self.own_lang = own_lang  # idioma propio (Ajustes): lo que se habla en él solo se transcribe
         self.translating = translating  # Ajustes › Uso: con «Transcribir y resumir», sin traductor ni voz
         self.on_done = lambda vid: None  # un video terminó (el resumen automático, vt/summaries.py)
+        self.screen = None  # texto en pantalla (vt/screentext.py): se lee en paralelo, en la CPU
         self.vaults = vaults  # bibliotecas (vt/vaults.py): cada video se ubica en la suya
         self.order = order    # orden de descarga: "orden" (el de la cola) o "aleatorio"
         self.youtube, self.session = youtube, session
@@ -217,6 +219,8 @@ class Processor:
 
     def watch(self, vid: str, t: float):
         """Alguien empezó a ver `vid` en el segundo `t`: pasa primero."""
+        if self.screen:
+            self.screen.request(vid, front=True)
         if self.progress(vid)["dub"] >= 0.995:
             return  # ya está todo listo: no hace falta tocar la cola
         with self._cond:
@@ -579,6 +583,22 @@ class Processor:
             return self.root / "library" / name
         raise FileNotFoundError("el video no tiene copia en el servidor")
 
+    def video_file(self, vid: str) -> Path | None:
+        """El archivo con imagen del video (None si solo se descargó el audio)."""
+        v = self.library.data["videos"].get(vid) or {}
+        src = v.get("media") or ""
+        if v.get("audio_only") or not src or Path(src.split("?")[0]).suffix.lower() in AUDIO_EXT:
+            return None
+        vault = self._vault(vid)
+        f = vault.file(src) if vault else None
+        if f and f.exists():
+            return f
+        name = src.rsplit("/", 1)[-1].split("?")[0]
+        for prefix, folder in (("/media/yt/", "youtube"), ("/media/lib/", "library")):
+            if name not in ("", ".", "..") and src.startswith(prefix) and (self.root / folder / name).exists():
+                return self.root / folder / name
+        return None
+
     def _load_audio(self, vid: str) -> np.ndarray:
         if self._audio[0] != vid:
             self._audio = (vid, decode_audio(self._media(vid)))
@@ -599,6 +619,8 @@ class Processor:
             self._verify_lang(vid, tr, audio)
         if tr.translates:
             self.translator.prepare(tr.lang)  # la primera vez en este idioma: se descarga aquí, no en la GPU
+            if self.screen:  # con el idioma ya decidido: el texto en pantalla se lee mientras tanto
+                self.screen.request(vid)
         # del idioma del video, con su glosario
         tx = partial(self.translator.translate, glossary=vault.glossary if vault else None, src=tr.lang)
         mt_name = self.translator.name_for(tr.lang)

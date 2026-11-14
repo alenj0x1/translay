@@ -20,7 +20,13 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   GET    /api/v1/videos/{id}                      datos (idioma y modo incluidos), avance y estado en la cola
   PATCH  /api/v1/videos/{id}                      {"title": "…"}  le cambia el nombre
   GET    /api/v1/videos/{id}/transcript           frases en su idioma (text) y traducidas (translation)
-  GET    /api/v1/videos/{id}/subtitles?lang=es    SRT: es (traducción) | orig o el código del idioma del video
+  GET    /api/v1/videos/{id}/screen-text          texto escrito en el video: items [{start, end, box (x, y, w, h en
+                                           fracción del cuadro), kind (text, comment, code, command, link, email, handle, ui),
+                                           text, translation, bg, fg}], done
+  GET    /api/v1/videos/{id}/context?position=    todo el video en Markdown para un agente: datos, resumen,
+                                           transcripción con hora y persona, traducción y lo escrito en
+                                           pantalla; position (segundos) dice hasta dónde se vio
+  GET    /api/v1/videos/{id}/subtitles?lang=es  SRT: es (traducción) | orig o el código del idioma del video
   GET    /api/v1/videos/{id}/summary              resumen: overview (de qué se trató), points [{t, text}], model,
                                                    y state si se está haciendo (en cola, descargando, resumiendo)
   POST   /api/v1/videos/{id}/summary              {"force": false}  lo pide (a la cola del resumen); force lo rehace
@@ -313,6 +319,19 @@ class Api:
                     return 202, {"id": vid, "state": sums.state(vid) if sums else None}, {}
                 return 200, {"id": vid, **(tr.data.get("summary") or {}),
                              "state": sums.state(vid) if sums else None}, {}
+            if p[2] == "screen-text":
+                st = self.processor.screen.public(vid) if self.processor.screen else None
+                if st is None:
+                    raise LookupError("este video aún no tiene texto en pantalla")
+                return 200, {"id": vid, **st}, {}
+            if p[2] == "context":
+                from .videocontext import markdown
+
+                pos = req.query.get("position")
+                screen = self.processor.screen.load(vid) if self.processor.screen else None
+                text = markdown(v.library.data["videos"].get(vid) or {}, tr, screen,
+                                float(pos) if pos and pos.replace(".", "", 1).isdigit() else None)
+                return 200, text, {"Content-Type": "text/markdown; charset=utf-8"}
             if p[2] == "subtitles":
                 lang = req.query.get("lang", langs.TARGET)
                 if lang == langs.TARGET and tr.lang != langs.TARGET and not tr.translates:

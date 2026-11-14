@@ -137,10 +137,12 @@ class _Folder:
         pass
 
 
-def video_args(height: int) -> list[str]:
-    """H.264 recodificado; con height, a lo sumo esa altura (un video más bajo queda como está)."""
-    scale = ["-vf", f"scale=-2:'min({height},ih)'"] if height else []
-    return [*scale, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23" if height else "21", "-pix_fmt", "yuv420p"]
+def video_args(height: int, burn: str | None = None) -> list[str]:
+    """H.264 recodificado; con height, a lo sumo esa altura (un video más bajo queda como está). burn: subtítulos
+    ASS (nombre en la carpeta de trabajo) que se graban en la imagen antes de achicarla: el texto en pantalla."""
+    vf = ([f"subtitles={burn}"] if burn else []) + ([f"scale=-2:'min({height},ih)'"] if height else [])
+    return [*(["-vf", ",".join(vf)] if vf else []), "-c:v", "libx264", "-preset", "veryfast",
+            "-crf", "23" if height else "21", "-pix_fmt", "yuv420p"]
 
 
 def unique_path(p: Path) -> Path:
@@ -631,12 +633,13 @@ class Exporter:
             f = out_dir / f"{vid}.{lang}.srt"
             f.write_text(srt(tr.segments, key), encoding="utf-8")
             subs.append((f, lang))
+        burn = self._screen_text(vid, media, out_dir)
         out = out_dir / f"{vid}.es.{quality}.{video}.mp4"
         cmd = ["-i", str(media), "-i", str(es)]
         for f, _ in subs:
             cmd += ["-i", str(f)]
         cmd += ["-map", "0:v:0", "-map", "1:a", "-map", "0:a?", "-map", "2", "-map", "3",
-                *(video_args(height) if height else ["-c:v", "copy"]), "-c:a:0", "copy",
+                *(video_args(height, burn) if height or burn else ["-c:v", "copy"]), "-c:a:0", "copy",
                 "-c:a:1", "aac", "-b:a:1", f"{ORIG_TRACK_KBPS[quality]}k", "-c:s", "mov_text",
                 "-metadata:s:a:0", "language=spa", "-metadata:s:a:0", "title=Español",
                 "-metadata:s:a:1", f"language={orig}", "-metadata:s:a:1", "title=Original",
@@ -645,7 +648,7 @@ class Exporter:
                 "-disposition:s:1", "0", "-movflags", "+faststart", str(out)]
         step = lambda f: prog(mixed + (1 - mixed) * f)  # noqa: E731
         try:
-            self._ffmpeg(cmd, step, dur)
+            self._ffmpeg(cmd, step, dur, cwd=out_dir)
         except subprocess.CalledProcessError:  # códec de video que MP4 no admite sin recodificar
             if height:
                 raise
@@ -655,11 +658,33 @@ class Exporter:
         prog(1.0)
         return out
 
+    def _screen_text(self, vid: str, media: Path, out_dir: Path) -> str | None:
+        """El texto en pantalla traducido (vt/screentext.py), como subtítulos ASS para grabarlo en el video:
+        el nombre del archivo en out_dir, o None si no hay nada que poner encima."""
+        screen = getattr(self.processor, "screen", None)
+        if screen is None or not self.prefs.values.get("screen_text", True):
+            return None
+        items = [it for it in (screen.load(vid) or {}).get("items", []) if it.get("translation")]
+        if not items:
+            return None
+        import av
+
+        from .screentext import ass
+
+        with av.open(str(media)) as c:
+            s = c.streams.video[0]
+            W, H = s.codec_context.width, s.codec_context.height
+        name = f"{vid}.screen.ass"
+        (out_dir / name).write_text(ass(items, W, H), encoding="utf-8")
+        return name
+
     @staticmethod
-    def _ffmpeg(args: list[str], prog, dur: float):
-        """ffmpeg con estos argumentos, informando el avance (convertir horas de audio o video tarda minutos)."""
+    def _ffmpeg(args: list[str], prog, dur: float, cwd: Path | None = None):
+        """ffmpeg con estos argumentos, informando el avance (convertir horas de audio o video tarda minutos).
+        cwd: donde están los subtítulos que se graban (el filtro subtitles los lee por nombre)."""
         p = subprocess.Popen(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-progress", "pipe:1", "-nostats", *args],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                             cwd=cwd)
         for line in p.stdout:
             if dur > 0 and line.startswith("out_time_us=") and line[12:].strip().isdigit():
                 prog(min(1.0, int(line[12:]) / 1e6 / dur))
@@ -687,9 +712,11 @@ class Exporter:
     def _make_text(self, kind, vid, v, out_dir: Path) -> Path:
         tr = self.store.open(vid)
         if kind == "summary":
-            from .summarize import as_text
+            from . import digest, summarize
+            s = tr.data.get("summary") or {}
+            as_text = digest.as_text if s.get("version") == 2 else summarize.as_text
             out = out_dir / f"{vid}.resumen.txt"
-            out.write_text(as_text(v.get("title") or vid, tr.data.get("summary") or {}), encoding="utf-8")
+            out.write_text(as_text(v.get("title") or vid, s), encoding="utf-8")
             return out
         if kind in ("txt_es", "txt_orig"):
             translated = kind == "txt_es" and tr.lang != langs.TARGET

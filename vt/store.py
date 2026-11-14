@@ -274,3 +274,5 @@ class Store:
         if t:
             t.deleted = True
         (self.root / f"{vid}.json").unlink(missing_ok=True)
+        (self.root / f"{vid}.screen.json").unlink(missing_ok=True)  # texto en pantalla (vt/screentext.py)
+        (self.root / f"{vid}.agent.json").unlink(missing_ok=True)   # conversación con el agente (vt/agentsvc.py)

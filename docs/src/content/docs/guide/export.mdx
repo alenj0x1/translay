@@ -26,7 +26,7 @@ In the export dialog you check any combination of:
 | **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
 | **Resumen** (Summary) | TXT | What the video was about and its important points with their minute (see [Summary](../transcript-and-people/#summary)). If the video doesn't have one yet, it is summarized before exporting. |
 
-The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Settings › Audio y subtítulos › **Original bajo la voz en español** (Original under the Spanish voice). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
+The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Settings › Audio y subtítulos › **Volumen del audio original** (Original audio volume). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
 When you check an audio option, the **Audio** row chooses the format and the quality. The browser remembers both.
 
@@ -38,7 +38,7 @@ When you check an audio option, the **Audio** row chooses the format and the qua
 
 MP3 plays on any device or car stereo but is the largest of the three; Opus is the smallest and sounds good even at **Liviana**, though some older players don't open it. For a voice, **Liviana** is enough. The original audio in **Alta** and in its own format is delivered as is (YouTube's is AAC at 128 kbps). The dialog shows the approximate size of the audio before you export.
 
-When you check a video option, the **Video** row chooses **Original** (copied as is, up to 720p, fast) or **480p** or **360p**, re-encoded with H.264 on the CPU: much smaller, but it takes about as long as the video. A video that is already shorter than that stays as it is. The translated video always carries AAC inside the MP4, at the chosen audio quality.
+When you check a video option, the **Video** row chooses **Original** (copied as is, up to 720p, fast) or **480p** or **360p**, re-encoded with H.264 on the CPU: much smaller, but it takes about as long as the video. A video that is already shorter than that stays as it is. The translated video always carries AAC inside the MP4, at the chosen audio quality. If the video has [text written in it](../../how-it-works/screen-text/) that was translated, the translated video carries it burned into the image, as in the player; that re-encodes the video even in **Original**.
 
 ## Where it's saved
 

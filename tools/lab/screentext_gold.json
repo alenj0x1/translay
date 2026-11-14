@@ -1,0 +1,11468 @@
+[
+ {
+  "src": "sintético",
+  "lines": [
+   "Welcome to the kitchen"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Step 2 - Add the flour slowly"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "and mix for three minutes"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Blazor Full Course"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "For Beginners"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Subscribe for more videos!"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Make sure you install Python first."
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "for the best results, use fresh eggs"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "if you want to learn more"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "from the beginning"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Chapter 3: Variables and Types"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "Hello World"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "# read the config file"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "# parsed settings"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "// start the server on port 3000"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "/* main entry */"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "<!-- navbar -->"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "def load(path):"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "data = json.loads(path.read_text())"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "GameStore.db"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "EFMigrationsHistory"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "const app = express();"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "app.listen(3000, () => {"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "for (let i = 0; i < 10; i++) {"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "print(\"Hello world\")"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "import React from 'react'"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "public static void main(String[] args)"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "SELECT * FROM users WHERE id = 1;"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "<div className=\"card\">"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "user_name"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "#include <stdio.h>"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "$ pip install requests"
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "npm install express --save"
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "git commit -m \"fix\""
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "PS C:\\Users\\dev> dotnet run"
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "cd my-app"
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "https://docs.python.org/3/"
+  ],
+  "kinds": [
+   "link"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "youtube.com/watch?v=YbRe4ilVYJk"
+  ],
+  "kinds": [
+   "link"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "dev@example.com"
+  ],
+  "kinds": [
+   "email"
+  ]
+ },
+ {
+  "src": "sintético",
+  "lines": [
+   "def load(path):",
+   "data = json.loads(path.read_text())",
+   "return data"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "TIOBE INDEX 2020"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "BEGINNER FRIENDLY"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "LANGUAGE"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Playback speed"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "SERVER SIDE APPPLICATIONS"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "BIG DATA ANALYSIS"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "The Zen of Python, by Tim Peters"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Beautiful is better than ugly. Explicit is better than implicit. Simple is better than complex."
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "AVOIDS THE TEMPATION TO SPRINKLE IN MAGIC"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Shift-enter to run"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Plots Examples from:"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Categorical Plotting"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Python version:"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Python Interactive ×"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Python 3.7.3 64-bit"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "> OUTLINE"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "python +"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "NO SEMICOLONS"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "USE SNAKE CASE"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "4 SPACES PER BLOCK"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "ANONYMOUS FUNCTIONS"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "written in c++"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "FEATURES Which properties do you want to feed in?"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "The outputs are moced with varying weights. shown by the thickness of the lines."
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Ratio of training to test data: 50%"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Batch size: 10"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "OUTPUT Test loss 0.472 Training loss 0.472"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "* plot.,py"
+  ],
+  "kinds": [
+   "text"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "' key'"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "# who code"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "# ## Plots"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "2 # ## Plots"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "# ### Examples from: https://matplotlib.org/3.1.0/gal"
+  ],
+  "kinds": [
+   "comment"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "00 64 09 cd 21 b8 01 4c cd 21 54 68 69 73 20 70 72 6f 67 72 61 6d 20 63"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "0 00 00 00 00 00 00 00 00 10 00 00 00 e0 a3 05 00 54 00 00 00 34 a4 05 00 f8 d9"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "3.7.3 (v3.7.3:ef4ec6ed12, Mar 25 2019, 22:22:05) [MSC v.1916 64 bit"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "22 activity = [\"combing\", \"drinking\", \"feeding\", \"napping"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "9 data = {'apples': 10, 'oranges': 15, 'lemons': 5, 'lim"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "cat = [\"bored\", \"happy\", \"bored\", \"bored\", \"happy\","
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "if True: if condition:"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "if True:"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "if condition:"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "class Reptile: init"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "(self, length): length"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "x: x * 2,"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "maplambda x: x * 2, my_list"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "hello, hola = 'hi mom'"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "hello = 'hi mom'"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "hello.py hello.py..."
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "hello.py hello.pyhave_fun"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "hello.ipynb hello.ipynbempty cell"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   ">>> import this"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "[1] import matplotlib.pyplot as plt"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "Text(0.5, 0.98, 'Categorical Plotting')"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "my_tuple = ('a', 'b')"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "my_list = [1,2,3]"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "curlyBracesSuck = True;"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "print(\"true\")"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "def have_fun():",
+   "for i in range(5):",
+   "print(i)"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "class Reptile:",
+   "def _init_(self, length):",
+   "self.length = length"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "map(lambda x: x * 2, my_list)"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "like_and_subscribe = True"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "def spam():",
+   "eggs = 10",
+   "return"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "if True:",
+   "print(\"true\")",
+   "else:",
+   "print(\"false\")"
+  ],
+  "kinds": [
+   "code"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "pip install numpy"
+  ],
+  "kinds": [
+   "command"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "https://matplotlib.org/3.1.0/gallery/lines_bars_and_markers/categorical_variables.htr"
+  ],
+  "kinds": [
+   "link"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "https:/matplotlib.org/3.1.0/gallery/lines_bars_and_markers/categorical_variables.htm"
+  ],
+  "kinds": [
+   "link"
+  ]
+ },
+ {
+  "src": "fire-py",
+  "lines": [
+   "fireship.io"
+  ],
+  "kinds": [
+   "link"
+  ]
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIE NYC talk - your agent"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0222,
+  "conf": 0.969
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents Pul Requests gent Sel-rmproveme ANYC tal-your ag Agent Sil eport Dashboard - Warp Fc Self-mprovement - W:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.027,
+  "conf": 0.88
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Local agents ~/claude/**jsonl ~/codex/*jsonl Warp conversation storage"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0409,
+  "conf": 0.994
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Review agent conversations"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0398,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AI Engineer"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0517,
+  "conf": 0.954
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "NEWYORK"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0298,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "MLXL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.902
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.892
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "PRESENTED BY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.031,
+  "conf": 0.998
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.973
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "arize"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0538,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Score quality"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0422,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Isolate failures"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0398,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Engineering the future of Al"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0993,
+  "conf": 0.99
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIE NYC talk -your ager"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0221,
+  "conf": 0.961
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "@Pull Requests"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0257,
+  "conf": 0.918
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents Pull Requests Agent Sltmoveme: ANYC tal-your ag Agent Sil eport Dashboard - Warp Fc Selt-improvement - W: Let triage start researc Warp Learn Youube Analyics Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0277,
+  "conf": 0.92
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AKOUT SES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.035,
+  "conf": 0.978
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "OCTOBER 14, 2026"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0315,
+  "conf": 0.995
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Turing Room"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0702,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "OCTOBER 14, 2026 BREAKOUT SESSION"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0402,
+  "conf": 0.998
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ment - w:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0204,
+  "conf": 0.952
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn Youube Analyics Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0275,
+  "conf": 0.928
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ML XL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.824
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent Sil eport Dashboard - Warp Fc"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.884
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean Youube Analyics Warp Factories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0276,
+  "conf": 0.911
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<>draw.com/AC AIE NYC talk - your"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0284,
+  "conf": 0.892
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<>draw."
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0222,
+  "conf": 0.908
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIE NYC talk- y"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0217,
+  "conf": 0.859
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents Pul Reuests Agent Sl-mpovemer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0293,
+  "conf": 0.881
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC tl - yor ag"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0263,
+  "conf": 0.904
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<>idraw AIE NYC talk ye"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0282,
+  "conf": 0.908
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents @ Pull Requests Agent Sl-mprovemer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0293,
+  "conf": 0.936
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<draw.com / AE NY talk ANYCtalk-your agen"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0285,
+  "conf": 0.824
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AI NYC talk- your agent needs a sil t .mproPag 1"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0223,
+  "conf": 0.842
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Chat"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0204,
+  "conf": 0.957
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents Pul Rquests Agent Sef-Improveme"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0282,
+  "conf": 0.94
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<> AIENYCtalk-y"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0276,
+  "conf": 0.928
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "+ New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0246,
+  "conf": 0.953
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC tal - yoour ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0263,
+  "conf": 0.866
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<drawcom AE NYC tak NYtalk-your agent"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0285,
+  "conf": 0.787
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn ) Youube Analyics Warp actories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0276,
+  "conf": 0.896
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<>draw.com/NC AIE NYC talk - your age"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0284,
+  "conf": 0.858
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean > Youube Analyics Warp actories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0276,
+  "conf": 0.9
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<draw.com/NC AIE NYC talk - your"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0284,
+  "conf": 0.855
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "M L XL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.817
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "$ M L XL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0259,
+  "conf": 0.836
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "NYtalk-your agent"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0222,
+  "conf": 0.807
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent kll Report Dashboard - Warp Fc Sel-iproveet Wi"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0258,
+  "conf": 0.888
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0288,
+  "conf": 0.983
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "NEW YORK"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0299,
+  "conf": 0.985
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AE NYCtalk- you"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0259,
+  "conf": 0.761
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Transcript Tool calls /n Outputs (cod"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0425,
+  "conf": 0.975
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "S M L XL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0298,
+  "conf": 0.81
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "al agents laude/**jsonl odex/*jsonl p conversation storage"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0423,
+  "conf": 0.987
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factores )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.03,
+  "conf": 0.929
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<trawcom/ A NYC tal -yor age"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0271,
+  "conf": 0.762
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0294,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC talk yyou ag"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.782
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent kill Report"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.9
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "onl"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0569,
+  "conf": 0.998
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Dashboard WarpPac"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.848
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Sell-im"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0241,
+  "conf": 0.892
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.871
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ation storage"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0659,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Pul Requests Agent Self-lmp :AIE NYC talk -your ag: Agent kill Report"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0278,
+  "conf": 0.867
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "onl Il ation storage"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0649,
+  "conf": 0.959
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Youube Anaylis)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0302,
+  "conf": 0.829
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AE NYC  your ag"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.937
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Youtfube Analylics)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0301,
+  "conf": 0.831
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "War Patories)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0299,
+  "conf": 0.883
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent Self-lmpe"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0216,
+  "conf": 0.947
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Self-i"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0236,
+  "conf": 0.862
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "; WORN"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0398,
+  "conf": 0.766,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "@Pull Requests Agent Self-lmp"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0289,
+  "conf": 0.91
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Youfube Analylics) Warp Factores )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0299,
+  "conf": 0.868
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Sel-"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0232,
+  "conf": 0.864
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Il Youfubatics )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0302,
+  "conf": 0.768
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factorles )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0299,
+  "conf": 0.937
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Sel-im"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0239,
+  "conf": 0.922
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ANYC talk-your agent eeds a kilto improvPage 1"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0221,
+  "conf": 0.757
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC  a our ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.829
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Let rraesear"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0302,
+  "conf": 0.816
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Il YouTubealyics Warp Factores )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0298,
+  "conf": 0.857
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AE NYC yur ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0303,
+  "conf": 0.851
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AENYCtalk-your age"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0263,
+  "conf": 0.846
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent Self-lmp"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0216,
+  "conf": 0.948
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC a your ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0303,
+  "conf": 0.898
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents @Pull Requests Agent Sel-rmprovemer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0293,
+  "conf": 0.95
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ent ons"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0581,
+  "conf": 0.939
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent kill Report Dashboard - Warp Faci Selt-improvement - W:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0254,
+  "conf": 0.897
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factorles)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.03,
+  "conf": 0.774
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "~/codex/*jsonl Warp conversation storag"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0517,
+  "conf": 0.986
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp conversation st"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0757,
+  "conf": 0.975
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Isolate fai"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0435,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "<drawcom AENYC ta your AIE NYC talk - your agent"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0285,
+  "conf": 0.85
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Aa Aa Aa Aa"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0218,
+  "conf": 0.967
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "<drawcom AE YC tak your a"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.027,
+  "conf": 0.833
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Selt-in"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0203,
+  "conf": 0.864
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn > Youube Analyics Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0273,
+  "conf": 0.932
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean ) Youube Analyics Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0275,
+  "conf": 0.919
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "©Documents @ PullRequests gent Sel-rmprovemer : AIE NYC tal yor ag Agent kill Report Dashboard - Warp Faci Selt-improvement - W:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.027,
+  "conf": 0.895
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIENYCtalk-y"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0217,
+  "conf": 0.972
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ment - W:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0239,
+  "conf": 0.884
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AINYCtalk- your age"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0221,
+  "conf": 0.875
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean ) ilYouTube Analytics Warp Factorles + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0275,
+  "conf": 0.912
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "<>tdrew.com AIENYC talk- you"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0283,
+  "conf": 0.841
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn ) ilYouTube Analytics Warp Factorles + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0275,
+  "conf": 0.927
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Redundant tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0433,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn ) YouTube Analytis Warp Factories + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0273,
+  "conf": 0.938
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIENYC talk-y"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0217,
+  "conf": 0.949
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AIENYC"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0212,
+  "conf": 0.961
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "@ Pull Requests Agent Sel-Improvemer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.03,
+  "conf": 0.935
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Transc Tool ce"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0468,
+  "conf": 0.933
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Outputo.l"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0482,
+  "conf": 0.813,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "[solate failures"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0442,
+  "conf": 0.979
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<draw.com /A AE nYCtalk- you"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0283,
+  "conf": 0.855
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "/ Page1"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.021,
+  "conf": 0.824
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "YouTube Analytis"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0302,
+  "conf": 0.895
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ment - Wi"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0239,
+  "conf": 0.907
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC t or ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.867
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "AlEngineer"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0646,
+  "conf": 0.992
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Yalk-your"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0261,
+  "conf": 0.765
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Transcript"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0516,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Tool calls / mcP cal"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0492,
+  "conf": 0.899
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Outputs (code)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0569,
+  "conf": 0.994
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent Skill Report Dashboar - Warp Fac Selt-improvement - W"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0257,
+  "conf": 0.901
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Learn Yoube Analyic Warp Factories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0276,
+  "conf": 0.909
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Iil YouTubeaylics ) Warp Factories)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0299,
+  "conf": 0.817
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "<>idrawcon"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0265,
+  "conf": 0.808
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Facctories) + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0274,
+  "conf": 0.885
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "< >  draw.com"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0266,
+  "conf": 0.814
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Documents @Pul Requests Agent Sltoveme : AIE NYC talk our ag: Agent Skill Report Dashboar - Warp Fac •Selt-improvemnt"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0269,
+  "conf": 0.905
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC tlk - your ag:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0263,
+  "conf": 0.844
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean )"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.859
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "ENYCtalk-your"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0261,
+  "conf": 0.765
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "<>draw.com AE NYCtalk- you"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0289,
+  "conf": 0.815
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean ) IlYoufubeAnalytiis Warp Factores + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0275,
+  "conf": 0.897
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Tool calls / McP cal"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0492,
+  "conf": 0.916
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Factores + New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0274,
+  "conf": 0.93
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "REAKOUT SESSIO"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0357,
+  "conf": 0.997
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "MLXL Aa Aa Aa Aa"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0256,
+  "conf": 0.953
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AE NYC  our ag"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.865
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Agent Skil eport Dashboar - Warp Fac Selt-improvement- i Let triage strt researc Warp Lean)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0274,
+  "conf": 0.884
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "S ML XL Aa Aa Aa Aa"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0254,
+  "conf": 0.9
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<>idraw.com"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0266,
+  "conf": 0.895
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Verbosity"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0549,
+  "conf": 1.0
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "$ M L XL Aa Aa Aa Aa"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0272,
+  "conf": 0.894
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Lean)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0255,
+  "conf": 0.869
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "C Let traree sat esearc"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0304,
+  "conf": 0.769
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Personal<drawcom/A ENYtalk-your"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.029,
+  "conf": 0.838
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Warp Leamn"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0256,
+  "conf": 0.815
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "©Documents @ Pull Requests Agent Sl-mpoveme : AIE NYC ta your ag Agent kill Report Dashboar - Warp Fac Selt-improvement- i"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0272,
+  "conf": 0.898
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Shape"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0228,
+  "conf": 0.999
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Dashboad War Pa:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0303,
+  "conf": 0.795
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Selt-improvement- i"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.85
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "Efficiency"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.055,
+  "conf": 0.99
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   "•Personal<> AIE NYC talk-"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0281,
+  "conf": 0.915
+ },
+ {
+  "src": "talk-agents",
+  "lines": [
+   ": AIE NYC tal your ag"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0305,
+  "conf": 0.799
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.2297,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "puppy"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0917,
+  "conf": 0.933
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Linux"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0532,
+  "conf": 0.846
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "COBOL"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1765,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "HOST"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0561,
+  "conf": 0.962
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "MACHINE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0844,
+  "conf": 0.937
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Hardware"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0598,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Operating System"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0573,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "HOST MACHINE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0407,
+  "conf": 0.997
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "VIRTUAL MACHINE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0395,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "App 1"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0484,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Guest OS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0471,
+  "conf": 0.95
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "App 2"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0595,
+  "conf": 0.963
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DOCKER CONTAINERS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0401,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Docker Engine"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0567,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "SHARED KERNEL"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1006,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "THINGS YOU SHOULD KNOW"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1039,
+  "conf": 0.989
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DOCKERFILE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0613,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "IMAGE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0618,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "CONTAINER"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0568,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "tex"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0206,
+  "conf": 0.997
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "aws"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.131,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Dockerfile Dockerfile"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0447,
+  "conf": 0.994
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "EXPLORER"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0388,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DOCKER-DEMO Dockerfile"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0523,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "FROM ubuntu:20.04"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0485,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "start From a template image"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1158,
+  "conf": 0.961
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Search for great content (e.g., mysql)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0361,
+  "conf": 0.988
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "dockerhub"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0391,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Exploreubuntu"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0331,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "ubuntu"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0516,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Docker Official Images"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.04,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Ubuntu is a Debian-based Linux operating system based on free software."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.032,
+  "conf": 0.985
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "RUN some terminal commands"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.104,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "RUN apt-get install sl"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0537,
+  "conf": 0.996
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "ENV PORT=8080"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0439,
+  "conf": 0.998
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "set ENV variables"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1035,
+  "conf": 0.996
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "execute a default CMD"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1071,
+  "conf": 0.986
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DockerfileDockerfile\\CMD"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0495,
+  "conf": 0.963
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "CMD [\"echo\", \"Docker is easy '"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0544,
+  "conf": 0.986
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "EXPLORER DOC.."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0618,
+  "conf": 0.988
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Dockerfile"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0512,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Dockerfile Dockerfile..."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0492,
+  "conf": 0.956
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker build -t myapp"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.0769,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "NAME TAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1084,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "PATH TO DOCKERFILE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1055,
+  "conf": 0.989
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "O O O"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0498,
+  "conf": 0.851
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker build -t myapp ./"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.0543,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker-demo > docker build -t myapp ./ Sending build context to Docker daemon 2.048kB"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0406,
+  "conf": 0.991
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "1e4467b07108 Step 2/3 : RUN apt-get update"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0406,
+  "conf": 0.998
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "---> Using cache"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0445,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "9fea89f3e71d Step 3/3 : CMD [\"echo\", \"Docker is easy Running in b84e73ee2106 Removing intermediate container b84e73ee2106 f0506cff42b0 Successfully built f0506cff42b0"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0398,
+  "conf": 0.992
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker run myapp"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.0939,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "START"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0808,
+  "conf": 0.997
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker-demo > docker run myapp"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.0498,
+  "conf": 0.977
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Docker is easy"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0489,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "docker-demo >"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0399,
+  "conf": 0.993
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Aissa BOUGUERN 5 months ago Dockerin 100 seconds"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0605,
+  "conf": 0.988
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "REPLY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0491,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Piotr Szewczyk 5 months ago 100 sec of websocket 100sdocker"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0503,
+  "conf": 0.999
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Sharan Goku 5 months ago Docker, kubernetes, devops REPLY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0645,
+  "conf": 0.998
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Ray Grant 5 months ago Dockerin 100 seconds REPLY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0513,
+  "conf": 0.994
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "obito 5 months ago 100 seconds of js generators 100 seconds of unit testing in js 100 seconds of docker REPLY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0414,
+  "conf": 0.986
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "Piyush Chougule 5 months ago 1. Docker 2. Kubernetes 3Debugging in VSCode REPLY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0471,
+  "conf": 0.975
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "SECONDS OF"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0656,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "KUBER NETES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1131,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "KU"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0872,
+  "conf": 0.997
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "NE HOW TO"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1649,
+  "conf": 0.981
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DOCKERIZE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1057,
+  "conf": 0.998
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "DEPLOY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0812,
+  "conf": 1.0
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "HOV"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1361,
+  "conf": 0.992
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "IZE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1097,
+  "conf": 0.996
+ },
+ {
+  "src": "fire-docker",
+  "lines": [
+   "THANKS FOR WATCHING!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1221,
+  "conf": 0.997
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "networkchuck@localhost:~$ networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.0341,
+  "conf": 0.99
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "afile.txt here is stuff there"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0354,
+  "conf": 0.976
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "SUBSCRIBE!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0581,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "SUBSCRIBE! BE SURE TO HACK YOUTUBE TODAY... HIT THAT BELL!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0477,
+  "conf": 0.983
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "networkchuck_localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0362,
+  "conf": 0.98
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "afile.txt for here is linode sponsoring stuff thank there this to video networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0358,
+  "conf": 0.99
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "stuff there"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0374,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.037,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "is"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0367,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0376,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "total 0 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov_7 13:15 afile.txt"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0359,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "networkchuck networkchuck 0 Nov 82022 CreateAVMforONly0075centsanhour.txt"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0453,
+  "conf": 0.97
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "-rw-rw-r--"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0308,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "-rw-rw-r-- 1 networkchuck networkchuck 0 Nov -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:06 here -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:06 is networkchuck networkchuck 0 Nov 7 13:15 linode -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode1 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode10 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode2 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode3 13:16 linode4 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode5 networkchuck networkchuck 0 Nov 7 13:16 linode6 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode7 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode8 -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:16 linode9 networkchuck networkchuck 0 Nov 7 13:15 sponsoring -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:06 stuff -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:15 thank networkchuck networkchuck 0 Nov 7 13:06 there -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:15 this -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:15 to -rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:15 video rw-rw-r-- 1 networkchuck networkchuck 0 Nov 7 13:15 you networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0349,
+  "conf": 0.988
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "13:15 for"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.035,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "-rw-rw-r-"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0307,
+  "conf": 0.944
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1668,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "TWOR"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0902,
+  "conf": 0.848,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ETWORK"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1209,
+  "conf": 0.986
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "LINKBELOW!!! CHECK IT OUT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0764,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND echo"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.067,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Hello Me!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0348,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0531,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND nano"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0661,
+  "conf": 0.993
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "newfile.awesome *"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0402,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "GNU nano 6.4 Stuff stuff stuff We're editing a file!!!!!!!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0354,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^W Where Is Replace"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0374,
+  "conf": 0.974
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "M-UUndo Go To Line M-E Redo"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0368,
+  "conf": 0.986
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^0 Write Out ^R Read File"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0356,
+  "conf": 0.948
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Location"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0345,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Execute Justify"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0367,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Cut Paste"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0341,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^GHelp ^X Exit"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0365,
+  "conf": 0.91
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ESC"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.045,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "TAB Q W E R T Y U I O P [ ]} V ENTER SHIFT Z X C V B N M  < .> /? SHIFT ALT FN  CTRL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0555,
+  "conf": 0.936
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CAPSASDFGH JKL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0444,
+  "conf": 0.897
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CTRL  AT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0474,
+  "conf": 0.805
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^R Read File"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0396,
+  "conf": 0.991
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^KCut"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.044,
+  "conf": 0.853
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^uPaste"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0455,
+  "conf": 0.941
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CAPSASDFGH JK L SHIFT CTRL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0527,
+  "conf": 0.947
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^Replace"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0436,
+  "conf": 0.979
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "F1 F2 F3 F4 F5 F6 F7 F8F5 F6 F7 F8"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0522,
+  "conf": 0.921
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "=+BACK"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0431,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ALT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0438,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Save modified buffer? Yes N No"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0368,
+  "conf": 0.99
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "^CCancel"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0431,
+  "conf": 0.98
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ENTER"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0445,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CTRLALT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0468,
+  "conf": 0.982
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "File Name to Write: newfile.awesome ^GHelp ^C Cancel"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0369,
+  "conf": 0.934
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "M-B Backup File TBrowse"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0414,
+  "conf": 0.98
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "M-D DOS Format M-M Mac Format"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0389,
+  "conf": 0.968
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "M-AAppend M-PPrepend"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0394,
+  "conf": 0.987
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "•e se"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0265,
+  "conf": 0.753
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CAPSASDFGHJKL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0405,
+  "conf": 0.914
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Z X C V B N M ,< > /? SHIFT ALT FN  CTRL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0492,
+  "conf": 0.933
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND vim"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0653,
+  "conf": 0.99
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Stuff stuff stuff We're editing a file!!!!!!! Inserting text!!!!!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0497,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "\"newfile.awesome\" 2L, 46B"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0318,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Ins"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0277,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "INSERT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.03,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Inserting_"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0432,
+  "conf": 0.983
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ESC ~ 1! 2@ 3# 4$ 5% 6^ 7& 8* 9( 0) -- =+ BACK TAB Q W E R T Y U I O P [ ]} V ENTER SHIFT Z X C V B N M < >/? SHIFT CTRLALT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0558,
+  "conf": 0.929
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CAPS A S DF GHJ K L :"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0414,
+  "conf": 0.844
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CTRL ALT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0468,
+  "conf": 0.885
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "All"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0376,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "F1 F2 F3 F4F5 F6 F7 F8F5 F6 F7 F"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0493,
+  "conf": 0.853
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ALT FN  CTRL"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0501,
+  "conf": 0.909
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "SHIFT Z X C V B N M ,< > /? SHIFT CTRLALT"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0526,
+  "conf": 0.911
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "1 O P [{ 1}"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0471,
+  "conf": 0.831
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   ":wq"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1074,
+  "conf": 0.891
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND cat"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.067,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Inserting text!!!!! networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 10 shred"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0651,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Inserting text!!!!!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.036,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "tMtworkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0362,
+  "conf": 0.993
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "cK]70} εziOR\"cyÎ|En~X)yp5hCε|#r"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0409,
+  "conf": 0.878
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "k=jn=ZBJiuhr(D8)EqxtL}F<b9yy~NO5?RkWεs)ut~aαG*D)'7^HzcT>gxJε* E<%fL1"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0414,
+  "conf": 0.779
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "jW;+\\2!ui81hnijN1sIzf.Pk_d}?E&dvZ\\%IZ@[@3C;x1|81r44]WR$≠e-$-K\"$usb"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0368,
+  "conf": 0.834
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "A%@x@G#XFf5"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0354,
+  "conf": 0.986
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "e+PJ"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0359,
+  "conf": 0.961
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CA9wf6@EZSrL/%C2=WE}[DiDE^Ti,Lj0y"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0411,
+  "conf": 0.774
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 11 mkdir"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0665,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode2 linode6 mynewdirectory linode3 linode7 newfile.awesome there you linode1 linode4 linode8 sponsoring linode10 linode5 linode9 stuff"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.036,
+  "conf": 0.993
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "afile.txt",
+   "CreateAVMforONly0075centsanhour.txt linode"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0354,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "thank video"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0336,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "this to"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.036,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for here networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0364,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 12 cp"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.069,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "afile.txt"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0307,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode1 linode3 lihode6 linode9 linode10 linode4 Linode7 mynewdirecto linode linode2 linode5 linode8 sponsoring"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0376,
+  "conf": 0.989
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "here"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "afile.txt",
+   "CreateAvMforoNly0075centsanhour.txt is"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0354,
+  "conf": 0.992
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode10 linode4 linode7 mynewdirectory thank to there video thi"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0346,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "stuff this"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0372,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode linode2"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0378,
+  "conf": 0.995
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "there"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0291,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "you"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0346,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 13 rm"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0624,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode linode2 linode5 linode8 sponsoring linode1 linode3 linode6 linode9 stuff"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0367,
+  "conf": 0.995
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "there video this"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0327,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 14 rmdir"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0611,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "$ rm"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0225,
+  "conf": 0.967
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for here"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0346,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "rmdir: failed to remove 'mynewdirectory/': Directory not empty networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0349,
+  "conf": 0.995
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode linode1 linode3"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0347,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "LIKE THE VIDEO! IF YOU'RE ENJOYING THE VIDEO BE SURE TO LEAVE A LIKE!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0477,
+  "conf": 0.993
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode1 linode3"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0345,
+  "conf": 0.99
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "stuff this you thank to"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0361,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for is networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0342,
+  "conf": 0.997
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 15"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0445,
+  "conf": 0.96
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 15 ln"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0651,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode2 linode5 linode8 linode3 linode6 linode9"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0373,
+  "conf": 0.986
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "linode1 linode10 linode4 linode7 sponsoring there video"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0368,
+  "conf": 0.997
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "for is"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.034,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "total 0"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0343,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "1rwxrwxrwx 1 networkchuck networkchuck 35 Nov 7 1333 alinktothisfile -> CreateAVMforONly0075centsanhour.tx"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0413,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "13:15 thank 13:06 there"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0384,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "13:16 linode3"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0384,
+  "conf": 0.993
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "-rw-rw-r-- -rw-rw-r-- -rw-rw-"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0322,
+  "conf": 0.926
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "-rw-rw-r"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0262,
+  "conf": 0.971
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "13:16 linode7"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0384,
+  "conf": 0.995
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "0 Nov"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0373,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "13:15 this"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0404,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "rw-rw-r"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.022,
+  "conf": 0.932
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 16 clear"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0655,
+  "conf": 0.996
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "NETWORK"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1298,
+  "conf": 0.988
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 17 whoami"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0658,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Merit"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0318,
+  "conf": 0.944
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "eri"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0274,
+  "conf": 0.918
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "*useradd*"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1695,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 18 useradd"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.066,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "networkchuck"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0354,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "useradd: Permission denied. useradd: cannot lock /etc/passwd; try again later."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0358,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 19 sudo"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.067,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "[sudo] password for networkchuck:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0409,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 20 adduser"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0654,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Adding user austin' Adding new group austin' (1002) Adding new user 'austin' (1002) with group 'austin' Creating home directory /home/austin' Copying files from /etc/skel' New password:"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0354,
+  "conf": 0.985
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 21 su"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0653,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Password:"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0348,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Password: austin@localhost:/home/networkchuck$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0333,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "austin@localhost:/home/networkchuck$ whoami"
+  ],
+  "kinds": [
+   "command"
+  ],
+  "h": 0.032,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "austin austin@localhost:/home/networkchuck$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0351,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 22 exit"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0664,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "austin"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0337,
+  "conf": 1.0
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "exit networkchuck@localhost:~$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0347,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 23 passwd"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0687,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ni"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0265,
+  "conf": 0.997
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "New password Retype new password: passwd: password updated successfully"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0355,
+  "conf": 0.994
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "abbey@45-33-6-163/home"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0266,
+  "conf": 0.933
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Sorry, try again.",
+   "password for abbey:",
+   "[abbey@45-33-6-163,home]$_cat./etg/passwd",
+   "bin:x:1:1:bin:/bin:/sbin/nologin",
+   "daemon:x:2:2:daemon:/sbin:/sbin/nologin",
+   "adm:x:3:4:adm:/var/adm:/sbin/nologin",
+   "lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin",
+   "sync:x:5:0:sync:/sbin:/bin/sync",
+   "shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown",
+   "halt:x:7:0:halt:/sbin:/sbin/halt",
+   "mail:x:8:12:mail:/var/spool/mail:/sbin/nologin",
+   "operator:x:11:0:operator:/root:/sbin/nologin",
+   "games:x:12:100:games:/usr/games:/sbin/nologin",
+   "ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin",
+   "nobody:x:99:99:Nobody:/:/sbin/nologin",
+   "systemd-network:x:192:192:systemd Network Management:/:/sbin/nologin",
+   "dbus:x:81:81:System message bus:/:/sbin/nologin",
+   "polkitd:x:999:998:User for polkitd:/:/sbin/nologin",
+   "sshd:x:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin",
+   "postfix:x:89:89::/var/spool/postfix:/sbin/nologin",
+   "chrony:x:998:995::/var/lib/chrony:/sbin/nologin",
+   "chuck:x:1000:1000::/home/chuck:/bin/bash",
+   "martha:x:1001:1001::/home/martha:/bin/bash",
+   "chloe:x:1003:1003::/home/chloe:/bin/bash",
+   "addie:x:1004:1004::/home/addie:/bin/bash",
+   "abbey:x:1005:1005::/home/abbey:/bin/bash",
+   "Millie:x:1006:1006::/home/Millie:/bin/bash",
+   "[abbey@45-33-6-163 home]$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.035,
+  "conf": 0.992
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "VIDEO: forcing my wife to learn Linux in 24hrs .wd"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0582,
+  "conf": 0.878
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "daemon:x:2:2:daemon:/sbin:/sbin/nologin",
+   "adm:x:3:4:adm:/var/adm:/sbin/nologin",
+   "lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin",
+   "sync:x:5:0:sync:/sbin:/bin/sync",
+   "shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown",
+   "halt:x:7:0:halt:/sbin:/sbin/halt",
+   "mail:x:8:12:mail:/var/spool/mail:/sbin/nologin",
+   "operator:x:11:0:operator:/root:/sbin/nologin",
+   "games:x:12:100:games:/usr/games:/sbin/nologin",
+   "ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin",
+   "nobody:x:99:99:Nobody:/:/sbin/nologin",
+   "systemd-network:x:192:192:systemd Network Management:/:/sbin/nologin",
+   "dbus:x:81:81:System message bus:/:/sbin/nologin",
+   "polkitd:x:999:998:User for polkitd:/:/sbin/nologin",
+   "sshd:x:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin",
+   "postfix:x:89:89::/var/spool/postfix:/sbin/nologin",
+   "chrony:x:998:995::/var/lib/chrony:/sbin/nologin",
+   "chuck:x:1000:1000::/home/chuck:/bin/bash",
+   "martha:x:1001:1001::/home/martha:/bin/bash",
+   "chloe:x:1003:1003::/home/chloe:/bin/bash",
+   "addie:x:1004:1004::/home/addie:/bin/bash",
+   "abbey:x:1005:1005::/home/abbey:/bin/bash",
+   "Millie:x:1006:1006::/home/Millie:/bin/bash",
+   "[abbey@45-33-6-163 home]$"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0338,
+  "conf": 0.998
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "VIDEO:"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0448,
+  "conf": 0.954
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "passwd"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0339,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "ar/spool/postfix:/sbin/nologj var/lib/chrony:/sbin/nologin /home/chuck:/bin/bash :/home/martha:/bin/bash /home/chloe:/bin/bash /home/addie:/bin/bash /home/abbey:/bin/bash :/home/Millie:/bin/bash home]$ sudo pass"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1093,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "CHUG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0722,
+  "conf": 0.927
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 25"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0402,
+  "conf": 0.909
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "COMMAND 25 apt"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0682,
+  "conf": 0.999
+ },
+ {
+  "src": "linux-cmds",
+  "lines": [
+   "Get:15 http://mirrors.linode.com/ubuntu kinetic/multiverse Translation-en [112 kB]",
+   "Get:16 http://mirrors.linode.com/ubuntu kinetic/multiverse amd64 c-n-f Metadata [8,408",
+   "Get:17 http://mirrors.linode.com/ubuntu kinetic-updates/main amd64 Packages [48.0 kB]",
+   "Get:18 http://mirrors.linode.com/ubuntu kinetic-updates/main Translation-en [15.4 kB]",
+   "Get:19 http://mirrors.linode.com/ubuntu kinetic-updates/main amd64 c-n-f Metadata",
+   "Get:20 http://mirrors.linode.com/ubuntu kinetic-updates/restricted amd64 Packages",
+   "Get:21 http://mirrors.linode.com/ubuntu kinetic-updates/restricted Translation-en",
+   "Get:22 http://mirrors.linode.com/ubuntu kinetic-updates/restricted amd64 c-n-f Metada",
+   "Get:23 http://mirrors.linode.com/ubuntu kinetic-updates/universe amd64 Packages [3,044",
+   "Get:24 http://mirrors.linode.com/ubuntu kinetic-updates/universe Translation-en [1,892",
+   "Get:25 http://mirrors.linode.com/ubuntu kinetic-updates/universe amd64 c-n-f Metadata",
+   "Get:26 http://mirrors.linode.com/ubuntu kinetic-updates/multiverse amd64 c-n-f Metadata [116 B]",
+   "Get:27 http://mirrors.linode.com/ubuntu kinetic-backports/main amd64 c-n-f Metadata [112 B]",
+   "Get:28 http://mirrors.linode.com/ubuntu kinetic-backports/restricted amd64 c-n-f Metadata [120 B]",
+   "Get:29 http://mirrors.linode.com/ubuntu kinetic-backports/universe amd64 c-n-f Metadata [116 B]",
+   "Get:30 http://mirrors.linode.com/ubuntu kinetic-backports/multiverse amd64 c-n-f Metadata [120 B]",
+   "Get:31 http://security.ubuntu.com/ubuntu kinetic-security/main amd64 Packages [47.2 kB]",
+   "Get:32 http://security.ubuntu.com/ubuntu kinetic-security/main Translation-en [15.1 kB]",
+   "Get:33 http://security.ubuntu.com/ubuntu kinetic-security/main amd64 c-n-f Metadata [112 B]",
+   "Get:34 http://security.ubuntu.com/ubuntu kinetic-security/restricted amd64 Packages [55.4 kB]",
+   "Get:35 http://security.ubuntu.com/ubuntu kinetic-security/restricted Translation-en [9,760 B]",
+   "Get:36 http://security.ubuntu.com/ubuntu kinetic-security/restricted amd64 c-n-f Metadata [116 B]",
+   "Get:37 http://security.ubuntu.com/ubuntu kinetic-security/universe amd64 Packages [3,044 B]",
+   "Get:38 http://security.ubuntu.com/ubuntu kinetic-security/universe Translation-en [1,892 B]",
+   "Get:39 http://security.ubuntu.com/ubuntu kinetic-security/universe amd64 c-n-f Metadata [116 B]",
+   "Get:40 http://security.ubuntu.com/ubuntu kinetic-security/multiverse amd64 c-n-f Metadata [116 B]",
+   "94% [11 Packages store 0 B],"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0351,
+  "conf": 0.993
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Vectors > lists of numbers"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0814,
+  "conf": 0.97
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "CS student"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0911,
+  "conf": 1.0
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Square footage: 2,600 ft²"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0943,
+  "conf": 0.989
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Vectors  lists of numbers"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0858,
+  "conf": 0.984
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "2,600 ft²2"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1381,
+  "conf": 0.979
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "300,000 ft2"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1263,
+  "conf": 0.932
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "dimensional"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1038,
+  "conf": 0.961
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Physics student"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0843,
+  "conf": 1.0
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Mathematician"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0842,
+  "conf": 1.0
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "V+W"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0715,
+  "conf": 0.949
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "We'll ignore him for now"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1102,
+  "conf": 0.995
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Think of some vectør.."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0897,
+  "conf": 0.975
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "or []"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.174,
+  "conf": 0.902
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Tail"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.076,
+  "conf": 0.882
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "Origin"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0868,
+  "conf": 0.992
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "(-4, 2) as"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0717,
+  "conf": 0.995
+ },
+ {
+  "src": "3b1b",
+  "lines": [
+   "a point"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0667,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "1 # Product service"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0358,
+  "conf": 0.991
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3 from flask import Flask",
+   "4 from flask_restful import Resource, Api",
+   "6 app = Flask(_name_",
+   "7 api = Api(app)",
+   "9 class Product(Resource):",
+   "def get(self):"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0457,
+  "conf": 0.99
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "'product': ['Ice cream'",
+   "'Chocolate'",
+   "'Fruit']"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0356,
+  "conf": 0.997
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "17 api.add_resource(Product,"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0419,
+  "conf": 0.997
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "19 if"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0323,
+  "conf": 0.996
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "_main_"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0301,
+  "conf": 0.998
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "app.run(host=)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0399,
+  "conf": 0.993
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "app.run(host='0.0.0.0',port=80,debug=)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0449,
+  "conf": 0.981
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "product Product"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0373,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Flask=="
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0422,
+  "conf": 0.981
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Flask==0.12",
+   "flask-restful==0.3.5"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0366,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As:Flask==0.12 Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.976
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save requirements. Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0263,
+  "conf": 0.909
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As:untitled Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0257,
+  "conf": 0.98
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0611,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As:Dd Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0756,
+  "conf": 0.982
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "emen"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0403,
+  "conf": 0.996
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Favorites Cloud Drive A Applications Desktop Documents Downloads jake"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0689,
+  "conf": 0.978
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "PYTHON"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0535,
+  "conf": 0.999
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "TXT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0515,
+  "conf": 0.999
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "api.py"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0667,
+  "conf": 0.937
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "requirements.txt"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0527,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "FROM python:3-onbuild"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0405,
+  "conf": 0.999
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "python is now available in the Docker Store, the new place to discover public Docker content. Check it out→"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0321,
+  "conf": 0.978
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Q Search OFFICIAL REPOSITORY python"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0485,
+  "conf": 0.962
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Explore HelpSign upSign in"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0311,
+  "conf": 0.978
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Docker Pull Command"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0308,
+  "conf": 0.971
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Short Description"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0304,
+  "conf": 0.986
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Full Description Supported tags and respectiveDockerfile links"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0476,
+  "conf": 0.989
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Supported tags and respectiveDockerfile links 2.7.13, 2.7.2 (2.7/Dockerfile) • 2.7.13-slim, 2.7-slim, 2-slim (2.7/slim/Dockerfile) 2.7.13-alpine. 2.7-alpine, 2-alpine (2.7/alpik/Dockerfile) 2.7.13-wheezy. 2.7-wheezy. 2-wheezy (2.7/wheezy/Dockerfile) 2.7.13-onbuild, 2.7-onbuild. 2-onbuild (2.7/onbuild/Dockerfile) 2.7.13-windowsservercore. 2.7-windowsservercore. 2-windowsservercore (2.7/windows/windowsservercore/Dockerfile) 3.3.6, 3.3 (3.3/Dockerfile) 3.3.6-slim.3.3-slim (3.3/slim/Dockerfile) 3.3.6-alpine,3.3-alpine (3.3/alpine/Dockerfile) 3.3.6-wheezy3.3-wheezy (3.3/wheezy/Dockerfile) 3.3.6-onbuild.3.3-onbuild (3.3/onbuild/Dockerfie) 3.4.6, 3.4 (3.4/Dockerfile) 3.4.6-slim, 3.4-slim (3.4/slim/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0258,
+  "conf": 0.958
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.4.6-alpine.3.4-alpine (3.4/alpine/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0317,
+  "conf": 0.958
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Python is an interpreted, interactive, object-oriented, open-source programming language."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.994
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "• 2.7.13, 2.7, 2 (2.7/Dockerfile) • 2.7.13-slim, 2.7-slim, 2-slim (2.7/slim/Dockerfile) 2.7.13-alpine, 2.7-alpine, 2-alpine (2.7/alpine/Dockerfile) 2.7.13-wheezy. 2.7-wheezy. 2-wheezy (2.7/wheezy/Dockerfile) 2.7.13-onbuild, 2.7-onbuild, 2-onbuild (2.7/onbuild/Dockerfile) 2.7.13-windowsservercore. 2.7-windowsservercore. 2-windowsservercore"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0248,
+  "conf": 0.963
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "(2.7/windows/windowsservercore/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0297,
+  "conf": 0.956
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.3.6,3.3 (3.3/Dockerfile) 3.3.6-slim, 3.3-slim (3.3/slim/Dockerfile) 3.3.6-alpine, 3.3-alpine (3.3/alpine/Dockerfile) 3.3.6-wheezy.3.3-wheezy (3.3/wheezy/Dockerfile) 3.3.6-onbuild, 3.3-onbuild (3.3/onbuild/Dockerfile) 3.4.6.3.4 (3.4/Dockerfile) 3.4.6-slim,3.4-slim (3.4/slim/Dockerfile) •3.4.6-alpine.3.4-alpine (3.4/alpine/Dockerfile) 3.4.6-wheezy.3.4-wheezy (3.4/wheezy/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0251,
+  "conf": 0.962
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "2.7.13-alpine.2.7-alpine. 2-alpine (2.7/alpine/Dockerfile) 2.7.13-wheezy.2.7-wheezy.2-wheezy(2.7/wheezy/Dockerfile) 2.7.13-onbuild.2.7-onbuild2-onbuild (2.7/onbuild/Dockerfile) • 2.7.13-windowsservercore, 2.7-windowsservercore, 2-windowsservercore (2.7/windows/windowsservercore/Dockerfile) 3.3.63.3 (3.3/Dockerfile) 3.3.6-slim,3.3-slim (3.3/slim/Dockerfile) 3.3.6-alpine, 3.3-alpine (3.3/alpine/Dockerfile) 3.3.6-wheezy3.3-wheezy(3.3/wheezy/Dockerfile) •3.3.6-onbuild, 3.3-onbuild (3.3/onbuild/Dockerfile) 3.4.6. 3.4 (3.4/Dockerfile) •3.4.6-slim, 3.4-slim (3.4/slim/Dockerfile) 3.4.6-alpine. 3.4-alpine (3.4/alpine/Dockerfile) 3.4.6-wheezy3.4-wheezy (3.4/wheezy/Dockerfile) 3.4.6-onbuild, 3.4-onbuild (3.4/onbuild/Dockerfile) 3.5.3, 3.5 (3.5/Dockerfile) 3.5.3-s1im.3.5-s1im (3.5/slim/Dockerfile) 3.5.3-alpine.3.5-a1pine (3.5/alpine/Dockerfile) 3.5.3-onbuild, 3.5-onbuild (3.5/onbuild/Dockerfile) 3.5.3-windowsservercore.3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) •3.6.0,3.6.3. 1atest (3.6/Dockerfile) 3.6.0-s1im, 3.6-s1im 3-s1im s1im (9.6/slim/Dackerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.025,
+  "conf": 0.957
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "•3.5.3-alpine, 3.5-alpine (3.5/alpine/Dockerfile) 3.5.3-onbuild,3.5-onbuild (3.5/onbuild/Dockerfile) •3.5.3-windowsservercore,3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) 3.6.0,3.6.3. 1atest (3.6/Dockerfile) • 3.6.0-slim, 3.6-slim, 3-slim, slim (3.6/slim/Dockerfile) • 3.6.0-alpine, 3.6-alpine, 3-alpine. alpine (3.6/alpine/Dockerfile) • 3.6.0-onbuild, 3.6-onbuild, 3-onbuild. onbuild (3.6/onbuild/Dockerfile) • 3.6.0-windowsservercore, 3.6-windowsservercore, 3-windowsservercore, windowsservercore (3.6/windows/windowsservercore/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0248,
+  "conf": 0.969
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.5.3-onbuild3.5-onbuild (3.5/onbuild/Dockerfile) 3.5.3-windowsservercore. 3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) 3.6.0, 3.6.3. 1atest (3.6/Dockerfile) 3.6.0-slim,3.6-slim,3-slim, slim (3.6/slim/Dockerfile) •3.6.0-alpine, 3.6-alpine, 3-alpine, alpine (3.6/alpine/Dockerfile) 3.6.0-onbuild. 3.6-onbuild. 3-onbuild. onbuild (3.6/onbuild/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0249,
+  "conf": 0.957
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "• 3.6.0-windowsservercore. 3.6-windowsservercore, 3-windowsservercore."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.987
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.5.3-windowsservercore. 3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) 3.6.0.3.6.3, latest (3.6/Dockerfile) 3.6.0-slim, 3.6-slim. 3-slim, slim (3.6/slim/Dockerfile) 3.6.0-alpine, 3.6-alpine. 3-alpine, alpine (3.6/alpine/Dockerfile) 3.6.0-onbuild, 3.6-onbuild, 3-onbuild. onbuild (3.6/onbuild/Dockerfile) • 3.6.0-windowsservercore, 3.6-windowsservercore.3-windowsservercore."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0244,
+  "conf": 0.969
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "2.7.13.2.7.2 (2.7/Dockerfile) 2.7.13-slim, 2.7-slim, 2-slim (2.7/slim/Dockerfile) 2.7.13-alpine, 2.7-alpine, 2-alpine (2.7/alpine/Dockerfile) 2.7.13-wheezy. 2.7-wheezy. 2-wheezy (2.7/wheezy/Dockerfile) 2.7.13-onbuild, 2.7-onbuild, 2-onbuild (2.7/onbuild/Dockerfile) 2.7.13-windowsservercore. 2.7-windowsservercore. 2-windowsservercore (2.7/windows/windowsservercore/Dockerfile) 3.3.6. 3.3 (3.3/Dockerfile) 3.3.6-s1im,3.3-s1im (3.3/slim/Dockerfile) 3.3.6-alpine, 3.3-alpine (3.3/alpine/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.025,
+  "conf": 0.965
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.3.6-onbuild, 3.3-onbuild (3.3/onbuild/Dockerfile) 3.4.6.3.4 (3.4/Dockerfile) 3.4.6-slim.3.4-slim (3.4/slim/Dockerfile) 3.4.6-alpine,3.4-alpine (3.4/alpine/Dockerfile) 3.4.6-wheezy. 3.4-wheezy (3.4/wheezy/Dockerfile) 3.4.6-onbuild,3.4-onbuild (3.4/onbuild/Dockerfile) 3.5.3,3.5 (3.5/Dockerfile) • 3.5.3-s1im, 3.5-s1im (3.5/slim/Dockerfile) 3.5.3-alpine,3.5-alpine (3.5/alpine/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0251,
+  "conf": 0.962
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.6.0-windowsservercore, 3.6-windowsservercore. 3-windowsservercore."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.984
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "3.4.6. 3.4 (3.4/Dockerfile) 3.4.6-slim, 3.4-s1im (3.4/slim/Dockerfile) 3.4.6-alpine, 3.4-alpine (3.4/alpine/Dockerfile) 3.4.6-wheezy.3.4-wheezy (3.4/wheezy/Dockerfile) 3.4.6-onbuild, 3.4-onbuild (3.4/onbuild/Dockerfile) 3.5.3,3.5 (3.5/Dockerfile) 3.5.3-slim,3.5-s1im (3.5/slim/Dockerfile) •3.5.3-alpine, 3.5-alpine (3.5/alpine/Dockerfile) 3.5.3-onbui1d.3.5-onbuild(3.5/onbuild/Dockerfile) 3.5.3-windowsservercore. 3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) 3.6.0,3.6.3. 1atest (3.6/Dockerfile) • 3.6.0-slim, 3.6-slim, 3-slim, slim (3.6/slim/Dockerfile) 3.6.0-alpine, 3.6-alpine, 3-alpine, alpine (3.6/alpine/Dockerfile) 3.6.0-onbuild, 3.6-onbuild, 3-onbuild, onbuild (3.6/onbuild/Dockerfile) 3.6.0-windowsservercore.3.6windowsservercore.3-windowsservercore. windowsservercore (3.6/windows/windowsservercore/Dockerfile) For more information about this image and its history, please see the relevant manifest file"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0261,
+  "conf": 0.965
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "(library/python ). This image is updated via pull requests to the docker- library/official-images GitHub repo."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0234,
+  "conf": 0.995
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "•3.4.6-slim.3.4-slim (3.4/slim/Dockerfile) 3.4.6-alpine, 3.4-alpine (3.4/alpine/Dockerfile) 3.4.6-wheezy.3.4-wheezy (3.4/wheezy/Dockerfile) 3.4.6-onbuild, 3.4-onbuild (3.4/onbuild/Dockerfile) 3.5.3.3.5 (3.5/Dockerfile) •3.5.3-slim, 3.5-slim (3.5/slim/Dockerfile) 3.5.3-alpine, 3.5-alpine (3.5/alpine/Dockerfile) 3.5.3-onbuild.3.5-onbuild(3.5/onbuild/Dockerfile) 3.5.3-windowsservercore, 3.5-windowsservercore (3.5/windows/windowsservercore/Dockerfile) 3.6.0,3.6.3. latest (3.6/Dockerfile) 3.6.0-slim, 3.6-slim, 3-slim, slim (3.6/slim/Dockerfile) 3.6.0-alpine, 3.6-alpine, 3-alpine, alpine (3.6/alpine/Dockerfile) 3.6.0-onbuild. 3.6-onbuild, 3-onbuild, onbuild (3.6/onbuild/Dockerfile)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0252,
+  "conf": 0.971
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "For detailed information about the virtual/transfer sizes and individual layers of each of the"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.973
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "For more information about this image and its history, please see the relevant manifest file"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.997
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "library/official-images GitHub repo."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0227,
+  "conf": 0.985
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "above supported tags, please see the repos/python/tag-details.md file in the"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.991
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "COPY"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0401,
+  "conf": 0.985
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "FR0M python:3-onbuild"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0405,
+  "conf": 0.969
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "COPY . /usr/src/app"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.049,
+  "conf": 0.972
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "FROM python:3-onbuild",
+   "COPY : /usr/src/app",
+   "CMD [\"python\", \"api.py\"]"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0382,
+  "conf": 0.97
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "jake:product jake$ docker"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0451,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As:untited Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0257,
+  "conf": 0.97
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Favorites iCloud Drive Applications Desktop Documents Downloads jake Dropbox Google Drive Devices Jake's MacBook Pro"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0541,
+  "conf": 0.991
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "TXT requirements.txt"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.034,
+  "conf": 0.973
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "product tutorial Desktop jake Users 2Macintosh HD Jake's MacBook Pro Recent Places product Cuts Software Footage 06Italy"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0454,
+  "conf": 0.988
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "tutorial"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0451,
+  "conf": 1.0
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As:docker-compose. Tags:"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0588,
+  "conf": 0.988
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Save As: docker-compose.ym"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0502,
+  "conf": 0.983
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "Tags:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0574,
+  "conf": 0.99
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "docker-compose.yml"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0311,
+  "conf": 0.997
+ },
+ {
+  "src": "compose",
+  "lines": [
+   "version:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0305,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0393,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Subscribe to"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0437,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Subscribe to Code Drip"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0442,
+  "conf": 0.986
+ },
+ {
+  "src": "html",
+  "lines": [
+   "127.0.0.1:5500/index.html",
+   "C 127.0.0.1:5500/index.ht."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0313,
+  "conf": 0.965
+ },
+ {
+  "src": "html",
+  "lines": [
+   "HTML ELEMENT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0983,
+  "conf": 0.985
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1> </h1>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.2123,
+  "conf": 0.973
+ },
+ {
+  "src": "html",
+  "lines": [
+   "CLOSING TAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0878,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "OPENING TAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.084,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "VA"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0651,
+  "conf": 0.832,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<> index.html ×"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0354,
+  "conf": 0.962
+ },
+ {
+  "src": "html",
+  "lines": [
+   "A A"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0394,
+  "conf": 0.795,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Δ4ΔA"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0473,
+  "conf": 0.782,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "AA"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0386,
+  "conf": 0.925
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ONE COMPLETE ELEMENT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0908,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "TAGS+ CONTENT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1036,
+  "conf": 0.985
+ },
+ {
+  "src": "html",
+  "lines": [
+   "AAA"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0571,
+  "conf": 0.766,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "HEADER TAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0944,
+  "conf": 0.978
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1> <h2> <h3><h4> <h5> <h6>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1093,
+  "conf": 0.949
+ },
+ {
+  "src": "html",
+  "lines": [
+   "HEADERTAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1256,
+  "conf": 0.967
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1><h2><h3><h4><h5><h6>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1003,
+  "conf": 0.919
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Gogle"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.27,
+  "conf": 0.835,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "WAITA"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1511,
+  "conf": 0.852
+ },
+ {
+  "src": "html",
+  "lines": [
+   "< index.html ×"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0439,
+  "conf": 0.914
+ },
+ {
+  "src": "html",
+  "lines": [
+   "NOT CORRECT HTML"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.121,
+  "conf": 0.998
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<index.html"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0352,
+  "conf": 0.961
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<> index.html",
+   "<html>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.047,
+  "conf": 0.95
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</html>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.046,
+  "conf": 0.956
+ },
+ {
+  "src": "html",
+  "lines": [
+   "< index.html",
+   "<html>",
+   "<head>/head",
+   "Subscribe to Code Drip"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0582,
+  "conf": 0.935
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<head>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0414,
+  "conf": 0.974
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</head>",
+   "<body>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0445,
+  "conf": 0.994
+ },
+ {
+  "src": "html",
+  "lines": [
+   "body bdo blockquote button"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0457,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "/body"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0681,
+  "conf": 0.964
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</body>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0422,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<html>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0413,
+  "conf": 0.924
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</body>",
+   "</htm1"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0457,
+  "conf": 0.925
+ },
+ {
+  "src": "html",
+  "lines": [
+   "HEADTI"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1116,
+  "conf": 0.956
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<title><meta>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0985,
+  "conf": 0.989
+ },
+ {
+  "src": "html",
+  "lines": [
+   "FOR SEO AND OTHER STUFF"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1133,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</head>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1116,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<script>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0961,
+  "conf": 0.961
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Google Analytics"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.053,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "head"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1067,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<head"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1082,
+  "conf": 0.871
+ },
+ {
+  "src": "html",
+  "lines": [
+   "EX. Googlenalytics head"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1226,
+  "conf": 0.894
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<link rel=\"stylesheet\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1042,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "CSS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0725,
+  "conf": 0.992
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<body>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.2441,
+  "conf": 0.979
+ },
+ {
+  "src": "html",
+  "lines": [
+   "BODY TAGI"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0893,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<body"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1216,
+  "conf": 0.826
+ },
+ {
+  "src": "html",
+  "lines": [
+   "EVERYTHING ELSE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1207,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "body"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1131,
+  "conf": 0.886
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Google"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1263,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Google SearchI'm Feling Lucky"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0339,
+  "conf": 0.963
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<img>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1037,
+  "conf": 0.988
+ },
+ {
+  "src": "html",
+  "lines": [
+   "AAAA AAA"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0813,
+  "conf": 0.883
+ },
+ {
+  "src": "html",
+  "lines": [
+   "AΔA"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0728,
+  "conf": 0.798,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "MORE SCRIPTS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1109,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "JS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0554,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<!DOCTYPE html>",
+   "<html lang=\"en\">",
+   "<head>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0428,
+  "conf": 0.972
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<meta charset=\"UTF-8\">",
+   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+   "<title>Document</title>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0427,
+  "conf": 0.985
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<meta charset=\"utf-8\">",
+   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+   "<title>Document</titles"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0373,
+  "conf": 0.963
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html ×"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0306,
+  "conf": 0.959
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<meta charset=\"UtF-8\">",
+   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+   "<title>Document</title>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0317,
+  "conf": 0.977
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<html lang=\"en\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0311,
+  "conf": 0.983
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0321,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "BOILERPLATE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1198,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<!DOCTYPE htm1>",
+   "<html lang=\"en\">",
+   "<head>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0336,
+  "conf": 0.958
+ },
+ {
+  "src": "html",
+  "lines": [
+   "repetitive starter code"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0635,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "generate with autocomplete"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0681,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Visual Studio Code"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1462,
+  "conf": 0.973
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Emmet Abbreviation"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0402,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</body>",
+   "</html>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0403,
+  "conf": 0.988
+ },
+ {
+  "src": "html",
+  "lines": [
+   "The Most Common HTML Elements"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1034,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1> Subscribe to Code Drip </h1>",
+   "<h2> Subscribe to Code Drip </h2>",
+   "<h3> Subscribe to Code Drip </h3>",
+   "<h4> Subscribe to Code Drip </h4>",
+   "<h5> Subscribe to Code Drip </h5>",
+   "<h6> Subscribe to Code Drip </h6>",
+   "<p>Not convinced yet? Boom. He/p"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.04,
+  "conf": 0.99
+ },
+ {
+  "src": "html",
+  "lines": [
+   "PARAGRAPH"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0603,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Not convinced yet? Boom."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0405,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Here's a paragraph</p>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.036,
+  "conf": 0.982
+ },
+ {
+  "src": "html",
+  "lines": [
+   "UNDERLINE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0598,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Not <u>convinced</u> yet? Boom."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0408,
+  "conf": 0.986
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Here's a paragraph"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0358,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "strong BOLD"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0776,
+  "conf": 0.998
+ },
+ {
+  "src": "html",
+  "lines": [
+   "paragraph"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0347,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "em>",
+   "ITALIC I"
+  ],
+  "kinds": [
+   "code",
+   "text"
+  ],
+  "h": 0.076,
+  "conf": 0.953
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<strong>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0825,
+  "conf": 0.986
+ },
+ {
+  "src": "html",
+  "lines": [
+   "BOLD"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0651,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<em>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0662,
+  "conf": 0.994
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ITALIC"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0635,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<strong BOLDI"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0785,
+  "conf": 0.959
+ },
+ {
+  "src": "html",
+  "lines": [
+   "em>",
+   "ITALIC"
+  ],
+  "kinds": [
+   "code",
+   "text"
+  ],
+  "h": 0.0744,
+  "conf": 0.948
+ },
+ {
+  "src": "html",
+  "lines": [
+   "NEST\" ELEMENTS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1524,
+  "conf": 0.912
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<strong Subscribe to Code Drip strong"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0392,
+  "conf": 0.984
+ },
+ {
+  "src": "html",
+  "lines": [
+   "\"NEST\" ELEMENTS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1035,
+  "conf": 0.994
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<strong>",
+   "Subscribe to Code Drip",
+   "</strong>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.038,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ATTRIBUTE"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1983,
+  "conf": 0.98
+ },
+ {
+  "src": "html",
+  "lines": [
+   "HTML ATTRIBUTES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1932,
+  "conf": 0.987
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1 class=\"title\" id=\"big-title\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0544,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "\"GLOBAL ATTRIBUTES\""
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0769,
+  "conf": 0.995
+ },
+ {
+  "src": "html",
+  "lines": [
+   "GLOBAL ATTRIBUTES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1901,
+  "conf": 0.973
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1 class=\"title\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.108,
+  "conf": 0.987
+ },
+ {
+  "src": "html",
+  "lines": [
+   ".title",
+   "color: red;"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0727,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   ".title"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0661,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "color: red;"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0704,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "document.querySelector('.title');"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0682,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "h1 class=\"title prim Subscribe to Code Drip"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0402,
+  "conf": 0.994
+ },
+ {
+  "src": "html",
+  "lines": [
+   "MULTIPLE CLASSES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1031,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h1 class=\"title primary\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0361,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "RE-USE THE SAME CLASS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0994,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<h2 class=\"title\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0313,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Second title"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.035,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ELEMENT-SPECIFIC ATTRIBUTES"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1045,
+  "conf": 0.998
+ },
+ {
+  "src": "html",
+  "lines": [
+   "AAAAAA"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0674,
+  "conf": 0.786,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.htmlcafe.png",
+   "<in",
+   "input"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0373,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<img>IMAGE TAG"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0939,
+  "conf": 0.969
+ },
+ {
+  "src": "html",
+  "lines": [
+   "< index.html ×  cafe.png",
+   "img src=\"cafe.png\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0399,
+  "conf": 0.94
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<img>IMAGE TAGI"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0976,
+  "conf": 0.981
+ },
+ {
+  "src": "html",
+  "lines": [
+   "cafe.png"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0386,
+  "conf": 0.998
+ },
+ {
+  "src": "html",
+  "lines": [
+   "cafe.png",
+   "<>index.html"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.034,
+  "conf": 0.961
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<img src=\"cafe.png\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.04,
+  "conf": 0.933
+ },
+ {
+  "src": "html",
+  "lines": [
+   "img",
+   "sic=\"cafe.png\"",
+   "alt=\"coffee\"",
+   "width=\"200\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0355,
+  "conf": 0.988
+ },
+ {
+  "src": "html",
+  "lines": [
+   "sic=\"cafe.png\"",
+   "alt=\"coffee\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0342,
+  "conf": 0.986
+ },
+ {
+  "src": "html",
+  "lines": [
+   "< index.htmlcafe.png"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.934
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ANCHOR TAG"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0905,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.htmlcafe.png",
+   "<a href=\"https://go\"",
+   "Go to Google"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0374,
+  "conf": 0.974
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Go to Google"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.035,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<a href=\"https://google.com\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0361,
+  "conf": 0.981
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html",
+   "index.html × cafe.png",
+   "<a href=\"https://google.com\"",
+   "Go to Google"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0375,
+  "conf": 0.941
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html",
+   "<ol>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0421,
+  "conf": 0.968
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<> index.html",
+   "<ol>",
+   "<li>F/1i",
+   "<ul>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0502,
+  "conf": 0.941
+ },
+ {
+  "src": "html",
+  "lines": [
+   "ORDERED LIST"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0691,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "UNORDERED LIST"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0657,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<li>First</li>",
+   "<li>Second</li>",
+   "<li>Third</li>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.986
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<ul>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.032,
+  "conf": 0.975
+ },
+ {
+  "src": "html",
+  "lines": [
+   "1. First 2. Second 3.Third First Second Third"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0313,
+  "conf": 0.979
+ },
+ {
+  "src": "html",
+  "lines": [
+   "STITEM"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0541,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "LIST ITEM"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.067,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html ×",
+   "<ol>",
+   "<1>First/li>",
+   "<li>Second</li>",
+   "<Thirds/li>",
+   "</ol>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0404,
+  "conf": 0.945
+ },
+ {
+  "src": "html",
+  "lines": [
+   "1. First"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0363,
+  "conf": 0.93
+ },
+ {
+  "src": "html",
+  "lines": [
+   "127.0.0:1:5500/index:htmi 127.0.0.1:5500/index.html"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0303,
+  "conf": 0.953
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<button>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0384,
+  "conf": 0.983
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</button"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0425,
+  "conf": 0.977
+ },
+ {
+  "src": "html",
+  "lines": [
+   "BUTTON"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0815,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<button>",
+   "Click",
+   "</button>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0406,
+  "conf": 0.993
+ },
+ {
+  "src": "html",
+  "lines": [
+   "< index.html ×",
+   "<button>",
+   "Click me",
+   "</button>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.043,
+  "conf": 0.974
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Click me"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0335,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html ×",
+   "<button>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0421,
+  "conf": 0.972
+ },
+ {
+  "src": "html",
+  "lines": [
+   "DON'T Click me"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0398,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</button>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0305,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "button",
+   "background-color:"
+  ],
+  "kinds": [
+   "text",
+   "code"
+  ],
+  "h": 0.0387,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "background-color:",
+   "color:  white;",
+   "padding: 10px 30px;",
+   "border-radius: 2px;",
+   "border: 1px solid grey;"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0403,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "button:hover"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0353,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<button>",
+   "DON'T Click me",
+   "</button>",
+   "<style>",
+   "button"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0395,
+  "conf": 0.979
+ },
+ {
+  "src": "html",
+  "lines": [
+   "button"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0337,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Idarkred;"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0304,
+  "conf": 0.979
+ },
+ {
+  "src": "html",
+  "lines": [
+   "FORMI"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1203,
+  "conf": 0.933
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<form>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0923,
+  "conf": 0.998
+ },
+ {
+  "src": "html",
+  "lines": [
+   "FORM"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0855,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "LOGINPOSTPAY"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1312,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "index.html",
+   "<form>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0444,
+  "conf": 0.979
+ },
+ {
+  "src": "html",
+  "lines": [
+   "</form>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0378,
+  "conf": 0.958
+ },
+ {
+  "src": "html",
+  "lines": [
+   "form>",
+   "FORM"
+  ],
+  "kinds": [
+   "code",
+   "text"
+  ],
+  "h": 0.084,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<form",
+   "</foIm>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0455,
+  "conf": 0.937
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<p>Text</p>",
+   "<input type=\"text\">",
+   "<p>Email</p>",
+   "<input type=\"email\">",
+   "<p>Password</p>",
+   "<input type=\"password\">",
+   "</form>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0405,
+  "conf": 0.995
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<input>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0776,
+  "conf": 0.994
+ },
+ {
+  "src": "html",
+  "lines": [
+   "INPUT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0886,
+  "conf": 0.975
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Email"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0359,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Password"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0338,
+  "conf": 0.996
+ },
+ {
+  "src": "html",
+  "lines": [
+   "input INPUT I"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0855,
+  "conf": 0.907
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<input"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0813,
+  "conf": 0.997
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<p>Checkbox</p>",
+   "<input type=\"checkbox\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0304,
+  "conf": 0.978
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<input type=\"radio\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0312,
+  "conf": 0.99
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Checkbox"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0377,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Radio"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0322,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "Select Seventh"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0429,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<p>Checkbox</p>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0308,
+  "conf": 0.987
+ },
+ {
+  "src": "html",
+  "lines": [
+   "input type=\"checkbox\""
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.04,
+  "conf": 0.965
+ },
+ {
+  "src": "html",
+  "lines": [
+   "input INPUT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0853,
+  "conf": 0.958
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<p>Checkbox</p>",
+   "<label for=\"cb1\">First/label"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0295,
+  "conf": 0.983
+ },
+ {
+  "src": "html",
+  "lines": [
+   "FirstSecondThird"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0402,
+  "conf": 1.0
+ },
+ {
+  "src": "html",
+  "lines": [
+   "input>",
+   "INPUT"
+  ],
+  "kinds": [
+   "code",
+   "text"
+  ],
+  "h": 0.0848,
+  "conf": 0.855
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<label for=\"cb3\">Third/label"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.036,
+  "conf": 0.967
+ },
+ {
+  "src": "html",
+  "lines": [
+   "‹label for=\"cb2\">Second</label>",
+   "<input type=\"checkbox\" id=\"cb2\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0306,
+  "conf": 0.991
+ },
+ {
+  "src": "html",
+  "lines": [
+   "‹input type=\"checkbox\" id=\"cb3\">",
+   "<button type=\"submi",
+   "submit"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0396,
+  "conf": 0.988
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<label for=\"cb1\">First</label>",
+   "<input type=\"checkbox\" id=\"cb1\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0297,
+  "conf": 0.982
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<button type=\"submit\">Submit/button"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0362,
+  "conf": 0.981
+ },
+ {
+  "src": "html",
+  "lines": [
+   "submit"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0335,
+  "conf": 0.999
+ },
+ {
+  "src": "html",
+  "lines": [
+   "<form action=\"submit.html\">"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0315,
+  "conf": 0.963
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "localhos:88/notboks/Uniledeipynmkernlnamekpythn"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.766
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Notebook savedTrusted"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0346,
+  "conf": 0.999
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "TEACH"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1052,
+  "conf": 0.995
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [1]:  1",
+   "def hello(name):",
+   "return f'Hello, {name}'",
+   "hello('world')",
+   "Out[1]: 'Hello, world'",
+   "In [ ]:"
+  ],
+  "kinds": [
+   "noise",
+   "code",
+   "code",
+   "code",
+   "code",
+   "code"
+  ],
+  "h": 0.0412,
+  "conf": 0.99
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "# this is a very friendly function"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0318,
+  "conf": 0.993
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "thin"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0586,
+  "conf": 0.829,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "hello('world')",
+   "Out[1]: 'Hello, world'",
+   "In [ ]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0441,
+  "conf": 0.993
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "3 def hellRun All"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0328,
+  "conf": 0.978
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Out[1]: 'Hello, worl",
+   "In [ ]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0469,
+  "conf": 0.985
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Current Outputs All Output"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0336,
+  "conf": 0.973
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [1]1 # tiRun Cels and InsertBelow"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0475,
+  "conf": 0.921
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "retu: hello'w Run All Below"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0396,
+  "conf": 0.891
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "1 # this i"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0299,
+  "conf": 0.985
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "retu:Run All Above"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0414,
+  "conf": 0.963
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Cel Type"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0626,
+  "conf": 0.822
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Code"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0311,
+  "conf": 1.0
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Markdown Raw NBConvert"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0317,
+  "conf": 0.973
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "AC"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0985,
+  "conf": 0.775,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "1 # thisun Clt Belo"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0466,
+  "conf": 0.753
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Raw NBConvert"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0305,
+  "conf": 0.993
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "All Output"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0372,
+  "conf": 0.981
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Code Markdown Raw NBConvert"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0335,
+  "conf": 1.0
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [1]: 1 # this iRunllr"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0475,
+  "conf": 0.795,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [1]: 1",
+   "def hello(name):",
+   "return f'Hello, {name}'",
+   "6 hello('world')",
+   "Out[1]: 'Hello, world'",
+   "In [ ]:"
+  ],
+  "kinds": [
+   "noise",
+   "code",
+   "code",
+   "code",
+   "code",
+   "code"
+  ],
+  "h": 0.0412,
+  "conf": 0.992
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Out[1]: 'Hello, worCeType",
+   "In [ ]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0468,
+  "conf": 0.939
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "def hello(name):",
+   "return f'Hello, {name}'",
+   "hello('world')",
+   "Out[1]: 'Hello, world'"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.035,
+  "conf": 0.997
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "ACH"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0958,
+  "conf": 0.894
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [ :"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0551,
+  "conf": 0.782
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "TFACH"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.098,
+  "conf": 0.99
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Coruthine"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0386,
+  "conf": 0.771,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "EACH"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0985,
+  "conf": 0.78,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "thine"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0571,
+  "conf": 0.776,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is a sentence. ANd you coul"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0317,
+  "conf": 0.992
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is a sentence. And you could say tha"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0319,
+  "conf": 0.998
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [1]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0335,
+  "conf": 0.989
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "hino"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0379,
+  "conf": 0.981
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "paragraph. But the paragraph is far too long."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0317,
+  "conf": 0.989
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [ ]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0373,
+  "conf": 0.991
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "3 This is a sentence. And you could say that it's a very long sentence. 4 So long that it goes on and on. Actually, it's more of a paragraph. But the paragraph is far too long."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0271,
+  "conf": 0.989
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "# This is a headline"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0447,
+  "conf": 0.999
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is a headline"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0445,
+  "conf": 0.971
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "## This is a subhed"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0402,
+  "conf": 0.999
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is some more text und"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0316,
+  "conf": 0.994
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "localhost:88/noteboosntitled.ipynbpkenelamepy"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.808
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "13 This is some more text under the subhead"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0319,
+  "conf": 0.996
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "localhost:8/otboks/Untited8.pynenlnmlpython"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0363,
+  "conf": 0.781
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is a headline paragraph. But the paragraph is far too long. This is a subhed This is some more text under the subhead This is a subhed This is some more text under the subhead"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0575,
+  "conf": 0.997
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Evoruthine"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0428,
+  "conf": 0.881
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [ ]:1"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.041,
+  "conf": 0.871
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "In [ ]: 2",
+   "In [1]:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0473,
+  "conf": 0.911
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Function: Hello"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0443,
+  "conf": 0.998
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0456,
+  "conf": 0.995
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Cohuthino"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0466,
+  "conf": 0.767,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "3 This is a great sample function which I use in many of my courses to indicate how",
+   "do",
+   "def hello(name):",
+   "return f'Hello, {name}'",
+   "hello('world')",
+   "Out[1]: 'Hello, world'"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0375,
+  "conf": 0.985
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "This is a great sample function which I use in many of my courses to indicate how",
+   "does all sorts of things|",
+   "def hello(name):",
+   "return f'Hello, {name}'",
+   "hello('world')",
+   "Out[1]: 'Hello, world'"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0375,
+  "conf": 0.986
+ },
+ {
+  "src": "jupyter-md",
+  "lines": [
+   "Function: Hello",
+   "This isa gat sample untion which Iue in many  y courses todicateow Python dos  sor of thn.",
+   "In [1]: 1 def hello(name):",
+   "return f'Hello, {name}'",
+   "hello('world')",
+   "Out[1]: 'Hello, world'"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0427,
+  "conf": 0.942
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "regexp?"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.383,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "@fireship_dev"
+  ],
+  "kinds": [
+   "handle"
+  ],
+  "h": 0.0732,
+  "conf": 0.976
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Before I make a video about Regular Expressions.. How do you pronounce it? Rejex Reg-ex 434 votes · 11 minutes left"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0922,
+  "conf": 0.99
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "HIOE QBVUFSPU Z KrLN"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.2267,
+  "conf": 0.934
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "FIND ATTERNS"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.2173,
+  "conf": 0.963
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "TEXT"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.2107,
+  "conf": 0.99
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "USED TO 1. Validate Text 2. Search through Text"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.217,
+  "conf": 0.976
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const emailValidation = /[a-z0-9!#$%&'*+/=?^_{l}~]+(?:\\.[a-z0-9!#$%&'*+/=?",
+   "_^{|}~]+)*@(?:[a-z0-9]?[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0417,
+  "conf": 0.942
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const phoneNumberVaidation = /^\\s*(?:\\+?(\\d{1,3}))?([-. (]*(\\d{3})[-. )]*)?((\\d{3})",
+   "[-. ]*(\\d{2,4})(?:[-.x ]*(\\d+))?)\\s$/gm"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0372,
+  "conf": 0.966
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const cssColors = /#?:[a-f\\d]{3}){1,2}\\b|rgb\\((?:(?: \\s*0*(?:25[0-5]|2[0-4]\\d|1?\\d?",
+   "\\d)\\s*, ){2}\\s*0*(?: 25[0-5]|2[0-4]\\d|1?\\d?\\d)|\\s*0*(?: 100(?: \\.0+)?|\\d?\\d(?:\\.\\d+)?)%",
+   "(?: \\s*,\\s*0*( ?: 100(?: \\.0+)?|\\d?\\d(?:\\.\\d+)?)%){2})\\s*\\)|hsl\\(\\s*0*(?: 360|3[0-5]d|",
+   "[12]?\\d?\\d)\\s*(?: ,\\s*0*( ?: 100(?:\\.0+)?|\\d?\\d(?:\\.\\d+)?)%\\s*){2}\\)|(?: rgba\\((?:",
+   "(?: \\s*0*(?: 25[0-5]|2[0-4]\\d|1?\\d?\\d)\\s*,){3}|(?: \\s*0*(?: 100(?:\\.0+)?|\\d?",
+   "\\d( ?: \\.\\d+)?)%s*, ){3})|hsla\\(\\s*0*(?: 360|3[0-5]\\d|[12]?\\d?\\d)\\s*( ?: ,\\s*0*",
+   "(?: 100(?:\\.0+)?|\\d?\\d(?:\\.\\d+)?)%\\s*){2},)\\s*0*(?: 1|0(?:\\.\\d+)?)\\s*\\)/ig"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0379,
+  "conf": 0.95
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "7:\\+?(\\d{1,3}))?([-.]*(\\d{3})[-.)]*)?((\\d{3})"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0366,
+  "conf": 0.969
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const phoneNumbe"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0314,
+  "conf": 0.998
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "OO O",
+   "const emailValidation = /[a-z0",
+   "^{|}~]+)*@(?:[a-z0-9](?:[a"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0489,
+  "conf": 0.906
+ },
+ {
+  "src": "regex",
+  "lines": [
+   ":[a-z0-9-]*[a-z0-9])?/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0495,
+  "conf": 0.983
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const cssColors = /#(?:[a-f\\d]{3}){1,2}\\b",
+   "\\d)\\s*,){2}\\s*0*(?:25[0-5]|2[0-4]\\d|1?\\d?",
+   "(?: \\s*,\\s*0*(?:100(?:\\.0+)?|\\d?\\d(?:\\.\\d+",
+   "[12]?\\d?\\d)s*(?: ,\\s*0*( ?: 100(?:\\.0+)?|\\d",
+   "(?: \\s*0*(?:25[0-5]|2[0-4]\\d|1?d?\\d)\\s*,)",
+   "\\d(?:\\.\\d+)?)%\\s*, ){3})|hsla\\(\\s*0*(?: 360|3[@-5)\\d|[12]?\\d?\\d)\\s*(?: , \\s*0*"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0375,
+  "conf": 0.923
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "25[0-5]|2[0-4]\\d|1?\\d?",
+   "100(7:\\.0+)?|\\d?\\d(?:\\.\\d+)?)%",
+   "(5*\\)|hsl\\(\\s*0*(?:360|3[0-5]\\d|",
+   "Kd+)?)%\\s*){2}\\)|(?:rgba\\((?:"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.038,
+  "conf": 0.932
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "(?: 100(? .0+)?|\\d?\\d(? .\\d+)?)%\\s*){2},)\\5*0*(?:1|0(?: \\.\\d+)?)\\s*\\)/ig"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.055,
+  "conf": 0.913
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "O OO",
+   "const phoneNumberVaidation = /^\\s*(?:\\+?(\\d{1,3}))?([-. (]*(\\d{3})[-. )]*)?((\\d{3})",
+   "[-. ]*(\\d{2,4})(?:[-.x ]*(\\d+))?)\\s*$/gm"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0452,
+  "conf": 0.931
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "'Some Text'.search( regex );"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0715,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "find all matching patterns"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1441,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const index"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0564,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "search for a single match"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1381,
+  "conf": 0.996
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "replace matching patterns"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1221,
+  "conf": 0.975
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const regex ="
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0886,
+  "conf": 0.995
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const regex"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0796,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "const regex = /bob/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1074,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Search Pattern"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1108,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Flags"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1548,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "logical OR"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1758,
+  "conf": 0.997
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/Bob/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0656,
+  "conf": 0.963
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Text Tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0594,
+  "conf": 0.995
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "ADDRESS BOOK-"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.049,
+  "conf": 0.97
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Bob Jones 555-5555 Michael Jordan 555-2323 Alice Jones 555-5555"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0519,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/Bob|Alic/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0691,
+  "conf": 0.953
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "( ) grouping"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1443,
+  "conf": 0.947
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "(Bob|Alice)Jones/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0627,
+  "conf": 0.965
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/color/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0676,
+  "conf": 0.969
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "color colour colorrrrrr colors!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0516,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "allow 0 or 1 times"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1386,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colour/ Text Tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0977,
+  "conf": 0.952
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0727,
+  "conf": 0.9
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r Text Tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0974,
+  "conf": 0.959
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "allow 0 or many times"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1597,
+  "conf": 0.996
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r*/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0652,
+  "conf": 0.993
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "allow 1 or many times"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1595,
+  "conf": 0.996
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r+/g Text Tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0952,
+  "conf": 0.986
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r+/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0652,
+  "conf": 0.997
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "{ mIn, max} explicit counts"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.1501,
+  "conf": 0.913
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "se. Indicates the end of a regular ression and the start of ression flags."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0494,
+  "conf": 0.994
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colou?r{2,6}/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0621,
+  "conf": 0.997
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colors/ Text Tests"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0786,
+  "conf": 0.972
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "1 match (0.1ms)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0518,
+  "conf": 0.998
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "escape special chars"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1655,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/colors\\?/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0563,
+  "conf": 0.917
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "any digit"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1997,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "WARNING"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0461,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "\"Live as if you were to die tomorrow. Learn as if you were to live forever.\""
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0449,
+  "conf": 0.992
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/\\d/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0624,
+  "conf": 0.79
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "82 matches (0.5ms)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0441,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Dany NOT digit"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.2525,
+  "conf": 0.934
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "[ ] character sets"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1599,
+  "conf": 0.99
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/[A-Z]/g"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0583,
+  "conf": 0.928
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "2 matches (0.1ms)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0439,
+  "conf": 0.995
+ },
+ {
+  "src": "regex",
+  "lines": [
+   ". Matches a character in the"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0406,
+  "conf": 0.956
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "\"A\" to \"Z\" (char code 65 to 90)."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0493,
+  "conf": 0.967
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "sensitive. forever.\""
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0594,
+  "conf": 0.978
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "lo die tomorrow.Learn as if you were to live"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0457,
+  "conf": 0.982
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "/[LBC]"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0598,
+  "conf": 0.949
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "negation, do the opposite"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.1264,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "cter. Matches a \"L\" character code 76). Case sensitive. \"Live as if you were to die tomorrow. Learn as if you were to live forever.\""
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0496,
+  "conf": 0.994
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Password Validation"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0355,
+  "conf": 0.975
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "length of 8."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0339,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "How do you Pronounce RegEx? Regex Reference"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0393,
+  "conf": 0.99
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Character classes"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0304,
+  "conf": 0.98
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "\"1sMyPasswordoK?\".search(re);"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0315,
+  "conf": 0.973
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Brackets Quantification"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0323,
+  "conf": 0.966
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Anchors How to Use RegEx in JavaScript Create a Regular Expression"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0374,
+  "conf": 0.991
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "JavaScriptFlags"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0499,
+  "conf": 0.997
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Expression"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0465,
+  "conf": 1.0
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "i^ (?=. *d) (?=. * [ a−z] ) ( ?=. * [A−Z] ) ( ?=. * [a−zA−Z] ) . {8, }$/gm"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0412,
+  "conf": 0.852
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "basic"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0309,
+  "conf": 0.994
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Common Examples Password Validation"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0302,
+  "conf": 0.996
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Text TestsNEW"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0484,
+  "conf": 0.982
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "1 match (0.2ms)"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0434,
+  "conf": 0.971
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Remove HTML.Tags"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0305,
+  "conf": 0.977
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Testing193!"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0437,
+  "conf": 0.999
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "REGEXR.COM"
+  ],
+  "kinds": [
+   "link"
+  ],
+  "h": 0.1069,
+  "conf": 0.974
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "*Untitled Pattern Expression /([A-Z])\\W+/g Text Tests RegExr+was-created-bygskinner.com,+and-is-proudly+hosted+by-Media-Temple."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0385,
+  "conf": 0.937
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "Roll-over elements below to highlight in the Expression above. Click to open in Reference."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0229,
+  "conf": 0.998
+ },
+ {
+  "src": "regex",
+  "lines": [
+   "A-Z Range. Matches a character in the range \"A° to \"z\" (char code 65 to 90). Case sensiti."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0274,
+  "conf": 0.966
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "no"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0992,
+  "conf": 0.752,
+  "note": "lectura ilegible del OCR: no se traduce"
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Google MySQL Soccer DB main Tables Country League Match Player"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0206,
+  "conf": 0.984
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Hes Indexes Has Triggers Yes Yes Yes Yes No Yes No"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0192,
+  "conf": 0.959
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "No No No No No No No"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0194,
+  "conf": 0.983
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Player_Attrbutes"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0303,
+  "conf": 0.957
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Team_Attributes"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0302,
+  "conf": 0.979
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0421,
+  "conf": 1.0
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat for MySQL is the ideal solution for MySQU/MariaDB administration and development."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0187,
+  "conf": 0.981
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat 15 for MongoDB Navicat for MongoDB gives you a highly effective"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0242,
+  "conf": 0.974
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "environment for MariaDB database management and development. Learn more >"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0187,
+  "conf": 0.962
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "management, administration and development."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0226,
+  "conf": 0.979
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat 15 for SQL Server pproach to SQL. Server database management"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0322,
+  "conf": 0.989
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "environment for MariaB database management and development. Learn more >"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0187,
+  "conf": 0.951
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Learn more> Free Trial"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0296,
+  "conf": 0.996
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "and development: Learn more > Buy Now"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0302,
+  "conf": 0.962
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat 15 for MySQL MySQL/MariaDB adminstation and development."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0337,
+  "conf": 0.962
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat for MongoDB gives you a highly effective"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0226,
+  "conf": 0.972
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "MySQL/MariaDB administration and development."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0226,
+  "conf": 0.979
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat for SQL Server provides a fuly graphical"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0226,
+  "conf": 0.96
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat Monitor Navicat Data Modeler Navicat Cloud Navicat Essentials"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0221,
+  "conf": 0.975
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "a strearmlined working environment Leamn more > Free Trial"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.029,
+  "conf": 0.965
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Navicat 15 for MySQL Navicat for MySQL is the ideal solution for"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0248,
+  "conf": 0.965
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "MySQUMariaDB administration and development."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0226,
+  "conf": 0.97
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "League"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0325,
+  "conf": 0.951
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Player_Attributes"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0352,
+  "conf": 0.993
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Backups"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0296,
+  "conf": 0.964
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "MariaDB Test"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0301,
+  "conf": 0.997
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "main Tables Country League Match Player"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0321,
+  "conf": 0.997
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Has Indexes Yes Yes Yes Yes No Yes No"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0302,
+  "conf": 0.999
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Player_Attributes11"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0395,
+  "conf": 0.94
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Team Team_Attributes 2"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0309,
+  "conf": 0.975
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "1 505942 Aaron Appindangoye 2 155782 Aaron Cresswell 3 162549 Aaron Doran 4 30572 Aaron Galindo 5 23780 Aaron Hughes 27316 Aaron Hunt 7 564793 Aaron Kuhl 8 30895 Aaron Lennon 9 528212 Aaron Lennox 10 101042 Aaron Meijers 11 23889 Aaron Mokoena 1 231592 Aaron Mooy 13 163222 Aaron Muirhead 14 40719 Aaron Niguez 15 75489 Aaron Ramsey 16 597948 Aaron Splaine 17 161644 Aaron Taylor-Sinclair 18 23499 Aaron Wilbraham 19 120919 Aatif Chahechouhe 20 46447 Abasse Ba 21 167027 Abdelaziz Barrada 22 245653 Abdelfettah Boukhris 23 128456 Abdelhamid El Kaout: 24 42664 Abdelkader Ghezzal 25 425950 Abdellah Zoubir 26 38423 Abdelmajid Oulmers 3264 Abdelmalek Cherrad 28 467485 Abdelmalek El Hasna 29 306735 Abdelouahed Chakhs 30 41659 Abderrazak Jadid 31 31684 Abdeslam Ouaddou"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0299,
+  "conf": 0.979
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "23780 Aaron Hughes"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0309,
+  "conf": 0.984
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "11 23889 Aaron Mokoena"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.031,
+  "conf": 0.971
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "22 245653 Abdelfettah Boukhris"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0304,
+  "conf": 0.967
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "23 128456 Abdelhamid El Kaouti 24 42664 Abdelkader Ghezzal 25 425950 Abdellah Zoubir 26 38423 Abdelmajid Oulmers"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0257,
+  "conf": 0.951
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "37 173955 Abdoul Razzagui Can"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0298,
+  "conf": 0.959
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Example query"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0302,
+  "conf": 0.977
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "select * from playe"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.035,
+  "conf": 0.967
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "Country"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0325,
+  "conf": 0.997
+ },
+ {
+  "src": "sql",
+  "lines": [
+   "#Untld@main (Soccer.."
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0221,
+  "conf": 0.853
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "def first_call():",
+   "second_call()"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0536,
+  "conf": 0.999
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "def second_call():",
+   "third_call()"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0518,
+  "conf": 0.999
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "def third_call():"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0448,
+  "conf": 0.998
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "The following line will raise TypeError result ="
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0506,
+  "conf": 0.978
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "'teehee"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0435,
+  "conf": 0.993
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "if"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0468,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "_main"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0417,
+  "conf": 0.982
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "name"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.034,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "first_call()"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0615,
+  "conf": 0.999
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "Traceback (most recent call last):",
+   "File \"toy.py\", line 15, in <module>",
+   "first_call()",
+   "File \"toy.py\", line 2, in first_call",
+   "second_call()",
+   "File \"toy.py\", line 6, in second_call",
+   "third_call()",
+   "File \"toy.py\", line 11, in third_call",
+   "result = 1 + 'teehee'",
+   "TypeError: unsupported operand type(s)",
+   "for +: 'int' and 'str'",
+   "The following line will raise TypeError",
+   "result ="
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0494,
+  "conf": 0.991
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "'teehee'"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0477,
+  "conf": 0.975
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "top of call stack"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0399,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "third_call"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0483,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "second_call"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0484,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "first_call"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0441,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "<module>"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0435,
+  "conf": 0.999
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "bottom of call stack"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0359,
+  "conf": 0.997
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "# The following line will raise TypeError"
+  ],
+  "kinds": [
+   "comment"
+  ],
+  "h": 0.0548,
+  "conf": 0.99
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "result ="
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0481,
+  "conf": 0.999
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "teehee"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0472,
+  "conf": 1.0
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "top of call stack",
+   "third_call",
+   "second_call",
+   "first_call"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0797,
+  "conf": 0.989
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "type of exception (here"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0442,
+  "conf": 0.998
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "details on what went wrong"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0437,
+  "conf": 0.978
+ },
+ {
+  "src": "traceback",
+  "lines": [
+   "TypeError)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0476,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Ronaldo sets new World Cup goal record Alcaraz wins thrilling U.s. Open final Messi"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0955,
+  "conf": 0.993
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Mark Woods, V.C"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0621,
+  "conf": 1.0
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Why pay for livestream graphics software"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0272,
+  "conf": 0.994
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "How to customize templates in Xpress"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0276,
+  "conf": 0.983
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "and enhance production quality in real"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0272,
+  "conf": 0.992
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Change the Font in Local Languages"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0257,
+  "conf": 0.987
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Clean energy projects continue expanding across"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0258,
+  "conf": 0.992
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Sets the size along the X-axis"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0222,
+  "conf": 0.988
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "medical technologies that could improve treatment"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0228,
+  "conf": 0.984
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "when you can access a wide range of"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0272,
+  "conf": 0.925
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Edit View Docks Profile Scene Collection Tools Help"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0221,
+  "conf": 0.962
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Audio Mixer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0215,
+  "conf": 1.0
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Start Streaming"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0216,
+  "conf": 0.997
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Start Virtual Cam"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0217,
+  "conf": 0.994
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Scene Transitions"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.022,
+  "conf": 0.987
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Hierarchy (F9)"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0214,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Play Control"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0212,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "This PC"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0203,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "New Tab"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0252,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Ask Gemini"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0216,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Add shortcut"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0214,
+  "conf": 0.978
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "ADD TO CARTBUY NOW"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0233,
+  "conf": 0.987
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "BUY NOW"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0253,
+  "conf": 0.997
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Sort By: Relevance"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0213,
+  "conf": 0.968
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Fle name: Fles of type:"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0239,
+  "conf": 0.95
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "OFFAR Refresh Z-Order1 Prefer"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0215,
+  "conf": 0.815
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Offet0.0000.0000.00 Scalng P1.0001.0001.00 Rotation0.0000.0000.000 Center0.500 Reset A"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.026,
+  "conf": 0.933
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Follow"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0249,
+  "conf": 0.999
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "Sign InSign Up"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0332,
+  "conf": 0.938
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "#Follow"
+  ],
+  "kinds": [
+   "hashtag"
+  ],
+  "h": 0.0362,
+  "conf": 0.942
+ },
+ {
+  "src": "news-gfx",
+  "lines": [
+   "#rtgfx4all"
+  ],
+  "kinds": [
+   "hashtag"
+  ],
+  "h": 0.0643,
+  "conf": 1.0
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "HOME INSERT DESIGN TRANSITIONS ANIMATIONS SLIDE SHOW REVIEW VIEW ADD-INS Edit Shape Te"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0322,
+  "conf": 0.968
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "TRANSITIONS ANIMATIONS SLIDE SHOW REVIEW VIEW ADD-INS"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0284,
+  "conf": 0.983
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Bring FowardAlig3.79 m"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0463,
+  "conf": 0.822
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Bring Fowardlign2.99 m"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0447,
+  "conf": 0.755
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Format PainterSlidSectin B I U S ab A - Aa"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.044,
+  "conf": 0.779
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "HOME INSERT DESIGN Edit Shape"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.033,
+  "conf": 0.968
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Bring to Front"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0301,
+  "conf": 0.997
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Format Shape"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0392,
+  "conf": 1.0
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Click and drag to insert an AutoShape."
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0314,
+  "conf": 0.988
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Flip Vertical"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0296,
+  "conf": 0.998
+ },
+ {
+  "src": "bullets-ppt",
+  "lines": [
+   "Gradient fill"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0301,
+  "conf": 1.0
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "View Automate Developer Help Power Pivot ab Wrap Text"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0573,
+  "conf": 0.969
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "Search View Automate Developer Help Power Pivot ab Wrap Text"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0646,
+  "conf": 0.948
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "nVlookup Newxisx =Saved File Home Insert Draw Page Layout Formulas Data Review View Automate"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0422,
+  "conf": 0.909
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "AutoSave nVlokup New.xdsx* Saved"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0362,
+  "conf": 0.847
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "PteBIU"
+  ],
+  "kinds": [
+   "ui"
+  ],
+  "h": 0.0515,
+  "conf": 0.783
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "=VLOOKUP(D2,A2:B16,2, FALSE)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0624,
+  "conf": 0.904
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "fx=v1ookup(D2,A2:B16,2,FALSE)"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0362,
+  "conf": 0.912
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "= FALSE"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0411,
+  "conf": 0.977
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "Price Classic Chocolate Chip Cookie =vlookup( Snickerdoodle Cookie Double Chocolate Chunk Co"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0661,
+  "conf": 0.998
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "= \"Classic Chocolate Chip Cookie\" = {Classic Chocolate Chip Cookie\",2..."
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0384,
+  "conf": 0.919
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "VLOOKUP(lookup_value, tble_aray, col_ndex_num, [range lookup])"
+  ],
+  "kinds": [
+   "code"
+  ],
+  "h": 0.0465,
+  "conf": 0.81
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "Formula result = 2.5 Help on this function"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0457,
+  "conf": 0.978
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "specify. By default, the table must be sorted in an ascending order. Lookup_value is the val"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0331,
+  "conf": 0.964
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "Function Arguments VLOOKUP"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0463,
+  "conf": 0.97
+ },
+ {
+  "src": "excel",
+  "lines": [
+   "Cookie Names"
+  ],
+  "kinds": [
+   "text"
+  ],
+  "h": 0.0479,
+  "conf": 1.0
+ }
+]

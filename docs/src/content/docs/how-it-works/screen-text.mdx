@@ -1,0 +1,83 @@
+---
+title: Text in the video
+description: How Translay reads what is written in a video, decides what to translate (and leaves code alone), and puts the Spanish on top in the same place.
+sidebar:
+  order: 4.7
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Besides what is said, a video often has text written in it: titles, signs, slides, captions burned into the image, comments in a programming course. Translay reads that text, translates it and shows the Spanish on top of the original, in the same place and with the same colors, as if it were part of the video. Code, commands and links stay as they are: translating `return data` or `pip install requests` would break what you are watching. How to turn it on or off: [Preferences › Audio y subtítulos](../../guide/preferences/).
+
+It runs on the CPU, in parallel with speech recognition and voice, with a quarter of the threads: on a busy screen recording it reads about twice as fast as real time, and much faster on videos where the text changes little. The GPU only translates.
+
+## Reading
+
+`vt/ocr.py` uses two official [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv5 models (Apache 2.0) in ONNX, with their revision pinned and downloaded by Translay the first time (13 MB together):
+
+| Model | What it does |
+|---|---|
+| `PP-OCRv5_mobile_det` | Finds where there is text: a map of the frame reduced to 960 px on its long side. |
+| `latin_PP-OCRv5_mobile_rec` | Reads each line, 48 px high, with the Latin alphabet and its accents (English, Portuguese and Spanish). |
+
+Around the models, everything is Translay's own and runs without OpenCV: the map is split into regions by row runs, each region is scored and enlarged like PaddleOCR's DB post-processing, the boxes of the same line are joined (the detector cuts the words of a monospaced font), and the reading is decoded with greedy CTC.
+
+## Following the video
+
+`vt/screentext.py` goes through the video once:
+
+1. **Sampling.** One frame every half second. If the frame barely changed (a grey thumbnail compared in 8×8 blocks), it isn't read again: what was on screen is still there.
+2. **Reuse.** A line in the same place and with the same image as in the previous frame keeps its reading. In a screen recording almost everything stays still, so only what changed is read.
+3. **Blocks.** Lines that are close, aligned and of similar height join into a paragraph, so the translator receives whole sentences.
+4. **Tracking.** The same block in consecutive frames is a single element with its start and end (half a second of precision). Something seen only once and with low confidence is discarded as a flicker.
+5. **Colors.** The background is the median of the border around the block; the text color, the inside pixels farthest from the background. The box that covers the original uses both.
+
+Results are saved in batches every 15 s of video, so a long video can be watched while it is being read, and a read that was cut resumes where it stopped.
+
+## What gets translated
+
+`vt/textkind.py` gives each line a type. It is a registry: each type is a function that recognizes it, with its label, whether it is translated and whether it dominates its block.
+
+| Type | Example | Translated |
+|---|---|---|
+| Text | `Welcome to the kitchen` | Yes |
+| Comment | `# read the config file`, `// start the server` | Yes, keeping its mark (`#`, `//`, `/* */`) |
+| Code | `data = json.loads(path.read_text())` | No |
+| Command | `$ pip install requests`, `npm install express --save` | No |
+| Link | `https://docs.python.org/3/` | No |
+| Email | `dev@example.com` | No |
+| Handle | `@monarchwebworld` | No |
+| Hashtag | `#rtgfx4all` | No |
+| Interface | Tabs, bookmarks and menus of a shared screen, `^X Exit`, a drawn keyboard | No |
+
+Code is recognized by a score: symbols, operators, calls, names shaped like code (`camelCase`, `snake_case`, `a.b.c`), keywords, an editor's line numbers, data dumps, file names, Dockerfile instructions and terminal lines (a prompt anywhere, `ls -l` permissions, «program: error»). In a block where most lines are code, the doubtful ones (`data`, `else`) are code too. A comment at the end of a code line (`return data  # parsed settings`) is split off and translated on its own.
+
+Some types need more than the words, so a rule can also receive where the line is: its height, how confident the reading was and how many small texts the frame has. Small text in a frame full of small text is a screen's interface (a browser's sidebar); the same size in an animation with few texts is content. When the frame shows a terminal, short lines next to it with the same font are terminal too: in a listing, `is` or `for` are file names.
+
+Text that appears letter by letter (kinetic typography, typewriter) is one element: when a new reading starts like the previous one in the same place, it keeps the complete text instead of translating each fragment.
+
+<Aside type="tip" title="Adding a type">
+A new kind of element is one function in `vt/textkind.py`:
+
+```python
+@register("hashtag", "Hashtag", order=5)
+def _hashtag(t: str) -> bool:
+    return t.startswith("#") and " " not in t
+```
+
+Functions that return `True`/`False` decide in `order`; those that return a number compete and the highest wins if it reaches its `threshold`. With `where=True` the function also receives `ctx` (`h`, `conf`, `small`). Saving, the API and the player use the name from the registry.
+</Aside>
+
+## How it is improved
+
+The rules are tuned with real videos in a loop: `tools/lab/screentext.py` reads programming, terminal, talk, class and marketing videos once, and `tools/lab/screentext_eval.py` re-scores the current rules in under a second against a labelled reference (`tools/lab/screentext_gold.json`). Each new video is measured before it is labelled, and a change stays only if it doesn't lower any type; `tests/test_screentext.py` fails if the reference gets worse.
+
+Text that is already in Spanish (the translation comes back the same) isn't covered.
+
+## On the player
+
+Each translated element is a flat box with the original background color and the text in its color, placed over the real image of the video (without the black bars). The text shrinks until it fits its box; a one-line box can grow up to 1.6 times its width first, without leaving the frame, because Spanish is usually longer. Comments use a monospaced font and stay aligned to the left, like the editor in the video. Hovering over a box shows what the original said.
+
+## When exporting
+
+The video in Spanish carries the same boxes burned into the image: `vt/screentext.py` writes them as ASS subtitles (a box drawn in the background color and the text with its color and size) and FFmpeg burns them with `subtitles`. Burning means re-encoding the video with H.264, even in «original» quality.

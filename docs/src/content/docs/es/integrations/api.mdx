@@ -40,8 +40,8 @@ Si borras la biblioteca de una clave de una sola biblioteca, la clave deja de se
 
 ### Sin clave
 
-- **Desde el mismo equipo** donde corre la app (ver [Acceso](../access/)), un pedido sin `Authorization` responde como al dueño. Así puedes probar con `curl` sin crear una clave.
-- **Con una clave inválida o revocada**, la respuesta es `401` aunque el pedido venga del mismo equipo: no se cae al acceso de dueño.
+- **Desde el mismo equipo** donde corre la app (ver [Acceso](../access/)), un pedido sin `Authorization` responde como al propietario. Así puedes probar con `curl` sin crear una clave.
+- **Con una clave inválida o revocada**, la respuesta es `401` aunque el pedido venga del mismo equipo: no se cae al acceso de propietario.
 - **Desde otro equipo, sin clave**, la API usa lo mismo que el navegador: la cookie de sesión `vt_s`, si la manda, y las bibliotecas públicas.
 
 ## Respuestas y errores
@@ -62,7 +62,7 @@ Las respuestas son JSON (`application/json; charset=utf-8`), salvo los subtítul
 
 Todas piden permiso de **lectura** sobre la biblioteca, salvo donde se indica.
 
-- `GET /libraries` lista las bibliotecas que la clave puede ver: `id`, `name`, `count` (videos), `downloaded`, `main`, `color`, `icon`, `pattern`. Solo el dueño recibe además `path` (la carpeta) y `access` (la visibilidad).
+- `GET /libraries` lista las bibliotecas que la clave puede ver: `id`, `name`, `count` (videos), `downloaded`, `main`, `color`, `icon`, `pattern`. Solo el propietario recibe además `path` (la carpeta) y `access` (la visibilidad).
 - `GET /libraries/{lib}/collections` da `id`, `name`, `kind`, `count`, `url` y `channel` (estos dos pueden venir en `null`). Los `id` automáticos son `all`, `recent`, `ch-…` (canales) y `cat-…` (categorías).
 - `GET /libraries/{lib}/search?q=` busca en las transcripciones y responde `{q, total, results}`.
 - `GET /libraries/{lib}/glossary` da `{entries}`. `PUT` con `{"entries": [{"src": "prompt", "dst": "instrucción"}]}` lo reemplaza entero; pide **escritura**.
@@ -88,7 +88,7 @@ Para recorrerla entera, suma `limit` a `offset` hasta pasar `total`.
 - `urls` acepta enlaces de YouTube a videos o playlists (o un id de 11 caracteres). También vale `"url": "…"` para uno solo. Lo que no es de YouTube se ignora.
 - `mode`: `traducir` (traducir y doblar) o `descargar` (solo bajar el video). Si lo omites, usa la preferencia **Al agregar** de esa biblioteca.
 - `lang`: `auto` (por omisión: se detecta con los primeros segundos de voz), `en`, `pt` o `es`.
-- `task`: `translate` (traducir y doblar) o `transcribe` (solo transcribir, en su idioma). Si lo omites, un video en el idioma de la preferencia **Solo transcribir lo que está en** solo se transcribe y el resto se traduce.
+- `task`: `translate` (traducir y doblar) o `transcribe` (solo transcribir, en su idioma). Si lo omites, un video en el idioma de la preferencia **Solo transcribir videos en** solo se transcribe y el resto se traduce.
 - `priority: true` los pone primero en la cola, y entonces se procesan aunque `mode` sea `descargar`.
 - Cada playlist se importa como colección de la biblioteca.
 
@@ -107,7 +107,7 @@ Responde `202` con `{"videos": 3, "playlists": 1, "elsewhere": {"Ciencia": 2}}`:
 
 ## Cola
 
-- `GET /queue?library=` (**lectura**) da `{paused, current, blocked_until, jobs}`, solo con los trabajos de las bibliotecas que la clave ve; `library` filtra por una. `current` (lo que se procesa ahora) solo se muestra al dueño. `blocked_until` es distinto de 0 mientras YouTube pide verificación.
+- `GET /queue?library=` (**lectura**) da `{paused, current, blocked_until, jobs}`, solo con los trabajos de las bibliotecas que la clave ve; `library` filtra por una. `current` (lo que se procesa ahora) solo se muestra al propietario. `blocked_until` es distinto de 0 mientras YouTube pide verificación.
 - `POST /queue` (**escritura**) con `{"video": "yt_…", "priority": true}` manda un video que ya está en la biblioteca a la cola; con `priority`, primero.
 - `DELETE /queue/{id}` (**escritura**) lo quita de la cola.
 - `POST /queue/pause` y `POST /queue/resume` pausan o reanudan todo el procesamiento. Como afectan a todas las bibliotecas, piden una clave de **escritura para todas las bibliotecas**.
@@ -265,7 +265,7 @@ await writeFile("video.mp4", Buffer.from(await file.arrayBuffer()));
 
 La app web usa otras tres rutas, fuera de `/api/v1`, pensadas para el navegador:
 
-- `POST /api/auth/login` con `{"password": "…"}` (dueño) o `{"password": "…", "vault": "<id>"}` (biblioteca con contraseña). Si acierta, responde `200` con la cookie `vt_s`; si no, `401`.
+- `POST /api/auth/login` con `{"password": "…"}` (propietario) o `{"password": "…", "vault": "<id>"}` (biblioteca con contraseña). Si acierta, responde `200` con la cookie `vt_s`; si no, `401`.
 - `POST /api/auth/logout` borra la sesión.
 - `GET /api/auth/me` dice qué puede la conexión: `{owner, perms, local}`.
 
