@@ -29,7 +29,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import events
+from . import events, i18n
 from .streaming import Segment, StreamingTranscriber, speech_samples, vote_language
 
 SR = 16000
@@ -581,7 +581,7 @@ class Processor:
             return self.root / "youtube" / name
         if name not in ("", ".", "..") and src.startswith("/media/lib/"):
             return self.root / "library" / name
-        raise FileNotFoundError("el video no tiene copia en el servidor")
+        raise FileNotFoundError(i18n.t("el video no tiene copia en el servidor"))
 
     def video_file(self, vid: str) -> Path | None:
         """El archivo con imagen del video (None si solo se descargó el audio)."""

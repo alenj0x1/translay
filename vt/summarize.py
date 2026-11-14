@@ -167,46 +167,44 @@ def parse_points(text: str, chunk: list[tuple[float, str]]) -> list[dict]:
 
 
 def _target() -> str:
-    return langs.name(langs.TARGET)
+    """Cómo se le nombra al modelo el idioma de la app (los pedidos van en inglés)."""
+    return langs.PROMPT[langs.ui()]
+
+
+_SYSTEM = "You are an assistant that summarizes videos. You always write in {language}, clearly and faithfully to what is said, without inventing anything."
 
 
 def points_prompt(chunk: list[tuple[float, str]], lang: str, part: int, parts: int) -> tuple[str, str]:
-    where = f" (parte {part} de {parts})" if parts > 1 else ""
-    system = (f"Eres un asistente que resume videos. Escribes siempre en {_target()} latinoamericano, "
-              "claro y fiel a lo que se dice, sin inventar nada.")
+    where = f" (part {part} of {parts})" if parts > 1 else ""
     body = "\n".join(f"[{stamp(t)}] {x}" for t, x in chunk)
-    user = (f"Esta es la transcripción de un video{where}, en {langs.name(lang)}. Cada línea empieza con su minuto.\n\n"
+    user = (f"This is the transcript of a video{where}, in {langs.name(lang, 'en')}. Each line starts with its minute.\n\n"
             f"{body}\n\n"
-            f"Haz en {_target()} la lista de los puntos importantes que se tratan en este fragmento: todos los "
-            "que haya, sin repetir y sin relleno. No traduzcas ni copies frases: resume con tus palabras qué se "
-            "dice. Cada punto es una sola oración breve (máximo 30 palabras) que se entiende sola, por ejemplo "
-            "«Explica que…» o «Cuenta cómo…». Un punto por línea, con el formato:\n"
-            "[mm:ss] punto\n"
-            "donde mm:ss es el minuto en que empieza a tratarse. Responde solo con la lista.")
-    return system, user
+            f"Write in {_target()} the list of the important points covered in this fragment: all of them, "
+            "without repeating and without filler. Don't translate or copy sentences: summarize in your own words "
+            "what is said. Each point is one short sentence (30 words at most) that stands on its own. One point "
+            "per line, in the format:\n"
+            "[mm:ss] point\n"
+            "where mm:ss is the minute where it starts. Reply only with the list.")
+    return _SYSTEM.format(language=_target()), user
 
 
 def part_prompt(items: list[str], part: int, parts: int) -> tuple[str, str]:
-    system = (f"Eres un asistente que resume videos. Escribes siempre en {_target()} latinoamericano, "
-              "claro y fiel a lo que se dice, sin inventar nada.")
     body = "\n".join(f"- {x}" for x in items)
-    user = (f"Estos son los puntos importantes de la parte {part} de {parts} de un video, en orden:\n\n{body}\n\n"
-            f"Escribe en {_target()} un solo párrafo que cuente qué se trata en esta parte, sin listas ni títulos. "
-            "Responde solo con el párrafo.")
-    return system, user
+    user = (f"These are the important points of part {part} of {parts} of a video, in order:\n\n{body}\n\n"
+            f"Write in {_target()} a single paragraph telling what this part covers, without lists or titles. "
+            "Reply only with the paragraph.")
+    return _SYSTEM.format(language=_target()), user
 
 
 def overview_prompt(title: str, items: list[str], lang: str, parts: bool = False) -> tuple[str, str]:
-    system = (f"Eres un asistente que resume videos. Escribes siempre en {_target()} latinoamericano, "
-              "claro y fiel a lo que se dice, sin inventar nada.")
     body = "\n".join(f"- {x}" for x in items)
-    what = "lo que se trata en cada parte del video" if parts else "los puntos importantes que se tratan en el video"
-    user = ((f"Video: «{title}»\n\n" if title else "") +
-            f"Estos son {what}, en orden:\n\n{body}\n\n"
-            f"Escribe en {_target()} un resumen de qué se trató el video: el tema, cómo se desarrolla y a qué "
-            "conclusiones llega. Uno a tres párrafos según cuánto se trató, sin listas, sin títulos y sin "
-            "empezar con «En este video». Responde solo con el resumen.")
-    return system, user
+    what = "what each part of the video covers" if parts else "the important points covered in the video"
+    user = ((f"Video: \"{title}\"\n\n" if title else "") +
+            f"These are {what}, in order:\n\n{body}\n\n"
+            f"Write in {_target()} a summary of what the video was about: the topic, how it unfolds and what "
+            "conclusions it reaches. One to three paragraphs depending on how much it covered, without lists, "
+            "without titles and without starting with \"In this video\". Reply only with the summary.")
+    return _SYSTEM.format(language=_target()), user
 
 
 class Summarizer:
@@ -290,7 +288,7 @@ class Summarizer:
         self.load()
         cs = chunks(lines(segments), count=self.tokens)
         if not cs:
-            return {"overview": "", "points": [], "model": self.key, "lang": langs.TARGET,
+            return {"overview": "", "points": [], "model": self.key, "lang": langs.ui(),
                     "created": time.time(), "seconds": 0.0, "empty": True}
         total = len(cs) + 1
         points: list[dict] = []
@@ -323,7 +321,7 @@ class Summarizer:
         overview = run(lambda: self.generate(system, user, MAX_OVERVIEW_TOKENS))
         if progress:
             progress(total, total)
-        return {"overview": overview.strip(), "points": points, "model": self.key, "lang": langs.TARGET,
+        return {"overview": overview.strip(), "points": points, "model": self.key, "lang": langs.ui(),
                 "created": time.time(), "seconds": round(time.perf_counter() - t0, 1)}
 
 

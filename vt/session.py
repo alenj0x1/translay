@@ -60,7 +60,7 @@ import numpy as np
 from functools import partial
 
 from .store import _SAFE_ID as _SAFE_VID, Store, Transcript
-from . import events, langs
+from . import events, i18n, langs
 from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
 
@@ -498,12 +498,11 @@ class Session:
             await self.ws.send_json({"type": "update", **info})
         except Exception as e:  # sin conexión o GitHub no respondió
             print(f"[actualizaciones] {e}", flush=True)
-            await self.ws.send_json({"type": "update", "error": "No se pudo consultar GitHub. Revisa la conexión a internet."})
+            await self.ws.send_json({"type": "update", "error": i18n.t("No se pudo consultar GitHub. Revisa la conexión a internet.")})
 
     def _own_lang(self) -> str | None:
         """Idioma propio (Ajustes): lo que se habla en él solo se transcribe."""
-        v = self.prefs.values.get("transcribe_lang", langs.TARGET) if self.prefs else langs.TARGET
-        return v if langs.is_source(v) else None
+        return self.prefs.own_lang if self.prefs else None
 
     async def _live_translation(self, src: str) -> str:
         """Traduce la frase abierta para el subtítulo en vivo (solo si cambió)."""
@@ -531,8 +530,9 @@ class Session:
             await loop.run_in_executor(None, self.translator.prepare, tr.lang)  # fuera del hilo de la GPU
         except Exception as e:  # sin conexión, por ejemplo: se avisa (la cola lo reintenta al procesar)
             print(f"[traductor] {tr.lang}: {e}", flush=True)
-            await self.ws.send_json({"type": "yt_error", "error": "No se pudo preparar el traductor de "
-                                     f"{langs.name(tr.lang)}. Revisa la conexión. Se reintentará al procesar el video."})
+            await self.ws.send_json({"type": "yt_error", "error": i18n.t(
+                "No se pudo preparar el traductor de {language}. Revisa la conexión. Se reintentará al procesar el video.",
+                language=langs.name(tr.lang, langs.ui()))})
             return
         tx = partial(self.translator.translate_many, glossary=self._gl(tr), src=tr.lang)
         while self.tr is tr and (todo := tr.stale(name)[:16]):
@@ -634,7 +634,7 @@ class Session:
     async def _youtube(self, url: str, queue: bool = False):
         loop = asyncio.get_running_loop()
         if not self.youtube:
-            await self.ws.send_json({"type": "yt_error", "error": "YouTube no está habilitado"})
+            await self.ws.send_json({"type": "yt_error", "error": i18n.t("YouTube no está habilitado")})
             return
         from .youtube import video_id
 
@@ -819,14 +819,15 @@ class Session:
 
         asr = self.st.asr
         if asr.name.endswith(".en"):
-            return await reply(error="El dictado necesita un modelo de reconocimiento en español. "
-                                     "Elige otro perfil en Ajustes › Rendimiento.")
+            return await reply(error=i18n.t(
+                "El dictado necesita un modelo de reconocimiento en {language}. Elige otro perfil en Ajustes › Rendimiento.",
+                language=langs.name(langs.target(), langs.ui())))
         try:
             raw = base64.b64decode(str(m.get("audio", "")), validate=True)
         except ValueError:
-            return await reply(error="No se pudo leer la grabación.")
+            return await reply(error=i18n.t("No se pudo leer la grabación."))
         if not raw or len(raw) > DICTATE_BYTES:
-            return await reply(error="La grabación supera un minuto. Dicta en partes más cortas.")
+            return await reply(error=i18n.t("La grabación supera un minuto. Dicta en partes más cortas."))
         loop = asyncio.get_running_loop()
 
         def decode() -> np.ndarray:
@@ -838,11 +839,11 @@ class Session:
         try:
             audio = await loop.run_in_executor(None, decode)
         except Exception:
-            return await reply(error="No se pudo leer la grabación.")
+            return await reply(error=i18n.t("No se pudo leer la grabación."))
         if audio.size < SR // 4:
             return await reply()
         words = await loop.run_in_executor(self.gpu, self.res.run, ("asr",),
-                                           partial(asr.transcribe, audio, None, langs.TARGET))
+                                           partial(asr.transcribe, audio, None, langs.target()))
         await reply(text="".join(w.text for w in words).strip())
 
     async def _agent_context(self, m: dict):
@@ -917,7 +918,7 @@ class Session:
             # la carpeta fija de Ajustes › Exportar (desde ahí o el diálogo de exportar)
             p = self.prefs.values
             path = await asyncio.get_running_loop().run_in_executor(
-                None, pick_folder, "Dónde guardar lo exportado", p.get("export_dir") or p.get("export_last_dir") or "")
+                None, pick_folder, i18n.t("Dónde guardar lo exportado"), p.get("export_dir") or p.get("export_last_dir") or "")
             if path:
                 self.prefs.set("export_dir", str(Path(path)))
                 self.prefs.set("export_ask", "carpeta")
@@ -952,7 +953,7 @@ class Session:
                         chosen = await loop.run_in_executor(None, pick_save, planned, last)
                         dest, filename = (str(Path(chosen).parent), Path(chosen).name) if chosen else ("", "")
                     else:
-                        dest = await loop.run_in_executor(None, pick_folder, f"Dónde guardar «{planned}»", last)
+                        dest = await loop.run_in_executor(None, pick_folder, i18n.t("Dónde guardar «{name}»", name=planned), last)
                     if not dest:
                         if _dialog_available():  # lo canceló; sin pantalla (Docker), se descarga
                             return await self.ws.send_json({"type": "export_cancelled"})
@@ -1104,7 +1105,7 @@ class Session:
             vault = self._vault_of(vid)
             ref = self._voice_meta(vid).get(spk)
             if not ref:
-                return await self.ws.send_json({"type": "yt_error", "error": "Esta persona aún no tiene una voz de referencia"})
+                return await self.ws.send_json({"type": "yt_error", "error": i18n.t("Esta persona aún no tiene una voz de referencia")})
             vault.save_person(str(m.get("name", "")), vault.root / "voices" / vid / ref["file"], ref.get("text", ""),
                               str(m.get("id") or "") or None)
         else:
@@ -1202,11 +1203,11 @@ class Session:
                 if m.get("what") == "trash":
                     await self._trash({"type": "trash_list"})
             except (ValueError, OSError) as e:
-                await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+                await self.ws.send_json({"type": "vault_error", "error": str(e) or i18n.t("no se pudo")})
         try:
             out = await loop.run_in_executor(None, self.storage.scan)
         except OSError as e:
-            return await self.ws.send_json({"type": "vault_error", "error": f"No se pudo medir el espacio. {e}"})
+            return await self.ws.send_json({"type": "vault_error", "error": i18n.t("No se pudo medir el espacio. {e}", e=e)})
         await self.ws.send_json(out)
         if out["has_install"] and out["install"] is None:  # lo lento, aparte
             install = await loop.run_in_executor(None, self.storage.measure_install)
@@ -1238,12 +1239,12 @@ class Session:
             elif t == "trash_purge":
                 tid, everything = str(m.get("id") or ""), m.get("all") is True
                 if not tid and not everything:
-                    raise ValueError("No se indicó qué borrar de la papelera")
+                    raise ValueError(i18n.t("No se indicó qué borrar de la papelera"))
                 for v in ([self.vaults.get(str(m["vault"]))] if m.get("vault") else self.vaults.all()):
                     if v:
                         await loop.run_in_executor(None, lambda v=v: Trash(v.root).purge(tid=tid or None, everything=everything))
         except (ValueError, OSError) as e:
-            await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+            await self.ws.send_json({"type": "vault_error", "error": str(e) or i18n.t("no se pudo")})
         items = []
         for v in self.vaults.all():
             if self.access.can_view(v.id):
@@ -1418,7 +1419,7 @@ class Session:
             if t == "admin_owner_pw":
                 pw = str(m.get("password", ""))
                 if pw and len(pw) < 6:
-                    raise ValueError("La contraseña debe tener al menos 6 caracteres")
+                    raise ValueError(i18n.t("La contraseña debe tener al menos 6 caracteres"))
                 a.auth.set_owner_password(pw)
             elif t == "admin_vault_access":
                 a.auth.set_vault_access(str(m.get("id", "")), str(m.get("mode", "")), str(m.get("perm", "ver")),
@@ -1441,7 +1442,7 @@ class Session:
             elif t == "admin_network":
                 await a.set_network(bool(m.get("on")))
         except (ValueError, OSError) as e:
-            return await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+            return await self.ws.send_json({"type": "vault_error", "error": str(e) or i18n.t("no se pudo")})
         if t == "admin_get":
             return await self.ws.send_json(a.public())
         self.notify(a.public())  # todas las pestañas del dueño
@@ -1503,7 +1504,7 @@ class Session:
             else:
                 return
         except (ValueError, OSError, KeyError) as e:
-            return await self.ws.send_json({"type": "vault_error", "error": str(e) or "no se pudo"})
+            return await self.ws.send_json({"type": "vault_error", "error": str(e) or i18n.t("no se pudo")})
         self.notify({"type": "vaults_changed"})
         await self._send_vault_state()
 
@@ -1538,7 +1539,7 @@ class Session:
         from . import cookies, ytsession
 
         if not self.access.local:
-            return await self._cookies_status({"error": "La cuenta de YouTube se conecta desde el equipo donde corre Translay."})
+            return await self._cookies_status({"error": i18n.t("La cuenta de YouTube se conecta desde el equipo donde corre Translay.")})
         acc = ytsession.get(self._cookies_path().parent)
         loop = asyncio.get_running_loop()
         changed = lambda: self.notify(cookies.message(self._cookies_path()))  # noqa: E731 (desde el hilo)
@@ -1618,16 +1619,18 @@ def _start_dir(initial: str = "") -> str:
     return str(d) if d.is_dir() else str(Path.home())
 
 
-def pick_folder(title: str = "Carpeta de la biblioteca", initial: str = "") -> str:
+def pick_folder(title: str = "", initial: str = "") -> str:
     """Cuadro nativo para elegir una carpeta."""
+    title = title or i18n.t("Carpeta de la biblioteca")
     return _dialog(lambda root, filedialog: filedialog.askdirectory(parent=root, title=title, mustexist=False,
                                                         initialdir=_start_dir(initial)))
 
 
-def pick_save(filename: str, initial: str = "", title: str = "Guardar como") -> str:
+def pick_save(filename: str, initial: str = "", title: str = "") -> str:
     """Cuadro nativo «Guardar como» con el nombre propuesto; pregunta antes de reemplazar."""
+    title = title or i18n.t("Guardar como")
     ext = Path(filename).suffix
     types = [(f"{ext[1:].upper()}", f"*{ext}")] if ext else []
     return _dialog(lambda root, filedialog: filedialog.asksaveasfilename(
         parent=root, title=title, initialdir=_start_dir(initial), initialfile=filename,
-        defaultextension=ext, filetypes=types + [("Todos los archivos", "*.*")]))
+        defaultextension=ext, filetypes=types + [(i18n.t("Todos los archivos"), "*.*")]))

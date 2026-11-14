@@ -90,22 +90,22 @@ export const languages = (lang: Lang) => ({
   width: 440,
   height: 800,
   label: t(lang,
-    "A new video has no language: Whisper detects it from the first seconds of speech. If the video is only transcribed, its transcript stays in its own language; if it is translated, the translator for that language turns it into Spanish text and the voice process dubs it.",
-    "Un video nuevo no tiene idioma: Whisper lo detecta con los primeros segundos de voz. Si el video solo se transcribe, su transcripción queda en su idioma; si se traduce, el traductor de ese idioma lo pasa a texto en español y el proceso de voz lo dobla."),
+    "A new video has no language: Whisper detects it from the first seconds of speech. If the video is only transcribed, its transcript stays in its own language; if it is translated, the translator for its language pair turns it into text in the target language and the voice process dubs it.",
+    "Un video nuevo no tiene idioma: Whisper lo detecta con los primeros segundos de voz. Si el video solo se transcribe, su transcripción queda en su idioma; si se traduce, el traductor de su par de idiomas lo pasa a texto en el idioma de destino y el proceso de voz lo dobla."),
   nodes: [
     { id: "new", x: 120, y: 60, icon: "movie", label: t(lang, "New video\n(no language)", "Video nuevo\n(sin idioma)") },
     { id: "detect", x: 120, y: 230, icon: "ear", label: t(lang, "Whisper detects\nthe language", "Whisper detecta\nel idioma") },
     { id: "mode", x: 120, y: 400, icon: "arrows-split", label: t(lang, "Translate or\nonly transcribe", "Traducir o\nsolo transcribir") },
     { id: "only", x: 340, y: 400, icon: "file-text", label: t(lang, "Transcript in\nits language", "Transcripción\nen su idioma") },
-    { id: "mt", x: 120, y: 570, icon: "language", label: t(lang, "Translator for\nits language", "Traductor de\nsu idioma") },
-    { id: "voice", x: 120, y: 740, icon: "speakerphone", label: t(lang, "Spanish voice\n(dub.py)", "Voz en español\n(dub.py)") },
+    { id: "mt", x: 120, y: 570, icon: "language", label: t(lang, "Translator for\nthe language pair", "Traductor del\npar de idiomas") },
+    { id: "voice", x: 120, y: 740, icon: "speakerphone", label: t(lang, "Voice in the\ntarget language\n(dub.py)", "Voz en el idioma\nde destino\n(dub.py)") },
   ],
   edges: [
     { from: "new", to: "detect", label: t(lang, "first seconds of speech", "primeros segundos de voz") },
     { from: "detect", to: "mode", label: t(lang, "en · pt · es…", "en · pt · es…") },
     { from: "mode", to: "only", label: t(lang, "transcribe", "transcribir") },
     { from: "mode", to: "mt", label: t(lang, "translate", "traducir") },
-    { from: "mt", to: "voice", label: t(lang, "Spanish text", "texto en español") },
+    { from: "mt", to: "voice", label: t(lang, "target text", "texto traducido") },
   ],
 });
 

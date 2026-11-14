@@ -62,6 +62,18 @@ SENTENCES = {
         "I'm gonna be honest with you, I wasn't expecting that at all.",
         "Don't forget to smash that like button and subscribe.",
     ],
+    "es": [
+        "¡Hola a todos! ¿Cómo están? Bienvenidos de nuevo al canal.",
+        "Hoy les voy a mostrar cómo configurar el servidor desde cero.",
+        "Primero abren la terminal y escriben este comando.",
+        "Si les sale algún error, nomás reinicien y vuelvan a intentar.",
+        "La neta, no me esperaba eso para nada.",
+        "Este celular me costó un ojo de la cara, pero valió totalmente la pena.",
+        "No se olviden de darle like y suscribirse al canal.",
+        "Vamos a hacer una pausa rápida y ahorita regresamos.",
+        "La batería aguanta todo el día sin problema.",
+        "¿Qué les pareció? Cuéntenme en los comentarios.",
+    ],
 }
 
 

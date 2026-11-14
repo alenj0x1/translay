@@ -1,14 +1,14 @@
 """Exportar: video o audio traducido (y el original) de uno o varios videos.
 
-Tipos
-  es_video    MP4 con la voz en español (pista principal), el original como segunda
-              pista y subtítulos en español y en el idioma original (se activan en el reproductor)
-  es_audio    M4A, MP3 u Opus con la voz en español
+Tipos («es_» es el nombre de siempre: hoy, el idioma al que se traduce, vt/langs.py › target)
+  es_video    MP4 con la voz traducida (pista principal), el original como segunda
+              pista y subtítulos traducidos y en el idioma original (se activan en el reproductor)
+  es_audio    M4A, MP3 u Opus con la voz traducida
   orig_video  el video original
   orig_audio  el audio original, M4A, MP3 u Opus
   srt_es · srt_orig · txt   subtítulos traducidos, subtítulos en el idioma original y transcripción
                             bilingüe (con la hora, la persona y los comentarios)
-  txt_es · txt_orig         solo el texto, en párrafos: en español o en el idioma original
+  txt_es · txt_orig         solo el texto, en párrafos: traducido o en el idioma original
   summary                   el resumen del video (de qué se trató y sus puntos importantes, vt/summarize.py);
                             si aún no tiene, se hace antes de exportar
 
@@ -55,7 +55,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import events, langs
+from . import events, i18n, langs
 from .audiofx import read_wav, resample
 
 SR = 48000
@@ -66,7 +66,7 @@ DUCK_LEVELS = {"silencio": 0.0, "bajo": 0.14, "medio": 0.3}
 # texto: subtítulos (SRT) y transcripción bilingüe con comentarios (TXT); no necesitan el doblaje
 TEXT_KINDS = ("srt_es", "srt_orig", "txt", "txt_es", "txt_orig", "summary")
 TRANSLATED = ("es_video", "es_audio", "srt_es", "txt_es")  # necesitan traducción (y voz)
-SAME_IN_TARGET = ("srt_es", "txt_es")  # de un video ya en español: el mismo texto que el original
+SAME_IN_TARGET = ("srt_es", "txt_es")  # de un video ya en el idioma de destino: el mismo texto que el original
 ALIASES = {"srt_en": "srt_orig"}  # nombre de antes de los idiomas (la API lo sigue aceptando)
 KINDS = {"es_video": ("español", "mp4"), "es_audio": ("español", "m4a"),
          "srt_es": ("subtítulos español", "srt"), "srt_orig": ("subtítulos originales", "srt"),
@@ -78,6 +78,19 @@ AUDIO_CODEC = {"m4a": {"alta": ("aac", 160, 2), "media": ("aac", 96, 2), "livian
                "mp3": {"alta": ("libmp3lame", 192, 2), "media": ("libmp3lame", 128, 2), "liviana": ("libmp3lame", 64, 1)},
                "opus": {"alta": ("libopus", 128, 2), "media": ("libopus", 64, 2), "liviana": ("libopus", 32, 1)}}
 AUDIO_FORMATS = tuple(AUDIO_CODEC)
+
+
+def kind_label(kind: str) -> tuple[str, str]:
+    """(nombre, extensión) de un tipo de exportación, con el idioma al que se traduce («texto en portugués»)."""
+    ext = KINDS[kind][1]
+    lang = langs.name(langs.target(), langs.ui())
+    labels = {
+        "es_video": lang, "es_audio": lang,
+        "srt_es": i18n.t("subtítulos {language}", language=lang), "srt_orig": i18n.t("subtítulos originales"),
+        "txt": i18n.t("transcripción"), "txt_es": i18n.t("texto en {language}", language=lang),
+        "txt_orig": i18n.t("texto original"), "summary": i18n.t("resumen"),
+        "orig_video": i18n.t("original"), "orig_audio": i18n.t("audio original")}
+    return labels[kind], ext
 QUALITIES = ("alta", "media", "liviana")
 ORIG_TRACK_KBPS = {"alta": 128, "media": 96, "liviana": 64}  # el original como segunda pista del MP4
 VIDEO_HEIGHT = {"original": 0, "480p": 480, "360p": 360}
@@ -98,9 +111,9 @@ def reason(e: Exception) -> str:
     """El motivo en palabras de la app, no el texto crudo de yt-dlp o ffmpeg."""
     text = str(e)
     if "removed by the uploader" in text or "Video unavailable" in text or "Private video" in text:
-        return "ya no está disponible en YouTube y no tiene copia en el equipo"
+        return i18n.t("ya no está disponible en YouTube y no tiene copia en el equipo")
     if isinstance(e, subprocess.CalledProcessError):
-        return "ffmpeg no pudo convertir el archivo"
+        return i18n.t("ffmpeg no pudo convertir el archivo")
     return re.sub(r"^ERROR:\s*(\[\w+\]\s*)?", "", text)[:200]
 
 
@@ -250,7 +263,7 @@ class Exporter:
         kinds = [ALIASES.get(k, k) for k in kinds]
         kinds = [k for k in KINDS if k in kinds]
         if not videos or not kinds:
-            raise ValueError("nada que exportar")
+            raise ValueError(i18n.t("nada que exportar"))
         if audio not in AUDIO_FORMATS:
             raise ValueError("audio: " + ", ".join(AUDIO_FORMATS))
         if quality not in QUALITIES:
@@ -263,15 +276,15 @@ class Exporter:
             d = Path(dest)
             # una carpeta de este equipo: nunca de red (abrir \\servidor\… conecta a otra máquina)
             if not d.is_absolute() or str(d).startswith(("\\\\", "//")):
-                raise ValueError(f"no se puede guardar en «{dest}»")
+                raise ValueError(i18n.t("no se puede guardar en «{dest}»", dest=dest))
             # ni dentro de los datos: Almacenamiento tomaría lo exportado por archivos sueltos
             roots = [self.root] + ([v.root for v in self.vaults.all()] if self.vaults else [])
             if any(d.resolve().is_relative_to(r.resolve()) for r in roots):
-                raise ValueError("elige una carpeta fuera de la de tus bibliotecas")
+                raise ValueError(i18n.t("elige una carpeta fuera de la de tus bibliotecas"))
             try:
                 d.mkdir(parents=True, exist_ok=True)  # el cuadro deja escribir una carpeta nueva
             except OSError:
-                raise ValueError(f"no se puede guardar en «{dest}»") from None
+                raise ValueError(i18n.t("no se puede guardar en «{dest}»", dest=dest)) from None
             dest = str(d.resolve())
         if not name:
             name = self.library.data["videos"][videos[0]].get("title", "video") if len(videos) == 1 else "videos"
@@ -292,7 +305,7 @@ class Exporter:
         kinds = [k for k in KINDS if k in [ALIASES.get(k, k) for k in kinds]]
         if len(videos) == 1 and len(kinds) == 1:
             v = self.library.data["videos"][videos[0]]
-            title, (label, ext) = safe_name(v.get("title") or videos[0])[:90], KINDS[kinds[0]]
+            title, (label, ext) = safe_name(v.get("title") or videos[0])[:90], kind_label(kinds[0])
             if kinds[0] in ("es_audio", "orig_audio"):
                 ext = audio if audio in AUDIO_FORMATS else "m4a"
             if kinds[0] == "orig_video":
@@ -392,16 +405,16 @@ class Exporter:
             out = []
             tr = self.store.open(vid) if any(k in TRANSLATED for k in job["kinds"]) else None
             only_text = bool(tr and tr.transcribe_only)  # sin traducción ni voz
-            # ya en español: sus subtítulos en español son el mismo texto
-            skip = {k for k in TRANSLATED if not (k in SAME_IN_TARGET and tr and tr.lang == langs.TARGET)}
+            # ya en el idioma de destino: sus subtítulos traducidos son el mismo texto
+            skip = {k for k in TRANSLATED if not (k in SAME_IN_TARGET and tr and tr.lang == langs.target())}
             if only_text and all(k in skip for k in job["kinds"]):
-                raise ValueError("solo se transcribe: no tiene traducción ni voz en español")
+                raise ValueError(i18n.t("solo se transcribe: no tiene traducción ni voz"))
             for i, kind in enumerate(job["kinds"]):
                 if job not in self.jobs:
                     return out
                 if only_text and kind in skip:
                     continue
-                label, ext = KINDS[kind]
+                label, ext = kind_label(kind)
                 if kind in ("es_audio", "orig_audio"):
                     ext = job.get("audio", "m4a")
 
@@ -477,12 +490,12 @@ class Exporter:
             if job not in self.jobs:  # cancelada: lo hecho no se va a descargar
                 shutil.rmtree(out_dir, ignore_errors=True)
         if not files and not used:
-            raise RuntimeError(f"ningún video se pudo exportar ({job['skipped'][0][1]})" if job["skipped"]
-                               else "nada que exportar")
+            raise RuntimeError(i18n.t("ningún video se pudo exportar ({reason})", reason=job["skipped"][0][1]) if job["skipped"]
+                               else i18n.t("nada que exportar"))
         if z is None:
             path, name = files[0]
         else:
-            skipped = ("No se pudieron exportar:\n\n" + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n"
+            skipped = (i18n.t("No se pudieron exportar:") + "\n\n" + "\n".join(f"- {t}: {r}" for t, r in job["skipped"]) + "\n"
                        if job["skipped"] else "")
             if isinstance(z, _Folder):
                 if skipped:
@@ -535,7 +548,7 @@ class Exporter:
             kind = "propia" if layout == "collection" else "playlist"
             c = next((c for c in self.library.data.get("collections", [])
                       if c.get("kind", "propia") == kind and vid in c.get("items", []) and c.get("name")), None)
-            return safe_name(c["name"]) if c else ("Sin colección" if kind == "propia" else "Sin playlist")
+            return safe_name(c["name"]) if c else (i18n.t("Sin colección") if kind == "propia" else i18n.t("Sin playlist"))
         if layout == "folder":
             return safe_name(job.get("folder") or job["name"])
         return ""
@@ -562,7 +575,7 @@ class Exporter:
             return self.root / "youtube" / Path(src[10:]).name  # solo el nombre: nunca fuera de la carpeta
         if src.startswith("/media/lib/"):
             return self.root / "library" / Path(src[11:]).name
-        raise FileNotFoundError("el video no tiene copia en el equipo")
+        raise FileNotFoundError(i18n.t("el video no tiene copia en el equipo"))
 
     def _ensure_media(self, job, vid, video: bool = False):
         """Copia en el equipo; si solo se bajó el audio y se pide un video, se baja el video completo."""
@@ -571,7 +584,7 @@ class Exporter:
             return
         vault = self.vaults.of(vid) if self.vaults else None
         if v.get("source") not in ("youtube", "link") or not self.youtube or (v.get("source") == "link" and not vault):
-            raise FileNotFoundError(f"«{v.get('title', vid)}» no tiene copia en el equipo")
+            raise FileNotFoundError(i18n.t("«{title}» no tiene copia en el equipo", title=v.get("title", vid)))
         self._set(job, state="exportando", detail=f"descargando {v.get('title', vid)}")
         session = self.prefs.values.get("yt_session", "ninguna")
         info = (vault.download(vid, None, session, audio_only=False) if vault
@@ -585,6 +598,7 @@ class Exporter:
         (key="asr", para subtítulos y texto): si falta, el video entra a la cola."""
         queued = False
         what = "doblaje" if key == "dub" else "transcripción"
+        what_t = i18n.t("doblaje") if key == "dub" else i18n.t("transcripción")
         while job in self.jobs:
             p = self.processor.progress(vid)
             pj = self.processor._job(vid)
@@ -593,7 +607,7 @@ class Exporter:
             if pj is None or pj["state"] in ("listo", "error", "descargado"):
                 self.processor.add(vid)
             queued = True
-            self._set(job, state=f"esperando {what}", detail=f"{title} · {what} {round(p[key] * 100)} %")
+            self._set(job, state=f"esperando {what}", detail=f"{title} · {what_t} {round(p[key] * 100)} %")
             time.sleep(3)
 
     # ------------------------------------------------------------ salida
@@ -620,7 +634,7 @@ class Exporter:
             self._ffmpeg(["-i", str(audio), "-vn", *audio_args(fmt, quality), str(out)], prog, dur)
             return out
         # el MP4 lleva la mezcla en AAC (se copia tal cual); el audio suelto, en el formato elegido
-        es = out_dir / f"{vid}.es.{quality}.{fmt if kind == 'es_audio' else 'm4a'}"
+        es = out_dir / f"{vid}.{langs.target()}.{quality}.{fmt if kind == 'es_audio' else 'm4a'}"
         mixed = 0.3 if height else 0.9  # parte del avance: la mezcla, y luego armar (o recodificar) el MP4
         if not es.exists():
             self._mix(vid, audio, es, prog if kind == "es_audio" else (lambda f: prog(f * mixed)), quality)
@@ -629,21 +643,24 @@ class Exporter:
         tr = self.store.open(vid)
         orig = langs.get(tr.lang).iso3 if langs.is_source(tr.lang) else "und"
         subs = []
-        for key, lang in (("translation", langs.get(langs.TARGET).iso3), ("text", orig)):
+        for key, lang in (("translation", langs.get(langs.target()).iso3), ("text", orig)):
             f = out_dir / f"{vid}.{lang}.srt"
             f.write_text(srt(tr.segments, key), encoding="utf-8")
             subs.append((f, lang))
         burn = self._screen_text(vid, media, out_dir)
-        out = out_dir / f"{vid}.es.{quality}.{video}.mp4"
+        out = out_dir / f"{vid}.{langs.target()}.{quality}.{video}.mp4"
+        tiso = langs.get(langs.target()).iso3
+        ttitle = langs.name(langs.target(), langs.ui())
+        ttitle = ttitle[:1].upper() + ttitle[1:]
         cmd = ["-i", str(media), "-i", str(es)]
         for f, _ in subs:
             cmd += ["-i", str(f)]
         cmd += ["-map", "0:v:0", "-map", "1:a", "-map", "0:a?", "-map", "2", "-map", "3",
                 *(video_args(height, burn) if height or burn else ["-c:v", "copy"]), "-c:a:0", "copy",
                 "-c:a:1", "aac", "-b:a:1", f"{ORIG_TRACK_KBPS[quality]}k", "-c:s", "mov_text",
-                "-metadata:s:a:0", "language=spa", "-metadata:s:a:0", "title=Español",
-                "-metadata:s:a:1", f"language={orig}", "-metadata:s:a:1", "title=Original",
-                "-metadata:s:s:0", "language=spa", "-metadata:s:s:1", f"language={orig}",
+                "-metadata:s:a:0", f"language={tiso}", "-metadata:s:a:0", f"title={ttitle}",
+                "-metadata:s:a:1", f"language={orig}", "-metadata:s:a:1", f"title={i18n.t('Original')}",
+                "-metadata:s:s:0", f"language={tiso}", "-metadata:s:s:1", f"language={orig}",
                 "-disposition:a:0", "default", "-disposition:a:1", "0", "-disposition:s:0", "0",
                 "-disposition:s:1", "0", "-movflags", "+faststart", str(out)]
         step = lambda f: prog(mixed + (1 - mixed) * f)  # noqa: E731
@@ -696,9 +713,9 @@ class Exporter:
         """El resumen se hace antes de exportarlo, si aún no tiene (en la cola del resumen)."""
         if self.summaries is None or self.store.open(vid).data.get("summary"):
             return
-        self._set(job, state="esperando", detail=f"{title} · resumiendo")
+        self._set(job, state="esperando", detail=f"{title} · {i18n.t('resumiendo')}")
         if not self.summaries.request(vid) and not self.store.open(vid).data.get("summary"):
-            raise ValueError("no tiene transcripción para resumir")
+            raise ValueError(i18n.t("no tiene transcripción para resumir"))
         while job in self.jobs:
             if self.store.open(vid).data.get("summary"):
                 return
@@ -706,7 +723,7 @@ class Exporter:
             if err:
                 raise RuntimeError(err)
             if self.summaries.state(vid) is None and not self.store.open(vid).data.get("summary"):
-                raise RuntimeError("se canceló el resumen")  # sin trabajo ni resumen: no hay qué esperar
+                raise RuntimeError(i18n.t("se canceló el resumen"))  # sin trabajo ni resumen: no hay qué esperar
             time.sleep(1)
 
     def _make_text(self, kind, vid, v, out_dir: Path) -> Path:
@@ -719,15 +736,15 @@ class Exporter:
             out.write_text(as_text(v.get("title") or vid, s), encoding="utf-8")
             return out
         if kind in ("txt_es", "txt_orig"):
-            translated = kind == "txt_es" and tr.lang != langs.TARGET
-            code = langs.TARGET if kind == "txt_es" else tr.lang or "orig"
+            translated = kind == "txt_es" and tr.lang != langs.target()
+            code = langs.target() if kind == "txt_es" else tr.lang or "orig"
             out = out_dir / f"{vid}.{code}.txt"
             out.write_text(plain_text(v.get("title") or vid, tr.segments, "translation" if translated else "text"),
                            encoding="utf-8")
             return out
         if kind in ("srt_es", "srt_orig"):
-            out = out_dir / f"{vid}.{langs.TARGET if kind == 'srt_es' else tr.lang or 'orig'}.srt"
-            translated = kind == "srt_es" and tr.lang != langs.TARGET
+            out = out_dir / f"{vid}.{langs.target() if kind == 'srt_es' else tr.lang or 'orig'}.srt"
+            translated = kind == "srt_es" and tr.lang != langs.target()
             out.write_text(srt(tr.segments, "translation" if translated else "text"), encoding="utf-8")
             return out
         # transcripción: hora · persona · lo que se dice / su traducción, y los comentarios de cada frase
@@ -747,7 +764,7 @@ class Exporter:
             if s.get("translation") and tr.translates:
                 lines.append(f"    {s['translation'].strip()}")
             for c in (tr.data.get("comments") or {}).get(str(s["id"]), []):
-                lines.append(f"    » Comentario: {c['text']}")
+                lines.append(f"    » {i18n.t('Comentario')}: {c['text']}")
             lines.append("")
         out = out_dir / f"{vid}.txt"
         out.write_text("\n".join(lines), encoding="utf-8")
@@ -821,4 +838,4 @@ class Exporter:
             enc.wait()
             dec.wait()
         if enc.returncode != 0:
-            raise RuntimeError("no se pudo codificar el audio en español")
+            raise RuntimeError(i18n.t("no se pudo codificar el audio doblado"))

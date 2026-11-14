@@ -206,7 +206,7 @@ Una etiqueta `lab-*` corre `.github/workflows/lab-assets.yml`: compila whisper.c
 
 ### Labs de idiomas
 
-Miden cada idioma con [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): las mismas frases leídas en cada idioma, con su texto; el español es el latinoamericano (`es_419`), así que sirve de traducción de referencia. `python tools/lab/langs_data.py` los baja a `data/labs/languages/fleurs/` (unos 250 MB por idioma con audio) y los resultados en `data/labs/languages/`, fuera de git. De ellos salieron el [traductor de cada idioma](../../how-it-works/languages/#un-traductor-por-idioma) y el aviso de los perfiles ligeros en [Rendimiento](../../guide/performance/).
+Miden cada idioma con [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): las mismas frases leídas en cada idioma, con su texto; el español es el latinoamericano (`es_419`), así que sirve de traducción de referencia. `python tools/lab/langs_data.py` los baja a `data/labs/languages/fleurs/` (unos 250 MB por idioma con audio) y los resultados en `data/labs/languages/`, fuera de git. De ellos salieron el [traductor de cada idioma](../../how-it-works/languages/#un-traductor-por-par-de-idiomas) y el aviso de los perfiles ligeros en [Rendimiento](../../guide/performance/).
 
 | Herramienta | Qué mide |
 |---|---|

@@ -12,8 +12,35 @@ Las horas van como [m:ss] (o [h:mm:ss]) para que el agente pueda citar el moment
 from __future__ import annotations
 
 ELEMENT_KINDS = ("code", "command", "link", "email", "handle", "comment")
-LABEL = {"code": "Código", "command": "Comando", "link": "Enlace", "email": "Correo", "handle": "Cuenta",
-         "comment": "Comentario del código"}
+# textos del documento en cada idioma: «en» para los modelos (entienden mejor las instrucciones en inglés y
+# responden en el idioma que se les pide); «es» y «pt» para quien lo copia o lo pide por la API
+TEXT = {
+    "en": {"code": "Code", "command": "Command", "link": "Link", "email": "Email", "handle": "Account",
+           "comment": "Code comment", "channel": "Channel", "url": "Link", "duration": "Duration", "lang": "Language",
+           "watched": "The person watched up to {at} ({pct} %)",
+           "cite": "Times in square brackets are moments in the video: cite them when answering.",
+           "summary": "Summary", "transcript": "Transcript",
+           "bilingual": "Each sentence in its original language and, below it, its translation into {lang}.",
+           "note": "Person's note", "screen": "On screen",
+           "screen_intro": "What is written in the video (code, commands, links…), with the moment it appears."},
+    "es": {"code": "Código", "command": "Comando", "link": "Enlace", "email": "Correo", "handle": "Cuenta",
+           "comment": "Comentario del código", "channel": "Canal", "url": "Enlace", "duration": "Duración",
+           "lang": "Idioma", "watched": "La persona lo vio hasta {at} ({pct} %)",
+           "cite": "Las horas entre corchetes son el momento del video: cítalas al responder.",
+           "summary": "Resumen", "transcript": "Transcripción",
+           "bilingual": "Cada frase en su idioma original y, debajo, su traducción al {lang}.",
+           "note": "Nota de la persona", "screen": "En pantalla",
+           "screen_intro": "Lo que está escrito en el video (código, comandos, enlaces…), con el momento en que aparece."},
+    "pt": {"code": "Código", "command": "Comando", "link": "Link", "email": "E-mail", "handle": "Conta",
+           "comment": "Comentário do código", "channel": "Canal", "url": "Link", "duration": "Duração",
+           "lang": "Idioma", "watched": "A pessoa assistiu até {at} ({pct} %)",
+           "cite": "Os horários entre colchetes são momentos do vídeo: cite-os ao responder.",
+           "summary": "Resumo", "transcript": "Transcrição",
+           "bilingual": "Cada frase no idioma original e, abaixo, a tradução para o {lang}.",
+           "note": "Nota da pessoa", "screen": "Na tela",
+           "screen_intro": "O que está escrito no vídeo (código, comandos, links…), com o momento em que aparece."},
+}
+LABEL = TEXT["es"]  # compatibilidad
 
 
 def stamp(t: float) -> str:
@@ -58,29 +85,33 @@ def elements(screen: dict | None) -> list[dict]:
 
 
 def markdown(info: dict, tr, screen: dict | None = None, position: float | None = None,
-             with_translation: bool = True) -> str:
-    """info: los datos de la biblioteca (title, url, channel, duration). tr: la transcripción (vt/store.py)."""
+             with_translation: bool = True, ui: str = "en") -> str:
+    """info: los datos de la biblioteca (title, url, channel, duration). tr: la transcripción (vt/store.py).
+    ui: idioma de los textos del documento («en» para los modelos)."""
+    from . import langs
+
+    L = TEXT.get(ui, TEXT["en"])
     title = info.get("title") or tr.data.get("name") or tr.data["id"]
     dur = float(info.get("duration") or 0)
     out = [f"# {title}", ""]
     meta = []
     if info.get("channel"):
-        meta.append(f"Canal: {info['channel']}")
+        meta.append(f"{L['channel']}: {info['channel']}")
     if info.get("url"):
-        meta.append(f"Enlace: {info['url']}")
+        meta.append(f"{L['url']}: {info['url']}")
     if dur:
-        meta.append(f"Duración: {stamp(dur)}")
+        meta.append(f"{L['duration']}: {stamp(dur)}")
     if tr.lang:
-        meta.append(f"Idioma: {tr.lang}")
+        meta.append(f"{L['lang']}: {tr.lang}")
     if position is not None and dur:
-        meta.append(f"La persona lo vio hasta [{stamp(position)}] ({min(100, round(100 * position / dur))} %)")
+        meta.append(L["watched"].format(at=f"[{stamp(position)}]", pct=min(100, round(100 * position / dur))))
     out += [f"- {m}" for m in meta] + [""]
-    out.append("Las horas entre corchetes son el momento del video: cítalas al responder.")
+    out.append(L["cite"])
     out.append("")
 
     summary = tr.data.get("summary")
     if summary:
-        out += ["## Resumen", "", summary.get("overview", "").strip(), ""]
+        out += [f"## {L['summary']}", "", summary.get("overview", "").strip(), ""]
         out += [f"- [{stamp(p.get('t', 0))}] {p.get('text', '').strip()}" for p in summary.get("points", [])]
         out.append("")
 
@@ -90,9 +121,9 @@ def markdown(info: dict, tr, screen: dict | None = None, position: float | None 
         if s.get("speaker") is not None and s["speaker"] not in order:
             order[s["speaker"]] = len(order) + 1
     translated = with_translation and tr.translates
-    out += ["## Transcripción", ""]
+    out += [f"## {L['transcript']}", ""]
     if translated:
-        out += ["Cada frase en su idioma original y, debajo, su traducción al español.", ""]
+        out += [L["bilingual"].format(lang=langs.name(tr.target, ui)), ""]
     comments = tr.data.get("comments") or {}
     for s in sorted(tr.segments, key=lambda x: x["start"]):
         who = ""
@@ -102,19 +133,18 @@ def markdown(info: dict, tr, screen: dict | None = None, position: float | None 
         if translated and s.get("translation"):
             out.append(f"  → {s['translation'].strip()}")
         for c in comments.get(str(s["id"]), []):
-            out.append(f"  » Nota de la persona: {c['text']}")
+            out.append(f"  » {L['note']}: {c['text']}")
     out.append("")
 
     els = elements(screen)
     if els:
-        out += ["## En pantalla", "", "Lo que está escrito en el video (código, comandos, enlaces…), con el momento "
-                "en que aparece.", ""]
+        out += [f"## {L['screen']}", "", L["screen_intro"], ""]
         for e in els:
             when = ", ".join(f"[{stamp(t)}]" for t in e["times"][:4]) + (" …" if len(e["times"]) > 4 else "")
             if e["kind"] in ("code", "command"):
-                out += [f"{LABEL[e['kind']]} {when}:", "```", e["text"], "```"]
+                out += [f"{L[e['kind']]} {when}:", "```", e["text"], "```"]
             else:
                 tail = f" → {e['translation']}" if e.get("translation") else ""
-                out.append(f"- {LABEL[e['kind']]} {when}: {e['text']}{tail}")
+                out.append(f"- {L[e['kind']]} {when}: {e['text']}{tail}")
         out.append("")
     return "\n".join(out).rstrip() + "\n"

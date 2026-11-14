@@ -202,7 +202,7 @@ class Api:
         out = {"id": vid, "library": v.id, **{k: e.get(k) for k in ("title", "duration", "source", "channel",
                                                                      "categories", "added", "url")},
                "lang": e.get("lang") or langs.DEFAULT_SOURCE,
-               "mode": e.get("mode") or ("transcribe" if e.get("lang") == langs.TARGET else "translate")}
+               "mode": e.get("mode") or ("transcribe" if e.get("lang") == langs.target() else "translate")}
         out.update({k: v.url(e[k]) for k in ("media", "audio", "thumb") if e.get(k)})
         try:
             out["progress"] = self.processor.progress(vid)
@@ -333,10 +333,10 @@ class Api:
                                 float(pos) if pos and pos.replace(".", "", 1).isdigit() else None)
                 return 200, text, {"Content-Type": "text/markdown; charset=utf-8"}
             if p[2] == "subtitles":
-                lang = req.query.get("lang", langs.TARGET)
-                if lang == langs.TARGET and tr.lang != langs.TARGET and not tr.translates:
+                lang = req.query.get("lang", langs.target())
+                if lang == langs.target() and tr.lang != langs.target() and not tr.translates:
                     raise LookupError("este video solo se transcribe: pide lang=orig")
-                field = "translation" if lang == langs.TARGET and tr.lang != langs.TARGET else "text"
+                field = "translation" if lang == langs.target() and tr.lang != langs.target() else "text"
                 return 200, srt(tr.segments, field), {
                     "Content-Type": "application/x-subrip; charset=utf-8"}
             raise LookupError("no existe")

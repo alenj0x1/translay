@@ -22,6 +22,8 @@ import time
 import uuid
 from pathlib import Path
 
+from . import i18n
+
 KEEP_DAYS = 30
 DIR = "papelera"
 _TID = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{6}$")
@@ -91,8 +93,9 @@ class Trash:
         entry = {
             "id": tid, "kind": "biblioteca-vaciada" if cleared else "videos", "created": time.time(),
             "vault": vault.id, "vault_name": vault.name, "count": len(vids),
-            "title": (f"«{vault.name}» vaciada" if cleared else
-                      (lib.data["videos"][vids[0]].get("title") or vids[0]) if len(vids) == 1 else f"{len(vids)} videos"),
+            "title": (i18n.t("«{name}» vaciada", name=vault.name) if cleared else
+                      (lib.data["videos"][vids[0]].get("title") or vids[0]) if len(vids) == 1
+                      else i18n.t("{n} videos", n=len(vids))),
             "videos": {v: lib.data["videos"][v] for v in vids},
             "memberships": {c["id"]: [i for i in c["items"] if i in vids] for c in lib.data["collections"]},
             "collections": [dict(c) for c in lib.data["collections"]] if cleared else [],
@@ -114,7 +117,7 @@ class Trash:
             if p.exists():
                 (moved if _rename(p, store / name) else kept).append(name)
         entry = {"id": tid, "kind": "biblioteca", "created": time.time(), "vault": v.id, "vault_name": v.name,
-                 "title": f"Biblioteca «{v.name}»", "root": str(v.root), "store": str(store),
+                 "title": i18n.t("Biblioteca «{name}»", name=v.name), "root": str(v.root), "store": str(store),
                  "count": len(v.library.data["videos"]), "meta": v.meta, "files": moved, "kept": kept}
         _write_json(d / "entry.json", entry)
         return entry
@@ -138,7 +141,7 @@ class Trash:
     def _entry(self, tid: str) -> tuple[dict, Path]:
         d = self.dir / str(tid)
         if not _TID.match(str(tid)) or not (d / "entry.json").exists():
-            raise ValueError("El elemento ya no está en la papelera")
+            raise ValueError(i18n.t("El elemento ya no está en la papelera"))
         return json.loads((d / "entry.json").read_text(encoding="utf-8")), d
 
     # ------------------------------------------------------------- devolver
@@ -151,8 +154,11 @@ class Trash:
         clash = [vid for vid in vids
                  if vid in lib.data["videos"] or (vaults is not None and vaults.of(vid) not in (None, vault))]
         if clash:
-            raise ValueError("Ya hay una copia nueva de " + ("ese video" if len(clash) == 1 else f"{len(clash)} de esos videos")
-                             + " en tus bibliotecas. Elimínala antes de restaurar la de la papelera.")
+            raise ValueError(
+                i18n.t("Ya hay una copia nueva de ese video en tus bibliotecas. Elimínala antes de restaurar la de la papelera.")
+                if len(clash) == 1 else
+                i18n.t("Ya hay una copia nueva de {n} de esos videos en tus bibliotecas. Elimínala antes de restaurar la de la papelera.",
+                       n=len(clash)))
         left = []
         for rel in e.get("files", []):
             src, dst = d / "files" / rel, self.root / rel
@@ -175,7 +181,7 @@ class Trash:
                     c["items"].append(vid)
         lib.save()
         if left:  # en uso ahora: la entrada queda con lo que falta, para no perderlo
-            e.update(files=left, videos={}, collections=[], memberships={}, title=e["title"] + " (archivos pendientes)")
+            e.update(files=left, videos={}, collections=[], memberships={}, title=e["title"] + " (" + i18n.t("archivos pendientes") + ")")
             _write_json(d / "entry.json", e)
         else:
             shutil.rmtree(d, ignore_errors=True)
@@ -196,7 +202,7 @@ class Trash:
         root.mkdir(parents=True, exist_ok=True)
         left = [n for n in e.get("files", []) if (src_dir / n).exists() and not _rename(src_dir / n, root / n)]
         if left:
-            raise ValueError("Algunos archivos de la biblioteca están en uso. Ciérralos y vuelve a intentarlo.")
+            raise ValueError(i18n.t("Algunos archivos de la biblioteca están en uso. Ciérralos y vuelve a intentarlo."))
         if e.get("store"):
             shutil.rmtree(src_dir, ignore_errors=True)
         shutil.rmtree(d, ignore_errors=True)

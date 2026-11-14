@@ -31,6 +31,7 @@ import uuid
 from collections import ChainMap
 from pathlib import Path
 
+from . import i18n
 from .glossary import Glossary
 from .jsonio import read_json, write_json
 from .library import Library
@@ -141,7 +142,7 @@ class Vault:
         shutil.copyfile(wav, d / file)
         if p.get("file"):
             (d / p["file"]).unlink(missing_ok=True)
-        p.update(name=name.strip()[:60] or "Sin nombre", file=file, text=text)
+        p.update(name=name.strip()[:60] or i18n.t("Sin nombre"), file=file, text=text)
         write_json(d / "people.json", items)
         return p
 
@@ -241,12 +242,12 @@ class Vaults:
                 vid, n = f"{base}-{n}", n + 1
             root = Path(folder).expanduser() if folder else self.data / "libraries" / vid
             if not root.is_absolute():
-                raise ValueError("La carpeta debe ser una ruta completa (p. ej., D:\\Videos\\Ciencia)")
+                raise ValueError(i18n.t("La carpeta debe ser una ruta completa (p. ej., D:\\Videos\\Ciencia)"))
             root = root.resolve()
             if any(v.root.resolve() == root for v in self._vaults.values()):
-                raise ValueError("La carpeta ya es una biblioteca")
+                raise ValueError(i18n.t("La carpeta ya es una biblioteca"))
             if root.exists() and (root / "library.json").exists():
-                raise ValueError("La carpeta ya contiene una biblioteca. Usa «Abrir carpeta»")
+                raise ValueError(i18n.t("La carpeta ya contiene una biblioteca. Usa «Abrir carpeta»"))
             v = Vault(vid, root, self.cookies)
             v.meta.update(name=name, color=color if color in COLORS else COLORS[len(self._vaults) % len(COLORS)],
                           icon=icon if icon in ICONS else "library", prefs=dict(prefs or {}),
@@ -261,7 +262,7 @@ class Vaults:
         """Una carpeta que ya es biblioteca (p. ej. de otro equipo o de un disco externo)."""
         root = Path(folder).expanduser()
         if not root.is_absolute() or not (root / "library.json").exists():
-            raise ValueError("La carpeta no contiene una biblioteca (falta library.json)")
+            raise ValueError(i18n.t("La carpeta no contiene una biblioteca (falta library.json)"))
         root = root.resolve()
         with self._lock:
             hit = next((v for v in self._vaults.values() if v.root.resolve() == root), None)
@@ -309,7 +310,7 @@ class Vaults:
         """Quita la biblioteca de la lista (sus archivos quedan) o la elimina con sus archivos.
         Devuelve sus videos (para quitarlos de la cola)."""
         if vid == MAIN or vid not in self._vaults:
-            raise ValueError("La biblioteca Principal no se puede quitar")
+            raise ValueError(i18n.t("La biblioteca Principal no se puede quitar"))
         with self._lock:
             v = self._vaults.pop(vid)
             if self.last == vid:
@@ -396,6 +397,10 @@ class RoutedStore:
 
     def delete(self, vid: str):
         self._for(vid).store.delete(vid)
+
+    def retarget(self, code: str) -> list[str]:
+        """Las transcripciones abiertas de todas las bibliotecas pasan al nuevo idioma de destino."""
+        return [vid for v in self.vaults.all() for vid in v.store.retarget(code)]
 
     @property
     def root(self) -> Path:

@@ -16,7 +16,7 @@ Después:
   * `match_shape`: las frases de Whisper pueden ser fragmentos (cortadas por
     pausa o largo). Si el original empieza en minúscula o no termina en punto,
     la traducción tampoco.
-  * `polish`: espacios, símbolos y convenciones del español latinoamericano.
+  * `polish`: espacios y símbolos; en español, además, convenciones latinoamericanas.
 """
 
 import re
@@ -25,6 +25,7 @@ import re
 ABBR = {
     "en": ("Mr", "Mrs", "Ms", "Dr", "St", "vs", "Jr", "Sr", "[A-Z]"),
     "pt": ("Sr", "Sra", "Srta", "Dr", "Dra", "Prof", "Profa", "vs", "[A-Z]"),
+    "es": ("Sr", "Sra", "Srta", "Dr", "Dra", "Lic", "Ing", "Prof", "Ud", "Uds", "vs", "[A-Z]"),
 }
 _END = re.compile(r"[.!?…][\"')\]]*$")
 
@@ -179,11 +180,13 @@ def match_shape(src: str, es: str) -> str:
     return es
 
 
-def polish(es: str) -> str:
+def polish(es: str, lang: str = "es") -> str:
+    """Espacios y símbolos en cualquier destino; las convenciones latinoamericanas, solo en español."""
     es = re.sub(r"\s+", " ", es).strip()
     es = re.sub(r"\s+([,.;:!?%])", r"\1", es)
     es = re.sub(r"([¿¡])\s+", r"\1", es)
     es = re.sub(r"(US)?\$\s+(\d)", r"\1$\2", es)
-    for rx, rep in _LATAM:
-        es = rx.sub(rep, es)
+    if lang == "es":
+        for rx, rep in _LATAM:
+            es = rx.sub(rep, es)
     return es

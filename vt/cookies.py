@@ -9,6 +9,8 @@ import os
 import time
 from pathlib import Path
 
+from . import i18n
+
 _LOCAL = os.environ.get("LOCALAPPDATA", "")
 _ROAM = os.environ.get("APPDATA", "")
 # navegador (nombre de yt-dlp) → (nombre visible, carpeta del perfil)
@@ -57,7 +59,7 @@ def import_browser(key: str, out: Path) -> dict:
     from yt_dlp.cookies import extract_cookies_from_browser
 
     if key not in BROWSERS:
-        raise ValueError("navegador desconocido")
+        raise ValueError(i18n.t("navegador desconocido"))
     jar = extract_cookies_from_browser(key)
     info = _save(jar, out)
     return {**info, "source": BROWSERS[key][0]}
@@ -67,7 +69,7 @@ def import_file(data: bytes, out: Path) -> dict:
     """Valida un cookies.txt (formato Netscape) y guarda solo lo de YouTube/Google."""
     text = data.decode("utf-8-sig", errors="replace")
     if "youtube.com" not in text:
-        raise ValueError("el archivo no tiene cookies de youtube.com")
+        raise ValueError(i18n.t("el archivo no tiene cookies de youtube.com"))
     tmp = out.with_suffix(".import")
     # MozillaCookieJar exige esta cabecera; algunas extensiones no la escriben
     if not text.lstrip().startswith("# Netscape HTTP Cookie File"):
@@ -77,7 +79,7 @@ def import_file(data: bytes, out: Path) -> dict:
         jar = http.cookiejar.MozillaCookieJar(str(tmp))
         jar.load(ignore_discard=True, ignore_expires=True)
     except (http.cookiejar.LoadError, OSError) as e:
-        raise ValueError(f"no es un cookies.txt válido ({e})")
+        raise ValueError(i18n.t("no es un cookies.txt válido ({e})", e=e))
     finally:
         tmp.unlink(missing_ok=True)
     return {**_save(jar, out), "source": "archivo"}
@@ -108,10 +110,9 @@ def friendly(e: Exception, key: str) -> str:
     msg = str(e)
     name = BROWSERS.get(key, (key,))[0]
     if "Could not copy" in msg:
-        return f"{name} bloquea sus cookies mientras está abierto. Ciérralo, importa la sesión y vuelve a abrirlo."
+        return i18n.t("{name} bloquea sus cookies mientras está abierto. Ciérralo, importa la sesión y vuelve a abrirlo.", name=name)
     if "no hay cookies de YouTube" in msg:
-        return (f"No se encontraron cookies de YouTube en {name}. Si iniciaste sesión ahí, puede que las "
-                "cifre (versiones recientes). Usa «Subir cookies.txt».")
+        return i18n.t("No se encontraron cookies de YouTube en {name}. Si iniciaste sesión ahí, puede que las cifre (versiones recientes). Usa «Subir cookies.txt».", name=name)
     if "decrypt" in msg.lower() or "app-bound" in msg.lower():
-        return f"{name} cifra sus cookies y no se pueden leer. Usa «Subir cookies.txt»."
+        return i18n.t("{name} cifra sus cookies y no se pueden leer. Usa «Subir cookies.txt».", name=name)
     return msg[:300]

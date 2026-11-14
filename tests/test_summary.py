@@ -64,7 +64,7 @@ def test_summary_runs_by_chunks_with_progress_and_cancel():
 
     def fake(system, user, max_tokens):
         calls.append(user)
-        if "Responde solo con el resumen" in user:
+        if "Reply only with the summary" in user:
             return "Trata de cómo trabajar mejor."
         first = user.split("] ", 1)[0].split("[")[-1]
         return f"[{first}] Explica un punto importante de este tramo."
@@ -90,16 +90,16 @@ def test_long_video_overview_goes_by_groups():
 
     def fake(system, user, max_tokens):
         asked.append(user)
-        if "Responde solo con el párrafo" in user:
+        if "Reply only with the paragraph" in user:
             return "Párrafo de una parte."
-        if "Responde solo con el resumen" in user:
-            assert "lo que se trata en cada parte" in user and "Párrafo de una parte." in user
+        if "Reply only with the summary" in user:
+            assert "what each part of the video covers" in user and "Párrafo de una parte." in user
             return "Panorama."
         first = user.split("] ", 1)[0].split("[")[-1]
         return "\n".join(f"[{first}] Punto número {n} de este tramo, con bastante detalle para ocupar." for n in range(25))
     s.generate = fake
     r = s.summarize(segs(1200), "en")
-    parts = sum("Responde solo con el párrafo" in u for u in asked)
+    parts = sum("Reply only with the paragraph" in u for u in asked)
     assert parts > 1 and r["overview"] == "Panorama."
     assert all(summarize.words(u) < summarize.CHUNK_TOKENS * 2 for u in asked)
 

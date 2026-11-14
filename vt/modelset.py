@@ -23,6 +23,7 @@ import threading
 import time
 from pathlib import Path
 
+from . import i18n
 from .modelusage import VOICE_REPOS
 
 VOICE_NAMES = {"omnivoice": "OmniVoice", "voxcpm": "VoxCPM", "chatterbox": "Chatterbox"}
@@ -56,26 +57,33 @@ def info() -> dict[str, dict]:
     from .speakers import SpeakerEmbedder
     from .translate import MODELS as MT
 
-    def pairs(name):
+    def purpose(name):
         p = MT[name][3]
         if p is None:
-            return "de cualquier idioma al español"
-        srcs = {a for a, b in p if b == langs.TARGET}
-        return "del inglés al español" if srcs == {"en"} else "del portugués y otras lenguas romances al español"
+            return i18n.t("Traduce entre cualquier par de idiomas")
+        known = sorted((a, b) for a, b in p if a in langs.SOURCES and b in langs.TARGETS)
+        return i18n.t("Traduce {pairs}", pairs=", ".join(
+            i18n.t("del {a} al {b}", a=langs.name(a, langs.ui()), b=langs.name(b, langs.ui())) for a, b in known))
 
-    out = {repo: {"label": f"Reconocimiento · Whisper {name}", "purpose": "Transcribe el audio del video"}
+    out = {repo: {"label": i18n.t("Reconocimiento · Whisper {name}", name=name), "purpose": i18n.t("Transcribe el audio del video")}
            for name, repo in ASR.items()}
-    out |= {m[1]: {"label": f"Traducción · {name}", "purpose": "Traduce " + pairs(name)} for name, m in MT.items()}
-    out |= {repo: {"label": f"Voz · {VOICE_NAMES[name]}", "purpose": "Dobla al español con la voz de cada persona"}
+    out |= {m[1]: {"label": i18n.t("Traducción · {name}", name=name), "purpose": purpose(name)} for name, m in MT.items()}
+    out |= {repo: {"label": i18n.t("Voz · {name}", name=VOICE_NAMES[name]),
+                   "purpose": i18n.t("Dobla al idioma elegido con la voz de cada persona")}
             for name, repo in VOICE_REPOS.items()}
-    out[SpeakerEmbedder.REPO] = {"label": "Personas · identificación de hablantes", "purpose": "Distingue quién habla en cada frase"}
+    out[SpeakerEmbedder.REPO] = {"label": i18n.t("Personas · identificación de hablantes"),
+                                 "purpose": i18n.t("Distingue quién habla en cada frase")}
     from .ocr import DET, REC
-    out[DET[0]] = {"label": "Texto en pantalla · PP-OCRv5 detección", "purpose": "Encuentra lo que está escrito en el video"}
-    out[REC[0]] = {"label": "Texto en pantalla · PP-OCRv5 lectura", "purpose": "Lee el texto del video para traducirlo en pantalla"}
+    out[DET[0]] = {"label": i18n.t("Texto en pantalla · PP-OCRv5 detección"),
+                   "purpose": i18n.t("Encuentra lo que está escrito en el video")}
+    out[REC[0]] = {"label": i18n.t("Texto en pantalla · PP-OCRv5 lectura"),
+                   "purpose": i18n.t("Lee el texto del video para traducirlo en pantalla")}
     from .summarize import MODELS as SUM
-    out |= {m.repo: {"label": f"Resumen · {m.name}", "purpose": "Resume el contenido de cada video"} for m in SUM.values()}
+    out |= {m.repo: {"label": i18n.t("Resumen · {name}", name=m.name), "purpose": i18n.t("Resume el contenido de cada video")}
+            for m in SUM.values()}
     from .llm import MODELS as AGENT  # el agente de cada video (vt/agentsvc.py): también escribe el resumen
-    out |= {m.repo: {"label": f"Agente · {m.name}", "purpose": "Responde sobre cada video y escribe su resumen"}
+    out |= {m.repo: {"label": i18n.t("Agente · {name}", name=m.name),
+                     "purpose": i18n.t("Responde sobre cada video y escribe su resumen")}
             for m in AGENT.values()}
     for i in out.values():
         i["profiles"] = []
@@ -97,7 +105,7 @@ def repos(profile: str) -> list[str]:
     prof = PROFILES[profile]
     out = [ASR[prof["asr"]]]
     for src in langs.SOURCES:
-        if src != langs.TARGET and MT[route(src, prof["mt"])][1] not in out:
+        if src != langs.target() and MT[route(src, prof["mt"])][1] not in out:
             out.append(MT[route(src, prof["mt"])][1])
     out.append(SpeakerEmbedder.REPO)
     from .ocr import REPOS as OCR_REPOS

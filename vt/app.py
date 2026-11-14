@@ -115,6 +115,8 @@ def main():
     from . import store as _store
 
     _store.TRANSLATION = lambda: prefs.translating  # Ajustes › Uso: «Transcribir y resumir» no traduce ni dobla
+    langs.set_ui(prefs.ui_lang)  # Ajustes › Uso › Idioma: interfaz, agente y resúmenes
+    langs.set_target(prefs.target)  # … y Traducir a
     if prefs.translating:  # al solo transcribir, el traductor no se carga (se prepara al volver a traducir)
         print(f"Preparando traductor {translator.name}…", flush=True)
         translator.translate("Warm up.")
@@ -384,12 +386,22 @@ def main():
     from .perf import Perf
 
     perf = Perf(prefs, res, active, cli, device=a.device)
+
+    def on_pref(key, value):
+        """Otro idioma de destino: las transcripciones abiertas pasan a él (lo que falte se traduce y dobla al
+        verlas o en la cola) y cada pestaña recarga el video abierto."""
+        if key == "language":
+            langs.set_ui(prefs.ui_lang)
+        if key in ("language", "target_lang") and langs.set_target(prefs.target):
+            changed = store.retarget(langs.target())
+            notify({"type": "target", "lang": langs.target(), "videos": changed})
+
+    prefs.listeners.append(on_pref)
     processor = Processor(DATA, store, library, asr, translator, dubber, res, gpu, tts_exec, notify,
                           translating=lambda: prefs.translating,
                           youtube=youtube, session=lambda: prefs.values.get("yt_session", "ninguna"), vaults=vaults,
                           order=lambda: prefs.values.get("download_order", "orden"),
-                          own_lang=lambda: prefs.values.get("transcribe_lang") if langs.is_source(
-                              prefs.values.get("transcribe_lang")) else None)
+                          own_lang=lambda: prefs.own_lang)
     # resumen (vt/summaries.py): su cola, el resumen automático al terminar y el que pide exportar
     from . import summarize
     from .summaries import Summaries
@@ -431,7 +443,7 @@ def main():
             from .ocr import REPOS as OCR_REPOS
             out.update(OCR_REPOS)
         for src in langs.SOURCES:
-            if src != langs.TARGET and translator.name_for(src) in MT_MODELS:
+            if src != langs.target() and translator.name_for(src) in MT_MODELS:
                 out.add(MT_MODELS[translator.name_for(src)][1])
         return out - {""}
 
@@ -467,6 +479,11 @@ def main():
     async def get_app_page(rest):
         return ROOT / "web" / "index.html"  # /b/<biblioteca>: la misma página, con esa biblioteca
 
+    async def get_i18n(rest):
+        """El catálogo del idioma de la app como script (vt/i18n.py), antes que el resto de la página."""
+        from . import i18n
+        return i18n.script(prefs.ui_lang, DATA / "cache" / "i18n")
+
     async def ws_handler(ws):
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
@@ -485,9 +502,10 @@ def main():
                         "/": ROOT / "web"},
                        {"/ws": ws_handler}, {"/api/upload/": put_media, "/api/thumb/": put_thumb, "/api/capture/": put_capture,
                                              "/api/cookies": put_cookies, "/api/home-bg": put_home_bg},
-                       {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page},
+                       {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page,
+                        "/i18n.js": get_i18n},
                        {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults),
-                       origin_ok=lambda h: same_origin(h, origins))
+                       origin_ok=lambda h: same_origin(h, origins), app_files=(DATA / "cache" / "i18n",))
     admin.server = server
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)

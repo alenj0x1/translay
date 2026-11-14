@@ -57,7 +57,7 @@ Cada frase cerrada (`Segment`) lleva su audio original (desde 0,05 s antes hasta
 
 ## Traducción
 
-`vt/translate.py` corre los traductores sobre CTranslate2, en la misma GPU que Whisper; `Translators` elige el del idioma del video ([Idiomas](../languages/#un-traductor-por-idioma)). `CT2Translator.translate_many` hace, para cada frase:
+`vt/translate.py` corre los traductores sobre CTranslate2, en la misma GPU que Whisper; `Translators` elige el del idioma del video ([Idiomas](../languages/#un-traductor-por-par-de-idiomas)). `CT2Translator.translate_many` hace, para cada frase:
 
 <Steps>
 
@@ -74,7 +74,7 @@ Cada frase guarda el modelo con que se tradujo (`tr_model`). Al abrir un video, 
 
 ### Elección del traductor
 
-Para el inglés, medido con `tools/eval_translation.py` (39 frases típicas de video, una a la vez como en vivo). El portugués tiene su propia medición en [Idiomas](../languages/#un-traductor-por-idioma).
+Para el inglés, medido con `tools/eval_translation.py` (39 frases típicas de video, una a la vez como en vivo). El portugués tiene su propia medición en [Idiomas](../languages/#un-traductor-por-par-de-idiomas).
 
 | Modelo (`--translator`) | Precisión | Mediana por frase | Notas |
 |---|---|---|---|

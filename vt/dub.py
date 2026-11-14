@@ -170,7 +170,7 @@ class Dubber:
         return round(float(np.clip(max(base, need), 0.5, max(slot, 0.5))), 2)
 
     def synthesize(self, tr, seg: dict, orig_db: float | None = None, slot: float | None = None) -> dict | None:
-        """Genera el audio en español de la frase. Devuelve la info para guardar."""
+        """Genera el audio de la frase en el idioma de destino. Devuelve la info para guardar."""
         text = seg.get("translation")
         if not text:
             return None
@@ -184,20 +184,20 @@ class Dubber:
             ref, ref_text = vv.ref_for(int(chosen) if chosen not in (None, "") and str(chosen).isdigit() else spk)
         slot = slot or self.slot(tr, seg)
         target = self.target_duration(seg, slot)
-        y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target,
+        y, sr, gpu = self.tts.synth(text, ref=ref, ref_text=ref_text, duration=target, lang=tr.target,
                                     clean_ref="auto", **self.tts_params)
         y = trim_silence(y, sr, pad_s=0.03)
         room = slot
         dur = len(y) / sr
         rate = 1.0
-        if dur > room * 1.02:  # el español no cupo: se comprime sin cambiar el tono
+        if dur > room * 1.02:  # la traducción no cupo: se comprime sin cambiar el tono
             rate = min(dur / room, self.max_rate)
             y = time_stretch(y, sr, rate)
         level = float(np.clip(orig_db if orig_db is not None else -20.0, -26.0, -14.0))
         y = fade(match_loudness(y, sr, level), sr)
         out = self._root(tr) / "audio" / tr.data["id"]
         out.mkdir(parents=True, exist_ok=True)
-        name = f"{seg['id']}.wav"
+        name = f"{seg['id']}.{tr.target}.wav"  # una por idioma de destino (las de otro idioma se guardan)
         write_wav(out / name, y, sr)
         return {"file": f"{tr.data['id']}/{name}", "dur": round(len(y) / sr, 3), "rate": round(rate, 3),
                 "gpu": round(gpu, 2), "engine": self.tts.engine, "voice": seg.get("speaker")}

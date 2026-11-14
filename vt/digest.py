@@ -60,18 +60,19 @@ FINAL_SCHEMA = {
     "required": ["overview", "takeaways", "suggestions"],
 }
 
-SECTION_SYSTEM = """Resumes una parte de un video para alguien que habla español latinoamericano. Recibes la transcripción de esa parte con el minuto de cada frase ([m:ss]) y, si hay, lo que aparece escrito en pantalla.
-Devuelve:
-- sections: de 1 a 4 secciones de esta parte, en orden. Cada una con el minuto donde empieza (t, como "3:15"), un título corto y sus puntos importantes: cada punto es una oración completa y concreta con tus palabras (no copies frases de la transcripción), con los datos, nombres, ejemplos o comandos que importan, y el minuto donde se dice.
-- terms: los conceptos o términos clave de esta parte, con una explicación breve en español y su minuto. Si no hay, una lista vacía.
-Todo en español. Usa solo lo que está en el material; no inventes."""
+# en inglés con la orden de escribir en el idioma de la app (tools/lab/lang_adherence.py)
+SECTION_SYSTEM = """You summarize one part of a video for a reader of {language}. You get the transcript of that part with the minute of each sentence ([m:ss]) and, when there is any, what is written on screen.
+Return:
+- sections: 1 to 4 sections of this part, in order. Each one with the minute where it starts (t, like "3:15"), a short title and its important points: each point is a complete, concrete sentence in your own words (don't copy sentences from the transcript), with the data, names, examples or commands that matter, and the minute where it is said.
+- terms: the key concepts or terms of this part, with a short explanation and their minute. If there are none, an empty list.
+Write every title, point and explanation in {language}, whatever the language of the video. Use only what is in the material; don't invent."""
 
-FINAL_SYSTEM = """Escribes el cierre del resumen de un video en español latinoamericano. Recibes los capítulos con sus puntos.
-Devuelve:
-- overview: de qué se trató el video en 2 o 3 párrafos breves: el tema, cómo se desarrolla y a qué llega.
-- takeaways: de 2 a 6 ideas concretas para llevarse (una oración cada una).
-- suggestions: de 3 a 5 preguntas que alguien que ve este video querría hacerle a un asistente sobre él (cortas, específicas de este video, en segunda persona del asistente: "¿Qué…?", "Explícame…").
-Usa solo lo que está en los capítulos."""
+FINAL_SYSTEM = """You write the closing of a video summary for a reader of {language}. You get the chapters with their points.
+Return:
+- overview: what the video was about in 2 or 3 short paragraphs: the topic, how it unfolds and where it lands.
+- takeaways: 2 to 6 concrete ideas to take away (one sentence each).
+- suggestions: 3 to 5 questions someone watching this video would want to ask an assistant about it (short, specific to this video, addressed to the assistant: "What…?", "Explain…").
+Write everything in {language}. Use only what is in the chapters."""
 
 
 def _lines(tr, screen: dict | None) -> list[tuple[float, str]]:
@@ -89,7 +90,7 @@ def _lines(tr, screen: dict | None) -> list[tuple[float, str]]:
             who = (names.get(str(s["speaker"])) or f"P{order[s['speaker']]}") + ": "
         out.append((s["start"], f"[{stamp(s['start'])}] {who}{s.get('text', '').strip()}"))
     for e in elements(screen):
-        out.append((e["start"], f"[{stamp(e['start'])}] (en pantalla, {e['kind']}) {e['text'][:300]}"))
+        out.append((e["start"], f"[{stamp(e['start'])}] (on screen, {e['kind']}) {e['text'][:300]}"))
     return sorted(out, key=lambda x: x[0])
 
 
@@ -180,9 +181,11 @@ def _json(text: str) -> dict:
 
 
 def summarize(srv, info: dict, tr, screen: dict | None, budget_tokens: int, progress=None,
-              cancelled=lambda: False, model: str = "") -> dict | None:
-    """El resumen completo con un llm.Server ya cargado. None si se canceló."""
+              cancelled=lambda: False, model: str = "", lang: str | None = None) -> dict | None:
+    """El resumen completo con un llm.Server ya cargado, en el idioma de la app (o `lang`). None si se canceló."""
     t0 = time.perf_counter()
+    lang = lang or langs.ui()
+    language = langs.PROMPT[lang]
     lines = _lines(tr, screen)
     from .agent import _terms
 
@@ -192,7 +195,7 @@ def summarize(srv, info: dict, tr, screen: dict | None, budget_tokens: int, prog
         match.setdefault(sg["start"], set()).update(_terms(f"{sg.get('text', '')} {sg.get('translation') or ''}"))
     if not lines:
         return {"version": 2, "overview": "", "chapters": [], "points": [], "terms": [], "takeaways": [],
-                "resources": [], "suggestions": [], "model": model, "lang": langs.TARGET, "created": time.time(),
+                "resources": [], "suggestions": [], "model": model, "lang": lang, "created": time.time(),
                 "seconds": 0.0, "empty": True}
     budget_chars = int(max(1200, min(9000, budget_tokens // 2)) * 3.6)
     cs = _chunks(lines, budget_chars)
@@ -204,9 +207,10 @@ def summarize(srv, info: dict, tr, screen: dict | None, budget_tokens: int, prog
             return None
         if progress:
             progress(i, total)
-        user = (f"Video: {title}\nParte {i + 1} de {len(cs)}\n\n" if title else f"Parte {i + 1} de {len(cs)}\n\n") \
-            + "\n".join(s for _, s in c)
-        r = srv.chat([{"role": "system", "content": SECTION_SYSTEM}, {"role": "user", "content": user}],
+        user = (f"Video: {title}\nPart {i + 1} of {len(cs)}\n\n" if title else f"Part {i + 1} of {len(cs)}\n\n") \
+            + "\n".join(s for _, s in c) + f"\n\n(Write in {language}.)"
+        r = srv.chat([{"role": "system", "content": SECTION_SYSTEM.format(language=language)},
+                      {"role": "user", "content": user}],
                      max_tokens=2600, temperature=0.2, chat_template_kwargs={"enable_thinking": False},
                      response_format={"type": "json_schema", "json_schema": {"schema": SECTION_SCHEMA}})
         d = _json(r["text"])
@@ -234,8 +238,9 @@ def summarize(srv, info: dict, tr, screen: dict | None, budget_tokens: int, prog
             block = f"## [{stamp(ch['t'])}] {ch['title']}"
         outline.append(block)
         size += len(block)
-    r = srv.chat([{"role": "system", "content": FINAL_SYSTEM},
-                  {"role": "user", "content": (f"Video: {title}\n\n" if title else "") + "\n\n".join(outline)}],
+    r = srv.chat([{"role": "system", "content": FINAL_SYSTEM.format(language=language)},
+                  {"role": "user", "content": (f"Video: {title}\n\n" if title else "") + "\n\n".join(outline)
+                   + f"\n\n(Write in {language}.)"}],
                  max_tokens=1200, temperature=0.3, chat_template_kwargs={"enable_thinking": False},
                  response_format={"type": "json_schema", "json_schema": {"schema": FINAL_SCHEMA}})
     fin = _json(r["text"])
@@ -253,7 +258,7 @@ def summarize(srv, info: dict, tr, screen: dict | None, budget_tokens: int, prog
             "points": [p for ch in chapters for p in ch["points"]], "terms": uniq_terms[:20],
             "takeaways": [x.strip() for x in fin.get("takeaways", []) if x.strip()],
             "resources": resources, "suggestions": [x.strip() for x in fin.get("suggestions", []) if x.strip()][:5],
-            "model": model, "lang": langs.TARGET, "created": time.time(), "seconds": round(time.perf_counter() - t0, 1)}
+            "model": model, "lang": lang, "created": time.time(), "seconds": round(time.perf_counter() - t0, 1)}
 
 
 def as_text(title: str, s: dict) -> str:

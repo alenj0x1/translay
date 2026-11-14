@@ -77,3 +77,35 @@ def test_alert_nothing(tr):
 def test_plain_question_goes_to_model(tr):
     assert route("¿de qué trata el video?", tr) is None
     assert route("¿qué es la demanda?", tr) is None
+
+
+# ------------------------------------------------------------- en inglés y portugués
+def route_in(q, tr, ui):
+    return agentintents.route(q, INFO, tr, None, 40, ui=ui)
+
+
+@pytest.mark.parametrize("q,ui,kind", [
+    ("send this to ChatGPT", "en", "export"),
+    ("take me to minute 3", "en", "seek"),
+    ("turn off the subtitles", "en", "subs"),
+    ("save this video to Python", "en", "save"),
+    ("let me know when they talk about prices", "en", "alert"),
+    ("manda isso para o Claude", "pt", "export"),
+    ("me leva para o minuto 3", "pt", "seek"),
+    ("tira as legendas", "pt", "subs"),
+    ("salva este vídeo em Python", "pt", "save"),
+    ("me avisa quando falarem do pacote requests", "pt", "alert"),
+])
+def test_phrases_in_each_language(tr, q, ui, kind):
+    r = route_in(q, tr, ui)
+    got = (r.get("action") or r.get("card") or {}).get("type")
+    assert got == kind, (q, r)
+
+
+def test_reply_in_app_language_whatever_the_question(tr):
+    assert route_in("take me to 1:35", tr, "es")["text"] == "Vamos a [1:35]."
+    assert route_in("llévame al 1:35", tr, "en")["text"] == "Going to [1:35]."
+    assert route_in("save this to Python", tr, "pt")["text"] == "Vou salvar em «Python»."
+    assert route_in("pon los subtítulos en inglés", tr, "en")["text"] == "Done: subtitles in English."
+    assert route_in("what is the video about?", tr, "en") is None
+    assert set(agentintents.PHRASES) >= {"es", "en", "pt"}

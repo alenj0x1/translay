@@ -29,6 +29,8 @@ import threading
 import time
 from pathlib import Path
 
+from . import i18n
+
 _PF = os.environ.get("ProgramFiles", r"C:\Program Files")
 _PF86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
 _LOCAL = os.environ.get("LOCALAPPDATA", "")
@@ -171,7 +173,7 @@ class _Browser:
             try:
                 m = self._q.get(timeout=max(0.1, end - time.time()))
             except queue.Empty:
-                raise TimeoutError(f"el navegador no respondió a {method}")
+                raise TimeoutError(i18n.t("el navegador no respondió a {method}", method=method))
             if m is None:
                 raise Cancelled()
             if m.get("id") == i:
@@ -289,8 +291,7 @@ class Session:
             try:
                 self._jar = json.loads(_dpapi(self.store.read_bytes(), False))
             except (OSError, ValueError):
-                raise ValueError("No se pudo leer la cuenta de YouTube guardada. Vuelve a conectarla en "
-                                 "Ajustes → YouTube.") from None
+                raise ValueError(i18n.t("No se pudo leer la cuenta de YouTube guardada. Vuelve a conectarla en Ajustes → YouTube.")) from None
         return [_cookie(c) for c in self._jar]
 
     def _scrub(self):
@@ -324,9 +325,9 @@ class Session:
         secure»). El canal se usa después, ya sin ventana, solo para leer las cookies."""
         exe = _exe(key)
         if not available() or not exe:
-            raise ValueError("El navegador no está instalado")
+            raise ValueError(i18n.t("El navegador no está instalado"))
         if not self._lock.acquire(blocking=False):
-            raise ValueError("Ya hay una conexión en curso")
+            raise ValueError(i18n.t("Ya hay una conexión en curso"))
         try:
             self.busy = "conectando"
             on_change and on_change()
@@ -339,15 +340,15 @@ class Session:
                 win.wait(timeout=LOGIN_TIMEOUT_S)
             except subprocess.TimeoutExpired:
                 win.kill()
-                raise TimeoutError("pasaron 10 minutos sin cerrar la ventana")
+                raise TimeoutError(i18n.t("pasaron 10 minutos sin cerrar la ventana"))
             # algunos ejecutables relanzan el navegador y salen enseguida: la ventana sigue
             # abierta mientras el perfil esté en uso
             while _profile_in_use(self.profile):
                 if time.time() - t0 > LOGIN_TIMEOUT_S:
-                    raise TimeoutError("pasaron 10 minutos sin cerrar la ventana")
+                    raise TimeoutError(i18n.t("pasaron 10 minutos sin cerrar la ventana"))
                 time.sleep(1)
             if time.time() - t0 < 4:  # se cerró al arrancar (p. ej. Edge con una actualización a medias)
-                raise ValueError(f"No se pudo abrir {BROWSERS[key][0]}. Prueba con otro navegador")
+                raise ValueError(i18n.t("No se pudo abrir {name}. Prueba con otro navegador", name=BROWSERS[key][0]))
             b = _Browser(exe, self.profile, "about:blank", headless=True)
             try:
                 ua = b.call("Browser.getVersion").get("userAgent", "").replace("HeadlessChrome", "Chrome")
@@ -420,7 +421,7 @@ class Session:
     def disconnect(self, on_change=None) -> None:
         """Cierra la sesión en Google (las cookies copiadas dejan de servir) y borra todo."""
         if not self._lock.acquire(timeout=30):  # conectando: la ventana sigue abierta
-            raise ValueError("Primero cierra la ventana de inicio de sesión.")
+            raise ValueError(i18n.t("Primero cierra la ventana de inicio de sesión."))
         try:
             self.busy = "desconectando"
             on_change and on_change()

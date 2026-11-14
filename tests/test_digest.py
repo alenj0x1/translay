@@ -78,7 +78,7 @@ def digest_terms(text):
 
 def test_lines_include_screen(tr):
     lines = digest._lines(tr, SCREEN)
-    assert any("(en pantalla, command) $ pip install requests" in s for _, s in lines)
+    assert any("(on screen, command) $ pip install requests" in s for _, s in lines)
     assert [t for t, _ in lines] == sorted(t for t, _ in lines)
 
 
@@ -96,7 +96,7 @@ class FakeServer:
 
     def chat(self, messages, **kw):
         self.calls.append(messages)
-        if "cierre" in messages[0]["content"]:
+        if "closing" in messages[0]["content"]:
             return {"text": json.dumps({"overview": "Un video de Python y repostería.",
                                         "takeaways": ["Instala requests", " "], "suggestions": ["¿Qué hace load?"]})}
         return {"text": json.dumps({"sections": [

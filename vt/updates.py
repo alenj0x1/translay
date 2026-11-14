@@ -13,7 +13,7 @@ import threading
 import time
 import urllib.request
 
-from . import __version__
+from . import __version__, i18n
 
 API = "https://api.github.com/repos/alenj0x1/translay/releases/latest"
 RELEASES = "https://github.com/alenj0x1/translay/releases/"
@@ -54,7 +54,7 @@ def check(force: bool = False) -> dict:
     installer = next((a["browser_download_url"] for a in rel.get("assets", [])
                       if str(a.get("name", "")).endswith("_x64-setup.exe")), url)
     if not url.startswith(RELEASES) or not str(installer).startswith(RELEASES):
-        raise ValueError("respuesta inesperada de GitHub")
+        raise ValueError(i18n.t("respuesta inesperada de GitHub"))
     data = {"available": newer(version), "current": __version__, "version": version,
             "notes": spanish_notes(str(rel.get("body", ""))), "url": url, "download": installer}
     with _lock:

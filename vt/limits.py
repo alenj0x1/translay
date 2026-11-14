@@ -20,6 +20,8 @@ import sys
 import threading
 from ctypes import wintypes
 
+from . import i18n
+
 JOB_OBJECT_LIMIT_WORKINGSET = 0x1
 JOB_OBJECT_LIMIT_AFFINITY = 0x10
 JOB_OBJECT_LIMIT_JOB_MEMORY = 0x200
@@ -211,7 +213,7 @@ def apply_self(ram_mb: int | None = None, threads: int | None = None) -> str | N
     Devuelve un error legible si no se pudo (p. ej. fuera de Windows)."""
     global _self_job
     if sys.platform != "win32":
-        return "Los límites de RAM y CPU desde Translay son de Windows; en Docker usa --memory y --cpus." if (ram_mb or threads) else None
+        return i18n.t("Los límites de RAM y CPU desde Translay son de Windows; en Docker usa --memory y --cpus.") if (ram_mb or threads) else None
     try:
         if _self_job is None:
             if not ram_mb and not threads:
@@ -221,5 +223,5 @@ def apply_self(ram_mb: int | None = None, threads: int | None = None) -> str | N
         else:
             _self_job.update(ram_mb, threads)
     except OSError as e:
-        return f"No se pudieron aplicar los límites: {e}"
+        return i18n.t("No se pudieron aplicar los límites: {e}", e=e)
     return None

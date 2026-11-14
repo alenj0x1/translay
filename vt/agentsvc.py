@@ -24,7 +24,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import agent, hardware, llm
+from . import agent, hardware, i18n, llm
 
 IDLE_S = 300
 DESCRIBE_MODEL = "qwen3.5-0.8b"  # la descripción corta: el más chico basta (~0,5 GB, unos segundos)
@@ -57,12 +57,12 @@ QUALITY = {
 def reason(e: Exception) -> str:
     s = str(e).lower()
     if "connection" in s or "urlopen" in s or "resolve" in s:
-        return "No se pudo descargar el modelo del agente. Revisa la conexión a internet."
+        return i18n.t("No se pudo descargar el modelo del agente. Revisa la conexión a internet.")
     if "sha-256" in s:
-        return "La descarga del motor no superó la verificación y se descartó por seguridad."
+        return i18n.t("La descarga del motor no superó la verificación y se descartó por seguridad.")
     if "memory" in s or "terminó al cargar" in s:
-        return "Memoria insuficiente para el modelo. Elige uno más ligero en Ajustes › Agente."
-    return "El agente no pudo responder."
+        return i18n.t("Memoria insuficiente para el modelo. Elige uno más ligero en Ajustes › Agente.")
+    return i18n.t("El agente no pudo responder.")
 
 
 class AgentService:
@@ -236,7 +236,7 @@ class AgentService:
         device = None
         if plan["plan"] in ("gpu-big", "gpu", "igpu"):
             exe = llm.ensure(plan["build"], self.root, lambda d, t: self._set(vid, state="descargando", pct=int(d * 100 / t),
-                                                                                 detail="el motor del agente"))
+                                                                                 detail=i18n.t("el motor del agente")))
             devs = llm.devices(exe)
             want = [d for d in devs if d["integrated"] == (plan["plan"] == "igpu")]
             device = (want or devs or [{"id": None}])[0]["id"]
@@ -245,7 +245,7 @@ class AgentService:
             return self.server
         self.unload()
         exe = llm.ensure(plan["build"], self.root, lambda d, t: self._set(vid, state="descargando", pct=int(d * 100 / t),
-                                                                             detail="el motor del agente"))
+                                                                             detail=i18n.t("el motor del agente")))
         if llm.model_file(plan["model"], download=False) is None:
             self._fetch(plan["model"], lambda pct: self._set(vid, state="descargando", pct=pct,
                                                             detail=llm.MODELS[plan["model"]].name))
@@ -404,7 +404,7 @@ class AgentService:
         # lo que está haciendo, paso a paso (la vista los muestra mientras espera)
         if mode == "fragmentos":
             self._set(vid, state="buscando", detail="")
-        self._set(vid, state="leyendo", detail=f"{agent.tokens_estimate(msgs[0]['content']) // 1000 or 1} mil palabras"
+        self._set(vid, state="leyendo", detail=i18n.t("{n} mil palabras", n=agent.tokens_estimate(msgs[0]['content']) // 1000 or 1)
                   if agent.tokens_estimate(msgs[0]["content"]) >= 1000 else "")
         if cont:
             hist.pop()  # la detenida: la reemplaza la completa (lo de antes + lo nuevo)

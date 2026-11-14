@@ -9,7 +9,7 @@ modelo en float16 junto a los demás modelos descargados. Lo intermedio se borra
   PUBLISHED  nombre → (URL, SHA-256, bytes) de cada modelo
   ensure(name) → carpeta del modelo listo (lo prepara la primera vez)
 
-Licencia de los modelos: CC-BY-4.0 (Helsinki-NLP / Tatoeba Challenge); el LICENSE y
+Licencia de los modelos: CC-BY-4.0 o Apache-2.0 (Helsinki-NLP / Tatoeba Challenge); el LICENSE y
 el README originales quedan en la carpeta del modelo.
 """
 
@@ -27,6 +27,12 @@ PUBLISHED = {
         "https://object.pouta.csc.fi/Tatoeba-MT-models/itc-itc/opusTCv20210807_transformer-big_2022-08-10.zip",
         "c2546351ab204a161f6a8dc5afe16438c654870c5b0b1bd96c9cf02999d537eb",
         789084111,
+    ),
+    # español, portugués y demás romances → inglés (tc-bible, 2024; Apache-2.0)
+    "roa-eng": (
+        "https://object.pouta.csc.fi/Tatoeba-MT-models/roa-eng/opusTCv20230926max50+bt+jhubc_transformer-big_2024-08-17.zip",
+        "4278d8688812e5f8eada1404c1496a96217a77bf7f4de06b763590fa443edf0c",
+        866476470,
     ),
 }
 _KEEP = ("decoder.yml", "source.spm", "target.spm", "LICENSE", "README.md")

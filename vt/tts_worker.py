@@ -20,8 +20,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import numpy as np  # noqa: E402
 
 from vt.ipc import read_msg, write_msg  # noqa: E402
+from vt.langs import LANGS  # noqa: E402
 
-LANG_NAMES = {"es": "Spanish", "en": "English"}
+LANG_NAMES = {c: l.tts for c, l in LANGS.items()}  # OmniVoice pide el nombre en inglés («Portuguese»)
 
 
 class Chatterbox:

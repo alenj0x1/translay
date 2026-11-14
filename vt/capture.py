@@ -35,11 +35,11 @@ import re
 import subprocess
 from pathlib import Path
 
+from . import i18n
 from .jsonio import read_json, write_json
 
 ID_RE = re.compile(r"cap_[A-Za-z0-9]{8,64}")
 MAX_PART = 32 << 20  # 1 s de video nunca llega a esto
-CONVERT_ERR = "No se pudo armar el video de la grabación"
 # altura máxima y tope de video (kbit/s) a 30 cuadros; a 15 cuadros, 2/3 del tope.
 # Mismos valores en web/js/capture.js (estimación del peso)
 QUALITY = {"alta": (1080, 4000), "media": (720, 2000), "ligera": (480, 900), "audio": (0, 0)}
@@ -208,7 +208,7 @@ class Captures:
             if st["next"] < parts:
                 return 409, f"next={st['next']}"
             if st["bytes"] == 0:
-                return 400, "La grabación está vacía"
+                return 400, i18n.t("La grabación está vacía")
             task = self._finishing.get(cid)
             if task is None:
                 task = self._finishing[cid] = asyncio.create_task(self._convert(d, part, meta, st, cid, opts, register))
@@ -231,7 +231,7 @@ class Captures:
             r = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True)
             if r.returncode != 0:
                 print(f"[captura] {cid}: {r.stderr.strip()[-400:]}", flush=True)
-                return 500, CONVERT_ERR
+                return 500, i18n.t("No se pudo armar el video de la grabación")
             tmp.replace(out)
         finally:
             tmp.unlink(missing_ok=True)

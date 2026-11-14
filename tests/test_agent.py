@@ -49,7 +49,7 @@ def test_elements_dedupe_and_typing():
 def test_markdown_has_times_translation_and_position(tr):
     md = videocontext.markdown({"title": "Funnel", "duration": 130}, tr, SCREEN, position=65)
     assert "[0:40] The four main stages" in md and "→ Las cuatro etapas" in md
-    assert "La persona lo vio hasta [1:05] (50 %)" in md
+    assert "The person watched up to [1:05] (50 %)" in md
     assert "```\n$ pip install requests\n```" in md
 
 
@@ -78,8 +78,8 @@ def test_cite_adds_the_moment(tr):
 def test_messages_put_context_first_and_question_last(tr):
     msgs, _ = agent.messages({"title": "Funnel"}, tr, None, "¿Qué ejemplo usa?", position=30, name="Lumi",
                              tone="respuestas cortas")
-    assert msgs[0]["role"] == "system" and "Eres Lumi" in msgs[0]["content"] and "respuestas cortas" in msgs[0]["content"]
-    assert msgs[-1]["content"].startswith("(La persona va en el minuto 0:30") and msgs[-1]["content"].endswith("¿Qué ejemplo usa?")
+    assert msgs[0]["role"] == "system" and "You are Lumi" in msgs[0]["content"] and "Latin American Spanish" in msgs[0]["content"] and "respuestas cortas" in msgs[0]["content"]
+    assert msgs[-1]["content"].startswith("(The person is at minute 0:30") and "¿Qué ejemplo usa?" in msgs[-1]["content"] and msgs[-1]["content"].endswith("(Answer in Latin American Spanish.)")
     # la posición no va en el sistema: así el servidor reutiliza lo ya leído entre preguntas
     assert "0:30" not in msgs[0]["content"]
 
@@ -114,3 +114,18 @@ def test_devices_parser(monkeypatch, tmp_path):
     monkeypatch.setattr(llm.subprocess, "run", lambda *a, **k: R())
     d = llm.devices(tmp_path / "x.exe")
     assert [x["integrated"] for x in d] == [False, True] and d[0]["mb"] == 7956
+
+
+def test_answers_and_descriptions_follow_the_app_language():
+    from vt import agent as ag, langs
+    from vt.videocontext import markdown
+
+    class T:
+        data = {"id": "x", "name": "Demo", "segments": []}
+        segments, lang, target, translates = [], "en", "es", False
+    msgs, _ = ag.messages({"title": "Demo"}, T(), None, "What is this?", lang="pt")
+    assert "Brazilian Portuguese" in msgs[0]["content"]
+    assert langs.set_ui("en") and "in English" in ag.describe_messages({"title": "Demo"}, T())[0]["content"]
+    langs.set_ui("es")
+    assert "Transcripción" in markdown({"title": "Demo"}, T(), ui="es") and "Transcript" in markdown({"title": "Demo"}, T())
+    assert ag.clean_description("In this video, the host explains caching.") == "The host explains caching."

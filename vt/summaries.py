@@ -15,16 +15,16 @@ Estado de cada video: «en cola», «descargando», «resumiendo» o «error», 
 import threading
 import time
 
-from . import events, hardware, modelset, summarize
+from . import events, hardware, i18n, modelset, summarize
 
 
 def reason(e: Exception) -> str:
     s = str(e)
     if "out of memory" in s.lower() or "CUDA failed" in s:
-        return "Memoria insuficiente para el modelo de resumen. Elige uno más ligero en Ajustes."
+        return i18n.t("Memoria insuficiente para el modelo de resumen. Elige uno más ligero en Ajustes.")
     if "Connection" in type(e).__name__ or "HTTP" in s or "resolve" in s.lower():
-        return "No se pudo descargar el modelo de resumen. Revisa la conexión a internet."
-    return "No se pudo resumir este video."
+        return i18n.t("No se pudo descargar el modelo de resumen. Revisa la conexión a internet.")
+    return i18n.t("No se pudo resumir este video.")
 
 
 class Summaries:

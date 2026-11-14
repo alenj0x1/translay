@@ -206,7 +206,7 @@ A `lab-*` tag runs `.github/workflows/lab-assets.yml`: it builds whisper.cpp wit
 
 ### Language labs
 
-They measure each language with [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): the same sentences read in each language, with their text; the Spanish is Latin American (`es_419`), so it works as the reference translation. `python tools/lab/langs_data.py` downloads it to `data/labs/languages/fleurs/` (about 250 MB per language with audio) and results go in `data/labs/languages/`, outside git. The [translator per language](../../how-it-works/languages/#a-translator-per-language) and the light-profile warning in [Performance](../../guide/performance/) came out of these.
+They measure each language with [FLEURS](https://huggingface.co/datasets/google/fleurs) (Google, CC-BY-4.0): the same sentences read in each language, with their text; the Spanish is Latin American (`es_419`), so it works as the reference translation. `python tools/lab/langs_data.py` downloads it to `data/labs/languages/fleurs/` (about 250 MB per language with audio) and results go in `data/labs/languages/`, outside git. The [translator per language](../../how-it-works/languages/#a-translator-per-language-pair) and the light-profile warning in [Performance](../../guide/performance/) came out of these.
 
 | Tool | What it measures |
 |---|---|

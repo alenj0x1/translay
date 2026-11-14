@@ -32,6 +32,12 @@ SCHEMA = [
     # modo de la app: traducir y doblar, o solo transcribir y resumir (sin nada de traducción ni voz)
     {"key": "app_mode", "section": "uso", "label": "Usar Translay para", "type": "choice", "default": "traducir",
      "options": [["traducir", "Traducir y doblar"], ["transcribir", "Transcribir y resumir"]]},
+    # idioma (vt/langs.py): uno solo para la interfaz, la traducción, el agente y los resúmenes; se elige al
+    # empezar (por defecto, el del sistema). «Traducir a» lo separa para la traducción y la voz
+    {"key": "language", "section": "uso", "label": "Idioma", "type": "choice", "default": "",
+     "options": [["", "Del sistema"]] + [[c, langs.NATIVE[c]] for c in langs.TARGETS]},
+    {"key": "target_lang", "section": "uso", "label": "Traducir a", "type": "choice", "default": "",
+     "options": [["", "El idioma de la app"]] + [[c, langs.NATIVE[c]] for c in langs.TARGETS]},
     # rendimiento (vt/perf.py, web/js/perf.js): con su propia pantalla, no en filas
     {"key": "perf_profile", "section": "_perf", "label": "Perfil", "type": "choice", "default": "auto",
      "options": [["auto", "Automático"], ["calidad", "Máxima calidad"], ["equilibrado", "Equilibrado"],
@@ -79,22 +85,22 @@ SCHEMA = [
      "default": "auto",
      "options": [["auto", "En pausa o con poco margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
     {"key": "audio", "section": "audio", "label": "Audio al abrir un video", "type": "choice", "default": "es",
-     "options": [["es", "En español"], ["original", "Original"]]},
+     "options": [["es", "Doblado"], ["original", "Original"]]},
     {"key": "duck", "section": "audio", "label": "Volumen del audio original", "type": "choice",
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
-    {"key": "sub_es", "section": "audio", "label": "Subtítulos en español", "type": "bool", "default": True},
+    {"key": "sub_es", "section": "audio", "label": "Subtítulos traducidos", "type": "bool", "default": True},
     {"key": "sub_orig", "section": "audio", "label": "Subtítulos del original", "type": "bool", "default": True},
     # texto en pantalla (vt/screentext.py): lo escrito en el video, traducido encima en el mismo lugar
-    {"key": "screen_text", "section": "audio", "label": "Texto del video en español", "type": "bool", "default": True},
+    {"key": "screen_text", "section": "audio", "label": "Texto del video traducido", "type": "bool", "default": True},
     {"key": "import_mode", "section": "biblioteca", "label": "Al agregar", "type": "choice", "default": "traducir",
      "options": [["traducir", "Descargar y traducir"], ["descargar", "Solo descargar"]]},
     {"key": "download_what", "section": "biblioteca", "label": "Qué descargar", "type": "choice", "default": "video",
      "options": [["video", "Video y audio"], ["audio", "Solo el audio (más rápido)"]]},
     {"key": "transcribe_lang", "section": "biblioteca", "label": "Solo transcribir videos en",
-     "type": "choice", "default": "es",
-     # del registro de idiomas (vt/langs.py): el de destino primero
-     "options": [[c, langs.name(c).capitalize()] for c in sorted(langs.SOURCES, key=lambda c: c != langs.TARGET)]
-                + [["ninguno", "Ningún idioma"]]},
+     "type": "choice", "default": "",
+     # del registro de idiomas (vt/langs.py); «» = el idioma al que se traduce (lo que ya está en él no se traduce)
+     "options": [["", "El idioma al que traduces"]] + [[c, langs.NATIVE[c]] for c in langs.SOURCES]
+                + [["ninguno", "Ningún otro"]]},
     {"key": "download_order", "section": "biblioteca", "label": "Orden de las descargas", "type": "choice",
      "default": "orden", "options": [["orden", "En el orden de la cola"], ["aleatorio", "Aleatorio"]]},
     {"key": "notify", "section": "biblioteca", "label": "Notificaciones del navegador", "type": "bool", "default": False},
@@ -102,9 +108,8 @@ SCHEMA = [
      "default": True},
     # el agente de cada video (vt/agentsvc.py): su nombre, cómo se ve, cómo responde y su modelo
     {"key": "agent_name", "section": "agente", "label": "Nombre", "type": "text", "default": "Translay", "max": 32},
-    {"key": "agent_avatar", "section": "agente", "label": "Avatar", "type": "choice", "default": "agent",
-     "options": [["agent", "Robot"], ["spark", "Chispa"], ["smile", "Cara"], ["star", "Estrella"], ["book", "Libro"],
-                 ["globe", "Mundo"], ["flask", "Matraz"], ["music", "Nota"]]},
+    # el agente es una estrella que se arma a gusto (web/js/star.js): JSON con ojos, boca, mejillas y accesorio
+    {"key": "agent_avatar", "section": "agente", "label": "Avatar", "type": "text", "default": "", "max": 400},
     {"key": "agent_color", "section": "agente", "label": "Color", "type": "choice", "default": "",
      "options": [["", "Del tema"], ["#e4572e", "Coral"], ["#f3a712", "Ámbar"], ["#29bf12", "Verde"], ["#00a5cf", "Celeste"],
                  ["#7d5ba6", "Violeta"], ["#e84f9b", "Rosa"], ["#8d6e63", "Café"]]},
@@ -146,26 +151,30 @@ DETAILS = {
                                "Cada tema cambia a su versión clara u oscura con el modo de la app."),
     "autoplay": ("Al abrir y terminar", "El video se reproduce automáticamente al abrirlo."),
     "autoplay_next": ("Al abrir y terminar", "Al terminar, reproduce el siguiente de la colección o playlist."),
-    "wait_ready": ("Al abrir y terminar", "Si una parte aún no tiene voz en español, se pausa y se reanuda cuando esté lista."),
+    "wait_ready": ("Al abrir y terminar", "Si una parte aún no tiene voz doblada, se pausa y se reanuda cuando esté lista."),
     "add_while_watching": ("Durante la reproducción", "Qué hacer con un enlace que importas mientras ves otro video."),
     "layout": ("Vista", "Ampliada: un solo video grande y la transcripción al lado. Dividida: original y traducido lado a lado."),
     "ready_chip": ("Vista", "El aviso «listo para reproducir» sobre el video."),
     "audio": ("Voz", "Audio con el que empieza cada video. Puedes cambiarlo en cualquier momento desde el reproductor."),
-    "duck": ("Voz", "Volumen del audio original bajo la voz en español."),
+    "duck": ("Voz", "Volumen del audio original bajo la voz doblada."),
     "sub_es": ("Subtítulos", "La traducción, en la parte inferior del video."),
     "sub_orig": ("Subtítulos", "La transcripción en el idioma original, en la parte superior del video."),
     "screen_text": ("Subtítulos", "Detecta el texto del video (títulos, letreros, diapositivas) y muestra su "
                     "traducción encima, en el mismo lugar. El código, los comandos y los enlaces se dejan como están; "
                     "los comentarios del código sí se traducen."),
-    "transcribe_lang": ("Al agregar", "Un video en este idioma se transcribe sin traducir ni doblar. Translay detecta "
-                        "el idioma de cada video; en cada uno se puede cambiar."),
+    "transcribe_lang": ("Al agregar", "Un video en este idioma se transcribe sin traducir ni doblar, además de los que "
+                        "ya están en el idioma al que traduces. Translay detecta el idioma de cada video; en cada uno se "
+                        "puede cambiar."),
+    "language": ("Idioma", "El idioma de Translay: la interfaz, la traducción y la voz, el agente y los resúmenes."),
+    "target_lang": ("Idioma", "Al cambiarlo, los videos se traducen y doblan a este idioma al abrirlos. Lo ya "
+                    "traducido a otros idiomas se conserva y vuelve si lo eliges de nuevo."),
     "import_mode": ("Al agregar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
     "download_what": ("Al agregar", "Descargar solo el audio es más rápido y ocupa menos espacio. El video se puede descargar después."),
     "download_order": ("Descargas", "En modo aleatorio se descarga de toda la cola en orden variado. Los videos priorizados siempre van primero."),
     "notify": ("Notificaciones y vista", "Notificación del sistema al terminar una descarga, un video o una exportación."),
     "lib_channels": ("Notificaciones y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
     "agent_name": ("Apariencia", "Nombre que se muestra en la pestaña del video y en las respuestas."),
-    "agent_avatar": ("Apariencia", "El ícono junto a sus respuestas."),
+    "agent_avatar": ("Apariencia", "Arma tu agente: ojos, boca y un accesorio. Toma el color elegido abajo, piensa y responde con gestos."),
     "agent_color": ("Apariencia", "Color del avatar, de las respuestas y de las marcas de tiempo. «Del tema» usa el color de énfasis de la app."),
     "agent_tone": ("Estilo de respuesta", "Instrucción libre sobre el tono, la extensión o el público. Por ejemplo, "
                    "«explícame como a alguien que recién empieza, con ejemplos» o «respuestas cortas y en viñetas»."),
@@ -217,6 +226,7 @@ class Prefs:
     def __init__(self, path: Path):
         self.path = path
         self._lock = threading.Lock()
+        self.listeners = []  # f(clave, valor) después de cada cambio guardado
         self.values = {p["key"]: p["default"] for p in SCHEMA}
         if path.exists():
             saved = json.loads(path.read_text(encoding="utf-8"))
@@ -228,8 +238,13 @@ class Prefs:
     @staticmethod
     def _migrate(saved: dict) -> dict:
         """Ajustes de antes con otro nombre: "theme" (un solo valor) pasa al modo claro u
-        oscuro; "sub_en" (subtítulos en inglés) a "sub_orig" (los del idioma del video)."""
+        oscuro; "sub_en" (subtítulos en inglés) a "sub_orig" (los del idioma del video); sin
+        "language", el español de siempre."""
         out = {}
+        if isinstance(saved.get("agent_avatar"), str) and not saved["agent_avatar"].startswith("{"):
+            out["agent_avatar"] = ""  # el ícono de antes («agent», «star»…): pasa a la estrella por defecto
+        if saved and "language" not in saved:
+            out["language"] = "es"  # de antes de los idiomas: todo estaba en español, aunque el sistema no lo esté
         if "sub_en" in saved and "sub_orig" not in saved:
             out["sub_orig"] = saved["sub_en"]
         old = saved.get("theme")
@@ -262,6 +277,8 @@ class Prefs:
             tmp = self.path.with_suffix(".tmp")
             tmp.write_text(json.dumps(self.values, ensure_ascii=False, indent=1), encoding="utf-8")
             tmp.replace(self.path)
+        for f in self.listeners:
+            f(key, value)
         return True
 
     @staticmethod
@@ -269,8 +286,32 @@ class Prefs:
         return (_BY_KEY.get(key) or {}).get("type", "")
 
     def public(self) -> dict:
-        return {"type": "prefs", "sections": SECTIONS, "schema": SCHEMA, "values": dict(self.values),
-                "alt_sections": ALT_SECTIONS, "groups": SECTION_GROUPS}
+        """Esquema y valores para la vista; los textos, en el idioma de la app (vt/i18n.py)."""
+        from . import i18n
+
+        ui = self.ui_lang
+        schema = [{**p, **{k: i18n.tree(p[k], ui) for k in ("label", "group", "desc", "alt") if k in p},
+                   **({"options": [[o[0], i18n.t(o[1], ui)] + o[2:] for o in p["options"]]} if "options" in p else {})}
+                  for p in SCHEMA]
+        return {"type": "prefs", "sections": [s[:1] + i18n.tree(s[1:3], ui) + s[3:] for s in SECTIONS],
+                "schema": schema, "values": dict(self.values), "alt_sections": i18n.tree(ALT_SECTIONS, ui),
+                "groups": [[i18n.t(n, ui), keys] for n, keys in SECTION_GROUPS], "lang": ui}
+
+    @property
+    def ui_lang(self) -> str:
+        """Idioma de la interfaz, el agente y los resúmenes: el elegido o el del sistema."""
+        return self.values.get("language") or langs.system()
+
+    @property
+    def target(self) -> str:
+        """Idioma al que se traduce y dobla: «Traducir a» o, si no, el de la app."""
+        return self.values.get("target_lang") or self.ui_lang
+
+    @property
+    def own_lang(self) -> str | None:
+        """Además del destino, el idioma que solo se transcribe («Solo transcribir videos en»)."""
+        v = self.values.get("transcribe_lang")
+        return v if langs.is_source(v) else None
 
     @property
     def translating(self) -> bool:

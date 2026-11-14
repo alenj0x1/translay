@@ -30,7 +30,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import modelset, modelusage
+from . import i18n, modelset, modelusage
 from .exporter import dir_size
 from .modelusage import VOICE_REPOS  # noqa: F401 (vt/app.py lo usa desde aquí)
 
@@ -255,18 +255,18 @@ class Storage:
             return sum(modelset.remove(r) for r in known_models() if r not in in_use)
         if what == "model":
             if repo not in known_models() or repo in self.in_use():
-                raise ValueError("El modelo está en uso")
+                raise ValueError(i18n.t("El modelo está en uso"))
             return self._rmtree(model_path(repo))
         if what == "install":
             cache = install_cache()
             if not cache:
-                raise ValueError("Disponible solo en la app de escritorio")
+                raise ValueError(i18n.t("Disponible solo en la app de escritorio"))
             freed = unique_size(cache) if cache.exists() else 0
             shutil.rmtree(cache, ignore_errors=True)
             cache.mkdir(parents=True, exist_ok=True)
             self._install = {"bytes": 0, "at": time.time()}
             return freed
-        raise ValueError("No se indicó qué liberar")
+        raise ValueError(i18n.t("No se indicó qué liberar"))
 
     def _orphan_dubs(self, v, videos, transcripts) -> list[Path]:
         d = v.root / "audio"

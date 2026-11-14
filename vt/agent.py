@@ -18,20 +18,23 @@ import math
 import re
 from collections import Counter
 
+from . import langs
 from .videocontext import elements, markdown, stamp
 
 CHARS_PER_TOKEN = 3.6     # español e inglés con los tokenizadores de estos modelos (medido en el laboratorio)
 CHUNK_S = 45.0            # fragmentos para la búsqueda
 DEFAULT_NAME = "Translay"
 
-SYSTEM = """Eres {name}, el asistente de un video dentro de Translay. Respondes preguntas sobre ESTE video usando solo lo que está en el material que te doy (transcripción con horas, traducción, lo escrito en pantalla, el resumen y las notas de la persona).
+# en inglés (los modelos siguen mejor las instrucciones así) con la orden de responder en el idioma de la app;
+# medido con tools/lab/lang_adherence.py
+SYSTEM = """You are {name}, the assistant for one video inside Translay. You answer questions about THIS video using only the material below (timestamped transcript, translation, text shown on screen, the summary and the person's notes).
 
-Reglas:
-- Responde en español latinoamericano, claro y directo, con tus palabras (no copies la transcripción).
-- Cada dato que sale del video lleva el momento entre corchetes, como en el material. Ejemplo: «Usa una suscripción de café como ejemplo [1:04] y ofrece una prueba de 30 días [1:22].»
-- Si el video no lo dice, responde que el video no lo menciona; no inventes datos, nombres ni horas.
-- El código, los comandos y los enlaces van tal cual, en bloques de código cuando corresponda.
-- Si la persona pregunta qué le falta, cuéntale lo que viene después de donde va, con sus momentos.{tone}"""
+Rules:
+- Always answer in {language}, whatever the language of the video or of the question; clear and direct, in your own words (don't copy the transcript).
+- Every fact taken from the video carries its moment in square brackets, as in the material. Example: "He uses a coffee subscription as an example [1:04] and offers a 30-day trial [1:22]."
+- If the video doesn't say it, answer that the video doesn't mention it; never invent facts, names or times.
+- Code, commands and links stay exactly as written, in code blocks when it fits.
+- If the person asks what's left, tell them what comes after the point they're at, with its moments.{tone}"""
 
 _WORD = re.compile(r"[^\W_]+", re.U)
 _STOP = set("""a al algo como con cual cuando de del donde el ella en es esa ese eso esta este esto fue ha hay la las
@@ -71,7 +74,7 @@ def chunks(tr, screen: dict | None = None, size: float = CHUNK_S) -> list[dict]:
     for e in els:
         c = next((c for c in out if c["start"] <= e["start"] <= c["end"] + size), None)
         if c:
-            c["lines"].append(f"[{stamp(e['start'])}] (en pantalla) {e['text']}")
+            c["lines"].append(f"[{stamp(e['start'])}] (on screen) {e['text']}")
     for c in out:
         c["text"] = "\n".join(c["lines"])
     return out
@@ -108,10 +111,10 @@ def context(info: dict, tr, screen: dict | None, question: str = "", position: f
     parts = chunks(tr, screen)
     head = [f"# {info.get('title') or tr.data.get('name') or ''}".strip()]
     if info.get("duration"):
-        head.append(f"Duración: {stamp(info['duration'])}")
+        head.append(f"Duration: {stamp(info['duration'])}")
     summary = tr.data.get("summary")
     if summary:
-        head += ["", "## Resumen", summary.get("overview", "").strip()]
+        head += ["", "## Summary", summary.get("overview", "").strip()]
         head += [f"- [{stamp(p.get('t', 0))}] {p.get('text', '').strip()}" for p in summary.get("points", [])]
     text = "\n".join(head)
     left = budget - tokens_estimate(text) - 50
@@ -138,24 +141,28 @@ def context(info: dict, tr, screen: dict | None, question: str = "", position: f
         left -= cost
     chosen.sort(key=lambda p: p["start"])
     body = "\n\n".join(p["text"] for p in chosen)
-    return (f"{text}\n\n## Partes del video relacionadas (no es la transcripción completa)\n\n{body}\n",
+    return (f"{text}\n\n## Related parts of the video (not the full transcript)\n\n{body}\n",
             "fragmentos")
 
 
 def messages(info: dict, tr, screen: dict | None, question: str, history: list[dict] | None = None,
-             position: float | None = None, budget: int = 6000, name: str = "", tone: str = "") -> tuple[list, str]:
+             position: float | None = None, budget: int = 6000, name: str = "", tone: str = "",
+             lang: str | None = None) -> tuple[list, str]:
     """Mensajes para el modelo. El contexto va primero y sin la posición (así el servidor reutiliza lo
-    ya procesado entre preguntas); la posición y la pregunta, al final."""
+    ya procesado entre preguntas); la posición y la pregunta, al final. lang: idioma de la respuesta
+    (por defecto, el de la app)."""
     ctx, mode = context(info, tr, screen, question + " " + " ".join(h["content"] for h in (history or [])[-2:]),
                         position, budget)
     tone = tone.strip()
-    system = SYSTEM.format(name=name.strip() or DEFAULT_NAME,
-                           tone=f"\n\nCómo responder (lo pidió la persona): {tone}" if tone else "")
+    system = SYSTEM.format(name=name.strip() or DEFAULT_NAME, language=langs.PROMPT[lang or langs.ui()],
+                           tone=f"\n\nHow to answer (the person asked for this): {tone}" if tone else "")
     msgs = [{"role": "system", "content": f"{system}\n\n---\n\n{ctx}"}]
     msgs += [{"role": h["role"], "content": h["content"]} for h in (history or [])[-6:]]
     # sin corchetes: con ellos el modelo la copiaba al comienzo de la respuesta como si fuera una cita
-    where = f"(La persona va en el minuto {stamp(position)} del video.)\n" if position is not None else ""
-    msgs.append({"role": "user", "content": f"{where}{question}"})
+    where = f"(The person is at minute {stamp(position)} of the video.)\n" if position is not None else ""
+    # el idioma, también al final: los modelos chicos siguen el idioma de la pregunta más que el de las instrucciones
+    # (tools/lab/lang_adherence.py: pidiendo inglés con la pregunta en español, 0 de 5 sin este recordatorio)
+    msgs.append({"role": "user", "content": f"{where}{question}\n\n(Answer in {langs.PROMPT[lang or langs.ui()]}.)"})
     return msgs, mode
 
 
@@ -271,8 +278,9 @@ def suggestions(info: dict, tr, screen: dict | None, position: float | None = No
 DESCRIBE_CHARS = 6000  # lo que lee el modelo chico: el inicio y tramos repartidos por todo el video
 
 
-def describe_messages(info: dict, tr) -> list[dict]:
-    """El pedido de la descripción corta: una o dos frases que digan de qué trata el video."""
+def describe_messages(info: dict, tr, lang: str | None = None) -> list[dict]:
+    """El pedido de la descripción corta: una o dos frases que digan de qué trata el video, en el idioma
+    de la app (o `lang`)."""
     lines = [(s.get("translation") or s.get("text") or "").strip() for s in tr.segments]
     lines = [x for x in lines if x]
     body = " ".join(lines)
@@ -288,16 +296,19 @@ def describe_messages(info: dict, tr) -> list[dict]:
         rest = tail[::step]
         body = " ".join(head) + " […] " + " ".join(rest)
         body = body[:DESCRIBE_CHARS + 400]
-    system = ("Escribes la descripción de un video para una biblioteca: una o dos frases en español, de no más de "
-              "220 caracteres, que digan de qué trata y qué aprende quien lo vea. Tercera persona, tono neutro y "
-              "profesional. Sin comillas, sin emojis, sin «En este video» ni «El video» al comienzo, sin inventar "
-              "datos que no estén en la transcripción. Responde solo con la descripción.")
-    user = f"Título: {info.get('title') or tr.data.get('name') or ''}\n\nTranscripción (traducida):\n{body}"
+    language = langs.PROMPT[lang or langs.ui()]
+    system = (f"You write the description of a video for a library: one or two sentences in {language}, no longer "
+              "than 220 characters, saying what it is about and what the viewer learns. Third person, neutral and "
+              "professional tone. No quotation marks, no emojis, don't start with \"In this video\" or \"The video\" "
+              "(in any language), don't invent facts that are not in the transcript. Reply only with the "
+              f"description, written in {language}.")
+    user = (f"Title: {info.get('title') or tr.data.get('name') or ''}\n\nTranscript:\n{body}\n\n"
+            f"Write the description in {language}.")
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
-_LEAD = re.compile(r"^\s*(descripci[oó]n|resumen)\s*:\s*", re.I)
-_VIDEO_START = re.compile(r"^(en )?(este|el) video,?\s+", re.I)
+_LEAD = re.compile(r"^\s*(descripci[oó]n|resumen|description|summary|descri[cç][aã]o|resumo)\s*:\s*", re.I)
+_VIDEO_START = re.compile(r"^((en )?(este|el) video|(in )?this video|the video|(neste|este|o) v[ií]deo),?\s+", re.I)
 
 
 def clean_description(text: str, limit: int = 260) -> str:

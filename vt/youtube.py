@@ -13,7 +13,7 @@ import urllib.error
 from collections import defaultdict
 from pathlib import Path
 
-from . import ytsession
+from . import i18n, ytsession
 
 _ID = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([A-Za-z0-9_-]{11})")
 _LIST = re.compile(r"[?&]list=([A-Za-z0-9_-]{10,})")
@@ -168,7 +168,7 @@ class YouTube:
                             "channel": e.get("channel") or e.get("uploader") or "",
                             "thumb": f"/thumb/yt/{vid}.jpg"})
         if not entries:
-            raise ValueError("la playlist está vacía o es privada")
+            raise ValueError(i18n.t("la playlist está vacía o es privada"))
         return {"id": pid, "title": info.get("title") or "Playlist",
                 "channel": info.get("channel") or info.get("uploader") or "",
                 "url": f"https://www.youtube.com/playlist?list={pid}", "entries": entries}
@@ -187,7 +187,7 @@ class YouTube:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid}", download=False, process=False)
         url = info.get("channel_url") or (f"https://www.youtube.com/channel/{info['channel_id']}" if info.get("channel_id") else "")
         if not url:
-            raise ValueError("el video no dice de qué canal es")
+            raise ValueError(i18n.t("el video no dice de qué canal es"))
         with self._ydl({**base, "extract_flat": True, "playlist_items": "0"}, session) as ydl:
             ch = ydl.extract_info(url, download=False)
         thumbs = {t.get("id"): t.get("url") for t in ch.get("thumbnails") or [] if t.get("url")}
@@ -282,36 +282,32 @@ def friendly_error(e: Exception, session: str = "ninguna") -> str:
     browser = {"brave": "Brave", "chrome": "Chrome", "edge": "Edge", "firefox": "Firefox"}.get(session, session)
     if "confirm you" in msg and "bot" in msg:
         if session == "ninguna":
-            return ("YouTube pidió verificar que no eres un bot. Conecta tu cuenta de YouTube en "
-                    "Ajustes → YouTube, o espera unas horas.")
+            return i18n.t("YouTube pidió verificar que no eres un bot. Conecta tu cuenta de YouTube en Ajustes → YouTube, o espera unas horas.")
         if session == "cuenta":
-            return ("YouTube sigue solicitando verificación con tu cuenta conectada. Espera unas horas o "
-                    "vuelve a conectarla en Ajustes → YouTube.")
-        return (f"YouTube sigue solicitando verificación con la sesión de {browser}. Verifica que hayas iniciado "
-                "sesión en YouTube en ese navegador.")
+            return i18n.t("YouTube sigue solicitando verificación con tu cuenta conectada. Espera unas horas o vuelve a conectarla en Ajustes → YouTube.")
+        return i18n.t("YouTube sigue solicitando verificación con la sesión de {browser}. Verifica que hayas iniciado sesión en YouTube en ese navegador.", browser=browser)
     if "Could not copy" in msg and "cookie" in msg:
-        return (f"No se pudo leer la sesión de {browser}. Los navegadores basados en Chromium bloquean sus cookies "
-                "mientras están abiertos. Ciérralo durante la descarga, usa Firefox o exporta un cookies.txt.")
+        return i18n.t("No se pudo leer la sesión de {browser}. Los navegadores basados en Chromium bloquean sus cookies mientras están abiertos. Ciérralo durante la descarga, usa Firefox o exporta un cookies.txt.",
+                      browser=browser)
     if "decrypt" in msg.lower() or "app-bound" in msg.lower():
-        return (f"{browser} cifra sus cookies y no se pueden leer desde aquí. Usa Firefox o exporta un "
-                "cookies.txt (Ajustes → «Archivo cookies.txt»).")
+        return i18n.t("{browser} cifra sus cookies y no se pueden leer desde aquí. Usa Firefox o exporta un cookies.txt (Ajustes → «Archivo cookies.txt»).", browser=browser)
     if "confirm your age" in msg:
-        return ("El video tiene restricción de edad. Conecta tu cuenta de YouTube (Ajustes → YouTube)."
-                if session != "cuenta" else "El video tiene restricción de edad y tu cuenta no puede verlo.")
+        return (i18n.t("El video tiene restricción de edad. Conecta tu cuenta de YouTube (Ajustes → YouTube).")
+                if session != "cuenta" else i18n.t("El video tiene restricción de edad y tu cuenta no puede verlo."))
     if isinstance(e, FileNotFoundError) and "cuenta de YouTube" in msg:
-        return "La cuenta de YouTube no está conectada. Conéctala en Ajustes → YouTube."
+        return i18n.t("La cuenta de YouTube no está conectada. Conéctala en Ajustes → YouTube.")
     if isinstance(e, FileNotFoundError) and "cookies.txt" in msg:
-        return "Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada)."
+        return i18n.t("Falta el archivo data/cookies.txt (expórtalo desde tu navegador con la sesión de YouTube iniciada).")
     if "playlist" in msg.lower() and ("does not exist" in msg or "private" in msg.lower()):
-        return "La playlist no existe o es privada."
+        return i18n.t("La playlist no existe o es privada.")
     if "Private video" in msg:
-        return "El video es privado: solo lo puede ver quien lo subió."
+        return i18n.t("El video es privado: solo lo puede ver quien lo subió.")
     if _MEMBERS in msg.lower() or "join this channel" in msg.lower():
-        return "El video es solo para miembros del canal."
+        return i18n.t("El video es solo para miembros del canal.")
     if "Video unavailable" in msg:
-        return "El video no está disponible (eliminado o restringido)."
+        return i18n.t("El video no está disponible (eliminado o restringido).")
     if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403, 404, 410):
-        return "No se pudo abrir el enlace. Puede ser privado, requerir una cuenta o haber sido eliminado."
+        return i18n.t("No se pudo abrir el enlace. Puede ser privado, requerir una cuenta o haber sido eliminado.")
     return msg[:300]
 
 

@@ -138,7 +138,7 @@ class Request:
 class AppServer:
     def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None,
                  get_routes: dict | None = None, http_routes: dict | None = None, guard=None,
-                 origin_ok=None):
+                 origin_ok=None, app_files=()):
         """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
         get_routes: prefijo → async fn(resto_de_ruta) → archivo a servir (o None: 404).
         put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
@@ -146,9 +146,12 @@ class AppServer:
         http_routes: prefijo → async fn(Request) → (código, cuerpo: dict|str|bytes, cabeceras) (cualquier método).
         guard: fn(Request) → None (pasa) o (código, texto): se consulta antes de archivos y subidas.
         origin_ok: fn(cabeceras) → bool: si el pedido viene de la propia app (vt/auth.py same_origin).
+        app_files: carpetas fuera de la interfaz cuyo contenido también es de la app (los catálogos de idioma
+        generados, vt/i18n.py): se sirven con su tipo, no como descarga.
         Se exige al WebSocket y a todo lo que no sea GET/HEAD, salvo con clave de API."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self._app_root = routes["/"].resolve() if "/" in routes else None  # la interfaz: lo único que es página
+        self._app_files = tuple(Path(x).resolve() for x in app_files)
         self.ws_routes = ws_routes
         self.put_routes = put_routes or {}
         self.get_routes = get_routes or {}
@@ -278,7 +281,9 @@ class AppServer:
             status = "206 Partial Content"
         length = end - start + 1
         ctype = _MIME.get(f.suffix.lower(), "application/octet-stream")
-        app = self._app_root is not None and f.resolve().is_relative_to(self._app_root)
+        real = f.resolve()
+        app = (self._app_root is not None and real.is_relative_to(self._app_root)) or \
+            any(real.is_relative_to(x) for x in self._app_files)
         if not app and not ctype.startswith(("video/", "audio/", "image/png", "image/jpeg", "image/webp")):
             ctype = "application/octet-stream"  # archivos del usuario: nunca se interpretan como página
         head = [f"HTTP/1.1 {status}", f"Content-Type: {ctype}", "X-Content-Type-Options: nosniff",

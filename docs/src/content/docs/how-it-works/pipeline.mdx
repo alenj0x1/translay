@@ -57,7 +57,7 @@ Each closed sentence (`Segment`) carries its original audio (from 0.05 s before 
 
 ## Translation
 
-`vt/translate.py` runs the translators on CTranslate2, on the same GPU as Whisper; `Translators` picks the one for the video's language ([Languages](../languages/#a-translator-per-language)). `CT2Translator.translate_many` does the following for each sentence:
+`vt/translate.py` runs the translators on CTranslate2, on the same GPU as Whisper; `Translators` picks the one for the video's language ([Languages](../languages/#a-translator-per-language-pair)). `CT2Translator.translate_many` does the following for each sentence:
 
 <Steps>
 
@@ -74,7 +74,7 @@ Each sentence stores the model it was translated with (`tr_model`). When opening
 
 ### Choosing the translator
 
-For English, measured with `tools/eval_translation.py` (39 typical video sentences, one at a time as in live use). Portuguese has its own measurement in [Languages](../languages/#a-translator-per-language).
+For English, measured with `tools/eval_translation.py` (39 typical video sentences, one at a time as in live use). Portuguese has its own measurement in [Languages](../languages/#a-translator-per-language-pair).
 
 | Model (`--translator`) | Precision | Median per sentence | Notes |
 |---|---|---|---|

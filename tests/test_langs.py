@@ -19,7 +19,7 @@ from vt.vad import SR  # noqa: E402
 
 
 def test_registry():
-    assert langs.TARGET in langs.TARGETS and set(langs.SOURCES) <= set(langs.LANGS)
+    assert langs.target() in langs.TARGETS and set(langs.SOURCES) <= set(langs.LANGS)
     for code in langs.SOURCES:
         lg = langs.LANGS[code]
         assert lg.code == code and len(lg.iso3) == 3 and "_" in lg.nllb and lg.name
@@ -166,8 +166,61 @@ def test_prefs_migrate_original_subtitles(tmp_path):
     p = tmp_path / "prefs.json"
     p.write_text(json.dumps({"sub_en": False}))
     prefs = Prefs(p)
-    assert prefs.values["sub_orig"] is False and prefs.values["transcribe_lang"] == "es"
+    assert prefs.values["sub_orig"] is False and prefs.values["transcribe_lang"] == ""
     assert prefs.set("transcribe_lang", "pt") and not prefs.set("transcribe_lang", "xx")
+    assert prefs.values["language"] == "es" and prefs.target == "es"  # de antes de los idiomas: español
+
+
+def test_language_choice_and_target(tmp_path, monkeypatch):
+    monkeypatch.setattr("vt.langs.system", lambda: "pt")
+    prefs = Prefs(tmp_path / "prefs.json")  # instalación nueva: el idioma del sistema
+    assert prefs.ui_lang == "pt" and prefs.target == "pt"
+    seen = []
+    prefs.listeners.append(lambda k, v: seen.append((k, v)))
+    assert prefs.set("language", "en") and prefs.target == "en"
+    assert prefs.set("target_lang", "es") and prefs.ui_lang == "en" and prefs.target == "es"
+    assert seen == [("language", "en"), ("target_lang", "es")]
+    assert not prefs.set("language", "fr")
+
+
+def test_translation_per_target_language(tmp_path):
+    from vt import langs
+    (tmp_path / "yt_ggggggggggg.json").write_text(json.dumps({
+        "id": "yt_ggggggggggg", "lang": "en", "next_id": 1, "covered": [[0, 1]],
+        "segments": [{"id": 1, "start": 0, "end": 1, "text": "Hi", "translation": "Hola", "tr_model": "opus-big",
+                      "dub": {"file": "yt_ggggggggggg/1.wav", "text": "Hola"}}]}))
+    tr = Store(tmp_path).open("yt_ggggggggggg")
+    assert tr.target == "es" and tr.translates
+    assert tr.use_target("pt")
+    seg = tr.segments[0]
+    assert seg["translation"] is None and "dub" not in seg and tr.stale("opus-big-en-pt") == [seg]
+    assert "alt" not in tr.public()["segments"][0] and tr.public()["target"] == "pt"
+    tr.set_translation(1, "Olá", "opus-big-en-pt")
+    assert tr.use_target("es")
+    assert seg["translation"] == "Hola" and seg["dub"]["file"].endswith("1.wav") and seg["alt"]["pt"]["translation"] == "Olá"
+    assert tr.use_target("pt") and seg["translation"] == "Olá"
+    assert not tr.use_target("pt") and not tr.use_target("fr")
+    assert langs.target() == "es"
+
+
+def test_video_in_target_language_is_only_transcribed(tmp_path):
+    tr = Store(tmp_path).open("yt_hhhhhhhhhhh")
+    tr.set_lang("en")
+    assert tr.translates
+    tr.use_target("en")
+    assert tr.mode == "transcribe" and not tr.translates
+
+
+def test_routes_cover_every_pair():
+    from vt import langs
+    from vt.translate import FALLBACK, ROUTES, route, supports
+    for a in langs.SOURCES:
+        for b in langs.TARGETS:
+            if a != b:
+                assert (a, b) in ROUTES, (a, b)
+                for tier in ("big", "base"):
+                    name = route(a, tier, b)
+                    assert name != FALLBACK and supports(name, a, b)
 
 
 def test_detection_does_not_override_or_guess(tmp_path):

@@ -30,18 +30,24 @@ MODELS = {
     "opus-base": ("marian", "michaelfeil/ct2fast-opus-mt-en-es", "float16", {("en", "es")}),
     "opus-big": ("marian", "ooeoeo/opus-mt-tc-big-en-es-ct2-float16", "float16", {("en", "es")}),
     "opus-itc": ("marian", "opus:itc-itc", "float16", {(a, b) for a in _ITC for b in _ITC if a != b}),
+    "opus-big-en-pt": ("marian", "ooeoeo/opus-mt-tc-big-en-pt-ct2-float16", "float16", {("en", "pt")}),
+    "opus-roa-en": ("marian", "opus:roa-eng", "float16", {(a, "en") for a in _ITC}),
     "nllb-1.3b": ("nllb", "OpenNMT/nllb-200-distilled-1.3B-ct2-int8", "int8_float16", ANY),
     "madlad-3b": ("madlad", "Nextcloud-AI/madlad400-3b-mt-ct2-int8", "int8_float16", ANY),
 }
 
-# traductor de cada idioma de origen (al español), según tools/lab/langs_mt.py:
+# traductor de cada par (origen, destino), según tools/lab/langs_mt.py:
 # «big» para los perfiles de calidad, «base» para los ligeros. Un idioma sin ruta usa
 # FALLBACK, que traduce cualquier par.
 ROUTES = {
-    "en": {"big": "opus-big", "base": "opus-base"},
-    "pt": {"big": "opus-itc", "base": "opus-itc"},  # chrF 54.3, como MADLAD-3B (54.5) y 10× más rápido
+    ("en", "es"): {"big": "opus-big", "base": "opus-base"},
+    ("pt", "es"): {"big": "opus-itc", "base": "opus-itc"},  # chrF 54.3, como MADLAD-3B (54.5) y 10× más rápido
+    ("es", "pt"): {"big": "opus-itc", "base": "opus-itc"},
+    ("en", "pt"): {"big": "opus-big-en-pt", "base": "opus-big-en-pt"},
+    ("es", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
+    ("pt", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
 }
-FALLBACK = "nllb-1.3b"
+FALLBACK = "madlad-3b"  # Apache-2.0 (NLLB-200 es CC-BY-NC); empata o gana a NLLB en los pares medidos
 
 
 _FILES = ["*.json", "*.bin", "*.spm", "*.model", "*.txt"]  # lo que usa CTranslate2 de cada repo
@@ -72,13 +78,14 @@ def supports(model: str, src: str, tgt: str) -> bool:
     # carpeta local (labs) puede ser de cualquier par
     if model not in MODELS and Path(model).is_dir():
         return True
-    pairs = MODELS[model][3] if model in MODELS else {("en", langs.TARGET)}
+    pairs = MODELS[model][3] if model in MODELS else {("en", langs.target())}
     return pairs is ANY or (src, tgt) in pairs
 
 
-def route(src: str, tier: str = "big", tgt: str = langs.TARGET) -> str:
-    """Traductor para un idioma de origen."""
-    name = ROUTES.get(src, {}).get(tier) or FALLBACK
+def route(src: str, tier: str = "big", tgt: str | None = None) -> str:
+    """Traductor para un par de idiomas (destino: el elegido en Ajustes)."""
+    tgt = tgt or langs.target()
+    name = ROUTES.get((src, tgt), {}).get(tier) or FALLBACK
     return name if supports(name, src, tgt) else FALLBACK
 
 
@@ -108,7 +115,7 @@ class CT2Translator:
     """Traductor seq2seq sobre CTranslate2."""
 
     def __init__(self, model: str = "opus-big", device: str = "cuda",
-                 compute_type: str | None = None, beam_size: int = 4, src: str = "en", tgt: str = langs.TARGET):
+                 compute_type: str | None = None, beam_size: int = 4, src: str = "en", tgt: str | None = None):
         enable_cuda_dlls()
         import ctranslate2
 
@@ -120,7 +127,7 @@ class CT2Translator:
         self.repo = repo
         self.family = family
         self.beam_size = beam_size
-        self.src, self.tgt = langs.get(src), langs.get(tgt)
+        self.src, self.tgt = langs.get(src), langs.get(tgt or langs.target())
         path = model_dir(repo)
         self.model = ctranslate2.Translator(str(path), device=device, compute_type=compute_type)
         self._lock = threading.Lock()
@@ -131,8 +138,8 @@ class CT2Translator:
             self._tgt = spm.SentencePieceProcessor(model_file=str(path / "target.spm"))
             # multilingüe: la oración empieza con la etiqueta del destino (>>spa<<)
             vocab = path / "shared_vocabulary.json"
-            tag = f">>{self.tgt.iso3}<<"
-            self._tag = [tag] if vocab.exists() and f'"{tag}"' in vocab.read_text(encoding="utf-8") else []
+            self._vocab = vocab.read_text(encoding="utf-8") if vocab.exists() else ""
+            self.set_pair(src, self.tgt.code)
         elif family == "madlad":
             import sentencepiece as spm
             self._src = self._tgt = spm.SentencePieceProcessor(model_file=str(path / "spiece.model"))
@@ -141,6 +148,14 @@ class CT2Translator:
             self._tok = Tokenizer.from_file(str(path / "tokenizer.json"))
         else:
             raise ValueError(f"familia desconocida: {family}")
+
+    def set_pair(self, src: str, tgt: str):
+        """Mismo modelo, otro par (opus-itc traduce pt→es y es→pt): reglas de texto, token de
+        NLLB y etiqueta de destino de los Marian multilingües."""
+        self.src, self.tgt = langs.get(src), langs.get(tgt)
+        if self.family == "marian":
+            tag = f">>{self.tgt.iso3}<<"
+            self._tag = [tag] if f'"{tag}"' in self._vocab else []
 
     # reposo: los pesos pasan a la RAM y vuelven en ~1 s (ver vt/resources.py)
     def load(self):
@@ -196,7 +211,7 @@ class CT2Translator:
             outs += self.translate_batch([g[0] for g in guarded[k:k + batch]])
         pieces: list[list[str]] = [[] for _ in texts]
         for i, s, es, (_, repl) in zip(owner, sents, outs, guarded):
-            pieces[i].append(match_shape(s, polish(Glossary.restore(es, repl))))
+            pieces[i].append(match_shape(s, polish(Glossary.restore(es, repl), self.tgt.code)))
         return [" ".join(p) if p else None for p in pieces]
 
     def translate(self, text: str, context: str = "", glossary=None) -> str | None:
@@ -204,7 +219,7 @@ class CT2Translator:
 
 
 def load_translator(name: str, device: str = "cuda", compute_type: str | None = None,
-                    src: str = "en", tgt: str = langs.TARGET) -> Translator:
+                    src: str = "en", tgt: str | None = None) -> Translator:
     """compute_type: None = el del modelo; en CPU, int8 (float16 no corre en CPU)."""
     if name in ("", "none"):
         return NullTranslator()
@@ -225,13 +240,18 @@ class Translators:
     """
 
     def __init__(self, tier: str = "big", device: str = "cuda", compute_type: str | None = None,
-                 force: str | None = None, tgt: str = langs.TARGET):
-        self.tier, self.device, self.compute_type, self.force, self.tgt = tier, device, compute_type, force, tgt
+                 force: str | None = None, tgt: str | None = None):
+        self.tier, self.device, self.compute_type, self.force, self._tgt = tier, device, compute_type, force, tgt
         self._by_lang: dict[str, Translator] = {}
         self._active: str | None = None
         self._ready: set[str] = set()  # modelos ya descargados
         self._lock = threading.RLock()
         self._sleeping = False
+
+    @property
+    def tgt(self) -> str:
+        """Destino: el fijado al crearlo o, si no, el elegido en Ajustes en este momento."""
+        return self._tgt or langs.target()
 
     @property
     def name(self) -> str:
@@ -274,7 +294,7 @@ class Translators:
                 self._by_lang[name] = t
                 self._ready.add(name)
             if isinstance(t, CT2Translator):
-                t.src = langs.get(src)  # mismo modelo, otro origen (reglas de texto, token de NLLB)
+                t.set_pair(src, self.tgt)  # mismo modelo, otro par
             if self._active != name:
                 if self._active in self._by_lang:
                     self._by_lang[self._active].unload()

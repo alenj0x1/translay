@@ -25,6 +25,7 @@ import time
 import uuid
 from pathlib import Path
 
+from . import i18n
 from .jsonio import read_json, write_json
 
 CATEGORIES_ES = {
@@ -35,6 +36,19 @@ CATEGORIES_ES = {
     "Howto & Style": "Tutoriales y estilo", "Education": "Educación",
     "Science & Technology": "Ciencia y tecnología", "Nonprofits & Activism": "ONG y activismo",
 }
+
+def category_names() -> dict[str, str]:
+    """Nombre en español de cada categoría de YouTube → su nombre en el idioma de la app (el id sale del español)."""
+    return {
+        "Cine y animación": i18n.t("Cine y animación"), "Autos y vehículos": i18n.t("Autos y vehículos"),
+        "Música": i18n.t("Música"), "Mascotas y animales": i18n.t("Mascotas y animales"),
+        "Deportes": i18n.t("Deportes"), "Viajes y eventos": i18n.t("Viajes y eventos"),
+        "Videojuegos": i18n.t("Videojuegos"), "Personas y blogs": i18n.t("Personas y blogs"),
+        "Comedia": i18n.t("Comedia"), "Entretenimiento": i18n.t("Entretenimiento"),
+        "Noticias y política": i18n.t("Noticias y política"), "Tutoriales y estilo": i18n.t("Tutoriales y estilo"),
+        "Educación": i18n.t("Educación"), "Ciencia y tecnología": i18n.t("Ciencia y tecnología"),
+        "ONG y activismo": i18n.t("ONG y activismo")}
+
 
 _FIELDS = ("title", "duration", "source", "media", "audio", "thumb", "channel", "categories", "url", "lang", "mode")
 
@@ -133,7 +147,7 @@ class Library:
 
     # ----------------------------------------------------------- colecciones
     def create(self, name: str) -> dict:
-        c = {"id": uuid.uuid4().hex[:10], "name": name.strip()[:80] or "Sin nombre", "items": [],
+        c = {"id": uuid.uuid4().hex[:10], "name": name.strip()[:80] or i18n.t("Sin nombre"), "items": [],
              "created": time.time()}
         self.data["collections"].append(c)
         self.save()
@@ -218,8 +232,9 @@ class Library:
                         key=lambda i: -(videos[i].get("opened") or videos[i].get("added", 0)))
         # todos: cada video de la biblioteca (también lo pendiente de descargar), del último agregado al primero
         every = sorted(videos, key=lambda i: -videos[i].get("added", 0))
-        auto = [{"id": "recent", "name": "Recientes", "kind": "auto", "items": recent},
-                {"id": "all", "name": "Todos", "kind": "auto", "items": every}]
+        auto = [{"id": "recent", "name": i18n.t("Recientes"), "kind": "auto", "items": recent},
+                {"id": "all", "name": i18n.t("Todos"), "kind": "auto", "items": every}]
+        cat_names = category_names()
         channels, cats = {}, {}
         for vid in recent:
             v = videos[vid]
@@ -228,7 +243,7 @@ class Library:
             for cat in dict.fromkeys([CATEGORIES_ES.get(c, c) for c in v.get("categories") or []] + (v.get("cats_extra") or [])):
                 cats.setdefault(cat, []).append(vid)
         auto += [{"id": "ch-" + _slug(n), "name": n, "kind": "canal", "items": i} for n, i in sorted(channels.items())]
-        auto += [{"id": "cat-" + _slug(n), "name": n, "kind": "categoría", "items": i} for n, i in sorted(cats.items())]
+        auto += [{"id": "cat-" + _slug(n), "name": cat_names.get(n, n), "kind": "categoría", "items": i} for n, i in sorted(cats.items())]
         own = [{**c, "kind": c.get("kind", "propia"), "items": [i for i in c["items"] if i in videos]}
                for c in self.data["collections"]]
         return {"videos": videos, "collections": auto[:2] + own + auto[2:]}

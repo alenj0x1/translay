@@ -1,6 +1,6 @@
 ---
 title: Idiomas
-description: El registro de idiomas, la detección automática, traducir o solo transcribir, un traductor por idioma de origen, las reglas de texto y cómo agregar un idioma.
+description: El registro de idiomas, la detección automática, traducir o solo transcribir, un idioma para toda la app, una traducción por idioma, un traductor por par de idiomas, los catálogos de la interfaz, las reglas de texto y cómo agregar un idioma.
 sidebar:
   order: 3
 ---
@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 import Diagram from "../../../../components/Diagram.astro";
 import { languages } from "../../../../diagrams";
 
-Translay reconoce videos en inglés, portugués y español y los traduce al español latinoamericano. Cualquier video también se puede solo transcribir, en su idioma.
+Translay reconoce videos en inglés, portugués y español y los traduce y dobla a cualquiera de los tres: eliges el idioma una vez y vale para la interfaz, la traducción y la voz. Cualquier video también se puede solo transcribir, en su idioma.
 
 <Diagram {...languages("es")} />
 
@@ -20,12 +20,18 @@ Translay reconoce videos en inglés, portugués y español y los traduce al espa
 | Campo | Qué es | Portugués |
 |---|---|---|
 | `code` | ISO 639-1: el de Whisper, la API y los datos guardados. | `pt` |
-| `name` | Nombre en la interfaz, en español. | `portugués` |
+| `name` | Nombre en español (los nombres para cada idioma de la interfaz están en `NAMES`). | `portugués` |
 | `iso3` | ISO 639-2: etiquetas de las pistas en FFmpeg y etiqueta de destino de Opus-MT multilingüe (`>>spa<<`). | `por` |
 | `nllb` | Token de NLLB-200, con la escritura. | `por_Latn` |
 | `tts` | Nombre que esperan los motores de voz. | `Portuguese` |
 
-`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `es`); `TARGET`, el idioma al que se traduce (`es`). Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
+`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `es`); `TARGETS`, aquellos a los que se traduce y dobla y en los que se puede ver la interfaz (`es`, `en`, `pt`). `target()` es el elegido ahora. Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
+
+## Un idioma para todo
+
+**Ajustes › Uso › Idioma** (`language`) es una sola elección para la interfaz, la traducción y la voz, el agente y los resúmenes. Por defecto es el del sistema (`langs.system()`, que en Windows lee el idioma de Windows; si no es uno de los tres, inglés); las instalaciones de antes de los idiomas quedan en español. Cambiarlo no recarga la página: la interfaz, el video abierto y el agente cambian al instante.
+
+**Traducir a** (`target_lang`) separa el idioma de la traducción y el doblaje del de la app: por defecto es el de la app, pero puedes leer la interfaz en un idioma y ver los videos doblados a otro.
 
 ## Detección automática
 
@@ -43,44 +49,55 @@ Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y
 
 Cada video tiene un modo, independiente de su idioma (`mode` en su [transcripción](../data/#transcripción-por-video)):
 
-- `translate`: se traduce y dobla al español.
+- `translate`: se traduce y dobla al idioma de destino (`target()`).
 - `transcribe`: solo se transcribe, en su idioma y sin voz.
 
 Si la persona no eligió el modo, un video detectado en el idioma de la preferencia «Solo transcribir videos en» (`transcribe_lang`, español si no la cambias) solo se transcribe. Cambiar el modo no borra nada: lo reconocido sirve para los dos y las traducciones quedan guardadas, así que volver a traducir solo completa lo que falta. Cambiar el idioma sí borra lo reconocido y vuelve a procesar el video. En la interfaz: [Agregar videos › Idioma](../../guide/import/#idioma-y-solo-transcribir).
 
-## Un traductor por idioma
+## Una traducción por idioma
 
-`Translators` (`vt/translate.py`) crea el traductor de cada idioma de origen la primera vez que hace falta, según `ROUTES` y el nivel del perfil:
+Cada video guarda su traducción y su voz en cada idioma en que se ha visto. Las del idioma activo van en los campos de cada frase (`translation`, `dub`, `tr_model`…); las de otros idiomas, en `seg["alt"][idioma]`, y el campo `target` de la transcripción dice de qué idioma son las activas (ver [Datos en disco](../data/#transcripción-por-video)). Los audios doblados se guardan como `<frase>.<idioma>.wav`.
 
-| Origen | `big` (perfiles de calidad) | `base` (perfiles ligeros) |
-|---|---|---|
-| Inglés | Opus-MT tc-big en-es (`opus-big`) | `opus-base` |
-| Portugués | Opus-MT tc-big itc-itc (`opus-itc`) | `opus-itc` |
-| Cualquier otro | NLLB-200 1.3B (`FALLBACK`) | NLLB-200 1.3B |
+Al elegir otro idioma, lo que ya estaba hecho vuelve y lo que falta se traduce y dobla al abrir el video. No se borra nada, así que volver al primer idioma es instantáneo. `alt` no viaja al navegador, que solo ve el idioma activo.
+
+## Un traductor por par de idiomas
+
+`Translators` (`vt/translate.py`) crea el traductor de cada idioma de origen la primera vez que hace falta, según el destino, `ROUTES` y el nivel del perfil. Medidas con `tools/lab/langs_mt.py` sobre FLEURS (las mismas frases en cada idioma, chrF; RTX 4060), estas son las rutas:
+
+| Par | Traductor (`big` y `base`) | chrF | Por frase | Frente a |
+|---|---|---|---|---|
+| Inglés → español | Opus-MT tc-big en-es (`opus-big`; `opus-base` en `base`) | 56,7 | | NLLB 55,1, MADLAD 56,7 |
+| Portugués → español | Opus-MT itc-itc (`opus-itc`) | 54,3 | 137 ms | MADLAD 54,5 a 1458 ms, NLLB 53,2 |
+| Español → portugués | Opus-MT itc-itc | 56,1 | 151 ms | MADLAD 57,2 a 1352 ms, NLLB 54,2 |
+| Inglés → portugués | Opus-MT tc-big en-pt (`opus-big-en-pt`) | 71,6 | 117 ms | MADLAD 70,5, NLLB 68,2 |
+| Español → inglés | Opus-MT tc-bible roa-eng (`opus-roa-en`) | 59,9 | 218 ms | MADLAD 60,8, NLLB 59,8 (61,2 con las reglas de texto) |
+| Portugués → inglés | Opus-MT tc-bible roa-eng | 72,4 | 127 ms | MADLAD 72,2, NLLB 72,2 |
+
+Cualquier otro par, o un modelo que no lo soporte, va a `FALLBACK`: MADLAD-400 3B. Reemplazó a NLLB-200, cuya licencia es CC-BY-NC, con Apache-2.0, y empata o gana a NLLB en los pares medidos.
 
 - **Uno en la GPU.** Al pasar a otro idioma, el traductor anterior va a la RAM (vuelve en ~1 s), así la memoria medida en cada [perfil](../../guide/performance/) no crece con los idiomas.
 - **Descarga fuera del hilo de la GPU.** Un traductor que falta en disco se descarga sin frenar el reconocimiento ni la voz de otro video. En vivo, las frases quedan sin traducir y se completan cuando está listo.
 - **`--translator`** fuerza un modelo para todos los idiomas que traduce; los demás siguen con su ruta.
 
-itc-itc es un modelo multilingüe de lenguas romances: necesita la etiqueta del destino (`>>spa<<`, de `iso3`) al inicio de cada oración.
+itc-itc y roa-eng son modelos multilingües de lenguas romances: necesitan la etiqueta del destino (`>>spa<<`, `>>por<<`, de `iso3`) al inicio de cada oración.
 
-### Preparación del modelo del portugués
+### Preparación de los modelos Opus-MT
 
-itc-itc no está publicado en formato CTranslate2, así que `vt/opusmt.py` lo prepara a partir de la publicación oficial de OPUS-MT (Helsinki-NLP, Tatoeba Challenge) la primera vez que se traduce un video en portugués:
+itc-itc y roa-eng no están publicados en formato CTranslate2, así que `vt/opusmt.py` los prepara a partir de la publicación oficial de OPUS-MT (Helsinki-NLP, Tatoeba Challenge) la primera vez que un par los necesita. roa-eng (tc-bible, 2024, Apache-2.0) se publica igual que itc-itc y se convierte como si lo fuera:
 
 <Steps>
 
-1. Descarga la publicación en una URL fija (789 MB) y verifica su SHA-256; si no coincide, se descarta.
-2. La convierte con el conversor de CTranslate2, que solo necesita numpy, no torch (unos 3 s), a `float16` (unos 430 MB).
-3. La deja en `translay/opus-itc-itc` junto a la caché de Hugging Face (o en `TRANSLAY_MODELS`), con el `LICENSE` y el `README` originales, y borra lo intermedio. La carpeta final solo aparece cuando está completa.
+1. Descarga la publicación en una URL fija (itc-itc 789 MB, roa-eng 866 MB) y verifica su SHA-256; si no coincide, se descarta.
+2. La convierte con el conversor de CTranslate2, que solo necesita numpy, no torch (unos 3 s), a `float16`.
+3. La deja en `translay/opus-<nombre>` junto a la caché de Hugging Face (o en `TRANSLAY_MODELS`), con el `LICENSE` y el `README` originales, y borra lo intermedio. La carpeta final solo aparece cuando está completa.
 
 </Steps>
 
-La licencia del modelo es CC-BY-4.0.
+La licencia de itc-itc es CC-BY-4.0.
 
 ### Mediciones
 
-Con `tools/lab/langs_mt.py` sobre FLEURS (las mismas frases en cada idioma, con el español latinoamericano como referencia), RTX 4060. Portugués → español, test, 347 frases:
+Portugués → español, test, 347 frases, en detalle:
 
 | Traductor | chrF | Por frase | Frases/s (lotes) | VRAM |
 |---|---|---|---|---|
@@ -107,14 +124,31 @@ Las reglas que dependen del idioma van por su código; un idioma sin las suyas s
 - **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»).
 - **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando.
 
+## Idioma de la interfaz
+
+El texto de la interfaz está escrito en español en el código y se busca en un catálogo del idioma de la app. Los catálogos son `web/i18n/en.json` y `pt.json` (la clave es el texto en español); el español no necesita uno. En el navegador, `t("Agregar")` (`web/js/i18n.js`) devuelve el texto del catálogo, con `{variables}` donde hay valores (`t("Quedan {n} videos", { n: 3 })`), y lo que falta queda en español. En el servidor, `i18n.t()` (`vt/i18n.py`) hace lo mismo con lo que escribe: etiquetas y descripciones de las preferencias, tarjetas del agente, avisos. El servidor entrega el catálogo en `/i18n.js` antes que los scripts de la interfaz, y las fechas y los números usan el formato del idioma (`es-419`, `en-US`, `pt-BR`).
+
+`tools/i18n.py` junta todos los textos del código (`t("…")` en `web/js`, los textos y atributos fijos de `index.html`, `i18n.t("…")` y las preferencias en `vt/`), los compara con cada catálogo y avisa los que faltan o sobran; `--fill` agrega los que faltan, vacíos, y `--prune` quita los que el código ya no usa. `tests/test_i18n.py` exige que cada catálogo tenga todos los textos, con las mismas `{variables}`.
+
+## El idioma del agente y del resumen
+
+Los prompts del agente, el resumen (`vt/digest.py`), la descripción corta y el resumen de respaldo (`vt/summarize.py`) están escritos en inglés con la orden de responder en el idioma de la app (`PROMPT` en `vt/langs.py`: español latinoamericano, inglés o portugués brasileño), y un recordatorio de idioma al final del pedido, después del video.
+
+El recordatorio importa: con una pregunta en otro idioma, los modelos pequeños siguen el idioma de la pregunta o del video, no la instrucción de arriba. `tools/lab/lang_adherence.py` preguntó en un idioma distinto del pedido: sin el recordatorio, las respuestas salían en el idioma pedido 0 de 5 veces en inglés; con él, entre 93 % y 100 % en los cuatro modelos del agente (Qwen3.5 4B, Gemma 4 E2B, Qwen3.5 2B, Qwen3.5 0.8B) y los tres idiomas.
+
+Las acciones rápidas del agente (`vt/agentintents.py`) entienden el pedido en cada idioma con tablas de frases (`PHRASES`): puedes pedir en español, inglés o portugués y responde en el de la app.
+
+Los motores de voz OmniVoice, Chatterbox y VoxCPM reciben el idioma de destino, con el nombre del registro (`tts`).
+
 ## Agregar un idioma
 
 <Steps>
 
-1. Agrega su entrada a `LANGS` en `vt/langs.py` y su código a `SOURCES`. Con eso ya se detecta, se elige en la interfaz y en la API, y se transcribe.
-2. Mide traductores para el par con `tools/lab/langs_mt.py` y el reconocimiento y la detección con `tools/lab/langs_asr.py`.
-3. Si uno le gana a NLLB, agrégalo a `MODELS` y su ruta a `ROUTES` en `vt/translate.py`; sin ruta, lo traduce NLLB-200 1.3B. Si no está publicado para CTranslate2, agrega su publicación oficial a `PUBLISHED` en `vt/opusmt.py`.
-4. Opcional: sus reglas de texto en `ABBR` e `IDIOMS` (`vt/textproc.py`) y en `NO_END`, `LOWER_AFTER_COMMA` y `HALLUCINATIONS` (`vt/streaming.py`), comprobadas con las frases típicas del lab.
-5. Agrega sus casos a `tests/test_langs.py`.
+1. Agrega su entrada a `LANGS` en `vt/langs.py`, su código a `SOURCES` y, si también será destino e idioma de la interfaz, a `TARGETS`, con sus nombres en `NAMES`, `NATIVE` y `PROMPT`. Con eso ya se detecta, se elige en la interfaz y en la API, y se transcribe.
+2. Crea su catálogo de la interfaz, `web/i18n/<código>.json`, agrégalo a `LANGS` en `tools/i18n.py` y corre `python tools/i18n.py --fill` para ver los textos por traducir; `tests/test_i18n.py` falla hasta que esté completo. Agrega sus frases a `PHRASES` en `vt/agentintents.py`.
+3. Mide traductores para cada par con `tools/lab/langs_mt.py`, el reconocimiento y la detección con `tools/lab/langs_asr.py`, y el idioma del agente con `tools/lab/lang_adherence.py`.
+4. Si uno le gana a MADLAD, agrégalo a `MODELS` y su ruta a `ROUTES` en `vt/translate.py`; sin ruta, lo traduce MADLAD-400 3B. Si no está publicado para CTranslate2, agrega su publicación oficial a `PUBLISHED` en `vt/opusmt.py`.
+5. Opcional: sus reglas de texto en `ABBR` e `IDIOMS` (`vt/textproc.py`) y en `NO_END`, `LOWER_AFTER_COMMA` y `HALLUCINATIONS` (`vt/streaming.py`), comprobadas con las frases típicas del lab.
+6. Agrega sus casos a `tests/test_langs.py`.
 
 </Steps>

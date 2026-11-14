@@ -12,6 +12,10 @@ navegador). Se guarda un JSON por video con:
 * `mode`: "translate" (traducir y doblar) o "transcribe" (solo transcribir, en su
   idioma y sin voz). Lo elige la persona; si falta, un video en el idioma de destino
   solo se transcribe. Cambiar de modo no borra nada: las traducciones quedan guardadas.
+* `target`: idioma de la traducción y el doblaje de cada frase (`translation`,
+  `tr_model`, `dub`). Las de otros idiomas se guardan en `seg["alt"][idioma]` y vuelven
+  al elegir ese idioma en Ajustes (`use_target`): lo que falte se traduce y dobla, lo
+  que ya estaba no se rehace. Sin `target` (antes de los idiomas) es español.
 """
 
 import json
@@ -26,6 +30,7 @@ from . import langs
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
 _LANG_CODE = re.compile(r"^[a-z]{2,3}$")  # código de Whisper (un idioma detectado puede no estar en el registro)
 MODES = ("translate", "transcribe")
+_PER_TARGET = ("translation", "tr_model", "dub")  # campos de cada frase que dependen del idioma de destino
 
 
 def merge_ranges(ranges: list[list[float]], tol: float = 0.25) -> list[list[float]]:
@@ -55,17 +60,45 @@ class Transcript:
         return bool(self.data.get("detect")) and not self.data.get("lang")
 
     @property
+    def target(self) -> str:
+        """Idioma de la traducción y el doblaje guardados en cada frase."""
+        return self.data.get("target") or langs.DEFAULT_TARGET
+
+    def use_target(self, code: str) -> bool:
+        """Pasa las frases al idioma de destino `code`: lo del idioma anterior se guarda en
+        `alt` y lo que ya había en `code` vuelve. True si cambió."""
+        if code == self.target or not langs.is_target(code):
+            return False
+        with self._lock:
+            old = self.target
+            for s in self.data["segments"]:
+                alt = s.setdefault("alt", {})
+                kept = {k: s.pop(k) for k in _PER_TARGET if s.get(k) is not None}
+                if kept:
+                    alt[old] = kept
+                back = alt.pop(code, {})
+                s.update(translation=back.get("translation"), tr_model=back.get("tr_model"))
+                if back.get("dub"):
+                    s["dub"] = back["dub"]
+                if not alt:
+                    s.pop("alt", None)
+            self.data["target"] = code
+            if self.data.pop("mode_auto", None):
+                self.data.pop("mode", None)  # lo decidió el idioma de destino anterior
+        return True
+
+    @property
     def mode(self) -> str:
         m = self.data.get("mode")
         if m in MODES:
             return m
-        return "transcribe" if self.lang == langs.TARGET else "translate"
+        return "transcribe" if self.lang == self.target else "translate"
 
     @property
     def translates(self) -> bool:
         """¿Se traduce y dobla? No si la persona eligió solo transcribir, si ya está en el
         idioma de destino o si es un idioma que todavía no se traduce."""
-        return (self.mode == "translate" and self.lang != langs.TARGET and langs.is_source(self.lang)
+        return (self.mode == "translate" and self.lang != self.target and langs.is_source(self.lang)
                 and TRANSLATION())
 
     @property
@@ -196,7 +229,8 @@ class Transcript:
             tmp.replace(self.path)
 
     def public(self) -> dict:
-        return {"id": self.data["id"], "segments": self.segments, "covered": self.covered,
+        segs = [{k: v for k, v in x.items() if k != "alt"} for x in self.segments]  # otros idiomas: no viajan
+        return {"id": self.data["id"], "segments": segs, "covered": self.covered, "target": self.target,
                 "comments": self.comments, "lang": self.lang, "mode": self.mode, "translates": self.translates,
                 "detecting": self.detecting, "speaker_names": self.data.get("speaker_names") or {},
                 "voice_map": self.data.get("voice_map") or {}, "summary": self.data.get("summary")}
@@ -254,10 +288,18 @@ class Store:
             else:
                 # el idioma se detecta con lo primero que se reconoce (o lo elige quien importa)
                 data = {"id": vid, "name": name, "segments": [], "covered": [],
-                        "next_id": 0, "created": time.time(), "detect": True}
+                        "next_id": 0, "created": time.time(), "detect": True, "target": langs.target()}
             t = Transcript(path, data)
+            t.use_target(langs.target())
             self._cache[vid] = t
             return t
+
+    def retarget(self, code: str) -> list[str]:
+        """Cambió el idioma de destino: las transcripciones abiertas pasan a él en memoria (se guardan con el
+        próximo cambio; abrir una del disco también la pasa). Las que no están abiertas pasan al abrirlas.
+        Devuelve los ids que cambiaron. Sin guardar aquí: con miles de videos abiertos (las tarjetas leen su
+        avance) serían miles de archivos escritos de una vez."""
+        return [vid for vid, t in list(self._cache.items()) if t.use_target(code)]
 
     def forget(self, vid: str):
         """Suelta la transcripción abierta (su archivo se movió, p. ej. a la papelera)."""
