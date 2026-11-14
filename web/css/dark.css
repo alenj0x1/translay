@@ -1,0 +1,43 @@
+/* =====================================================================
+   Oscuro, refinado (2026-11-14): las reglas que pidió para toda la app, en una capa que se carga al final.
+   · Sin bordes ni anillos de línea: los grupos se separan por el fondo.
+   · Nada más claro que --surface-2 (#1f1f1f, lo activo en la barra lateral) como fondo; los hovers, apenas.
+   · Lo elegido entre opciones (tarjetas, íconos, interruptores) con el tono de selección del color de énfasis,
+     nunca con un gris. Las pestañas y grupos de opciones van con el gris de lo activo (controls.css).
+   ===================================================================== */
+[data-theme="dark"] {
+  --surface-3: #242424;  /* hover sobre surface-2: un paso, no un gris claro */
+  --sel-accent: color-mix(in srgb, var(--accent) 32%, var(--surface-2));
+}
+
+/* --- elegido entre opciones: el color de énfasis */
+[data-theme="dark"] .pcard.on,
+[data-theme="dark"] .vicon.on, [data-theme="dark"] #vault-icons .vicon.on,
+[data-theme="dark"] .avatar-opt.on, [data-theme="dark"] .code-theme.on,
+[data-theme="dark"] .bg-opt.on, [data-theme="dark"] .opt-list > .on { background: var(--sel-accent); box-shadow: none; color: var(--fg); }
+[data-theme="dark"]:not([data-lib-accent]) .switch.on { background: var(--accent); }
+[data-theme="dark"] .lang button.on { background: var(--surface-2); }
+
+/* --- sin anillos ni bordes */
+[data-theme="dark"] .dd, [data-theme="dark"] .dd.open, [data-theme="dark"] .dd:focus-visible { box-shadow: none; background: var(--surface-2); }
+[data-theme="dark"] .home-preview { border: 0; }
+[data-theme="dark"] .vcard.on { box-shadow: none; }
+[data-theme="dark"] .vcard.new, [data-theme="dark"] .vmini.new { box-shadow: none; background: var(--surface-2); }
+[data-theme="dark"] .vcard.new:hover, [data-theme="dark"] .vmini.new:hover { background: var(--surface-3); }
+[data-theme="dark"] input[type="checkbox"]:not(.pick), [data-theme="dark"] input[type="radio"] { box-shadow: none; background: var(--surface-3); }
+[data-theme="dark"] input[type="checkbox"]:not(.pick):hover, [data-theme="dark"] input[type="radio"]:hover { box-shadow: none; background: #2c2c2c; }
+[data-theme="dark"] input[type="checkbox"]:not(.pick):checked, [data-theme="dark"] input[type="radio"]:checked { background: var(--accent); }
+[data-theme="dark"] .transcript li.gap { border: 0; background: var(--surface-2); }
+[data-theme="dark"] .ag-hello, [data-theme="dark"] .sum-card { border: 0; }
+
+/* --- hovers y fondos de íconos sin grises claros */
+[data-theme="dark"] .trow:hover, [data-theme="dark"] .pcard:hover, [data-theme="dark"] .acc-url:hover,
+[data-theme="dark"] .vrow:hover, [data-theme="dark"] .dlg .opts label:hover { background: var(--surface-2); }
+[data-theme="dark"] .trow-ic, [data-theme="dark"] .hwchip-ic, [data-theme="dark"] .set-card-ic, [data-theme="dark"] .vnew-ic { background: var(--surface-2); }
+[data-theme="dark"] .set-search:focus-within { background: var(--surface-2); }
+[data-theme="dark"] #vault-list li.on { background: var(--surface-2); }
+
+/* listas de filas (acceso por biblioteca, avance de modelos…): sin caja gris de fondo; así la opción elegida de sus
+   grupos (con el gris de lo activo) se distingue */
+[data-theme="dark"] .vrows { background: transparent; padding: 0; }
+[data-theme="dark"] .vrow:hover { background: transparent; }

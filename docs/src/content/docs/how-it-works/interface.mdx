@@ -19,16 +19,19 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
   - css/
     - tokens.css every visual value: colors for each mode, type, spacing, radii, heights
     - base.css reset, page, text and icons
-    - components/ button, controls, indicators, lists, overlays, card
+    - components/ button, controls, indicators, lists, overlays, card, carousel, star
     - layout.css page frame depending on the view
-    - views/ player, transcript, library, queue, prefs, vaults, access, capture
+    - views/ player, transcript, library, queue, prefs, vaults, access, capture, export
     - patterns.css dot-field banners and badges
+    - dark.css the refined dark mode, loaded last
   - js/
     - ui.js components: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js custom menus and dropdown lists
     - theme.js light or dark mode
     - app.js connection, player, transcript, voice, preferences
     - patterns.js dot fields and collection icons
+    - i18n.js `t()`, language names and formats of the app's language
+    - star.js the agent as a character (the star)
     - library.js library, collections, selection, queue and exports; `setView`
     - vaults.js libraries: selector, create, edit, move
     - home.js library home, the «Agregar» (Add) button, accent color and cinema-style player
@@ -54,6 +57,7 @@ The scripts are loaded in that order at the end of `index.html` and share global
 4. **`layout.css`**: the frame according to `body` classes: `view-library`, `view-prefs`, `view-queue` (with none, the player), `layout-wide` (enlarged player), `side-mini` (icon-only sidebar) and `mini` (video as a thumbnail outside the player).
 5. **`views/`**: one stylesheet per screen.
 6. **`patterns.css`**: the dot fields for banners, badges, missing thumbnails and empty states.
+7. **`dark.css`**: the rules of the refined dark mode, last so that they win over the rest.
 
 </Steps>
 
@@ -64,6 +68,20 @@ Typography is Plus Jakarta Sans for the interface, with sizes from 12 to 28 px d
 `tokens.css` has two blocks of colors: `[data-theme="light"]` (also `:root`) and `[data-theme="dark"]`, the dark "graphite" one. The `theme_mode` preference (`sistema`, `claro`, `oscuro`: system, light, dark) decides which one applies; with `sistema`, `theme.js` follows `prefers-color-scheme` and switches live if the system changes.
 
 So that there is no light flash when loading in dark mode, a script in the `<head>` applies the last block used, which `applyTheme` saves in `localStorage` (`vt-theme-block`). Then the preference that arrives from the server takes over. With "Color de cada biblioteca" (Color of each library, `accent_lib`), `home.js` replaces the accent color with that of the open library.
+
+### Dark mode rules
+
+`dark.css` gathers what dark mode asks of the whole app instead of scattering it through each view: no borders or rings of lines (groups are separated by the background), no background lighter than `--surface-2` (the active item in the sidebar; hovers go just one step up, `--surface-3`), and what is chosen among options (cards, icons, switches) takes the accent color's selection tone (`--sel-accent`), never a gray. Tabs and option groups keep the gray of the active item.
+
+### The agent as a character
+
+`star.js` draws the agent: a star with rounded points that each person builds in Settings › Agente › Avatar (shape, eyes, mouth, cheeks, accessory, and **Al azar**, Random) and is saved as JSON in the `agent_avatar` preference. `STAR_PARTS` lists the options of each part: adding one is an entry there and its drawing. It takes the agent's color (`agent_color`) or, if none, the accent color. The parts are chosen in a carousel (`carousel` in `ui.js`, `components/carousel.css`): a strip of equal items with arrows that move one page.
+
+The star has states (`components/star.css`): it sleeps while the model is off, wakes up while it turns on, thinks (`think`) and talks (`talk`) while it answers, and jumps with two hearts when touched. In an empty chat it appears large in the center with what it can do below; with the first question it flies to its place in the answer, and it peeks out again when you return to the top of the conversation (`agentui.js`, `agentview.js`).
+
+### Language of the interface
+
+Every text is looked up with `t()` in `i18n.js` and the app's language doesn't need a reload: the server delivers the catalog before the scripts (`/i18n.js`), `translateDom` translates the fixed texts of `index.html`, and option lists that were built with `t()` (like `STAR_PARTS`) are registered with `i18nTrack` to be rebuilt. How the catalogs work and how to add a language: [Languages](../languages/#language-of-the-interface).
 
 ### The «Agregar» button
 
@@ -114,7 +132,7 @@ The first time the library arrives, `routeRestore` applies the requested hash. A
 
 ## Dot fields
 
-`patterns.js` paints a solid, muted color with an even grid of dots in a lighter tone of the same color (one of 7 palettes, always with a color; a library uses its own color), as a CSS background: the dots measure the same in any box, they don't stretch with it. It replaced the Bauhaus shapes (circles, triangles and squares). Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
+`patterns.js` paints a solid, muted color with an even grid of dots in a lighter tone of the same color (one of 7 palettes, always with a color; a library uses its own color), as a CSS background: the dots measure the same in any box, they don't stretch with it. It replaced the Bauhaus shapes (circles, triangles and squares). Each collection has its own, derived from its name with a seeded generator (FNV-1a): the same name always gives the same pattern. "Otro patrón" (Another pattern) changes the seed and saves it in the browser (`vt-pattern:<collection>`); a library banner stores its seed in `vault.json` (`pattern`). Libraries have their own pattern as a still field of characters by density, in the style of the home scenes: the open library's large, the others' small in the corner of their card; «Otro patrón» and «Al azar» in the create and edit dialog change it. YouTube categories have their own icon and channels use their real avatar and banner (`/chan/…`).
 
 ## Communication with the server
 

@@ -84,9 +84,9 @@
 .coll-light { position: absolute; left: calc(-1 * var(--pad)); right: calc(-1 * var(--pad)); top: calc(-1 * var(--s6));
   height: 420px; z-index: -1; display: flex; pointer-events: none; overflow: hidden;
   -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent); }
-.coll-light img { flex: 1; min-width: 0; height: 100%; object-fit: cover; filter: blur(56px) saturate(1.3); opacity: .5; transform: scale(1.2); }
-.coll-light .tint { position: absolute; inset: 0; background: radial-gradient(45% 60% at 22% 55%, color-mix(in srgb, var(--c) 45%, transparent), transparent 72%); }
-[data-theme="light"] .coll-light img { opacity: .3; }
+.coll-light img { flex: 1; min-width: 0; height: 100%; object-fit: cover; filter: blur(56px) saturate(1.2); opacity: .3; transform: scale(1.2); }
+.coll-light .tint { position: absolute; inset: 0; background: radial-gradient(45% 60% at 22% 55%, color-mix(in srgb, var(--c) 26%, transparent), transparent 72%); }
+[data-theme="light"] .coll-light img { opacity: .18; }
 .grid.home > .welcome { flex: none; }
 #shelf-head[hidden] { display: none; }
 .shelf:has(#shelf-head[hidden]) { grid-template-rows: minmax(0, 1fr); }
@@ -253,3 +253,11 @@
 /* la escena en la vista previa de Ajustes (en la app va en #scene-layer, layout.css) */
 .home-light.scene-bg { height: calc(100vh - var(--head-h)); }
 .home-light .scene { display: block; width: 100%; }
+/* cola: título, estado y, a la derecha de todo, sus acciones (antes caían en otra fila, a la izquierda) */
+#qhead { grid-template-columns: auto minmax(0, 1fr) auto; }
+#qhead .label { justify-self: start; }
+#qhead .acts { justify-content: flex-end; }
+@media (max-width: 760px) {
+  #qhead { grid-template-columns: auto minmax(0, 1fr); }
+  #qhead .acts { grid-column: 1 / -1; justify-content: flex-end; }
+}

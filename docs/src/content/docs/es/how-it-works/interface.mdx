@@ -19,16 +19,19 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
   - css/
     - tokens.css todo valor visual: colores de cada modo, tipo, espacios, radios, alturas
     - base.css reset, página, texto e íconos
-    - components/ button, controls, indicators, lists, overlays, card
+    - components/ button, controls, indicators, lists, overlays, card, carousel, star
     - layout.css armazón de la página según la vista
-    - views/ player, transcript, library, queue, prefs, vaults, access, capture
+    - views/ player, transcript, library, queue, prefs, vaults, access, capture, export
     - patterns.css banners y distintivos con campo de puntos
+    - dark.css el oscuro refinado, cargado al final
   - js/
     - ui.js componentes: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js menús propios y listas desplegables
     - theme.js modo claro u oscuro
     - app.js conexión, reproductor, transcripción, voz, preferencias
     - patterns.js campos de puntos e íconos de colecciones
+    - i18n.js `t()`, nombres de idiomas y formatos del idioma de la app
+    - star.js el agente como personaje (la estrella)
     - library.js biblioteca, colecciones, selección, cola y exportaciones; `setView`
     - vaults.js bibliotecas: selector, crear, editar, mover
     - home.js portada de la biblioteca, el botón «Agregar», color de acento y reproductor tipo cine
@@ -54,6 +57,7 @@ Los scripts se cargan en ese orden al final de `index.html` y comparten variable
 4. **`layout.css`**: el armazón según clases de `body`: `view-library`, `view-prefs`, `view-queue` (sin ninguna, el reproductor), `layout-wide` (reproductor ampliado), `side-mini` (barra lateral solo con íconos) y `mini` (video en miniatura fuera del reproductor).
 5. **`views/`**: una hoja por pantalla.
 6. **`patterns.css`**: los campos de puntos de banners, distintivos, miniaturas que faltan y estados vacíos.
+7. **`dark.css`**: las reglas del oscuro refinado, al final para que ganen sobre el resto.
 
 </Steps>
 
@@ -64,6 +68,20 @@ La tipografía es Plus Jakarta Sans en la interfaz, con tamaños de 12 a 28 px d
 `tokens.css` tiene dos bloques de colores: `[data-theme="light"]` (también `:root`) y `[data-theme="dark"]`, el oscuro «grafito». La preferencia `theme_mode` (`sistema`, `claro`, `oscuro`) decide cuál; con `sistema`, `theme.js` sigue a `prefers-color-scheme` y cambia en vivo si cambia el sistema.
 
 Para que no haya un destello claro al cargar en modo oscuro, un script en el `<head>` aplica el último bloque usado, que `applyTheme` guarda en `localStorage` (`vt-theme-block`). Después manda la preferencia que llega del servidor. Con «Color de cada biblioteca» (`accent_lib`), `home.js` reemplaza el color de acento por el de la biblioteca abierta.
+
+### Reglas del modo oscuro
+
+`dark.css` reúne lo que el modo oscuro pide para toda la app en vez de repartirlo por cada vista: sin bordes ni anillos de línea (los grupos se separan por el fondo), ningún fondo más claro que `--surface-2` (lo activo en la barra lateral; los hovers suben solo un paso, `--surface-3`), y lo elegido entre opciones (tarjetas, íconos, interruptores) toma el tono de selección del color de énfasis (`--sel-accent`), nunca un gris. Las pestañas y los grupos de opciones llevan el gris de lo activo.
+
+### El agente como personaje
+
+`star.js` dibuja al agente: una estrella de puntas redondeadas que cada persona arma en Ajustes › Agente › Avatar (forma, ojos, boca, mejillas, accesorio y **Al azar**) y que se guarda como JSON en la preferencia `agent_avatar`. `STAR_PARTS` lista las opciones de cada parte: agregar una es una entrada ahí y su dibujo. Toma el color del agente (`agent_color`) o, si no hay, el de énfasis. Las partes se eligen en un carrusel (`carousel` en `ui.js`, `components/carousel.css`): una tira de elementos iguales con flechas que pasan de a una página.
+
+La estrella tiene estados (`components/star.css`): duerme con el modelo apagado, despierta mientras se enciende, piensa (`think`) y habla (`talk`) al responder, y al tocarla salta con dos corazones. En el chat vacío aparece grande al centro con lo que sabe hacer debajo; con la primera pregunta vuela a su lugar en la respuesta, y se asoma de nuevo al volver al inicio de la conversación (`agentui.js`, `agentview.js`).
+
+### Idioma de la interfaz
+
+Todo texto se busca con `t()` en `i18n.js` y cambiar el idioma de la app no recarga la página: el servidor entrega el catálogo antes que los scripts (`/i18n.js`), `translateDom` traduce los textos fijos de `index.html` y las listas de opciones armadas con `t()` (como `STAR_PARTS`) se registran con `i18nTrack` para rehacerse. Cómo funcionan los catálogos y cómo agregar un idioma: [Idiomas](../languages/#idioma-de-la-interfaz).
 
 ### El botón «Agregar»
 
@@ -114,7 +132,7 @@ La primera vez que llega la biblioteca, `routeRestore` aplica el hash pedido. De
 
 ## Campos de puntos
 
-`patterns.js` pinta un color sólido y apagado con una cuadrícula pareja de puntos en un tono más claro del mismo color (una de 7 paletas, siempre con color; una biblioteca usa su propio color), como fondo CSS: los puntos miden lo mismo en cualquier caja, no se estiran con ella. Reemplazó a las figuras Bauhaus (círculos, triángulos y cuadrados). Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
+`patterns.js` pinta un color sólido y apagado con una cuadrícula pareja de puntos en un tono más claro del mismo color (una de 7 paletas, siempre con color; una biblioteca usa su propio color), como fondo CSS: los puntos miden lo mismo en cualquier caja, no se estiran con ella. Reemplazó a las figuras Bauhaus (círculos, triángulos y cuadrados). Cada colección tiene el suyo, sacado de su nombre con un generador con semilla (FNV-1a): el mismo nombre da siempre el mismo patrón. «Otro patrón» cambia la semilla y la guarda en el navegador (`vt-pattern:<colección>`); el banner de una biblioteca guarda su semilla en `vault.json` (`pattern`). Las bibliotecas tienen su patrón como un campo quieto de caracteres por densidad, al estilo de las escenas del inicio: el de la abierta, grande; el de las demás, pequeño en la esquina de su tarjeta; «Otro patrón» y «Al azar» en el diálogo de crear y editar lo cambian. Las categorías de YouTube tienen ícono propio y los canales usan su avatar y banner reales (`/chan/…`).
 
 ## Comunicación con el servidor
 

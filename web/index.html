@@ -13,6 +13,16 @@
     if (t) t = /dark$/.test(t) ? "dark" : "light";
     document.documentElement.dataset.theme = t
       || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    // el color de énfasis de la última vez (web/js/home.js › applyAccent); la primera vez, el de fábrica (violeta)
+    var a = "#7d5ba6";
+    try { a = localStorage.getItem("vt-accent") || a; } catch (e) {}
+    if (/^#[0-9a-f]{6}$/i.test(a)) {
+      var c = [1, 3, 5].map(function (i) { return parseInt(a.slice(i, i + 2), 16) / 255; });
+      var s = document.documentElement.style;
+      document.documentElement.dataset.libAccent = "";
+      s.setProperty("--accent-base", a);
+      s.setProperty("--on-accent-dark", 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] > 0.55 ? "#111111" : "#ffffff");
+    }
   })();
 </script>
 <!-- estilos: fuente → tokens (temas) → base → componentes → distribución → vistas -->
@@ -26,6 +36,9 @@
 <link rel="stylesheet" href="css/components/overlays.css">
 <link rel="stylesheet" href="css/components/card.css">
 <link rel="stylesheet" href="css/components/desktop.css">
+<link rel="stylesheet" href="css/components/carousel.css">
+<link rel="stylesheet" href="css/views/export.css">
+<link rel="stylesheet" href="css/components/star.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/views/player.css">
 <link rel="stylesheet" href="css/views/transcript.css">
@@ -36,6 +49,7 @@
 <link rel="stylesheet" href="css/views/access.css">
 <link rel="stylesheet" href="css/views/capture.css">
 <link rel="stylesheet" href="css/patterns.css">
+<link rel="stylesheet" href="css/dark.css">  <!-- al final: las reglas del oscuro refinado ganan -->
 </head>
 <body class="view-library layout-wide can-import">
 
@@ -162,7 +176,7 @@
       </div>
       <button class="btn xs ghost speed" id="c-speed" type="button" title="Velocidad (Shift + &lt; / &gt;)"></button>
       <div class="lang" id="c-lang">
-        <button type="button" data-v="es" title="Escuchar en español">ES</button><button type="button" data-v="en" title="Escuchar el original">EN</button>
+        <button type="button" data-v="es" title="Escuchar doblado">ES</button><button type="button" data-v="en" title="Escuchar el original">EN</button>
       </div>
       <div class="vol">
         <button class="ic" id="c-mute" type="button" data-icon="speaker" aria-label="Silenciar"></button>
@@ -173,7 +187,7 @@
     </div>
   </section>
   <section class="pane">
-    <div class="tag chip">ES · traducido</div>
+    <div class="tag chip">Traducido</div>
     <div class="screen">
       <video id="v-es" muted playsinline preload="auto"></video>
       <div class="st-layer" aria-hidden="true"></div>
@@ -235,36 +249,58 @@
   </div>
 </div></div>
 
-<dialog class="dlg" id="export-dlg">
+<dialog class="dlg wide export-dlg" id="export-dlg">
   <form method="dialog" id="export-form">
-    <h3 id="export-title"></h3>
-    <p class="dlg-sub" id="export-sub"></p>
-    <div class="opts">
-      <label><input class="check" type="checkbox" name="kind" value="es_video" checked><span>Video traducido</span><small>MP4</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="es_audio"><span>Audio traducido</span><small class="audio-fmt">M4A</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="orig_video"><span>Video original</span><small>MP4</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="orig_audio"><span>Audio original</span><small class="audio-fmt">M4A</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="srt_es"><span>Subtítulos en español</span><small>SRT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span><small>SRT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="txt_es"><span>Texto en español</span><small>TXT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="txt_orig"><span>Texto del original</span><small>TXT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe con comentarios</span><small>TXT</small></label>
-      <label><input class="check" type="checkbox" name="kind" value="summary"><span>Resumen</span><small>TXT</small></label>
+    <!-- arriba, qué se exporta; abajo, tres tarjetas: video, audio y texto (elegido 2026-11-14). Cada opción de una
+         tarjeta es una casilla (name=kind) con aspecto de opción: la exportación las lee igual que siempre -->
+    <header class="ex-head">
+      <div class="ex-thumb" id="export-thumb" aria-hidden="true"></div>
+      <div class="ex-head-text"><h3 id="export-title"></h3><p class="dlg-sub" id="export-sub"></p></div>
+    </header>
+    <div class="ex-tiles">
+      <section class="ex-tile" data-group="video">
+        <div class="ex-tile-head" data-icon="film">Video</div>
+        <div class="ex-chips">
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="es_video" checked><span>Doblado</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="orig_video"><span>Original</span></label>
+        </div>
+        <div class="ex-opt" id="export-video" hidden>
+          <div class="segs"><button class="seg on" type="button" data-v="original">Original</button><button class="seg" type="button" data-v="480p">480p</button><button class="seg" type="button" data-v="360p">360p</button></div>
+        </div>
+        <span class="ex-fmt">MP4</span>
+      </section>
+      <section class="ex-tile" data-group="audio">
+        <div class="ex-tile-head" data-icon="music">Audio</div>
+        <div class="ex-chips">
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="es_audio"><span>Doblado</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="orig_audio"><span>Original</span></label>
+        </div>
+        <div class="ex-opt" id="export-audio" hidden>
+          <div class="segs" id="export-fmt"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button><button class="seg" type="button" data-fmt="opus">Opus</button></div>
+          <div class="segs" id="export-quality"><button class="seg on" type="button" data-q="alta">Alta</button><button class="seg" type="button" data-q="media">Media</button><button class="seg" type="button" data-q="liviana">Liviana</button></div>
+        </div>
+        <span class="ex-fmt audio-fmt">M4A</span>
+      </section>
+      <section class="ex-tile" data-group="text">
+        <div class="ex-tile-head" data-icon="lines">Texto</div>
+        <div class="ex-chips">
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="srt_es"><span>Subtítulos traducidos</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span></label>
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt_es"><span>Texto traducido</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="txt_orig"><span>Texto del original</span></label>
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="summary"><span>Resumen</span></label>
+        </div>
+        <span class="ex-fmt">SRT · TXT</span>
+      </section>
     </div>
-    <div class="dlg-row" id="export-audio" hidden><span class="label">Audio</span>
-      <div class="dlg-segs">
-        <div class="segs" id="export-fmt"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button><button class="seg" type="button" data-fmt="opus">Opus</button></div>
-        <div class="segs" id="export-quality"><button class="seg on" type="button" data-q="alta">Alta</button><button class="seg" type="button" data-q="media">Media</button><button class="seg" type="button" data-q="liviana">Liviana</button></div>
+    <div class="ex-foot">
+      <div class="ex-row" id="export-layout" hidden><span class="label">Carpetas</span>
+        <div class="segs"><button class="seg on" type="button" data-layout="channel">Canales</button><button class="seg" type="button" data-layout="collection">Colecciones</button><button class="seg" type="button" data-layout="playlist">Playlists</button><button class="seg" type="button" data-layout="flat">Sin carpetas</button></div>
       </div>
-    </div>
-    <div class="dlg-row" id="export-video" hidden><span class="label">Video</span>
-      <div class="segs"><button class="seg on" type="button" data-v="original">Original</button><button class="seg" type="button" data-v="480p">480p</button><button class="seg" type="button" data-v="360p">360p</button></div>
-    </div>
-    <div class="dlg-row" id="export-layout" hidden><span class="label">Carpetas</span>
-      <div class="segs"><button class="seg on" type="button" data-layout="channel">Canales</button><button class="seg" type="button" data-layout="collection">Colecciones</button><button class="seg" type="button" data-layout="playlist">Playlists</button><button class="seg" type="button" data-layout="flat">Sin carpetas</button></div>
-    </div>
-    <div class="dlg-row" id="export-dest" hidden><span class="label">Guardar en</span>
-      <div class="segs"><button class="seg on" type="button" data-dest="ask">Preguntar</button><button class="seg" type="button" data-dest="folder" id="export-dest-folder" data-icon="folder">Elegir carpeta</button></div>
+      <div class="ex-row" id="export-dest" hidden><span class="label">Guardar en</span>
+        <div class="segs"><button class="seg on" type="button" data-dest="ask">Preguntar</button><button class="seg" type="button" data-dest="folder" id="export-dest-folder" data-icon="folder">Elegir carpeta</button></div>
+      </div>
     </div>
     <p class="dlg-note" id="export-note"></p>
     <div class="dlg-actions">
@@ -302,17 +338,16 @@
 
 <dialog class="dlg" id="vault-dlg">
   <form method="dialog" id="vault-form">
+    <h3 class="sr-only" id="vault-dlg-title">Nueva biblioteca</h3>
     <div class="vpreview" id="vault-preview"></div>
-    <div class="vdlg-head">
-      <h3 id="vault-dlg-title">Nueva biblioteca</h3>
-      <div class="acts">
-        <button class="btn sm" id="vault-random" type="button" data-icon="dice">Al azar</button>
-      </div>
+    <div class="vpreview-acts">
+      <button class="btn sm ghost" id="vault-reshuffle" type="button" data-icon="shuffle">Otro patrón</button>
+      <button class="btn sm ghost" id="vault-random" type="button" data-icon="dice">Al azar</button>
     </div>
     <label class="dlg-row"><span class="label">Nombre</span>
       <input class="input" id="vault-name" type="text" maxlength="60" placeholder="Ciencia, Comedia…" autocomplete="off"></label>
     <div class="dlg-row"><span class="label">Color</span><div class="vcolors" id="vault-colors"></div></div>
-    <div class="dlg-row"><span class="label">Ícono</span><div class="vicons" id="vault-icons"></div></div>
+    <div class="dlg-row"><span class="label">Avatar</span><div class="vicons" id="vault-icons"></div></div>
     <div class="dlg-row" id="vault-where"><span class="label">Ubicación</span>
       <div class="segs" id="vault-where-segs">
         <button class="seg" type="button" data-where="app" data-icon="library">En la carpeta de la app</button>
@@ -341,7 +376,7 @@
         <button class="btn sm icon ghost" value="cancel" type="submit" data-icon="x" title="Cerrar" aria-label="Cerrar"></button>
       </div>
     </header>
-    <div class="vcards big" id="vault-grid"></div>
+    <div class="vstage" id="vault-grid"></div>
   </form>
 </dialog>
 
@@ -428,6 +463,8 @@
 <div class="toast" id="toast" role="alert" hidden></div>
 
 <!-- scripts: componentes y tema primero; luego la app -->
+<script src="i18n.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/desktop.js"></script>
 <script src="js/menu.js"></script>
@@ -439,6 +476,7 @@
 <script src="js/library.js"></script>
 <script src="js/agentview.js"></script>
 <script src="js/summary.js"></script>
+<script src="js/star.js"></script>
 <script src="js/agentui.js"></script>
 <script src="js/codetheme.js"></script>
 <script src="js/screentext.js"></script>
@@ -452,7 +490,7 @@
 <script src="js/route.js"></script>
 <script src="js/contextmenu.js"></script>
 <script src="js/capture.js"></script>
-<script>hydrateIcons();</script>
+<script>translateDom(); hydrateIcons();</script>
 <!-- al arrastrar archivos sobre la ventana -->
 <div class="drop-zone" id="drop-zone" hidden><div><span class="src-ic" data-icon="upload"></span><strong>Suelta para agregar</strong></div></div>
 </body>

@@ -13,7 +13,8 @@
 // En el navegador nada de esto existe (DESKTOP es false).
 
 const DESKTOP = !!(window.__TAURI__ && window.__TAURI__.core);
-const DESKTOP_SECTION = ["escritorio", "App de escritorio", "La ventana de Translay en este equipo.", "monitor"];
+const DESKTOP_SECTION = ["escritorio", t("App de escritorio"), t("La ventana de Translay en este equipo."), "monitor"];
+i18nTrack(DESKTOP_SECTION);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
 function desktopCall(cmd, args) {
   return window.__TAURI__.core.invoke(cmd, args);
@@ -32,8 +33,8 @@ function initDesktop() {
   // Ajustes: solo el ícono (la página ya tiene su título)
   const prefsBtn = $("#prefs-btn");
   prefsBtn.classList.add("ghost", "icon");
-  prefsBtn.title = "Ajustes";
-  prefsBtn.setAttribute("aria-label", "Ajustes");
+  prefsBtn.title = t("Ajustes");
+  prefsBtn.setAttribute("aria-label", t("Ajustes"));
   const themeBtn = el("button", { class: "btn ghost icon", id: "theme-btn", type: "button",
     on: { click: () => {
       const dark = document.documentElement.dataset.theme === "dark";
@@ -43,13 +44,13 @@ function initDesktop() {
     } } });
   const winBtn = (id, label, ic, fn) => el("button", { class: "btn ghost icon win-btn", id, type: "button", title: label,
     "aria-label": label, on: { click: fn } }, icon(ic));
-  const maxBtn = winBtn("win-max", "Maximizar", "maximize", () => desktopWindow().toggleMaximize());
+  const maxBtn = winBtn("win-max", t("Maximizar"), "maximize", () => desktopWindow().toggleMaximize());
   const updateBtn = el("button", { class: "btn ghost icon", id: "update-btn", type: "button", hidden: true,
     on: { click: () => openPrefs("escritorio") } }, icon("update"));
   bar.append(updateBtn, themeBtn, el("div", { class: "win-controls" },
-    winBtn("win-min", "Minimizar", "minimize", () => desktopWindow().minimize()),
+    winBtn("win-min", t("Minimizar"), "minimize", () => desktopWindow().minimize()),
     maxBtn,
-    winBtn("win-close", "Cerrar", "x", () => desktopCall("close_window"))));
+    winBtn("win-close", t("Cerrar"), "x", () => desktopCall("close_window"))));
   // actualización, prefs-btn y theme-btn van juntos, justo antes de los controles de la ventana
   bar.insertBefore(prefsBtn, themeBtn);
   bar.insertBefore(updateBtn, prefsBtn);
@@ -57,7 +58,7 @@ function initDesktop() {
   const syncTheme = () => {
     const dark = document.documentElement.dataset.theme === "dark";
     desktopCall("set_theme", { theme: dark ? "dark" : "light" });  // la próxima vez la ventana abre con este tema
-    const label = dark ? "Cambiar a claro" : "Cambiar a oscuro";
+    const label = dark ? t("Cambiar a claro") : t("Cambiar a oscuro");
     themeBtn.replaceChildren(icon(dark ? "sun" : "moon"));
     themeBtn.title = label;
     themeBtn.setAttribute("aria-label", label);
@@ -68,7 +69,7 @@ function initDesktop() {
   const syncMax = async () => {
     desktop.maximized = await desktopWindow().isMaximized();
     document.documentElement.classList.toggle("maximized", desktop.maximized);
-    const label = desktop.maximized ? "Restaurar" : "Maximizar";
+    const label = desktop.maximized ? t("Restaurar") : t("Maximizar");
     maxBtn.replaceChildren(icon(desktop.maximized ? "unmaximize" : "maximize"));
     maxBtn.title = label;
     maxBtn.setAttribute("aria-label", label);
@@ -136,7 +137,7 @@ function onUpdateInfo(m) {
   renderUpdate();
   if (upd.state === "available" && !upd.manual && !upd.notified) {
     upd.notified = true;
-    toast(`Translay ${m.version} está disponible`, "ok", { label: "Ver", onClick: () => openPrefs("escritorio") });
+    toast(t("Translay {version} está disponible", { version: m.version }), "ok", { label: t("Ver"), onClick: () => openPrefs("escritorio") });
   }
 }
 
@@ -151,7 +152,7 @@ function renderUpdate() {
   const b = $("#update-btn");
   if (b) {
     b.hidden = !(upd.state === "available" || upd.state === "opened");
-    const label = upd.info?.version ? `Translay ${upd.info.version} disponible` : "Versión nueva disponible";
+    const label = upd.info?.version ? t("Translay {version} disponible", { version: upd.info.version }) : t("Versión nueva disponible");
     b.title = label;
     b.setAttribute("aria-label", label);
   }
@@ -174,23 +175,23 @@ function updateRows(row) {
   const info = desktop.info || {};
   const v = upd.info?.version;
   const status = {
-    idle: "Translay busca las versiones nuevas en GitHub.",
-    checking: "Buscando…",
-    latest: "Tienes la última versión.",
-    available: `Translay ${v} está disponible.`,
-    opened: `La descarga de Translay ${v} se abrió en el navegador. Ejecuta el instalador. Tu biblioteca y tus ajustes se conservarán.`,
+    idle: t("Translay busca las versiones nuevas en GitHub."),
+    checking: t("Buscando…"),
+    latest: t("Tienes la última versión."),
+    available: t("Translay {version} está disponible.", { version: v }),
+    opened: t("La descarga de Translay {version} se abrió en el navegador. Ejecuta el instalador. Tu biblioteca y tus ajustes se conservarán.", { version: v }),
     error: upd.error,
   }[upd.state] || "";
   const actions = upd.state === "available" || upd.state === "opened"
-    ? [btn(`Descargar ${v}`, { icon: "download", onClick: openDownload })]
-    : [btn(upd.state === "checking" ? "Buscando…" : "Buscar actualizaciones", { icon: "reload", disabled: upd.state === "checking",
+    ? [btn(t("Descargar {version}", { version: v }), { icon: "download", onClick: openDownload })]
+    : [btn(upd.state === "checking" ? t("Buscando…") : t("Buscar actualizaciones"), { icon: "reload", disabled: upd.state === "checking",
       onClick: () => checkUpdate(true) })];
   const auto = (value, ic, text) => el("button", { type: "button", class: "seg" + (!!info.auto_update === value ? " on" : ""),
     on: { click: () => desktopCall("set_auto_update", { enabled: value }).then(() => { info.auto_update = value; renderUpdate(); }) } },
     icon(ic), text);
   return [
-    row("Buscar actualizaciones", info.auto_update ? "Al abrir Translay y cada 6 horas." : "Solo de forma manual.",
-      el("div", { class: "segs" }, auto(true, "reload", "Automáticamente"), auto(false, "x", "Manualmente"))),
+    row(t("Buscar actualizaciones"), info.auto_update ? t("Al abrir Translay y cada 6 horas.") : t("Solo de forma manual."),
+      el("div", { class: "segs" }, auto(true, "reload", t("Automáticamente")), auto(false, "x", t("Manualmente")))),
     row(`Translay ${info.version || ""}`, status, ...actions),
     upd.state === "available" || upd.state === "opened" ? updateNotes(upd.info?.notes) : null,
   ];
@@ -230,15 +231,15 @@ function desktopPrefsBlocks() {
       el("div", { class: "set-text" }, el("strong", { text: title }), desc ? el("p", { class: "desk-path", text: desc }) : null),
       el("div", { class: "set-ctl" }, ...ctl));
     box.replaceChildren(
-      row("Al cerrar la ventana", info.close_to_tray
-        ? "Translay permanece en la bandeja mientras haya trabajos en la cola y se cierra al terminar. Si la cola está detenida o vacía, se cierra de inmediato."
-        : "Translay se cierra por completo.",
-        el("div", { class: "segs" }, seg(false, "x", "Salir"), seg(true, "tray", "Minimizar a la bandeja"))),
-      row("Biblioteca Principal", info.data_dir || "",
-        btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),
-        btn("Cambiar…", { icon: "pencil", onClick: () => desktopCall("change_data_dir") })),
-      row("Registros", "Registro del servidor, útil para reportar problemas.",
-        btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "logs" }) })),
+      row(t("Al cerrar la ventana"), info.close_to_tray
+        ? t("Translay permanece en la bandeja mientras haya trabajos en la cola y se cierra al terminar. Si la cola está detenida o vacía, se cierra de inmediato.")
+        : t("Translay se cierra por completo."),
+        el("div", { class: "segs" }, seg(false, "x", t("Salir")), seg(true, "tray", t("Minimizar a la bandeja")))),
+      row(t("Biblioteca Principal"), info.data_dir || "",
+        btn(t("Abrir carpeta"), { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),
+        btn(t("Cambiar…"), { icon: "pencil", onClick: () => desktopCall("change_data_dir") })),
+      row(t("Registros"), t("Registro del servidor, útil para reportar problemas."),
+        btn(t("Abrir carpeta"), { icon: "folder", onClick: () => desktopCall("open_folder", { which: "logs" }) })),
     );
   };
   const updBox = el("div", { class: "set-rows desk-rows" });
@@ -251,11 +252,11 @@ function desktopPrefsBlocks() {
   render();
   renderUpd();
   if (!desktop.info) desktopCall("desktop_info").then((info) => { desktop.info = info; render(); renderUpd(); });
-  return [[box, "Ventana y datos", desktopVersion()], [updBox, "Actualizaciones", ""]];
+  return [[box, t("Ventana y datos"), desktopVersion()], [updBox, t("Actualizaciones"), ""]];
 }
 
 function desktopVersion() {
-  return desktop.info ? `Translay ${desktop.info.version} para Windows.` : "";
+  return desktop.info ? t("Translay {version} para Windows.", { version: desktop.info.version }) : "";
 }
 
 // después de los demás scripts: usa $ y setPref de app.js

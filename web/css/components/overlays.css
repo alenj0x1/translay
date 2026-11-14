@@ -48,6 +48,8 @@
   background: var(--raised); color: var(--fg); box-shadow: var(--menu-shadow);
 }
 .dlg.wide { width: min(640px, calc(100vw - 32px)); }
+/* en oscuro, el mismo tono de los paneles y la barra lateral (no un gris más claro encima) */
+[data-theme="dark"] .dlg { background: var(--surface); }
 .dlg::backdrop { background: var(--backdrop); }
 /* al abrir: aparece suave con una escala mínima, como los menús; el fondo se oscurece de a poco */
 .dlg[open] { animation: dlg-in .18s var(--ease); }

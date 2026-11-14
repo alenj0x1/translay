@@ -48,3 +48,6 @@ svg .solid { fill: currentColor; stroke: none; }
 /* el texto seleccionado toma el color del tema (pastel en claro, más intenso en oscuro) */
 ::selection { background: color-mix(in srgb, var(--accent) 45%, transparent); color: inherit; }
 [data-theme="dark"] ::selection { background: color-mix(in srgb, var(--accent) 50%, transparent); color: #fff; }
+
+/* solo para lectores de pantalla */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

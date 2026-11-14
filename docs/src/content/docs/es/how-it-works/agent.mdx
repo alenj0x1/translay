@@ -35,6 +35,12 @@ El video va primero y la pregunta al final, así el servidor reutiliza su caché
 
 `vt/agentintents.py` reconoce los pedidos que la app puede hacer por sí misma (exportar el video para otro agente, ir a un momento, cambiar los subtítulos, guardar en una colección, poner avisos mientras ves) y los responde sin el modelo, así que son instantáneos y funcionan con el agente apagado. Cada respuesta lleva una tarjeta y una acción; la tarjeta se guarda con la conversación y la vista hace la acción. Cualquier otra pregunta va al modelo.
 
+Los pedidos se entienden en español, inglés y portugués (`PHRASES`, una tabla de frases por idioma) y la respuesta viene en el idioma de la app ([Idiomas](../languages/#el-idioma-del-agente-y-del-resumen)).
+
+## El personaje
+
+El agente es una estrella de puntas redondeadas que armas en **Ajustes › Agente › Avatar**: forma, ojos, boca, mejillas, accesorio y **Al azar**. Toma el color del agente o, si no tiene, el de énfasis. Duerme con el modelo apagado, despierta mientras se enciende, piensa y habla al responder, y salta con corazones cuando lo tocas. En el chat vacío aparece grande al centro con lo que sabe hacer debajo; con la primera pregunta vuela a su lugar en la respuesta, y se asoma al volver al inicio de la conversación. Cómo se dibuja: [Interfaz](../interface/#el-agente-como-personaje).
+
 ## Citar el momento
 
 Cada dato de una respuesta lleva su momento como `[m:ss]`, que el reproductor convierte en un botón que lleva ahí. Los modelos chicos casi nunca escriben las horas solos, así que Translay las agrega: cada frase de la respuesta sin hora se busca en la transcripción y recibe el momento de la parte que más se le parece. En el laboratorio esto llevó las citas correctas de 0–3 % a 66–93 %.

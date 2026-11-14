@@ -79,6 +79,7 @@ const ICONS = {
   agent: '<rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2.5V5M1.5 8.5v2M14.5 8.5v2"/><circle class="solid" cx="6" cy="9" r=".9"/><circle class="solid" cx="10" cy="9" r=".9"/>',
   user: '<circle cx="8" cy="5.5" r="2.8"/><path d="M2.8 13.8c.6-2.6 2.7-4.1 5.2-4.1s4.6 1.5 5.2 4.1"/>',
   lock: '<rect x="3" y="7" width="10" height="7"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/>',
+  key: '<circle cx="5.5" cy="10.5" r="2.7"/><path d="M7.4 8.6L13.2 2.8M11.2 4.8l1.6 1.6M9.6 6.4l1.3 1.3"/>',
   arrow: '<path d="M3 8h10M9 4l4 4-4 4"/>',
   undo: '<path d="M5.5 3.5L2.5 6.5l3 3M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>',
   dice: '<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle class="solid" cx="5.6" cy="5.6" r="1"/><circle class="solid" cx="10.4" cy="10.4" r="1"/><circle class="solid" cx="8" cy="8" r="1"/>',
@@ -279,4 +280,62 @@ function hydrateIcons(root = document) {
 
 function meter(pct, cls = "") {
   return el("div", { class: ("meter " + cls).trim() }, Object.assign(el("i"), { style: `width:${pct}%` }));
+}
+
+// cualquier diálogo se cierra al hacer clic afuera (en el fondo oscuro), como «Cancelar». Solo si el clic empezó y
+// terminó afuera: arrastrar para seleccionar texto del diálogo y soltar afuera no lo cierra
+let dlgDownOutside = null;
+const outsideDialog = (e) => {
+  const d = e.target;
+  if (!(d instanceof HTMLDialogElement) || !d.open) return null;
+  const r = d.getBoundingClientRect();
+  return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom ? d : null;
+};
+document.addEventListener("pointerdown", (e) => { dlgDownOutside = outsideDialog(e); }, true);
+document.addEventListener("click", (e) => {
+  const d = outsideDialog(e);
+  if (d && d === dlgDownOutside) d.close("cancel");
+  dlgDownOutside = null;
+}, true);
+
+// carrusel (web/css/components/carousel.css): `items` en una fila de `per` por página, con flechas que pasan de a
+// una página. Empieza en la página del elemento `start` (índice o nodo). Teclado: ← y → dentro de la fila.
+//   carousel(botones, { per: 4, start: elegido, label: "Ojos" }) → elemento
+function carousel(items, { per = 4, start = null, label = "" } = {}) {
+  const track = el("div", { class: "carousel-track", role: "group", "aria-label": label || null }, ...items);
+  const prev = el("button", { type: "button", class: "carousel-nav prev", "aria-label": t("Anteriores"), title: t("Anteriores") }, icon("chevron"));
+  const next = el("button", { type: "button", class: "carousel-nav next", "aria-label": t("Siguientes"), title: t("Siguientes") }, icon("chevron"));
+  const root = el("div", { class: "carousel" }, prev, track, next);
+  root.style.setProperty("--per", per);
+  // una página = el ancho visible más el espacio que separa la última de la primera de la siguiente
+  const page = () => track.clientWidth + parseFloat(getComputedStyle(track).columnGap || 0);
+  const sync = () => {
+    const single = items.length <= per;  // una sola página: las flechas quedan, deshabilitadas
+    root.classList.toggle("single", single);
+    prev.disabled = single || track.scrollLeft < 2;
+    next.disabled = single || track.scrollLeft + track.clientWidth > track.scrollWidth - 2;
+  };
+  const go = (dir) => track.scrollBy({ left: dir * page() });
+  prev.addEventListener("click", () => go(-1));
+  next.addEventListener("click", () => go(1));
+  track.addEventListener("scroll", sync, { passive: true });
+  track.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const list = [...track.children];
+    const i = list.indexOf(document.activeElement);
+    const to = list[Math.max(0, Math.min(list.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))];
+    if (to && i >= 0) { e.preventDefault(); to.focus(); to.scrollIntoView({ block: "nearest", inline: "nearest" }); }
+  });
+  new ResizeObserver(sync).observe(track);
+  sync();  // ya, sin esperar al próximo cuadro (en una ventana oculta no llega)
+  requestAnimationFrame(() => {  // al entrar en la página: en la del elemento elegido, sin animar
+    const i = typeof start === "number" ? start : items.indexOf(start);
+    if (i > 0) {
+      track.style.scrollBehavior = "auto";
+      track.scrollLeft = Math.floor(i / per) * page();
+      track.style.scrollBehavior = "";
+    }
+    sync();
+  });
+  return root;
 }

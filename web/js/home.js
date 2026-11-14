@@ -8,6 +8,9 @@
 // color) y lo deja tal cual en oscuro (texto blanco o casi negro según su luz)
 function applyAccent(color) {
   const root = document.documentElement.style;
+  // se recuerda en este navegador: al recargar, index.html lo aplica antes de pintar (si no, hasta que llegaban los
+  // ajustes del servidor el énfasis era el blanco del tema: botones y logo en blanco)
+  try { localStorage.setItem("vt-accent", /^#[0-9a-f]{6}$/i.test(color || "") ? color : "none"); } catch (e) { /* sin almacenamiento */ }
   // data-lib-accent: con el color de la biblioteca, los interruptores también lo usan (controls.css)
   if (!/^#[0-9a-f]{6}$/i.test(color || "")) {
     for (const k of ["--accent-base", "--on-accent-dark"]) root.removeProperty(k);
@@ -39,33 +42,33 @@ function homeRows(skip) {
   const rows = [];
   const watching = Object.values(vs).filter((v) => v.media && v.duration && (v.position || 0) > 5 && v.position < v.duration - 10)
     .sort((a, b) => (b.opened || 0) - (a.opened || 0)).map((v) => v.id).filter((id) => id !== skip);  // el destacado no se repite
-  if (watching.length) rows.push({ id: "recent", title: "Seguir viendo", items: watching, more: false });
+  if (watching.length) rows.push({ id: "recent", title: t("Seguir viendo"), items: watching, more: false });
   const byId = Object.fromEntries(lib.collections.map((c) => [c.id, c]));
-  if (byId.recent?.items.length) rows.push({ id: "recent", title: "Recientes", items: byId.recent.items });
+  if (byId.recent?.items.length) rows.push({ id: "recent", title: t("Recientes"), items: byId.recent.items });
   for (const c of lib.collections.filter((c) => (c.kind === "propia" || c.kind === "playlist") && c.items.length).slice(0, 8)) {
-    rows.push({ id: c.id, title: c.name, items: c.items, kind: c.kind === "playlist" ? "Playlist" : "" });
+    rows.push({ id: c.id, title: c.name, items: c.items, kind: c.kind === "playlist" ? t("Playlist") : "" });
   }
   const chans = lib.collections.filter((c) => c.kind === "canal" && c.items.length > 1).sort((a, b) => b.items.length - a.items.length);
-  for (const c of chans.slice(0, 4)) rows.push({ id: c.id, title: c.name, items: c.items, kind: "Canal" });
+  for (const c of chans.slice(0, 4)) rows.push({ id: c.id, title: c.name, items: c.items, kind: t("Canal") });
   const cats = lib.collections.filter((c) => c.kind === "categoría" && c.items.length > 1).sort((a, b) => b.items.length - a.items.length);
-  for (const c of cats.slice(0, 2)) rows.push({ id: c.id, title: c.name, items: c.items, kind: "Categoría" });
+  for (const c of cats.slice(0, 2)) rows.push({ id: c.id, title: c.name, items: c.items, kind: t("Categoría") });
   return rows;
 }
 
 function heroVideo() {
   const h = lib.hero && lib.videos[lib.hero.video];
   if (h) return { v: h, en: lib.hero.en, es: lib.hero.es, ideas: lib.hero.ideas, chapters: lib.hero.chapters,
-    label: (h.position || 0) > 5 ? "Seguir viendo" : "Recién agregado" };
+    label: (h.position || 0) > 5 ? t("Seguir viendo") : t("Recién agregado") };
   const recent = lib.collections.find((c) => c.id === "recent")?.items || [];
   const v = recent.map((id) => lib.videos[id]).find((x) => x && x.media) || lib.videos[recent[0]];
-  return v ? { v, label: (v.position || 0) > 5 ? "Seguir viendo" : "Recién agregado" } : null;
+  return v ? { v, label: (v.position || 0) > 5 ? t("Seguir viendo") : t("Recién agregado") } : null;
 }
 
 function renderHome() {
   const head = $("#shelf-head");
   // con videos elegidos en las filas: las acciones arriba, fuera del desplazamiento (antes no aparecían)
   head.hidden = !lib.picked.size;
-  if (lib.picked.size) renderShelfHead({ id: "home", name: "Inicio", kind: "auto", items: [...lib.picked] });
+  if (lib.picked.size) renderShelfHead({ id: "home", name: t("Inicio"), kind: "auto", items: [...lib.picked] });
   const grid = $("#grid");
   grid.className = "grid home";
   grid.replaceChildren();
@@ -80,9 +83,9 @@ function renderHome() {
 
 // la biblioteca vacía: lo que se puede hacer y el botón de Agregar (el mismo de la barra)
 function emptyLibrary() {
-  return emptyState("film", "Tu biblioteca está vacía",
-    "Agrega un enlace de YouTube o Dropbox, sube un archivo o graba la pantalla. Los videos aparecen aquí mientras se traducen.",
-    "div", btn("Agregar video", { icon: "plus", variant: "dark", onClick: () => $("#import-btn").click() }));
+  return emptyState("film", t("Tu biblioteca está vacía"),
+    t("Agrega un enlace de YouTube o Dropbox, sube un archivo o graba la pantalla. Los videos aparecen aquí mientras se traducen."),
+    "div", btn(t("Agregar video"), { icon: "plus", variant: "dark", onClick: () => $("#import-btn").click() }));
 }
 
 /* ------------------------------------------------------------ fondo del inicio (Ajustes › Apariencia)
@@ -147,8 +150,8 @@ function hero({ v, en, es, label, ideas, chapters }) {
   const canOpen = !!v.media || isRemote(v);
   return el("section", { class: "hero lite", style: v.thumb ? `--img: url("${v.thumb}")` : null },
     el("div", { class: "hero-media" + (canOpen ? " open" : ""), on: { click: () => canOpen && play() } },
-      v.thumb ? el("img", { src: v.thumb.startsWith("/thumb/yt/") ? v.thumb.replace(/\.jpg$/, "_hd.jpg") : v.thumb, alt: "" }) : null,
-      canOpen ? el("span", { class: "hero-play", "aria-hidden": "true" }, icon("play")) : null),
+      // sin botón de reproducir encima: se abre tocando la miniatura o con «Ver»/«Continuar»
+      v.thumb ? el("img", { src: v.thumb.startsWith("/thumb/yt/") ? v.thumb.replace(/\.jpg$/, "_hd.jpg") : v.thumb, alt: "" }) : null),
     el("div", { class: "hero-copy" },
       el("span", { class: "label", text: [label, v.channel].filter(Boolean).join(" · ") }),
       el("h2", { text: v.title || v.id }),
@@ -157,11 +160,11 @@ function hero({ v, en, es, label, ideas, chapters }) {
         es && !(transcribeMode() && en) ? el("p", { class: "es", text: es }) : null,
         en && !(es && sameText(en, es) && !transcribeMode()) ? el("p", { class: "en", text: en }) : null) : null,
       el("div", { class: "hero-acts" },
-        btn(pct > 1 ? "Continuar" : "Ver", { icon: "play", variant: "dark", disabled: !canOpen, onClick: play }),
-        pct > 1 ? btn("Desde el inicio", { variant: "ghost", onClick: () => { v.position = 0; play(); } }) : null,
-        btn("Exportar", { icon: "download", variant: "ghost", onClick: () => openExport([v.id]) })),
-      pct > 1 ? el("div", { class: "hero-prog" }, meter(pct), el("small", { text: v.duration >= 3600 ? `${fmtLong(v.position)} de ${fmtLong(v.duration)}` : `${fmtDur(v.position)} de ${fmtDur(v.duration)}` })) : null,
-      heroSummary(ideas, chapters, (t) => { v.position = t; play(); })));
+        btn(pct > 1 ? t("Continuar") : t("Ver"), { icon: "play", variant: "dark", disabled: !canOpen, onClick: play }),
+        pct > 1 ? btn(t("Desde el inicio"), { variant: "ghost", onClick: () => { v.position = 0; play(); } }) : null,
+        btn(t("Exportar"), { icon: "download", variant: "ghost", onClick: () => openExport([v.id]) })),
+      pct > 1 ? el("div", { class: "hero-prog" }, meter(pct), el("small", { text: v.duration >= 3600 ? t("{a} de {b}", { a: fmtLong(v.position), b: fmtLong(v.duration) }) : t("{a} de {b}", { a: fmtDur(v.position), b: fmtDur(v.duration) }) })) : null,
+      heroSummary(ideas, chapters, (sec) => { v.position = sec; play(); })));
 }
 
 // lo del resumen que ayuda a retomar: ideas clave y los primeros capítulos (cada uno lleva a su momento);
@@ -169,10 +172,10 @@ function hero({ v, en, es, label, ideas, chapters }) {
 function heroSummary(ideas, chapters, seek) {
   if (!ideas?.length && !chapters?.length) return null;
   return el("div", { class: "hero-sum" },
-    ideas?.length ? el("h4", { text: "Ideas clave" }) : null,
-    ideas?.length ? el("ul", {}, ...ideas.map((t) => el("li", { text: t }))) : null,
+    ideas?.length ? el("h4", { text: t("Ideas clave") }) : null,
+    ideas?.length ? el("ul", {}, ...ideas.map((x) => el("li", { text: x }))) : null,
     chapters?.length ? el("div", { class: "hero-chs" }, ...chapters.map((c) => el("button", { type: "button", class: "hero-ch",
-      title: "Ver desde aquí", on: { click: () => seek(c.t) } }, el("b", { text: fmtDur(c.t) }), c.title))) : null);
+      title: t("Ver desde aquí"), on: { click: () => seek(c.t) } }, el("b", { text: fmtDur(c.t) }), c.title))) : null);
 }
 
 function row(r) {
@@ -183,8 +186,8 @@ function row(r) {
     if (v) strip.append(card(v, coll, i));
   });
   const scrollBy = (dir) => strip.scrollBy({ left: dir * strip.clientWidth * 0.9, behavior: "smooth" });
-  const prev = el("button", { type: "button", class: "strip-nav prev", "aria-label": "Anteriores", hidden: true, on: { click: () => scrollBy(-1) } }, icon("chevron"));
-  const next = el("button", { type: "button", class: "strip-nav next", "aria-label": "Siguientes", hidden: true, on: { click: () => scrollBy(1) } }, icon("chevron"));
+  const prev = el("button", { type: "button", class: "strip-nav prev", "aria-label": t("Anteriores"), hidden: true, on: { click: () => scrollBy(-1) } }, icon("chevron"));
+  const next = el("button", { type: "button", class: "strip-nav next", "aria-label": t("Siguientes"), hidden: true, on: { click: () => scrollBy(1) } }, icon("chevron"));
   // cada flecha solo si hay más videos hacia ese lado; centradas en la miniatura
   const sync = () => {
     const max = strip.scrollWidth - strip.clientWidth;
@@ -200,7 +203,7 @@ function row(r) {
     el("header", {},
       coll.kind !== "auto" ? collBadge(coll, "md") : null,
       el("h3", {}, el("button", { type: "button", on: { click: () => openColl(r.id) } }, r.title)),
-      r.more !== false && r.items.length > 4 ? btn("Ver todo", { size: "xs", variant: "ghost", onClick: () => openColl(r.id) }) : null),
+      r.more !== false && r.items.length > 4 ? btn(t("Ver todo"), { size: "xs", variant: "ghost", onClick: () => openColl(r.id) }) : null),
     wrap);
 }
 function openColl(id) {
@@ -217,8 +220,8 @@ function progressRing(p) {
   s.setAttribute("viewBox", "0 0 36 36");
   s.innerHTML = `<circle cx="18" cy="18" r="14" class="r0"/><circle cx="18" cy="18" r="14" class="r1" pathLength="100" stroke-dasharray="${Math.round(p.asr * 100)} 100"/>`
     + `<circle cx="18" cy="18" r="14" class="r2" pathLength="100" stroke-dasharray="${Math.round(p.dub * 100)} 100"/>`;
-  return el("span", { class: "ring", title: transcribeMode() ? `Transcrito ${Math.round(p.asr * 100)} %`
-    : `Traducido ${Math.round(p.asr * 100)} % · doblado ${Math.round(p.dub * 100)} %` }, s);
+  return el("span", { class: "ring", title: transcribeMode() ? t("Transcrito {n} %", { n: Math.round(p.asr * 100) })
+    : t("Traducido {a} % · doblado {d} %", { a: Math.round(p.asr * 100), d: Math.round(p.dub * 100) }) }, s);
 }
 
 /* ------------------------------------------------------------ reproductor: controles que se esconden */
@@ -279,9 +282,9 @@ queueFades();
 // El botón junto al logo solo pliega la barra lateral (biblioteca, reproductor, Cola y Ajustes).
 function syncSideBtn() {
   const b = $("#side-btn");
-  const t = document.body.classList.contains("side-mini") ? "Expandir la barra lateral" : "Contraer la barra lateral";
-  b.title = t;
-  b.setAttribute("aria-label", t);
+  const label = document.body.classList.contains("side-mini") ? t("Expandir la barra lateral") : t("Contraer la barra lateral");
+  b.title = label;
+  b.setAttribute("aria-label", label);
 }
 function setSideMini(on) {
   document.body.classList.toggle("side-mini", on);
@@ -303,7 +306,7 @@ function goHome() {
 for (const b of document.querySelectorAll(".bar .brand")) {
   b.setAttribute("role", "link");
   b.tabIndex = 0;
-  b.title = "Ir al inicio";
+  b.title = t("Ir al inicio");
   b.addEventListener("click", goHome);
   b.addEventListener("keydown", (e) => { if (e.key === "Enter") goHome(); });
 }

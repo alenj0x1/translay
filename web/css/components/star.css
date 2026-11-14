@@ -1,0 +1,148 @@
+/* El agente como personaje (web/js/star.js): respira y parpadea en reposo, se inclina y destella al pensar,
+   rebota y habla al responder. */
+.agent-star { display: block; width: 100%; height: 100%; overflow: visible; stroke: none; }  /* sin el contorno heredado de los íconos (base.css) */
+.agent-star .st-body { transform-box: fill-box; transform-origin: 50% 60%; animation: st-breathe 3.2s ease-in-out infinite; }
+.agent-star .st-eye { transform-box: fill-box; transform-origin: center; animation: st-blink 4.4s infinite; }
+.agent-star .st-mouth { transform-box: fill-box; transform-origin: center; }
+.agent-star .st-spark { opacity: 0; transform-box: fill-box; transform-origin: center; }
+@keyframes st-breathe { 50% { transform: scale(1.04); } }
+@keyframes st-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+
+.agent-star.think .st-body { animation: st-tilt 1.4s ease-in-out infinite; }
+.agent-star.think .st-pupil { transform: translate(1.5px, -2px); }
+.agent-star.think .st-spark { animation: st-spark 1.4s ease-out infinite; }
+.agent-star.think .st-spark:nth-of-type(2) { animation-delay: .45s; }
+.agent-star.think .st-spark:nth-of-type(3) { animation-delay: .9s; }
+@keyframes st-tilt { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes st-spark { 0% { opacity: 0; transform: scale(.3); } 30% { opacity: 1; transform: scale(1); } 80%, 100% { opacity: 0; transform: scale(.4); } }
+
+.agent-star.talk .st-body { animation: st-bounce .5s ease-in-out infinite; }
+.agent-star.talk .st-mouth { animation: st-speak .28s ease-in-out infinite alternate; }
+@keyframes st-bounce { 50% { transform: translateY(-3px) scale(1.02, .98); } }
+@keyframes st-speak { from { transform: scaleY(.45); } to { transform: scaleY(1.45); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-star .st-body, .agent-star .st-eye, .agent-star .st-mouth, .agent-star .st-spark { animation: none !important; }
+}
+
+/* el creador (Ajustes › Agente › Avatar y el diálogo del pincel) */
+/* las partes a la izquierda y la estrella grande a la derecha (se queda a la vista al bajar) */
+.star-maker { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: var(--s6); align-items: start; }
+.star-stage { order: 2; position: sticky; top: var(--s4); display: grid; gap: var(--s2); justify-items: center; }
+.star-stage .star-big { width: 220px; height: 220px; padding: 22px; border-radius: var(--r-lg); background: var(--surface-2); }
+.star-parts { display: grid; gap: var(--s3); }
+.star-part { display: grid; gap: var(--s1); }
+.star-part > span { font: 600 var(--fs-xs)/1.3 var(--font); color: var(--fg-muted); }
+.star-opts { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.star-opt { width: 64px; height: 64px; padding: 6px; border: 0; border-radius: var(--r-sm); background: var(--surface-2); cursor: pointer; }
+.star-opt:hover { background: var(--surface-3); }
+/* la elegida, con el tono de selección del color de énfasis (como el texto seleccionado), no un gris */
+.star-opt.on { background: color-mix(in srgb, var(--accent) 38%, var(--surface-2)); box-shadow: none; }
+.star-opt.on:hover { background: color-mix(in srgb, var(--accent) 46%, var(--surface-2)); }
+[data-theme="light"] .star-opt.on { background: color-mix(in srgb, var(--accent) 26%, #fff); }
+.star-opt .agent-star .st-body, .star-opt .agent-star .st-eye { animation: none; }
+@media (max-width: 760px) {
+  .star-maker { grid-template-columns: minmax(0, 1fr); }
+  .star-stage { order: 0; position: static; }
+  .star-stage .star-big { width: 160px; height: 160px; padding: 16px; }
+}
+/* el creador ocupa todo el ancho de la fila: la estrella grande queda pegada a la derecha */
+.set-ctl:has(> .star-maker), .pref-ctl:has(> .star-maker) { flex: 1 1 100%; width: 100%; justify-items: stretch; }
+.star-maker { width: 100%; }
+.star-stage { justify-self: end; }
+@media (max-width: 760px) { .star-stage { justify-self: center; } }
+/* cambio de estrella (web/js/app.js › starSwap): las dos ocupan el mismo lugar; el escenario recorta lo que sale */
+.star-big { display: grid; overflow: hidden; }
+.star-big > .agent-star { grid-area: 1 / 1; }
+.star-big > .agent-star.leaving { pointer-events: none; }
+
+/* el agente al inicio del chat: escondido tras una línea, se asoma con un rebote (web/js/agentui.js › fillAgentIntro) */
+.ag-intro { display: none; }
+.ag-intro.has-star { display: grid; justify-items: center; gap: var(--s2); padding: var(--s5) 0 var(--s4); }
+.ag-peek { position: relative; display: flex; align-items: flex-end; width: 112px; height: 116px; overflow: hidden; }
+.ag-peek .agent-star { width: 96px; height: 96px; margin: 0 auto; transform: translateY(105%); }
+.ag-intro.peek .ag-peek .agent-star { animation: st-peek .9s cubic-bezier(.3, 1.45, .55, 1) .08s both; }
+.ag-intro-name { font: 800 var(--fs-lg)/1.2 var(--font); color: var(--fg); opacity: 0; }
+.ag-intro.peek .ag-intro-name { animation: st-name .4s ease .55s both; }
+@keyframes st-peek {
+  0% { transform: translateY(105%); }
+  55% { transform: translateY(-4%) rotate(-5deg); }
+  75% { transform: translateY(2%) rotate(3deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+@keyframes st-name { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ag-peek .agent-star { transform: none; }
+  .ag-intro.peek .ag-peek .agent-star, .ag-intro.peek .ag-intro-name { animation: none; opacity: 1; }
+  .ag-intro-name { opacity: 1; }
+}
+
+/* chat vacío: el agente grande al centro y lo que sabe hacer debajo */
+.ag-scroll.is-empty { display: flex; flex-direction: column; justify-content: center; }
+.ag-scroll.is-empty .ag-intro { padding-top: 0; }
+.ag-scroll.is-empty .ag-peek { width: 150px; height: 152px; }
+.ag-scroll.is-empty .ag-peek .agent-star { width: 128px; height: 128px; }
+.ag-scroll.is-empty .ag-hello { border: 0; justify-content: center; }
+.ag-scroll.is-empty .ag-can { justify-content: center; }
+/* después de la primera pregunta, el del inicio espera escondido hasta que se vuelva a subir */
+.ag-intro.dormant .ag-peek .agent-star { animation: none; transform: translateY(105%); }
+.ag-intro.dormant .ag-intro-name { animation: none; opacity: 0; }
+/* el que vuela del centro a la respuesta */
+.ag-fly { position: fixed; z-index: 50; pointer-events: none; transform-origin: 0 0; }
+.ag-fly .agent-star { width: 100%; height: 100%; }
+.ag-flying .ag-msg.bot.pending .ag-who .ag-avatar { visibility: hidden; }
+
+/* dormido (modelo apagado): ojos cerrados, respira lento y suelta «z»; despertando (encendiéndose): entreabre los
+   ojos, parpadea y se estira; despierto: como siempre */
+.agent-star .st-closed, .agent-star .st-z { opacity: 0; }
+.agent-star.sleep .st-eye, .agent-star.sleep .st-pupil { opacity: 0; animation: none; }
+.agent-star.sleep .st-closed { opacity: 1; }
+.agent-star.sleep .st-body { animation: st-sleep 4s ease-in-out infinite; }
+.agent-star.sleep .st-mouth { transform: scale(.7); }
+.agent-star.sleep .st-z { transform-box: fill-box; transform-origin: center; animation: st-z 3s ease-in infinite; }
+.agent-star.sleep .st-z:nth-of-type(2) { animation-delay: 1s; }
+.agent-star.sleep .st-z:nth-of-type(3) { animation-delay: 2s; }
+@keyframes st-sleep { 0%, 100% { transform: rotate(-4deg) scale(1); } 50% { transform: rotate(-4deg) scale(1.035, .97); } }
+@keyframes st-z { 0% { opacity: 0; transform: translate(-6px, 6px) scale(.6); } 25% { opacity: .9; } 100% { opacity: 0; transform: translate(4px, -8px) scale(1.1); } }
+.agent-star.wake .st-eye { animation: st-wake-eye 1.6s ease-in-out infinite; }
+.agent-star.wake .st-pupil { opacity: 0; }
+.agent-star.wake .st-body { animation: st-stretch 1.6s ease-in-out infinite; }
+.agent-star.wake .st-mouth { animation: st-yawn 1.6s ease-in-out infinite; }
+@keyframes st-wake-eye { 0%, 100% { transform: scaleY(.2); } 40% { transform: scaleY(.55); } 55% { transform: scaleY(.1); } 75% { transform: scaleY(.7); } }
+@keyframes st-stretch { 0%, 100% { transform: scale(1); } 35% { transform: scale(.96, 1.08) translateY(-2px); } 60% { transform: scale(1.03, .97); } }
+@keyframes st-yawn { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.1, 1.8); } }
+@media (prefers-reduced-motion: reduce) { .agent-star.sleep .st-z { animation: none; opacity: .7; } }
+
+/* tocar al agente: un saltito y dos corazones (web/js/agentview.js › agentBoop), con la misma cara de siempre.
+   Es un movimiento, no un cambio de tamaño */
+#summary .agent-star, .agent .agent-star { cursor: pointer; }
+.agent-star .st-heart { opacity: 0; }
+.agent-star.joy.joy .st-body { animation: st-hop .9s cubic-bezier(.3, .7, .4, 1); }
+.agent-star.joy .st-heart { transform-box: fill-box; transform-origin: center; animation: st-heart 1.2s ease-out both; }
+.agent-star.joy .st-heart:nth-of-type(2) { animation-delay: .15s; }
+@keyframes st-hop { 0% { transform: none; } 25% { transform: translateY(-9px) rotate(-4deg); } 45% { transform: translateY(0) rotate(0); }
+  62% { transform: translateY(-4px) rotate(3deg); } 80%, 100% { transform: none; } }
+@keyframes st-heart { 0% { opacity: 0; transform: translateY(4px) scale(.5); } 30% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(1); } }
+}
+.star-big .agent-star { cursor: pointer; }
+
+/* lo que sabe hacer el agente: en un panel angosto no se apila uno por renglón; van en dos filas que se deslizan
+   de lado, con los bordes desvanecidos */
+.agent { container-type: inline-size; container-name: agent; }
+@container agent (max-width: 520px) {
+  .agent .ag-hello .ag-can { display: grid; min-width: 0; width: 100%; grid-auto-flow: column; grid-template-rows: auto auto; justify-content: start;
+    overflow-x: auto; scrollbar-width: none; padding: 0 var(--s4);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
+  .agent .ag-hello .ag-can::-webkit-scrollbar { display: none; }
+  .ag-hello .ag-chip { white-space: nowrap; }
+  .ag-scroll.is-empty .ag-hello { margin: 0 calc(-1 * var(--s3)); }
+}
+.ag-scroll > *, .ag-msgs, .ag-hello { min-width: 0; }
+/* el recorte de las muestras de cerca lo hace el botón (no la estrella: cortaba su borde) */
+.star-opt { overflow: hidden; }
+
+/* cada parte del creador: sus muestras en un carrusel (web/css/components/carousel.css) */
+.star-part .carousel { max-width: 520px; }
+.star-part .carousel .star-opt { width: auto; height: auto; aspect-ratio: 1; padding: 10px; }

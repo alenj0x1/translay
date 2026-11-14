@@ -72,7 +72,9 @@ function codeThemeFor(key, light = document.documentElement.dataset.theme === "l
 function applyCodeTheme(key = prefs.code_theme) {
   const t = codeThemeFor(key);
   const s = document.documentElement.style;
-  s.setProperty("--code-bg", t.light ? "#ffffff" : t.bg);  // en claro, blanco: un gris claro se ve sucio
+  // en claro, blanco (un gris claro se ve sucio); en oscuro, el fondo del tema llevado al negro de la app: conserva
+  // su tinte pero no queda como una caja gris más clara que los paneles
+  s.setProperty("--code-bg", t.light ? "#ffffff" : `color-mix(in srgb, ${t.bg} 45%, #0f0f0f)`);
   s.setProperty("--code-fg", t.fg);
   for (const k of ["com", "str", "num", "kw", "ctl", "fn", "ty", "var", "tag", "attr", "op", "prompt", "flag"]) s.setProperty(`--tk-${k}`, t[k]);
   document.documentElement.classList.toggle("code-light", !!t.light);

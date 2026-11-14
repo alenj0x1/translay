@@ -6,19 +6,23 @@
 .side { grid-column: 3; grid-row: 2 / 4; display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0;
   border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
 body.side-off .side { display: none; }
-.side-tabs { display: flex; gap: 2px; margin: var(--s3); padding: 3px; border-radius: var(--r-pill); background: var(--surface-2); }
+/* pestañas: con aire (antes muy apretadas), sobre el mismo fondo del panel */
+.side-tabs { display: flex; gap: 4px; margin: var(--s3) var(--s3) var(--s2); padding: 4px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--fg) 2.5%, transparent); }
 .side-tabs button {
-  flex: 1; height: var(--h-xs); border: 0; border-radius: var(--r-pill); background: none; color: var(--fg-muted); cursor: pointer;
-  font: 600 var(--fs-sm)/1 var(--font);
+  flex: 1 1 auto; min-width: 0; height: var(--h-sm); padding: 0 var(--s3); border: 0; border-radius: var(--r-pill); background: none;
+  color: var(--fg-muted); cursor: pointer; font: 600 var(--fs-sm)/1 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .side-tabs button:hover { color: var(--fg); }
-.side-tabs button.on { background: var(--sel); color: var(--fg); }
+/* la elegida, con el mismo tono que lo activo en la barra lateral («Inicio») */
+.side-tabs button.on { background: var(--surface-2); color: var(--fg); }
 .transcript, .upnext { list-style: none; margin: 0; padding: 0 var(--s2) var(--s3); overflow-y: auto; min-height: 0; }
 
 /* ---------------------------------------------------------- transcripción */
 .transcript li { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); border-radius: var(--r-sm); cursor: pointer; }
-.transcript li:hover { background: var(--surface-2); }
-.transcript li.active { background: var(--surface-2); }
+/* sin cajas grises: la frase actual se marca con su minuto en el color de énfasis y el texto más brillante */
+.transcript li:hover .cell:last-child p { color: var(--fg); }
+.transcript li.active time, .transcript li.el-row.now time { color: var(--accent); }
 /* sin frases todavía: el estado vacío, no una fila */
 .transcript li.empty-state { grid-template-columns: minmax(0, 1fr); gap: var(--s3); margin-top: var(--s2); cursor: default; }
 .transcript li.empty-state:hover { background: var(--surface-2); }
@@ -53,14 +57,14 @@ body.side-off .side { display: none; }
 /* ---------------------------------------------------------- elementos del video (web/js/screentext.js)
    Código, comandos y enlaces que aparecen escritos, en su momento entre las frases: una caja con la
    línea fina de las tarjetas, sin fondo de color; el código en letra monoespaciada. */
-.transcript li.el-row { display: grid; gap: var(--s1); margin: var(--s1) 0; padding: var(--s2) var(--s3) var(--s3);
-  border: 1px solid var(--line); }
+.transcript li.el-row { display: grid; gap: var(--s1); margin: var(--s1) 0; padding: var(--s2) var(--s3) var(--s3); }
 .transcript .el-head { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
 .transcript .el-kind { display: inline-flex; align-items: center; gap: 4px; font: 600 var(--fs-xs)/1.5 var(--font); color: var(--fg-muted); }
 .transcript .el-kind svg { width: 12px; height: 12px; stroke-width: 1.7; }
 .transcript .el-copy { margin-left: auto; width: 24px; height: 24px; opacity: 0; }
 .transcript li.el-row:hover .el-copy, .transcript .el-copy:focus-visible { opacity: 1; }
-.transcript li.el-row pre { margin: 0; max-height: 11.5em; }
+/* el código se parte en renglones (el panel es angosto: antes se cortaba a la derecha) */
+.transcript li.el-row pre { margin: 0; max-height: 11.5em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .transcript li.el-row p { font: 500 var(--fs-sm)/1.45 var(--font); color: var(--fg); overflow-wrap: anywhere; }
 .transcript li.el-row .el-es { color: var(--fg); font-family: var(--font); }
 @media (hover: none) { .transcript .el-copy { opacity: 1; } }
@@ -94,7 +98,9 @@ body.side-off .side { display: none; }
 .sum-points { list-style: none; margin: 0; padding: var(--s2) 0 0; border-top: 1px solid var(--line); }
 .sum-points li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: var(--s2); padding: 10px var(--s3);
   border-radius: var(--r-sm); cursor: pointer; }
-.sum-points li:hover, .sum-points li.active { background: var(--surface-2); }
+/* igual que la transcripción: sin caja gris, el minuto en el color de énfasis */
+.sum-points li:hover p { color: var(--fg); }
+.sum-points li.active time { color: var(--accent); }
 .sum-points time { font: 600 var(--fs-xs)/1.9 var(--font); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
 .sum-points p { margin: 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
 .sum-points li.active p { color: var(--fg); }
@@ -160,14 +166,21 @@ body.native .transcript .cell:first-child { display: none; }
 .sum-card[open] .sum-title svg:last-child { transform: rotate(180deg); }
 .sum-card.busy { display: grid; gap: var(--s2); padding-bottom: var(--s3); }
 .sum-card .sum-note { margin: 0; padding: 0 var(--s3); font: 500 var(--fs-sm)/1.5 var(--font); color: var(--fg-muted); }
+/* el aviso y su acción (Cancelar, Reintentar) en la misma línea, la acción a la derecha */
+.sum-card .sum-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding-right: var(--s2); }
+.sum-card .sum-row .btn { flex: none; }
 .sum-card .btn { margin: 0 var(--s3); justify-self: start; }
 
 .ag-msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
-.ag-hello { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); }
+.ag-hello { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s1) 0; }
 .ag-hello .ag-intro { margin: 2px 0 0; font: 500 var(--fs-sm)/1.55 var(--font); color: var(--fg-muted); }
 .ag-avatar { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%;
   background: color-mix(in srgb, var(--ag, var(--accent)) 18%, transparent); color: var(--ag, var(--accent)); }
 .ag-avatar svg { width: 15px; height: 15px; display: block; }
+/* el personaje (web/js/star.js): sin círculo de fondo y grande, para que se vean sus gestos */
+.ag-avatar.star { width: 44px; height: 44px; background: none; border-radius: 0; }
+.ag-avatar.star svg { width: 44px; height: 44px; }
+.ag-bar .ag-avatar.star, .ag-bar .ag-avatar.star svg { width: 36px; height: 36px; }
 .ag-name { margin: 0; font: 700 var(--fs-sm)/1.5 var(--font); color: var(--fg); }
 .ag-who { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); }
 .ag-msg { min-width: 0; }
@@ -210,17 +223,18 @@ body.native .transcript .cell:first-child { display: none; }
   font: 600 var(--fs-sm)/1 var(--font); cursor: pointer; white-space: nowrap; }
 .ag-chip:hover { background: var(--surface-2); color: var(--fg); }
 .ag-chip svg { width: 13px; height: 13px; }
-.ag-compose { display: flex; align-items: flex-end; gap: var(--s2); margin: 0 var(--s3) var(--s3); padding: var(--s1) var(--s1) var(--s1) var(--s3);
-  border: 1px solid var(--line-strong); border-radius: var(--r-md); }
+/* sin borde: un fondo con el gris de lo activo, y aire alrededor de los botones */
+.ag-compose { display: flex; align-items: flex-end; gap: var(--s2); margin: 0 var(--s3) var(--s3); padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  border: 0; border-radius: var(--r-lg); background: var(--surface-2); }
 .ag-compose textarea { flex: 1; min-width: 0; min-height: 34px; max-height: 140px; padding: 7px 0; border: 0; background: transparent;
   resize: none; font: 500 var(--fs-md)/1.45 var(--font); color: var(--fg); outline: none; box-shadow: none; border-radius: 0; }
 .ag-compose textarea:focus { box-shadow: none; }
-.ag-compose:focus-within { border-color: color-mix(in srgb, var(--fg) 28%, transparent); }
+.ag-compose:focus-within { background: var(--surface-2); }  /* al escribir, el mismo gris oscuro (nada de un gris más claro) */
 .ag-compose .ic { flex: none; background: var(--accent); color: var(--on-accent, #fff); }
 .ag-compose .ic.stop { background: var(--surface-3); color: var(--fg); }
 /* dictar: un botón sin relleno junto a Preguntar; mientras escucha, con el color del agente y un pulso suave */
 .ag-compose .ag-mic { background: transparent; color: var(--fg-muted); }
-.ag-compose .ag-mic:hover { background: var(--surface-2); color: var(--fg); }
+.ag-compose .ag-mic:hover { background: var(--surface-3); color: var(--fg); }
 .ag-compose .ag-mic.on { background: color-mix(in srgb, var(--ag, var(--accent)) 22%, transparent); color: var(--ag, var(--accent));
   animation: ag-listen 1.4s ease-in-out infinite; }
 .ag-compose .ag-mic.busy { opacity: .5; }

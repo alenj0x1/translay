@@ -34,8 +34,9 @@ function screenTextAdd(m) {
 /* ------------------------------------------------------------ elementos del video en la transcripción
    Lo que conviene tener a mano de lo escrito en pantalla (vt/videocontext.py): código, comandos,
    enlaces, correos, cuentas y comentarios del código, en su lugar entre las frases. */
-const ELEMENT_LABEL = { code: "Código", command: "Comando", link: "Enlace", email: "Correo", handle: "Cuenta",
-  comment: "Comentario del código" };
+const ELEMENT_LABEL = { code: t("Código"), command: t("Comando"), link: t("Enlace"), email: t("Correo"), handle: t("Cuenta"),
+  comment: t("Comentario del código") };
+i18nTrack(ELEMENT_LABEL);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 const ELEMENT_ICON = { code: "code", command: "terminal", link: "link", email: "link", handle: "user", comment: "comment" };
 
 function setElements(list) {
@@ -47,14 +48,14 @@ function setElements(list) {
 }
 
 function elementItem(e) {
-  const li = el("li", { class: `el-row k-${e.kind}`, "data-start": e.start, "data-el": e.id });
+  const li = el("li", { class: `el-row k-${e.kind}`, "data-start": e.start, "data-end": e.end ?? e.start + 4, "data-el": e.id });
   const block = e.kind === "code" || e.kind === "command";
   // código, comandos y comentarios con los colores del tema de Ajustes (web/js/codetheme.js)
   const colored = block || e.kind === "comment";
   const body = colored ? el("pre", { class: "codeblk" }) : el("p", {}, e.text);
   // un comentario lleva su traducción en el mismo bloque, debajo: se lee como el código del video
   if (colored) body.append(highlight(e.kind === "comment" && e.translation ? `${e.text}\n${e.translation}` : e.text));
-  const copy = el("button", { type: "button", class: "ic sm el-copy", title: "Copiar", "aria-label": "Copiar" }, icon("copy"));
+  const copy = el("button", { type: "button", class: "ic sm el-copy", title: t("Copiar"), "aria-label": t("Copiar") }, icon("copy"));
   li.append(el("div", { class: "el-head" },
     el("time", {}, fmt(e.start)), el("span", { class: "el-kind" }, icon(ELEMENT_ICON[e.kind] || "code"), ELEMENT_LABEL[e.kind] || ""), copy),
   body);
@@ -180,7 +181,8 @@ new ResizeObserver(() => renderScreenText()).observe($("#v-es"));
    Sobre cada texto que se ve (código, comando, enlace, comentario o texto traducido) hay una zona: al pasar
    el mouse o al hacer clic aparece una barrita con «Copiar» y «Preguntar a Lumi»; el clic derecho tiene lo
    mismo (web/js/contextmenu.js › screenHitMenu). El clic sobre la zona no pausa el video. */
-const HIT_LABEL = { ...ELEMENT_LABEL, text: "Texto" };
+const HIT_LABEL = { ...ELEMENT_LABEL, text: t("Texto") };
+i18nTrack(HIT_LABEL);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
 function hitText(it) {
   // lo que se copia: el código tal cual; un texto traducido, en español
@@ -190,24 +192,24 @@ function hitText(it) {
 function askAgentAbout(it) {
   if (typeof setSide === "function") setSide(true);
   $('#side-tabs [data-tab="summary"]')?.click();
-  const what = (HIT_LABEL[it.kind] || "Texto").toLowerCase();
+  const what = (HIT_LABEL[it.kind] || t("Texto")).toLowerCase();
   const f = $("#ag-input");
-  f.value = `Sobre este ${what} que aparece en ${fmt(it.start)}:\n${it.text}\n\n`;
+  f.value = `${t("Sobre este {what} que aparece en {time}:", { what, time: fmt(it.start) })}\n${it.text}\n\n`;
   if (typeof fitAgentInput === "function") fitAgentInput();
   f.focus();
   f.setSelectionRange(f.value.length, f.value.length);
 }
 
 function hitBar(it) {
-  const label = HIT_LABEL[it.kind] || "Texto";
+  const label = HIT_LABEL[it.kind] || t("Texto");
   return el("div", { class: "sh-bar" },
-    el("button", { type: "button", title: `Copiar ${label.toLowerCase()}`, on: { click: (e) => { e.stopPropagation(); copyText(hitText(it), label); } } },
-      icon("copy"), "Copiar"),
-    it.kind === "link" ? el("button", { type: "button", title: "Abrir el enlace", on: { click: (e) => {
+    el("button", { type: "button", title: t("Copiar {what}", { what: label.toLowerCase() }), on: { click: (e) => { e.stopPropagation(); copyText(hitText(it), label); } } },
+      icon("copy"), t("Copiar")),
+    it.kind === "link" ? el("button", { type: "button", title: t("Abrir el enlace"), on: { click: (e) => {
       e.stopPropagation(); window.open(/^https?:/i.test(it.text) ? it.text : `https://${it.text}`, "_blank", "noopener");
-    } } }, icon("external"), "Abrir") : null,
-    el("button", { type: "button", title: "Preguntarle al agente sobre esto", on: { click: (e) => { e.stopPropagation(); askAgentAbout(it); } } },
-      icon("agent"), "Preguntar a Lumi"));
+    } } }, icon("external"), t("Abrir")) : null,
+    el("button", { type: "button", title: t("Preguntarle al agente sobre esto"), on: { click: (e) => { e.stopPropagation(); askAgentAbout(it); } } },
+      icon("agent"), t("Preguntar a Lumi")));
 }
 
 function renderHits() {

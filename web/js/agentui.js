@@ -7,12 +7,24 @@
    ===================================================================== */
 
 state.agent = { messages: [], suggestions: [], pending: null, status: null, video: null, power: "apagado", model: "" };
-const AGENT_STEP = { descargando: "Descargando", cargando: "Cargando el modelo", pensando: "Preparando la respuesta",
-  buscando: "Buscando en el video", leyendo: "Leyendo el video", escribiendo: "Escribiendo" };
+const AGENT_STEP = { descargando: () => t("Descargando"), cargando: () => t("Cargando el modelo"), pensando: () => t("Preparando la respuesta"),
+  buscando: () => t("Buscando en el video"), leyendo: () => t("Leyendo el video"), escribiendo: () => t("Escribiendo") };
 
 const agentName = () => (prefs.agent_name || "").trim() || "Translay";
-function agentAvatar() {
-  const a = el("span", { class: "ag-avatar" }, icon(prefs.agent_avatar || "agent"));
+// cómo está el agente según su modelo: «sleep» apagado, «wake» mientras se enciende (al tocar Encender o al
+// preguntar con el modelo apagado), «» despierto
+let agentMoodFixed = null;  // la vista previa: su agente de ejemplo está siempre despierto
+function agentMood() {
+  if (agentMoodFixed !== null) return agentMoodFixed;
+  const a = state.agent, st = a.status?.state;
+  if (["descargando", "cargando"].includes(st) || (a.waking && a.power === "apagado")) return "wake";
+  if (a.power === "apagado" && !a.pending) return "sleep";
+  return "";
+}
+
+// el personaje del agente (web/js/star.js); state: "think" mientras piensa, "talk" mientras escribe
+function agentAvatar(state = "") {
+  const a = el("span", { class: "ag-avatar star" }, starSvg(agentLook(), null, state));
   if (prefs.agent_color) a.style.setProperty("--ag", prefs.agent_color);
   return a;
 }
@@ -46,8 +58,8 @@ function inline(text) {
     if (m[1] != null) frag.append(el("strong", { text: m[1] }));
     else if (m[2] != null) frag.append(el("code", { class: "ag-code", text: m[2] }));
     else {
-      const t = m[5] != null ? +m[3] * 3600 + +m[4] * 60 + +m[5] : +m[3] * 60 + +m[4];
-      frag.append(el("button", { type: "button", class: "ag-ts", "data-t": t, title: "Ir a este momento" }, fmt(t)));
+      const sec = m[5] != null ? +m[3] * 3600 + +m[4] * 60 + +m[5] : +m[3] * 60 + +m[4];
+      frag.append(el("button", { type: "button", class: "ag-ts", "data-t": sec, title: t("Ir a este momento") }, fmt(sec)));
     }
     last = m.index + m[0].length;
   }
@@ -88,22 +100,26 @@ function richText(text) {
 // la barra (avatar, nombre, estado, encender y personalizar); sin acciones, sus botones solo se muestran
 function agentBarNodes(v) {
   const on = v.power === "encendido";
-  const label = v.busy ? v.statusText : on ? `Encendido${v.model ? ` · ${v.model}` : ""}` : "Apagado";
+  const label = v.busy ? v.statusText : on ? (v.model ? t("Encendido · {model}", { model: v.model }) : t("Encendido")) : t("Apagado");
   const dot = el("i", { class: "ag-dot " + (v.busy ? "busy" : on ? "on" : "off") });
   const b = el("button", { type: "button", class: "btn xs ghost ag-power", disabled: v.busy || v.canPower === false || null,
-    title: on ? "Apagar y liberar memoria" : "Encender y preparar el video",
-    on: v.onPower ? { click: () => v.onPower(!on) } : {} }, icon("power"), on ? "Apagar" : "Encender");
-  const custom = v.custom ? el("button", { type: "button", class: "btn xs ghost icon ag-custom", title: "Personalizar el agente",
-    "aria-label": "Personalizar el agente", on: v.onCustom ? { click: v.onCustom } : {} }, icon("brush")) : null;
-  return [agentAvatar(), el("span", { class: "ag-name", text: agentName() }), el("span", { class: "ag-status" }, dot, label), b, custom];
+    title: on ? t("Apagar y liberar memoria") : t("Encender y preparar el video"),
+    on: v.onPower ? { click: () => v.onPower(!on) } : {} }, icon("power"), on ? t("Apagar") : t("Encender"));
+  const custom = v.custom ? el("button", { type: "button", class: "btn xs ghost icon ag-custom", title: t("Personalizar el agente"),
+    "aria-label": t("Personalizar el agente"), on: v.onCustom ? { click: v.onCustom } : {} }, icon("brush")) : null;
+  return [agentAvatar(v.mood ?? (v.busy ? "think" : "")), el("span", { class: "ag-name", text: agentName() }), el("span", { class: "ag-status" }, dot, label), b, custom];
 }
 
 function renderAgentBar() {
   const a = state.agent;
   $("#ag-bar").replaceChildren(...agentBarNodes({
+    mood: agentMood() || (a.pending || (a.status && !["listo", undefined].includes(a.status.state)) ? "think" : ""),
     power: a.power, model: a.model, busy: a.power === "ocupado" || (a.status && !["listo", undefined].includes(a.status.state)),
     statusText: agentStatusText(), canPower: canImport(), custom: isOwner(), onCustom: openAgentDlg,
-    onPower: (on) => send({ type: "agent_power", video: state.videoId, on, position: vEn.currentTime || 0 }) }));
+    onPower: (on) => {
+      if (on) { a.waking = true; renderAgent(); }  // se despierta ya, sin esperar al servidor
+      send({ type: "agent_power", video: state.videoId, on, position: vEn.currentTime || 0 });
+    } }));
 }
 
 function agentColor(node) {
@@ -116,27 +132,30 @@ function agentColor(node) {
    conceptos y recursos, dos preguntas y las sugerencias. Está en Personalizar y en Ajustes › Agente, al
    lado de las opciones, y cambia con cada una (el tono no se puede mostrar sin el modelo). */
 const PREVIEW_SUMMARY = {
-  overview: "Un curso corto de Python: cómo instalar un paquete, leer un archivo de configuración y probar que todo funciona.",
-  takeaways: ["Instala los paquetes con pip dentro de un entorno virtual", "Guarda la configuración en un archivo JSON aparte"],
-  chapters: [{ t: 134, title: "Instalar el paquete", points: [
-    { t: 134, text: "Abre la terminal e instala requests con pip" },
-    { t: 185, text: "Comprueba la versión instalada" }] }],
+  overview: t("Un curso corto de Python: cómo instalar un paquete, leer un archivo de configuración y probar que todo funciona."),
+  takeaways: [t("Instala los paquetes con pip dentro de un entorno virtual"), t("Guarda la configuración en un archivo JSON aparte")],
+  chapters: [{ t: 134, title: t("Instalar el paquete"), points: [
+    { t: 134, text: t("Abre la terminal e instala requests con pip") },
+    { t: 185, text: t("Comprueba la versión instalada") }] }],
   points: [],
-  terms: [{ t: 210, term: "Entorno virtual", meaning: "Una carpeta con su propio Python y paquetes, aparte del sistema." }],
+  terms: [{ t: 210, term: t("Entorno virtual"), meaning: t("Una carpeta con su propio Python y paquetes, aparte del sistema.") }],
   resources: [{ kind: "command", text: "$ pip install requests", t: 140 }, { kind: "link", text: "https://docs.python.org/3/", t: 302 }],
 };
+i18nTrack(PREVIEW_SUMMARY);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 const PREVIEW_MESSAGES = [
-  { role: "user", content: "¿En qué minuto explica cómo instalar el paquete?" },
-  { role: "assistant", content: "[2:14] Lo explica aquí: abre la terminal y escribe `pip install requests`. Después, en [3:05], muestra cómo comprobar que quedó instalado." },
-  { role: "user", content: "¿Qué comandos se usan?" },
-  { role: "assistant", content: "Dos, los dos en la terminal:\n- [2:20] `pip install requests` instala el paquete.\n- [3:05] `pip show requests` muestra la versión.\n```\n$ pip install requests\n$ pip show requests\n```" },
+  { role: "user", content: t("¿En qué minuto explica cómo instalar el paquete?") },
+  { role: "assistant", content: t("[2:14] Lo explica aquí: abre la terminal y escribe `pip install requests`. Después, en [3:05], muestra cómo comprobar que quedó instalado.") },
+  { role: "user", content: t("¿Qué comandos se usan?") },
+  { role: "assistant", content: t("Dos, los dos en la terminal:\n- [2:20] `pip install requests` instala el paquete.\n- [3:05] `pip show requests` muestra la versión.\n```\n$ pip install requests\n$ pip show requests\n```") },
 ];
-const PREVIEW_SUGGESTIONS = [{ q: "¿Qué hace la función load?" }, { q: "¿Qué me falta por ver?" }];
+i18nTrack(PREVIEW_MESSAGES);  // al cambiar de idioma, sus textos también cambian (i18n.js)
+const PREVIEW_SUGGESTIONS = [{ q: t("¿Qué hace la función load?") }, { q: t("¿Qué me falta por ver?") }];
+i18nTrack(PREVIEW_SUGGESTIONS);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
 function agentPreview() {
   const P = agentPanel();
   P.root.classList.add("ag-preview");
-  P.root.setAttribute("aria-label", "Vista previa");
+  P.root.setAttribute("aria-label", t("Vista previa"));
   P.root._panel = P;
   P.summary.append(summaryCard(PREVIEW_SUMMARY));
   fillSuggestions(P.suggest, PREVIEW_SUGGESTIONS);
@@ -150,8 +169,10 @@ function agentPreview() {
 // lo que cambia con la personalización, sobre el mismo panel: no se rehace, así no sube al cambiar algo
 function fillAgentPreview(P) {
   agentColor(P.root);
-  P.bar.replaceChildren(...agentBarNodes({ power: "encendido", model: "", custom: true }));
-  fillAgentMessages(P.msgs, PREVIEW_MESSAGES, null);
+  P.bar.replaceChildren(...agentBarNodes({ power: "encendido", model: "", custom: true, mood: "" }));
+  fillAgentIntro(P.intro, "");
+  agentMoodFixed = "";
+  try { fillAgentMessages(P.msgs, PREVIEW_MESSAGES, null); } finally { agentMoodFixed = null; }
 }
 
 function refreshAgentPreviews() {
@@ -201,11 +222,60 @@ function renderAgent() {
   if (box.hidden) return;
   const a = state.agent;
   renderAgentBar();
+  const sc = $("#ag-scroll");
+  const intro = $("#ag-intro");
+  fillAgentIntro(intro);
+  // sin conversación ni resumen: el agente grande en el centro, con lo que sabe hacer debajo
+  const empty = !a.messages.length && !a.pending && !$("#ag-summary")?.childElementCount;
+  const wasEmpty = sc.classList.contains("is-empty");
+  const from = wasEmpty && !empty ? intro.querySelector(".agent-star")?.getBoundingClientRect() : null;
+  sc.classList.toggle("is-empty", empty);
   fillAgentMessages($("#ag-msgs"), a.messages, a.pending);
   renderSuggestions();
   syncSendBtn();
+  agentStickBottom(sc);
+  if (from) agentFly(from, intro);
+}
+
+// baja al final si la persona no subió a leer; marca que el movimiento es del chat, no suyo
+function agentStickBottom(sc = $("#ag-scroll")) {
+  if (state.agent.stick === false) return;
+  sc.dataset.auto = "1";
+  sc.scrollTop = sc.scrollHeight;
+  requestAnimationFrame(() => { delete sc.dataset.auto; });
+}
+
+// mientras escribe: solo cambia el texto de la respuesta en curso (redibujar toda la conversación con cada palabra
+// movía el scroll y no dejaba subir a leer: «vibraba»)
+function renderPendingText() {
+  const a = state.agent;
+  const li = $("#ag-msgs .ag-msg.bot.pending");
+  if (!li || !a.pending) return false;
+  const who = li.querySelector(".ag-who");
+  li.replaceChildren(who, richText(a.pending.text), ...[...li.children].filter((x) => x.classList.contains("ag-card")));
+  who.querySelector(".agent-star")?.setAttribute("class", "agent-star talk");
+  agentStickBottom();
+  return true;
+}
+
+// la primera pregunta: el agente vuela del centro a su lugar en la respuesta; el del inicio queda guardado hasta
+// que se vuelva a subir hasta arriba
+function agentFly(from, intro) {
+  const target = [...document.querySelectorAll("#ag-msgs .ag-msg.bot .ag-avatar")].pop();
+  intro.classList.add("dormant");
+  if (!target || !from.width || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const to = target.getBoundingClientRect();
+  const ghost = el("div", { class: "ag-fly" }, starSvg(agentLook(), null, "think"));
+  Object.assign(ghost.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+  document.body.append(ghost);
   const sc = $("#ag-scroll");
-  if (a.stick !== false) sc.scrollTop = sc.scrollHeight;
+  sc.classList.add("ag-flying");  // la respuesta puede redibujarse mientras vuela: se esconde por clase, no por nodo
+  const dx = to.left - from.left, dy = to.top - from.top, k = to.width / from.width;
+  ghost.animate([{ transform: "none" }, { transform: `translate(${dx}px, ${dy}px) scale(${k})` }],
+    { duration: 520, easing: "cubic-bezier(.5, 0, .2, 1)", fill: "forwards" }).onfinish = () => {
+    sc.classList.remove("ag-flying");
+    ghost.remove();
+  };
 }
 
 // el botón de enviar: detener mientras responde (si no hay nada escrito); si hay, preguntar (queda en cola)
@@ -214,60 +284,96 @@ function syncSendBtn() {
   const busy = !!a.pending && !$("#ag-input").value.trim();
   const sendBtn = $("#ag-send");
   sendBtn.replaceChildren(icon(busy ? "stop" : "up"));
-  sendBtn.setAttribute("aria-label", busy ? "Detener" : "Preguntar");
-  sendBtn.title = busy ? "Detener la respuesta" : "Preguntar (Enter)";
+  sendBtn.setAttribute("aria-label", busy ? t("Detener") : t("Preguntar"));
+  sendBtn.title = busy ? t("Detener la respuesta") : t("Preguntar (Enter)");
   sendBtn.classList.toggle("stop", busy);
-  if (a.pending && !busy) sendBtn.title = "Preguntar al terminar (queda en cola)";
+  if (a.pending && !busy) sendBtn.title = t("Preguntar al terminar (queda en cola)");
 }
 
-// lo que el agente sabe hacer, como chips: los que terminan en espacio dejan la pregunta empezada en la caja
+// lo que el agente sabe hacer, como chips: los marcados con true dejan la pregunta empezada en la caja
 // para completarla; los demás preguntan al tocarlos
 const AGENT_CAN = [
-  ["clock", "Encontrar un momento", "¿En qué minuto "],
-  ["book", "Explicar un concepto", "Explícame "],
-  ["play", "Lo que me falta", "¿Qué me falta por ver?"],
-  ["code", "Código y comandos", "¿Qué código y comandos aparecen y para qué sirve cada uno?"],
-  ["cap", "Preguntas de repaso", "Hazme 3 preguntas de repaso sobre lo que ya vi."],
-  ["globe", "Qué significa una palabra", "¿Qué significa "],
+  ["clock", t("Encontrar un momento"), t("¿En qué minuto"), true],
+  ["book", t("Explicar un concepto"), t("Explícame"), true],
+  ["play", t("Lo que me falta"), t("¿Qué me falta por ver?")],
+  ["code", t("Código y comandos"), t("¿Qué código y comandos aparecen y para qué sirve cada uno?")],
+  ["cap", t("Preguntas de repaso"), t("Hazme 3 preguntas de repaso sobre lo que ya vi.")],
+  ["globe", t("Qué significa una palabra"), t("¿Qué significa"), true],
 ];
+i18nTrack(AGENT_CAN);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
-function agentCan(q) {
-  if (!q.endsWith(" ")) { agentAsk(q); return; }
+function agentCan(q, open) {
+  if (!open) { agentAsk(q); return; }
   const f = $("#ag-input");
-  f.value = q;
+  f.value = q + " ";
   fitAgentInput();
   f.focus();
-  f.setSelectionRange(q.length, q.length);
+  f.setSelectionRange(f.value.length, f.value.length);
 }
 
+// el agente al inicio del chat: su estrella grande y su nombre. Se redibuja solo si cambió cómo se ve (así no
+// repite la entrada con cada mensaje)
+function fillAgentIntro(box, mood = agentMood()) {
+  if (!box) return;
+  const key = JSON.stringify(agentLook()) + (prefs.agent_color || themeStarColor());
+  box.querySelector(".ag-intro-name").textContent = agentName();
+  if (box.dataset.key === key) {
+    if (box.dataset.mood !== mood) {
+      box.dataset.mood = mood;
+      box.querySelector(".agent-star")?.setAttribute("class", ("agent-star " + mood).trim());
+      // al apagarse (o despertar) vuelve a asomarse entero con su nuevo gesto, también si estaba guardado tras la
+      // primera pregunta: antes quedaba escondido y solo se veían las «z»
+      if (box.classList.contains("dormant") || box.classList.contains("peek")) {
+        box.classList.remove("dormant", "peek");
+        void box.offsetWidth;
+        box.classList.add("peek");
+      }
+    }
+    return;
+  }
+  box.dataset.key = key;
+  box.querySelector(".ag-peek").replaceChildren(starSvg(agentLook()));
+  box.dataset.mood = mood;
+  box.querySelector(".agent-star")?.setAttribute("class", ("agent-star " + mood).trim());
+  box.classList.add("has-star");
+  // estaba oculto (sin estrella): se vuelve a observar para que se asome apenas se ve
+  // (las vistas previas se llenan antes de entrar en la página: se espera a que estén)
+  let tries = 0;
+  const reobserve = () => {
+    if (!box.isConnected) { if (++tries < 60) requestAnimationFrame(reobserve); return; }
+    agentIntroSeen.unobserve(box);
+    agentIntroSeen.observe(box);
+  };
+  requestAnimationFrame(reobserve);
+}
 // la conversación (con lo que puede hacer si aún no hay preguntas)
 function fillAgentMessages(ol, messages, pending) {
   const frag = document.createDocumentFragment();
   if (!messages.length && !pending) {
-    frag.append(el("li", { class: "ag-hello" }, el("div", { class: "ag-can" }, ...AGENT_CAN.map(([ic, label, q]) =>
-      el("button", { type: "button", class: "ag-chip", title: q.trim(), on: { click: () => agentCan(q) } }, icon(ic), label)))));
+    frag.append(el("li", { class: "ag-hello" }, el("div", { class: "ag-can" }, ...AGENT_CAN.map(([ic, label, q, open]) =>
+      el("button", { type: "button", class: "ag-chip", title: q, on: { click: () => agentCan(q, open) } }, icon(ic), label)))));
   }
   messages.forEach((m, i) => frag.append(agentMessage(m, i)));
   if (pending) frag.append(agentMessage({ role: "assistant", content: pending.text, pending: true, steps: pending.steps }, -1));
   if (ol.id === "ag-msgs") {
     (state.agent.queue || []).forEach((q, i) => frag.append(el("li", { class: "ag-msg user queued" },
       el("p", { text: q }),
-      el("span", { class: "ag-queued" }, icon("clock"), "En cola",
-        el("button", { type: "button", class: "ag-copy", title: "Quitar de la cola", "aria-label": "Quitar de la cola",
+      el("span", { class: "ag-queued" }, icon("clock"), t("En cola"),
+        el("button", { type: "button", class: "ag-copy", title: t("Quitar de la cola"), "aria-label": t("Quitar de la cola"),
           on: { click: () => { state.agent.queue.splice(i, 1); renderAgent(); } } }, icon("x"))))));
   }
   ol.replaceChildren(frag);
 }
 
 // la hora de un mensaje (los guardados traen t en segundos)
-const msgTime = (t) => (t ? new Date(t * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) : "");
+const msgTime = (t) => (t ? new Date(t * 1000).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }) : "");
 
 // copiar un mensaje: el botón aparece al pasar el mouse, junto a su hora
 function msgTools(m) {
   return el("span", { class: "ag-tools" },
     m.t ? el("time", { text: msgTime(m.t) }) : null,
-    m.content ? el("button", { type: "button", class: "ag-copy", title: "Copiar", "aria-label": "Copiar el mensaje",
-      on: { click: () => copyText(m.content, "Mensaje") } }, icon("copy")) : null);
+    m.content ? el("button", { type: "button", class: "ag-copy", title: t("Copiar"), "aria-label": t("Copiar el mensaje"),
+      on: { click: () => copyText(m.content, t("Mensaje copiado")) } }, icon("copy")) : null);
 }
 
 // mientras trabaja: cada paso (buscar, leer, escribir) con su marca; el actual con los puntitos
@@ -289,27 +395,27 @@ function agentCard(c) {
     };
     return el("div", { class: "ag-card" },
       el("div", { class: "ag-card-head" }, icon("agent"), el("strong", { text: c.title }),
-        el("small", { text: `${Math.round(c.content.length / 1000) || 1} mil caracteres` })),
+        el("small", { text: t("{n} mil caracteres", { n: Math.round(c.content.length / 1000) || 1 }) })),
       pre,
       el("div", { class: "ag-card-acts" },
-        btn("Copiar", { icon: "copy", size: "sm", variant: "dark", onClick: () => copyText(c.content, "Contenido") }),
-        btn("Descargar .md", { icon: "download", size: "sm", variant: "ghost", onClick: download })));
+        btn(t("Copiar"), { icon: "copy", size: "sm", variant: "dark", onClick: () => copyText(c.content, t("Contenido copiado")) }),
+        btn(t("Descargar .md"), { icon: "download", size: "sm", variant: "ghost", onClick: download })));
   }
   if (c.type === "moment") {
     return el("div", { class: "ag-card" },
       el("button", { type: "button", class: "ag-card-moment", on: { click: () => { vEn.currentTime = c.t; if (vEn.paused) togglePlay(); } } },
-        el("b", { class: "ag-ts", text: fmt(c.t) }), el("span", { text: c.text || "Ir a este momento" })));
+        el("b", { class: "ag-ts", text: fmt(c.t) }), el("span", { text: c.text || t("Ir a este momento") })));
   }
   if (c.type === "alert") {
     const active = state.alerts?.[state.videoId]?.topic === c.topic;
     return el("div", { class: "ag-card" },
-      el("div", { class: "ag-card-head" }, icon("bell"), el("strong", { text: `Aviso: ${c.topic}` }),
-        el("small", { text: c.times.length === 1 ? "1 momento" : `${c.times.length} momentos` })),
+      el("div", { class: "ag-card-head" }, icon("bell"), el("strong", { text: t("Aviso: {topic}", { topic: c.topic }) }),
+        el("small", { text: c.times.length === 1 ? t("1 momento") : t("{n} momentos", { n: c.times.length }) })),
       el("div", { class: "ag-card-times" }, ...c.times.map((x) => el("button", { type: "button", class: "ag-ts", title: x.text,
         on: { click: () => { vEn.currentTime = x.t; } } }, fmt(x.t)))),
       el("div", { class: "ag-card-acts" }, active
-        ? btn("Quitar aviso", { icon: "x", size: "sm", variant: "ghost", onClick: () => { setAlert(null); renderAgent(); } })
-        : btn("Volver a avisarme", { icon: "bell", size: "sm", variant: "ghost", onClick: () => { setAlert(c); renderAgent(); } })));
+        ? btn(t("Quitar aviso"), { icon: "x", size: "sm", variant: "ghost", onClick: () => { setAlert(null); renderAgent(); } })
+        : btn(t("Volver a avisarme"), { icon: "bell", size: "sm", variant: "ghost", onClick: () => { setAlert(c); renderAgent(); } })));
   }
   return null;
 }
@@ -326,8 +432,8 @@ function agentAction(a) {
     const want = a.collection.toLowerCase();
     const c = lib.collections.find((x) => x.kind === "propia" && x.name.toLowerCase() === want)
       || lib.collections.find((x) => x.kind === "propia" && x.name.toLowerCase().includes(want));
-    if (c) { if (!c.items.includes(state.videoId)) send({ type: "coll_toggle", coll: c.id, video: state.videoId, on: true }); toast(`Guardado en «${c.name}»`, "ok"); }
-    else { send({ type: "coll_create", name: a.collection, video: state.videoId }); toast(`Colección «${a.collection}» creada con este video`, "ok"); }
+    if (c) { if (!c.items.includes(state.videoId)) send({ type: "coll_toggle", coll: c.id, video: state.videoId, on: true }); toast(t("Guardado en «{name}»", { name: c.name }), "ok"); }
+    else { send({ type: "coll_create", name: a.collection, video: state.videoId }); toast(t("Colección «{name}» creada con este video", { name: a.collection }), "ok"); }
   } else if (a.type === "alert") setAlert(a);
 }
 
@@ -352,12 +458,12 @@ vEn.addEventListener("loadedmetadata", drawAlerts);
 vEn.addEventListener("timeupdate", () => {
   const a = state.alerts?.[state.videoId];
   if (!a || vEn.paused) return;
-  const t = vEn.currentTime;
-  const hit = a.times.find((x) => !a.fired.has(x.t) && t >= x.t && t < x.t + 3);
+  const now = vEn.currentTime;
+  const hit = a.times.find((x) => !a.fired.has(x.t) && now >= x.t && now < x.t + 3);
   if (!hit) return;
   a.fired.add(hit.t);
-  toast(`Ahora: ${a.topic} · ${hit.text.slice(0, 80)}`, "ok");
-  if (prefs.notify && document.hidden && typeof notifyUser === "function") notifyUser(`Ahora: ${a.topic}`, hit.text.slice(0, 120));
+  toast(t("Ahora: {topic} · {text}", { topic: a.topic, text: hit.text.slice(0, 80) }), "ok");
+  if (prefs.notify && document.hidden && typeof notifyUser === "function") notifyUser(t("Ahora: {topic}", { topic: a.topic }), hit.text.slice(0, 120));
 });
 
 function agentMessage(m, i) {
@@ -365,27 +471,27 @@ function agentMessage(m, i) {
   const body = m.content ? richText(m.content) : !m.pending ? null : el("div", { class: "ag-text" },
     agentSteps(m.steps) || el("p", { class: "ag-wait" }, el("i", { class: "ag-dots" }, el("b"), el("b"), el("b")), agentStatusText()));
   const li = el("li", { class: "ag-msg bot" + (m.pending ? " pending" : ""), "data-i": i },
-    el("div", { class: "ag-who" }, agentAvatar(), el("span", { class: "ag-name", text: agentName() }), m.pending ? null : msgTools(m)),
+    el("div", { class: "ag-who" }, agentAvatar(m.pending ? (m.content ? "talk" : agentMood() === "wake" ? "wake" : "think") : agentMood()), el("span", { class: "ag-name", text: agentName() }), m.pending ? null : msgTools(m)),
     body, agentCard(m.card));
   if (!m.pending) {
     // completado: un check verde se entiende sin leer; al lado, el modelo y cuánto tardó
     const secs = m.stats?.total_s ?? m.s;
     const model = m.stats?.model || (m.model && m.model !== "acción" ? (state.agentModels?.models.find((x) => x.key === m.model)?.name || "") : "");
     // detenida: sin el check, con la marca de detener (lo escrito hasta ahí queda)
-    li.append(el("p", { class: "ag-meta" + (m.fresh ? " fresh" : "") + (m.stopped ? " stopped" : ""), title: m.stopped ? "Detenida" : "Completado" },
+    li.append(el("p", { class: "ag-meta" + (m.fresh ? " fresh" : "") + (m.stopped ? " stopped" : ""), title: m.stopped ? t("Detenida") : t("Completado") },
       el("span", { class: "ag-ok" }, icon(m.stopped ? "stop" : "check")),
-      [m.stopped ? "Detenida" : "", model, secs != null && secs > 0 ? `${Number(secs).toFixed(1)} s` : ""].filter(Boolean).join(" · "),
+      [m.stopped ? t("Detenida") : "", model, secs != null && secs > 0 ? `${Number(secs).toFixed(1)} s` : ""].filter(Boolean).join(" · "),
       // la última detenida se puede seguir desde donde quedó
       m.stopped && i === state.agent.messages.length - 1 && !state.agent.pending
-        ? el("button", { type: "button", class: "ag-continue", on: { click: agentContinue } }, icon("play"), "Continuar") : null));
+        ? el("button", { type: "button", class: "ag-continue", on: { click: agentContinue } }, icon("play"), t("Continuar")) : null));
   }
   return li;
 }
 
 function agentStatusText() {
   const s = state.agent.status;
-  if (!s || s.state === "listo") return "Pensando";
-  const step = AGENT_STEP[s.state] || "Pensando";
+  if (!s || s.state === "listo") return t("Pensando");
+  const step = AGENT_STEP[s.state]?.() || t("Pensando");
   return s.state === "descargando" ? `${step} ${s.detail} · ${s.pct || 0} %` : s.detail && s.state === "cargando" ? `${step} (${s.detail})` : step;
 }
 
@@ -417,6 +523,7 @@ function agentAsk(q) {
     renderAgent();
     return;
   }
+  if (state.agent.power === "apagado") state.agent.waking = true;  // empieza a despertar mientras carga el modelo
   const id = Math.random().toString(36).slice(2, 10);
   state.agent.messages.push({ role: "user", content: q, t: Date.now() / 1000 });
   state.agent.pending = { id, text: "", steps: [] };
@@ -445,7 +552,8 @@ $("#ag-form").addEventListener("submit", (e) => {
   if (state.agent.pending && !f.value.trim()) {  // detener: se ve al instante, aunque el modelo tarde en soltar
     send({ type: "agent_stop", video: state.videoId });
     const p = state.agent.pending;
-    if ((p.steps ||= []).at(-1) !== "Deteniendo") p.steps.push("Deteniendo");
+    const stopping = t("Deteniendo");
+    if ((p.steps ||= []).at(-1) !== stopping) p.steps.push(stopping);
     renderAgent();
     return;
   }
@@ -476,12 +584,12 @@ function agentMention(t) {
 function renderMention() {
   const form = $("#ag-form");
   let box = form.querySelector(".ag-mention");
-  const t = state.agent.mention;
-  if (t == null) { box?.remove(); return; }
+  const at = state.agent.mention;
+  if (at == null) { box?.remove(); return; }
   if (!box) { box = el("div", { class: "ag-mention" }); form.prepend(box); }
-  box.replaceChildren(el("span", { class: "ag-ts", title: "Ir a este momento", on: { click: () => { vEn.currentTime = t; } } }, fmt(t)),
-    el("small", { text: "Pregunta sobre este momento" }),
-    el("button", { type: "button", class: "ag-copy", title: "Quitar", "aria-label": "Quitar el momento",
+  box.replaceChildren(el("span", { class: "ag-ts", title: t("Ir a este momento"), on: { click: () => { vEn.currentTime = at; } } }, fmt(at)),
+    el("small", { text: t("Pregunta sobre este momento") }),
+    el("button", { type: "button", class: "ag-copy", title: t("Quitar"), "aria-label": t("Quitar el momento"),
       on: { click: () => { state.agent.mention = null; renderMention(); } } }, icon("x")));
 }
 
@@ -498,10 +606,10 @@ function dictationUI() {
   b.classList.toggle("busy", dictation.busy);
   b.disabled = dictation.busy;
   b.replaceChildren(icon(recording ? "stop" : "mic"));
-  b.setAttribute("aria-label", recording ? "Terminar de dictar" : "Dictar");
-  b.title = recording ? "Terminar de dictar" : "Dictar";
-  f.placeholder = recording ? "Escuchando…"
-    : dictation.busy ? "Transcribiendo…" : "Pregunta sobre este video";
+  b.setAttribute("aria-label", recording ? t("Terminar de dictar") : t("Dictar"));
+  b.title = recording ? t("Terminar de dictar") : t("Dictar");
+  f.placeholder = recording ? t("Escuchando…")
+    : dictation.busy ? t("Transcribiendo…") : t("Pregunta sobre este video");
 }
 
 async function startDictation() {
@@ -510,7 +618,7 @@ async function startDictation() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   } catch {
-    toast("No se pudo acceder al micrófono. Revisa los permisos.");
+    toast(t("No se pudo acceder al micrófono. Revisa los permisos."));
     return;
   }
   const type = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t));
@@ -548,7 +656,7 @@ function dictated(m) {
   dictation.busy = false;
   dictationUI();
   if (m.error) { toast(m.error); return; }
-  if (!m.text) { toast("No se detectó voz. Acércate al micrófono e inténtalo de nuevo."); return; }
+  if (!m.text) { toast(t("No se detectó voz. Acércate al micrófono e inténtalo de nuevo.")); return; }
   const f = $("#ag-input");
   f.value = (f.value.trim() ? f.value.trimEnd() + " " : "") + m.text;
   fitAgentInput();
@@ -559,8 +667,14 @@ function dictated(m) {
 $("#ag-mic").addEventListener("click", () => (dictation.rec ? stopDictation() : startDictation()));
 $("#ag-scroll").addEventListener("scroll", () => {
   const sc = $("#ag-scroll");
+  if (sc.dataset.auto) return;  // lo movió el chat al llegar texto nuevo
   state.agent.stick = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 40;  // si subes a leer, no te baja
 });
+// subir con la rueda, el dedo o el teclado suelta el final al instante (sin esperar a alejarse 40 px)
+$("#ag-scroll").addEventListener("wheel", (e) => { if (e.deltaY < 0) state.agent.stick = false; }, { passive: true });
+$("#ag-scroll").addEventListener("touchmove", () => { const sc = $("#ag-scroll"); if (sc.scrollHeight - sc.scrollTop - sc.clientHeight > 4) state.agent.stick = false; }, { passive: true });
+$("#ag-scroll").addEventListener("keydown", (e) => { if (["ArrowUp", "PageUp", "Home"].includes(e.key)) state.agent.stick = false; });
+
 $("#ag-msgs").addEventListener("click", (e) => {
   const b = e.target.closest(".ag-ts");
   if (b) { vEn.currentTime = +b.dataset.t; if (vEn.paused) togglePlay(); }
@@ -571,6 +685,7 @@ function agentEvent(m) {
   const a = state.agent;
   if (m.type === "agent_power") {
     a.power = m.state;
+    if (m.state !== "apagado") a.waking = false;
     if (m.model) a.model = m.model;
   } else if (m.type === "agent_chat") {
     if (m.video !== state.videoId) return;
@@ -583,15 +698,17 @@ function agentEvent(m) {
   } else if (m.type === "agent_state") {
     a.status = m;
     // los pasos de la respuesta en curso (buscar, leer, escribir…), sin repetir el último
-    const label = AGENT_STEP[m.state] && m.state !== "listo" ? AGENT_STEP[m.state] + (m.detail && m.state === "leyendo" ? ` · ${m.detail}` : "") : "";
+    const label = AGENT_STEP[m.state] && m.state !== "listo" ? AGENT_STEP[m.state]() + (m.detail && m.state === "leyendo" ? ` · ${m.detail}` : "") : "";
     if (a.pending && label && a.pending.steps.at(-1) !== label) a.pending.steps.push(label);
   } else if (m.type === "agent_delta") {
     if (!a.pending) a.pending = { id: m.id, text: "" };
     a.pending.text += m.text;
+    if (a.pending.text.length > m.text.length && renderPendingText()) return;  // la primera palabra redibuja todo
   } else if (m.type === "agent_done") {
     a.messages.push({ role: "assistant", content: m.text, stats: m.stats, card: m.card, t: Date.now() / 1000, fresh: true, stopped: m.stopped,
       model: m.card || m.action ? "acción" : undefined });
     a.pending = null;
+    a.waking = false;
     agentAction(m.action);  // lo que pidió hacer (ir a un momento, subtítulos, guardar, avisos)
     a.status = null;
     if (a.queue?.length) setTimeout(() => agentAsk(a.queue.shift()), 400);  // la siguiente en la cola
@@ -601,6 +718,7 @@ function agentEvent(m) {
     return;
   } else if (m.type === "agent_error") {
     a.pending = null;
+    a.waking = false;
     a.status = null;
     toast(m.error);
     if (a.queue?.length) setTimeout(() => agentAsk(a.queue.shift()), 400);
@@ -613,10 +731,10 @@ function agentMsgMenu(li) {
   const m = state.agent.messages[+li.dataset.i];
   if (!m) return null;
   return [
-    { label: "Copiar", icon: "copy", onClick: () => copyText(m.content, "Texto") },
-    m.role === "user" && { label: "Preguntar de nuevo", icon: "reload", onClick: () => agentAsk(m.content) },
+    { label: t("Copiar"), icon: "copy", onClick: () => copyText(m.content, t("Texto copiado")) },
+    m.role === "user" && { label: t("Preguntar de nuevo"), icon: "reload", onClick: () => agentAsk(m.content) },
     "sep",
-    { label: "Borrar la conversación", icon: "trash", onClick: () => send({ type: "agent_clear", video: state.videoId }) },
-    isOwner() && { label: "Personalizar el agente…", icon: "brush", onClick: openAgentDlg },  // la misma ventana del pincel
+    { label: t("Borrar la conversación"), icon: "trash", onClick: () => send({ type: "agent_clear", video: state.videoId }) },
+    isOwner() && { label: t("Personalizar el agente…"), icon: "brush", onClick: openAgentDlg },  // la misma ventana del pincel
   ];
 }

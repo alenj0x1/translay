@@ -122,3 +122,14 @@ select.native { display: none !important; }
 .dd .chev { flex: none; width: 14px; height: 14px; color: var(--fg-muted); transition: transform .15s; }
 .dd.open .chev { transform: rotate(180deg); }
 .dd > svg:first-child { flex: none; width: 16px; height: 16px; color: var(--fg-muted); }
+
+/* oscuro (2026-11-14): sin bordes ni grises claros. Los campos, con el gris oscuro de lo activo y sin línea (como la
+   caja de preguntas del agente); los grupos de opciones y pestañas, sin fondo y con la elegida en ese mismo gris
+   (como «Inicio» en la barra lateral) */
+[data-theme="dark"] .input, [data-theme="dark"] .select, [data-theme="dark"] .area, [data-theme="dark"] .field {
+  background: var(--surface-2); box-shadow: none; }
+[data-theme="dark"] .input:focus, [data-theme="dark"] .select:focus, [data-theme="dark"] .area:focus,
+[data-theme="dark"] .field:focus-within { box-shadow: none; }
+[data-theme="dark"] .segs, [data-theme="dark"] .side-tabs { background: transparent; }
+[data-theme="dark"] .seg-pill, [data-theme="dark"] .seg.on, [data-theme="dark"] .seg.on:hover,
+[data-theme="dark"] .segs.wrapped.has-pill > .seg.on { background: var(--surface-2); }

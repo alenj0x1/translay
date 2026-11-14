@@ -164,7 +164,19 @@ def main():
             # completa (sin «Doblado 2 %» en las tarjetas)
             k = dur / max(1e-6, base.get("duration") or 1)
             segs = [dict(sg, start=round(sg["start"] * k, 2), end=round(sg["end"] * k, 2)) for sg in tr_base["segments"]]
-            tr = dict(tr_base, id=vid, name=title, segments=segs)
+            # lo reconocido también: el avance se mide por el tiempo cubierto, no por las frases
+            covered = [[round(x * k, 2), round(y * k, 2)] for x, y in tr_base.get("covered") or []] or [[0, dur]]
+            # la voz doblada de cada frase, copiada a la carpeta del video: no depende de que el video base siga
+            # (si se borra, la demo no queda pidiendo audios que ya no están)
+            for sg in segs:
+                d = sg.get("dub")
+                if d and d.get("file"):
+                    src = data / "audio" / d["file"]
+                    if src.exists():
+                        (data / "audio" / vid).mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src, data / "audio" / vid / src.name)
+                        sg["dub"] = dict(d, file=f"{vid}/{src.name}")
+            tr = dict(tr_base, id=vid, name=title, segments=segs, covered=covered)
             tr.pop("summary", None)  # el resumen del video base hablaría de otra cosa
             (data / "transcripts" / f"{vid}.json").write_text(json.dumps(tr, ensure_ascii=False), encoding="utf-8")
             watched = rnd.random() < 0.35

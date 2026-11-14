@@ -43,11 +43,11 @@ function connect() {
   const libPath = (location.pathname.match(/^\/b\/([a-z0-9-]+)/) || [])[1];
   const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws${libPath ? `?lib=${libPath}` : ""}`);
   ws.binaryType = "arraybuffer";
-  setStatus("busy", "conectando");
+  setStatus("busy", t("conectando"));
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   ws.onclose = () => {
     state.ready = false;
-    setStatus("off", "sin conexión");
+    setStatus("off", t("sin conexión"));
     setTimeout(connect, 1000);
   };
   state.ws = ws;
@@ -60,9 +60,8 @@ const OPTIMISTIC = {};
 const isRemote = (v) => v?.source === "youtube" || v?.source === "link";
 // ¿se espera voz en español? (un video que solo se transcribe no lleva voz)
 const wantsVoice = () => !!state.voice && state.voice !== "none" && state.translates;
-// idiomas que reconoce el servidor (vt/langs.py): código → nombre; llegan con «ready»
-let LANGS = { en: "inglés", pt: "portugués", es: "español" };
-const langName = (c) => LANGS[c] || (c ? c.toUpperCase() : "el original");
+// idiomas que reconoce el servidor (vt/langs.py): sus códigos llegan con «ready»; el nombre, langName (i18n.js)
+let LANGS = { en: 1, pt: 1, es: 1 };
 // Ajustes › Uso: «Transcribir y resumir» quita todo lo de traducción y voz
 const transcribeMode = () => prefs.app_mode === "transcribir";
 function applyAppMode() {
@@ -77,7 +76,8 @@ function applyAppMode() {
 function translatesV(v) {
   if (transcribeMode()) return false;
   const l = v?.lang || "en";
-  return (v?.mode || (l === "es" ? "transcribe" : "translate")) === "translate" && l !== "es" && l in LANGS;
+  const tg = targetLang();
+  return (v?.mode || (l === tg ? "transcribe" : "translate")) === "translate" && l !== tg && l in LANGS;
 }
 
 function send(obj) {
@@ -134,7 +134,7 @@ function onMessage(m) {
       hooksLog(m);
       break;
     case "denied":
-      toast("No tienes permiso para esta acción en esta biblioteca", "warn");
+      toast(t("No tienes permiso para esta acción en esta biblioteca"), "warn");
       break;
     case "vault_folder":
       vaultFolder(m);
@@ -143,31 +143,34 @@ function onMessage(m) {
       toast(m.error, "warn");
       storageError();  // web/js/storage.js
       break;
-    case "vault_moved":
-      toast(m.moved ? `${m.moved === 1 ? "1 video movido" : `${m.moved} videos movidos`} a «${m.to}».`
-        + (m.skipped ? ` ${m.skipped} siguen en descarga o proceso. Muévelos cuando terminen.` : "")
-        : "Los videos siguen en descarga o proceso. Muévelos cuando terminen.", m.moved ? "ok" : "warn");
+    case "vault_moved": {
+      const movedMsg = m.moved === 1 ? t("1 video movido a «{to}».", { to: m.to }) : t("{n} videos movidos a «{to}».", { n: m.moved, to: m.to });
+      toast(m.moved ? movedMsg + (m.skipped ? " " + t("{n} siguen en descarga o proceso. Muévelos cuando terminen.", { n: m.skipped }) : "")
+        : t("Los videos siguen en descarga o proceso. Muévelos cuando terminen."), m.moved ? "ok" : "warn");
       break;
+    }
     case "lib_meta":
       libMeta(m);
       break;
     case "video_fetch":
-      toast(m.count ? `${m.count === 1 ? "Video completo en la cola de descargas" : `${m.count} videos completos en la cola de descargas`}, sin volver a traducir.`
-        : "Ya tienen el video completo", m.count ? "ok" : "warn");
+      toast(m.count ? (m.count === 1 ? t("Video completo en la cola de descargas, sin volver a traducir.")
+        : t("{n} videos completos en la cola de descargas, sin volver a traducir.", { n: m.count }))
+        : t("Ya tienen el video completo"), m.count ? "ok" : "warn");
       break;
     case "people_saved":
       if (m.vault === state.videoVault) { state.peopleSaved = m.items; renderPeople(); }
       break;
     case "glossary_applied":
-      if (m.segments) toast(`Glosario aplicado: ${m.segments} ${m.segments === 1 ? "frase" : "frases"} en ${m.videos} `
-        + `${m.videos === 1 ? "video" : "videos"} se tradujeron de nuevo; su voz se rehace en la cola.`, "ok");
+      if (m.segments) toast(t("Glosario aplicado: {phrases} en {videos} se tradujeron de nuevo; su voz se rehace en la cola.", {
+        phrases: m.segments === 1 ? t("1 frase") : t("{n} frases", { n: m.segments }),
+        videos: m.videos === 1 ? t("1 video") : t("{n} videos", { n: m.videos }) }), "ok");
       break;
     case "people":
       state.people.names = m.speaker_names || {};
       state.people.voices = m.voice_map || {};
       renderTranscript();
       renderPeople();
-      if (m.redub) toast(`Se rehace la voz de ${m.redub} ${m.redub === 1 ? "frase" : "frases"} en la cola.`, "ok");
+      if (m.redub) toast(m.redub === 1 ? t("Se rehace la voz de 1 frase en la cola.") : t("Se rehace la voz de {n} frases en la cola.", { n: m.redub }), "ok");
       break;
     case "comments":
       if (m.video !== state.videoId) break;
@@ -188,15 +191,15 @@ function onMessage(m) {
     case "trash_restored": trashRestored(m); break;
     case "yt_blocked":
       if (canConnectYouTube(m.account) && m.session !== "cuenta")
-        toast("YouTube solicitó verificar que no eres un bot. Las descargas se pausan 20 min.", "warn",
-          { label: "Conectar YouTube", onClick: () => connectYouTube() });
-      else toast(m.account?.expired ? "Tu sesión de YouTube expiró. Las descargas se pausan 20 min." : m.error, "warn",
-        m.account?.expired && canConnectYouTube(m.account) ? { label: "Volver a conectar", onClick: () => connectYouTube() } : null);
+        toast(t("YouTube solicitó verificar que no eres un bot. Las descargas se pausan 20 min."), "warn",
+          { label: t("Conectar YouTube"), onClick: () => connectYouTube() });
+      else toast(m.account?.expired ? t("Tu sesión de YouTube expiró. Las descargas se pausan 20 min.") : m.error, "warn",
+        m.account?.expired && canConnectYouTube(m.account) ? { label: t("Volver a conectar"), onClick: () => connectYouTube() } : null);
       break;
     case "yt_need_account":
       if (canConnectYouTube(m.account))
-        toast("Un video tiene restricción de edad. Conecta tu cuenta de YouTube.", "warn",
-          { label: "Conectar YouTube", onClick: () => connectYouTube() });
+        toast(t("Un video tiene restricción de edad. Conecta tu cuenta de YouTube."), "warn",
+          { label: t("Conectar YouTube"), onClick: () => connectYouTube() });
       break;
     case "library_changed":
       send({ type: "library" });
@@ -208,11 +211,11 @@ function onMessage(m) {
         afterImport(m.ids.filter((id) => id !== state.videoId), lib.pendingImport);
         lib.pendingImport = null;
       }
-      if (m.videos && !m.quiet) toast(`${m.videos === 1 ? "1 video agregado" : `${m.videos} videos agregados`} a la cola.`, "ok");
+      if (m.videos && !m.quiet) toast(m.videos === 1 ? t("1 video agregado a la cola.") : t("{n} videos agregados a la cola.", { n: m.videos }), "ok");
       // un video vive en una sola biblioteca: los que ya están en otra no se duplican
       const away = Object.entries(m.elsewhere || {});
-      if (away.length) toast(away.map(([n, k]) => `${k === 1 ? "1 ya estaba" : `${k} ya estaban`} en «${n}»`).join(" · ")
-        + ". Puedes moverlos desde esa biblioteca.", "warn");
+      if (away.length) toast(away.map(([n, k]) => k === 1 ? t("1 ya estaba en «{n}»", { n }) : t("{k} ya estaban en «{n}»", { k, n })).join(" · ")
+        + ". " + t("Puedes moverlos desde esa biblioteca."), "warn");
       break;
     }
     case "playlist_added":
@@ -286,7 +289,7 @@ function onMessage(m) {
     case "agent_context":
       if (m.video === state.agentCopy) {
         state.agentCopy = null;
-        copyText(m.text, "Contexto del video copiado para tu agente, con marcas de tiempo y texto en pantalla");
+        copyText(m.text, t("Contexto del video copiado para tu agente, con marcas de tiempo y texto en pantalla"));
       }
       break;
     case "summary":
@@ -349,6 +352,11 @@ function onMessage(m) {
     case "prefs":
       applyPrefs(m);
       break;
+    case "target":
+      // otro idioma de destino: el video abierto vuelve con la traducción y la voz de ese idioma (lo que falte se hace)
+      if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
+      send({ type: "library" });
+      break;
     case "cookies":
       renderCookies(m);
       break;
@@ -377,13 +385,14 @@ function onMessage(m) {
       break;
     case "stats":
       if (feeder.ack) feeder.ack();
-      state.metrics = `inferencia ${m.infer_ms} ms · búfer ${m.buffer_s.toFixed(1)} s`;
+      state.metrics = t("inferencia {ms} ms · búfer {s} s", { ms: m.infer_ms, s: m.buffer_s.toFixed(1) });
       break;
   }
   renderCaptions();
 }
 
-let baseStatus = ["off", "sin conexión"];
+let baseStatus = ["off", t("sin conexión")];
+i18nTrack(baseStatus);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 // El estado del encabezado solo se ve sin conexión o con algo puntual (buscando un video, leyendo una
 // playlist): el del trabajo de fondo y el reposo de los modelos van en la Cola (data-base)
 function setStatus(kind, text, base = true) {
@@ -512,11 +521,11 @@ async function openFiles(files) {
   if (mode !== "abrir") {  // a la cola (y viendo un video, sin interrumpirlo)
     files.forEach((f, i) => importLocal(f, ids[i]));
     if (mode === "siguiente") addedWhileWatching(ids);
-    else toast(ids.length === 1 ? "Importado y agregado a la cola" : `${ids.length} archivos importados a la cola`, "ok");
+    else toast(ids.length === 1 ? t("Importado y agregado a la cola") : t("{n} archivos importados a la cola", { n: ids.length }), "ok");
     return;
   }
   if (files.length > 1) {
-    setContext({ name: "Archivos abiertos", items: ids, auto: true });
+    setContext({ name: t("Archivos abiertos"), items: ids, auto: true });
     files.slice(1).forEach((f, i) => importLocal(f, ids[i + 1]));
   }
   loadVideo(URL.createObjectURL(files[0]), ids[0], files[0].name, null, { file: files[0], keepContext: files.length > 1 });
@@ -582,14 +591,16 @@ function afterImport(ids, mode) {
   if (!ids.length) return;
   if (mode === "abrir") {
     lib.openWhenReady = ids[0];  // se abre apenas termine de descargarse
-    toast("Se abrirá cuando termine la descarga", "ok");
+    toast(t("Se abrirá cuando termine la descarga"), "ok");
   } else if (mode === "siguiente") {
     addedWhileWatching(ids);
   } else {
     const only = prefs.import_mode === "descargar";
-    const without = transcribeMode() ? "sin transcribir" : "sin traducir";
-    toast(ids.length === 1 ? (only ? `Importado. Se descargará ${without}` : "Importado y agregado a la cola")
-      : `${ids.length} videos importados${only ? `: se descargan ${without}` : " a la cola"}.`, "ok");
+    const tr = transcribeMode();
+    const n = ids.length;
+    toast(n === 1 ? (only ? (tr ? t("Importado. Se descargará sin transcribir") : t("Importado. Se descargará sin traducir")) : t("Importado y agregado a la cola"))
+      : only ? (tr ? t("{n} videos importados: se descargan sin transcribir.", { n }) : t("{n} videos importados: se descargan sin traducir.", { n }))
+      : t("{n} videos importados a la cola.", { n }), "ok");
     // importado desde una colección o categoría: se queda ahí
     if (currentView() === "library" && !$("#multi-coll").value) { lib.sel = "home"; renderLibrary(); }
   }
@@ -601,12 +612,12 @@ function addedWhileWatching(ids) {
     const items = contextItems().filter((id) => !ids.includes(id));
     const base = items.includes(state.videoId) ? items : [state.videoId];
     const at = base.indexOf(state.videoId) + 1;
-    setContext({ name: lib.ctx?.name || "A continuación", items: [...base.slice(0, at), ...ids, ...base.slice(at)], auto: true });
+    setContext({ name: lib.ctx?.name || t("A continuación"), items: [...base.slice(0, at), ...ids, ...base.slice(at)], auto: true });
     lib.showUpNext = true;  // se abre la pestaña en cuanto el video nuevo llegue a la biblioteca
     renderUpNext();
-    toast(ids.length === 1 ? "Se reproducirá a continuación." : `${ids.length} videos a continuación.`, "ok");
+    toast(ids.length === 1 ? t("Se reproducirá a continuación.") : t("{n} videos a continuación.", { n: ids.length }), "ok");
   } else {
-    toast(ids.length === 1 ? "Agregado a la cola. Se procesará en segundo plano" : `${ids.length} videos a la cola.`, "ok");
+    toast(ids.length === 1 ? t("Agregado a la cola. Se procesará en segundo plano") : t("{n} videos a la cola.", { n: ids.length }), "ok");
   }
 }
 
@@ -615,11 +626,11 @@ function openVideoLink(url) {
   $("#file-name").textContent = "";
   $("#file-desc").hidden = true;
   $("#file-desc").textContent = "";
-  setStatus("busy", "buscando video", false);
+  setStatus("busy", t("buscando video"), false);
   send({ type: "youtube", url });
 }
 function addPlaylist(url) {
-  setStatus("busy", "leyendo la playlist", false);
+  setStatus("busy", t("leyendo la playlist"), false);
   send({ type: "playlist", url, ...takeImportOpts() });
 }
 // Traducir y doblar, o solo transcribir lo que se agregue: se elige en el panel o en la portada vacía y se
@@ -637,21 +648,21 @@ function importTaskSegs() {
       for (const b of document.querySelectorAll(".import-segs > .seg")) b.classList.toggle("on", b.dataset.task === value);
       if (typeof swapWelcomeTitle === "function") swapWelcomeTitle();
     } } }, icon(ic), text);
-  return el("div", { class: "segs import-segs" }, seg("", "spark", "Traducir y doblar"), seg("transcribe", "comment", "Solo transcribir"));
+  return el("div", { class: "segs import-segs" }, seg("", "spark", t("Traducir y doblar")), seg("transcribe", "comment", t("Solo transcribir")));
 }
 function syncImportTask() { const box = $("#import-task"); box.replaceChildren(...[importTaskSegs()].filter(Boolean)); box.hidden = transcribeMode(); }
 syncImportTask();
 
 // un enlace (o varios) desde el panel, la portada o pegado: true si se agregó
 function addFromText(text) {
-  if (!text) { toast("Pega un enlace de YouTube o Dropbox", "warn"); return false; }
+  if (!text) { toast(t("Pega un enlace de YouTube o Dropbox"), "warn"); return false; }
   if (ytLinks(text).length > 1) { openMulti(text); return true; }
   if (!ytLinks(text).length && !/^[\w-]{11}$/.test(text)) {
-    toast("El enlace no es de YouTube ni de Dropbox. Copia el enlace del video y pégalo aquí.", "warn");
+    toast(t("El enlace no es de YouTube ni de Dropbox. Copia el enlace del video y pégalo aquí."), "warn");
     return false;
   }
   if (/dropbox\.com\//i.test(text) && !classify(text)) {
-    toast("El enlace de Dropbox no corresponde a un video. Abre el video en Dropbox y copia su enlace.", "warn");
+    toast(t("El enlace de Dropbox no corresponde a un video. Abre el video en Dropbox y copia su enlace."), "warn");
     return false;
   }
   return openYouTube(text);
@@ -738,7 +749,7 @@ function linksFromCsv(text) {
 
 async function importCsvFile(file, append = false) {
   const links = linksFromCsv(await file.text());
-  if (!links.length) { toast(`«${file.name}» no tiene enlaces de YouTube ni de Dropbox.`, "warn"); return; }
+  if (!links.length) { toast(t("«{name}» no tiene enlaces de YouTube ni de Dropbox.", { name: file.name }), "warn"); return; }
   if (append && $("#multi-dlg").open) {
     const prev = $("#multi-text").value.trim();
     $("#multi-text").value = (prev ? prev + "\n" : "") + links.join("\n");
@@ -763,27 +774,27 @@ function updateMulti() {
   const np = items.length - nv;
   const known = items.filter((x) => x.kind === "video" && !x.link && lib.videos["yt_" + x.key]).length;
   const parts = [];
-  if (nv) parts.push(nv === 1 ? "1 video" : `${nv} videos`);
-  if (np) parts.push(np === 1 ? "1 playlist" : `${np} playlists`);
-  if (known) parts.push(known === 1 ? "1 ya está en la biblioteca" : `${known} ya están en la biblioteca`);
-  $("#multi-sum").textContent = cap(parts.join(" · ")) || "Sin enlaces de YouTube ni de Dropbox";
+  if (nv) parts.push(nv === 1 ? t("1 video") : t("{n} videos", { n: nv }));
+  if (np) parts.push(np === 1 ? t("1 playlist") : t("{n} playlists", { n: np }));
+  if (known) parts.push(known === 1 ? t("1 ya está en la biblioteca") : t("{n} ya están en la biblioteca", { n: known }));
+  $("#multi-sum").textContent = cap(parts.join(" · ")) || t("Sin enlaces de YouTube ni de Dropbox");
   $("#multi-go").disabled = !items.length;
 }
 // target: id de la colección o categoría donde se guarda lo importado (desde su cabecera)
 function openMulti(text = "", target = "") {
   $("#multi-text").value = text;
   const sel = $("#multi-coll");
-  sel.replaceChildren(new Option("Sin colección", ""));
+  sel.replaceChildren(new Option(t("Sin colección"), ""));
   const own = lib.collections.filter((x) => x.kind === "propia");
   if (own.length) {
-    const g = el("optgroup", { label: "Colecciones" });
+    const g = el("optgroup", { label: t("Colecciones") });
     for (const c of own) g.append(new Option(c.name, c.id));
     sel.append(g);
   }
   // las categorías de YouTube (web/js/patterns.js) y las que ya existan
   const cats = [...new Set([...Object.keys(CATEGORY_ICON), ...lib.collections.filter((x) => x.kind === "categoría").map((c) => c.name)])]
-    .sort((a, b) => a.localeCompare(b, "es"));
-  const g = el("optgroup", { label: "Categorías" });
+    .sort((a, b) => a.localeCompare(b, LOCALE));
+  const g = el("optgroup", { label: t("Categorías") });
   for (const n of cats) g.append(new Option(n, "cat-" + slugify(n)));
   sel.append(g);
   sel.value = target;
@@ -1043,7 +1054,7 @@ setInterval(() => {
     return;
   }
   if (!state.ahead) { box.hidden = true; return; }
-  const t = vEn.currentTime;
+  const pos = vEn.currentTime;
   const end = vEn.duration;
   const f = readyFrontier();
   const now = performance.now() / 1000;
@@ -1060,14 +1071,14 @@ setInterval(() => {
     const sxx = h.reduce((a, [x]) => a + (x - mx) ** 2, 0);
     rate = Math.max(0, sxy / (sxx || 1)) / speechDensity();  // segundos de video por segundo
   }
-  const left = end - t;
+  const left = end - pos;
   const MIN_LEAD = 12;
   // más lento que el video: el margen cubre lo que se perdería en los próximos minutos
   let need = 20;
   if (rate !== null) need = rate >= 1 ? MIN_LEAD : MIN_LEAD + Math.min(left, 300) * (1 - rate);
   readiness.need = readiness.need == null ? need : readiness.need * 0.8 + need * 0.2;
   need = Math.max(MIN_LEAD, Math.min(readiness.need, left));
-  const lead = f - t;
+  const lead = f - pos;
   // histéresis: una vez listo, solo vuelve a "preparando" si el margen cae bastante
   // sin velocidad medida (primeros 8 s) basta con 30 s listos por delante: alcanza para
   // medirla reproduciendo, y si luego falta margen se pausa sola
@@ -1088,9 +1099,10 @@ setInterval(() => {
   }
   box.dataset.state = ok ? "ok" : "wait";
   // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
-  box.querySelector("span").textContent = ok ? "Listo para reproducir"
-    : state.power === "cargando" ? "Cargando modelos"
-    : `${state.autoWait ? "Se reanuda al estar listo" : "Preparando"} ${Math.min(99, Math.round(lead / need * 100))} %`;
+  const readyPct = Math.min(99, Math.round(lead / need * 100));
+  box.querySelector("span").textContent = ok ? t("Listo para reproducir")
+    : state.power === "cargando" ? t("Cargando modelos")
+    : state.autoWait ? t("Se reanuda al estar listo {pct} %", { pct: readyPct }) : t("Preparando {pct} %", { pct: readyPct });
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;
   // visible en pausa (para saber cuándo dar play) y mientras se reproduce solo si
   // el doblaje se queda corto; la preferencia puede ocultarlo del todo
@@ -1164,14 +1176,19 @@ const dubSlots = { busy: 0, wait: [] };
 async function dubFetch(url) {
   while (dubSlots.busy >= 3) await new Promise((r) => dubSlots.wait.push(r));
   dubSlots.busy++;
-  try { return await (await fetch(url)).arrayBuffer(); }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw Object.assign(new Error(`voz ${res.status}`), { status: res.status });
+    return await res.arrayBuffer();
+  }
   finally { dubSlots.busy--; dubSlots.wait.shift()?.(); }
 }
 
 async function loadDub(seg) {
   if (!seg.dub) return;
   const url = seg.dub.url || (state.prefix || "") + "/audio/" + seg.dub.file;
-  if (dubBuf.get(seg.id)?.url === url) return;
+  const had = dubBuf.get(seg.id);
+  if (had?.url === url && !(had.retryAt && Date.now() >= had.retryAt)) return;
   dubBuf.set(seg.id, { url, buf: null });  // en curso
   try {
     const data = await dubFetch(url);
@@ -1179,7 +1196,10 @@ async function loadDub(seg) {
     const ctx = state.audio?.ctx || (decodeCtx ||= new OfflineAudioContext(1, 1, 48000));
     dubBuf.set(seg.id, { url, buf: await ctx.decodeAudioData(data) });
   } catch (e) {
-    dubBuf.delete(seg.id);  // se reintenta en el próximo tick
+    // si el archivo no existe (404) no se vuelve a pedir; si falló la red, se reintenta en unos segundos (antes se
+    // reintentaba en cada vuelta: miles de pedidos por un archivo que faltaba)
+    if (e.status === 404 || e.status === 410) dubBuf.set(seg.id, { url, buf: null, missing: true });
+    else dubBuf.set(seg.id, { url, buf: null, retryAt: Date.now() + 5000 });
   }
 }
 
@@ -1250,7 +1270,8 @@ setInterval(() => {
   // precarga de las voces de los próximos 15 s
   for (const s of state.segments) {
     if (s.start > t + 15) break;
-    if (s.dub && s.end > t - 1 && !dubBuf.has(s.id)) loadDub(s);
+    const b = dubBuf.get(s.id);
+    if (s.dub && s.end > t - 1 && (!b || (b.retryAt && Date.now() >= b.retryAt))) loadDub(s);
   }
   if (!state.dubMode || !state.audio || vEn.paused || state.sending || player.cur) return;
   for (const s of state.segments) {
@@ -1275,11 +1296,11 @@ function setMode(dub) {
 function applyLang(lang, translates) {
   state.lang = lang || "";
   state.translates = translates ?? translatesV({ lang });
-  const code = state.lang ? state.lang.toUpperCase() : "Original";
+  const code = state.lang ? state.lang.toUpperCase() : t("Original");
   const orig = $("#c-lang button[data-v='en']");
-  orig.textContent = state.lang ? code : "Orig";
-  orig.title = `Escuchar el original${state.lang ? ` (${langName(state.lang)})` : ""}`;
-  $("#pane-en .tag").textContent = state.lang ? `${code} · original` : "Original";
+  orig.textContent = state.lang ? code : t("Orig");
+  orig.title = state.lang ? t("Escuchar el original ({lang})", { lang: langName(state.lang) }) : t("Escuchar el original");
+  $("#pane-en .tag").textContent = state.lang ? t("{code} · original", { code }) : t("Original");
   document.body.classList.toggle("native", !state.translates);
   setMode(state.translates && prefs.audio !== "original");
   // dividida mostraría el mismo video dos veces: siempre ampliada (sin cambiar la preferencia)
@@ -1442,9 +1463,9 @@ function renderTranscript() {
     li.classList.toggle("has-notes", notes.length > 0);
     // con comentarios: el botón muestra cuántos (siempre visible) y sirve para agregar otro
     li.append(n
-      ? el("button", { type: "button", class: "cbtn has", title: `${n === 1 ? "1 comentario" : `${n} comentarios`} · agregar otro` },
+      ? el("button", { type: "button", class: "cbtn has", title: n === 1 ? t("1 comentario · agregar otro") : t("{n} comentarios · agregar otro", { n }) },
         icon("comment"), String(n))
-      : el("button", { type: "button", class: "cbtn", title: "Comentar esta frase", "aria-label": "Comentar esta frase" }, icon("plus")));
+      : el("button", { type: "button", class: "cbtn", title: t("Comentar esta frase"), "aria-label": t("Comentar esta frase") }, icon("plus")));
     if (notes.length || editingHere) li.append(renderNotes(s.id, notes));
     frag.appendChild(li);
   }
@@ -1452,8 +1473,8 @@ function renderTranscript() {
   while (k < els.length) frag.appendChild(elementItem(els[k++]));
   const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
   ol.replaceChildren(frag);
-  if (!state.segments.length) ol.append(emptyState("comment", "Aún no hay transcripción",
-    "La transcripción aparece aquí a medida que se reconoce el audio.", "li"));
+  if (!state.segments.length) ol.append(emptyState("comment", t("Aún no hay transcripción"),
+    t("La transcripción aparece aquí a medida que se reconoce el audio."), "li"));
   if (focused) {  // al redibujar (llega una frase nueva) el cuadro sigue donde estaba
     const ta = ol.querySelector(".ceditor .area");
     ta?.focus();
@@ -1475,12 +1496,12 @@ function renderNotes(segId, notes) {
     text.textContent = c.text;
     const meta = document.createElement("small");
     const when = new Date((c.updated || c.created) * 1000);
-    meta.textContent = `${when.toLocaleDateString("es", { day: "numeric", month: "short" })} ${when.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}${c.updated ? " · editado" : ""}`;
+    meta.textContent = `${when.toLocaleDateString(LOCALE, { day: "numeric", month: "short" })} ${when.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}${c.updated ? " · " + t("editado") : ""}`;
     const acts = document.createElement("span");
     acts.className = "nacts";
-    acts.append(noteBtn("Editar", "pencil", () => { state.editing = { seg: segId, id: c.id, draft: c.text }; renderTranscript(); focusEditor(); }),
-      noteBtn("Eliminar", "trash", async () => {
-        if (await confirmDlg("¿Eliminar este comentario?", "", "Eliminar")) {
+    acts.append(noteBtn(t("Editar"), "pencil", () => { state.editing = { seg: segId, id: c.id, draft: c.text }; renderTranscript(); focusEditor(); }),
+      noteBtn(t("Eliminar"), "trash", async () => {
+        if (await confirmDlg(t("¿Eliminar este comentario?"), "", t("Eliminar"))) {
           send({ type: "comment_delete", video: state.videoId, seg: segId, id: c.id });
         }
       }));
@@ -1500,7 +1521,7 @@ function noteEditor() {
   const ta = el("textarea", { class: "area text" });
   ta.rows = 3;
   ta.maxLength = 4000;
-  ta.placeholder = "Comentario";
+  ta.placeholder = t("Comentario");
   ta.value = ed.draft;
   // crece con el texto (sin tirador para cambiar el alto)
   const grow = () => { ta.style.height = "auto"; ta.style.height = `${ta.scrollHeight + 2}px`; };
@@ -1512,8 +1533,8 @@ function noteEditor() {
   });
   const acts = document.createElement("div");
   acts.className = "cacts";
-  const cancel = btn("Cancelar", { variant: "ghost", size: "xs", onClick: () => { state.editing = null; renderTranscript(); } });
-  const save = btn("Guardar", { variant: "dark", size: "xs", type: "submit", icon: "check" });
+  const cancel = btn(t("Cancelar"), { variant: "ghost", size: "xs", onClick: () => { state.editing = null; renderTranscript(); } });
+  const save = btn(t("Guardar"), { variant: "dark", size: "xs", type: "submit", icon: "check" });
   acts.append(cancel, save);
   form.append(ta, acts);
   form.addEventListener("submit", (e) => {
@@ -1548,7 +1569,7 @@ function confirmDlg(title, text, okLabel, typeToConfirm = "") {
   input.value = "";
   input.placeholder = typeToConfirm;
   $("#confirm-type").hidden = !typeToConfirm;
-  $("#confirm-type").textContent = typeToConfirm ? `Escribe «${typeToConfirm}» para confirmar` : "";
+  $("#confirm-type").textContent = typeToConfirm ? t("Escribe «{text}» para confirmar", { text: typeToConfirm }) : "";
   ok.disabled = !!typeToConfirm;
   input.oninput = () => { ok.disabled = input.value.trim() !== typeToConfirm; };
   dlg.returnValue = "";
@@ -1560,8 +1581,8 @@ function confirmDlg(title, text, okLabel, typeToConfirm = "") {
 // «Escuchar» una voz: el mismo botón la pausa; una sola suena a la vez
 let previewAudio = null;
 function previewBtn(url, title) {
-  const b = btn("Escuchar", { icon: "speaker", size: "xs", variant: "ghost", title });
-  const done = () => { setBtn(b, "Escuchar", "speaker"); b.classList.remove("on"); };
+  const b = btn(t("Escuchar"), { icon: "speaker", size: "xs", variant: "ghost", title });
+  const done = () => { setBtn(b, t("Escuchar"), "speaker"); b.classList.remove("on"); };
   b.addEventListener("click", () => {
     if (previewAudio?.btn === b && !previewAudio.paused) { previewAudio.pause(); return; }
     previewAudio?.pause();
@@ -1569,7 +1590,7 @@ function previewBtn(url, title) {
     a.btn = b;
     a.addEventListener("pause", done);
     a.addEventListener("ended", done);
-    a.play().then(() => { setBtn(b, "Pausar", "pause"); b.classList.add("on"); }).catch(done);
+    a.play().then(() => { setBtn(b, t("Pausar"), "pause"); b.classList.add("on"); }).catch(done);
     previewAudio = a;
   });
   return b;
@@ -1631,15 +1652,15 @@ function gapBusy(a, b) {
   const job = typeof lib !== "undefined" ? lib.queue?.jobs?.find((j) => j.id === state.videoId) : null;
   return state.sending || (state.ahead && feeder.inSpan) || job?.state === "procesando";
 }
-const gapText = (a, b) => (gapBusy(a, b) ? "Transcribiendo esta parte" : "Aún sin transcribir");
+const gapText = (a, b) => (gapBusy(a, b) ? t("Transcribiendo esta parte") : t("Aún sin transcribir"));
 
 function gapItem([a, b]) {
-  const li = el("li", { class: "gap" + (gapBusy(a, b) ? " busy" : ""), title: "Ir a esta parte" });
+  const li = el("li", { class: "gap" + (gapBusy(a, b) ? " busy" : ""), title: t("Ir a esta parte") });
   li.dataset.start = a;
   li.dataset.end = b;
   li.append(el("div", { class: "cell" }, el("time", { text: `${fmt(a)} – ${fmt(b)}` }),
     el("p", {}, el("strong", { text: gapText(a, b) }),
-      el("span", { text: "Se transcribe al reproducir esta parte." }))));
+      el("span", { text: t("Se transcribe al reproducir esta parte.") }))));
   return li;
 }
 
@@ -1649,7 +1670,11 @@ function renderActive(force) {
     const txt = gapText(+li.dataset.start, +li.dataset.end);
     const strong = li.querySelector("strong");
     if (strong.textContent !== txt) strong.textContent = txt;
-    li.classList.toggle("busy", txt !== "Aún sin transcribir");
+    li.classList.toggle("busy", gapBusy(+li.dataset.start, +li.dataset.end));
+  }
+  // lo escrito en el video (código, comandos, enlaces): se marca mientras está en pantalla
+  for (const li of $("#transcript").querySelectorAll("li.el-row")) {
+    li.classList.toggle("now", +li.dataset.start <= t + 0.15 && t < +li.dataset.end + 0.5);
   }
   let active = null;
   for (const s of state.segments) {
@@ -1744,11 +1769,11 @@ function renderPower() {
   const q = typeof lib !== "undefined" ? lib.queue : null;
   const run = q?.jobs.find((j) => j.state === "procesando");
   const dl = q?.jobs.find((j) => j.dl);
-  if (run) setStatus("ok", `procesando · ${Math.round(run.dub * 100)} %`);
-  else if (dl) setStatus("busy", dl.dl.speed ? `descargando · ${fmtBytes(dl.dl.speed)}/s` : "descargando");
-  else if (p === "cargando") setStatus("busy", "cargando modelos");
-  else if (p === "reposo") setStatus("sleep", "en reposo");
-  else setStatus("ok", "listo");
+  if (run) setStatus("ok", t("procesando · {pct} %", { pct: Math.round(run.dub * 100) }));
+  else if (dl) setStatus("busy", dl.dl.speed ? t("descargando · {speed}/s", { speed: fmtBytes(dl.dl.speed) }) : t("descargando"));
+  else if (p === "cargando") setStatus("busy", t("cargando modelos"));
+  else if (p === "reposo") setStatus("sleep", t("en reposo"));
+  else setStatus("ok", t("listo"));
   $("#status").title = [state.models, state.metrics].filter(Boolean).join(" · ");
   if (typeof renderQueuePanel === "function" && lib.queue) renderQueuePanel();  // «preparando los modelos» en la Cola
 }
@@ -1767,7 +1792,7 @@ function renderVideoDesc() {
 /* ------------------------------------------------------------ vista ampliada / dividida */
 function setLayout(wide, save = true) {
   document.body.classList.toggle("layout-wide", wide);
-  setBtn($("#layout"), wide ? "Ver dividido" : "Ver ampliado", wide ? "columns" : "expand");
+  setBtn($("#layout"), wide ? t("Ver dividido") : t("Ver ampliado"), wide ? "columns" : "expand");
   if (save) setPref("layout", wide ? "ampliada" : "dividida");
   renderActive(true);
 }
@@ -1800,8 +1825,12 @@ OPTIMISTIC.people_set = (m) => {
 };
 
 /* ------------------------------------------------------------ preferencias */
+// lo cambiado aquí que el servidor todavía no confirma: un aviso de «prefs» de otro cambio anterior trae el valor
+// viejo y no debe pisarlo (al guardar dos cosas seguidas, se veía un instante lo anterior)
+const prefsPending = {};
 function setPref(key, value) {
   prefs[key] = value;
+  prefsPending[key] = { value, until: Date.now() + 3000 };
   send({ type: "prefs_set", key, value });
   if (key === "app_mode") applyAppMode();
   if (key.startsWith("accent_") && typeof syncAccent === "function") syncAccent();
@@ -1821,7 +1850,24 @@ function applyPrefs(m) {
   // dónde guardar lo exportado solo se elige en este equipo (desde otro, lo descarga el navegador)
   if (!(state.access?.local && state.access?.owner)) prefsSections = prefsSections.filter(([k]) => k !== "exportar");
   prefsVaultKeys = m.vault_keys || [];
+  const before = JSON.stringify(prefs);
   prefs = { ...prefs, ...m.values };
+  for (const [k, p] of Object.entries(prefsPending)) {
+    if (m.values[k] === p.value || Date.now() > p.until) delete prefsPending[k];  // confirmado (o no llegó)
+    else prefs[k] = p.value;
+  }
+  TARGET = prefs.target_lang || m.lang || I18N.lang;  // i18n.js
+  // otro idioma de la app: sin recargar (i18n.js › switchLang); después se redibuja todo lo que tiene texto
+  if (m.lang && m.lang !== I18N.lang && !langSwitching) {
+    langSwitching = true;
+    switchLang(m.lang).catch((e) => console.warn("idioma:", e)).finally(() => {
+      langSwitching = false;
+      prefsSigSeen = "";  // Ajustes se redibuja entero, con su esquema en el idioma nuevo
+      applyPrefs(m);
+      rerenderForLang();
+    });
+    return;
+  }
   applyTheme();
   if (typeof syncSceneBg === "function") syncSceneBg();
   applyAppMode();
@@ -1831,8 +1877,23 @@ function applyPrefs(m) {
   if (typeof applyCodeTheme === "function") applyCodeTheme();
   if (typeof renderAgent === "function") renderAgent();
   if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
-  renderPrefs();
+  // la confirmación de un cambio hecho aquí no trae nada nuevo: Ajustes no se redibuja (con «Al azar» llegaban
+  // varias seguidas y la página parpadeaba)
+  const same = JSON.stringify(prefs) === before && prefsSigSeen === JSON.stringify([m.schema?.length, m.sections, m.lang]);
+  prefsSigSeen = JSON.stringify([m.schema?.length, m.sections, m.lang]);
+  if (!same) renderPrefs();
   if (typeof renderLibrary === "function") renderLibrary();
+}
+let prefsSigSeen = "";
+let langSwitching = false;
+// después de cambiar de idioma: cada vista vuelve a dibujarse con t() en el idioma nuevo (lo fijo ya lo cambió
+// switchLang); lo que está abierto queda abierto
+function rerenderForLang() {
+  const call = (name, ...a) => { try { if (typeof window[name] === "function") window[name](...a); } catch (e) { console.warn(name, e); } };
+  for (const f of ["renderVaultBtn", "renderSideVault", "renderLibrary", "renderTranscript", "renderSummary", "renderAgent",
+    "renderQueuePanel", "renderPower", "applySubs", "renderPeople", "renderUpNext", "agentTabLabel"]) call(f);
+  if (typeof renderActive === "function") renderActive(true);
+  document.title = state.videoName ? `${state.videoName} · Translay` : "Translay";
 }
 
 const YT_IMPORT = $("#yt-import");
@@ -1842,42 +1903,43 @@ const YT_ACCOUNT = $("#yt-account");
 // (bibliotecas, glosario, sesión de YouTube, acceso) van como un grupo más.
 const PREF_BLOCKS = {
   escritorio: () => desktopPrefsBlocks(),
-  bibliotecas: () => [[VAULTS_BLOCK, "Tus bibliotecas", "Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco."]],
-  glosario: () => [[GLOSSARY_BLOCK, "Términos", "Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas). Al guardar, se vuelven a traducir las frases que lo usan."]],
-  biblioteca: () => [[YT_ACCOUNT, "Cuenta de YouTube", "Inicia sesión una vez en una ventana del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva automáticamente. Se recomienda una cuenta secundaria."],
-    [YT_IMPORT, "Importar sesión", "Importa la sesión de un navegador de este equipo o sube un archivo cookies.txt. Solo se guardan las cookies de YouTube."]],
+  bibliotecas: () => [[VAULTS_BLOCK, t("Tus bibliotecas"), t("Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco.")]],
+  glosario: () => [[GLOSSARY_BLOCK, t("Términos"), t("Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas). Al guardar, se vuelven a traducir las frases que lo usan.")]],
+  biblioteca: () => [[YT_ACCOUNT, t("Cuenta de YouTube"), t("Inicia sesión una vez en una ventana del navegador. Translay guarda solo las cookies de YouTube, cifradas, y las renueva automáticamente. Se recomienda una cuenta secundaria.")],
+    [YT_IMPORT, t("Importar sesión"), t("Importa la sesión de un navegador de este equipo o sube un archivo cookies.txt. Solo se guardan las cookies de YouTube.")]],
   rendimiento: () => {
     perfStart();
     renderPerf();
-    return [[PERF_HW, "Tu equipo", ""], [PERF_PROFILE, "Perfil", "Modelos que usa Translay. Los tiempos y el estado se basan en mediciones reales en equipos similares al tuyo."],
-      [PERF_LIMITS, "Límites", "Recursos del equipo que puede usar Translay. Los límites de RAM y CPU se aplican de inmediato."],
-      [PERF_ALERTS, "Avisos", ""]];
+    return [[PERF_HW, t("Tu equipo"), ""], [PERF_PROFILE, t("Perfil"), t("Modelos que usa Translay. Los tiempos y el estado se basan en mediciones reales en equipos similares al tuyo.")],
+      [PERF_LIMITS, t("Límites"), t("Recursos del equipo que puede usar Translay. Los límites de RAM y CPU se aplican de inmediato.")],
+      [PERF_ALERTS, t("Avisos"), ""]];
   },
   almacenamiento: () => {
     storageScan();
     renderStorage();
-    return [[STORAGE_SUMMARY, "Espacio usado", ""],
-      [STORAGE_LIBS, "Bibliotecas", "Los videos liberados siguen en la biblioteca y se descargan de nuevo al abrirlos."],
-      [STORAGE_LARGEST, "Mayor uso de espacio", ""],
-      [STORAGE_MODELS, "Modelos", "Los del perfil que usas no se pueden borrar. Los demás se vuelven a descargar si los necesitas."],
+    return [[STORAGE_SUMMARY, t("Espacio usado"), ""],
+      [STORAGE_LIBS, t("Bibliotecas"), t("Los videos liberados siguen en la biblioteca y se descargan de nuevo al abrirlos.")],
+      [STORAGE_LARGEST, t("Mayor uso de espacio"), ""],
+      [STORAGE_MODELS, t("Modelos"), t("Los del perfil que usas no se pueden borrar. Los demás se vuelven a descargar si los necesitas.")],
       [STORAGE_APP, "Translay", ""]];
   },
-  papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, "En la papelera", "Los elementos se eliminan automáticamente a los 30 días."]]; },
+  papelera: () => { if (can("owner")) send({ type: "trash_list" }); return [[TRASH_BLOCK, t("En la papelera"), t("Los elementos se eliminan automáticamente a los 30 días.")]]; },
   acceso: () => [
-    [ACC.owner, "Contraseña de propietario", "Permite acceder como propietario desde otros equipos. En este equipo no se solicita."],
-    [ACC.net, "Acceso desde otros equipos", "Permite acceder a Translay desde otros equipos y celulares de tu red local."],
-    [ACC.libs, "Acceso a cada biblioteca", "Privada, con contraseña o pública, y si los invitados solo pueden ver o también importar."],
-    [ACC.keys, "Claves de API", "Para que otras apps y scripts usen Translay. Cada clave sirve para todas las bibliotecas o una, de lectura o escritura."],
-    [ACC.hooks, "Webhooks", "Notificaciones a otras apps cuando ocurre un evento: un video listo, cambios en la cola, descargas, exportaciones…"],
+    [ACC.owner, t("Contraseña de propietario"), t("Permite acceder como propietario desde otros equipos. En este equipo no se solicita.")],
+    [ACC.net, t("Acceso desde otros equipos"), t("Permite acceder a Translay desde otros equipos y celulares de tu red local.")],
+    [ACC.libs, t("Acceso a cada biblioteca"), t("Privada, con contraseña o pública, y si los invitados solo pueden ver o también importar.")],
+    [ACC.keys, t("Claves de API"), t("Para que otras apps y scripts usen Translay. Cada clave sirve para todas las bibliotecas o una, de lectura o escritura.")],
+    [ACC.hooks, "Webhooks", t("Notificaciones a otras apps cuando ocurre un evento: un video listo, cambios en la cola, descargas, exportaciones…")],
   ],
 };
+i18nTrack(PREF_BLOCKS);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
 function prefControl(p) {
   if (p.key === "theme_mode") return appearanceRow(p);
-  let opts = p.type === "bool" ? [[true, "Sí"], [false, "No"]] : p.options;
+  let opts = p.type === "bool" ? [[true, t("Sí")], [false, t("No")]] : p.options;
   if (p.key === "summary_model" && state.summaryRec) {  // «Automático» dice cuál usa en este equipo
     const rec = p.options.find(([k]) => k === state.summaryRec);
-    opts = opts.map(([k, t]) => [k, k === "auto" && rec ? `Automático (${rec[1]})` : t]);
+    opts = opts.map(([k, lbl]) => [k, k === "auto" && rec ? t("Automático ({name})", { name: rec[1] }) : lbl]);
   }
   if (p.key === "export_ask") return exportAskRow(p);
   if (p.key === "accent_color") return accentRow(p);
@@ -1990,7 +2052,7 @@ function textRow(p) {
   const multi = !!p.multiline;
   const f = el(multi ? "textarea" : "input", { class: multi ? "area pref-text" : "field pref-text", maxlength: p.max || 200,
     "aria-label": p.label, rows: multi ? 3 : null, placeholder: p.key === "agent_tone"
-      ? "Ejemplo: explícame como a alguien que recién empieza, con ejemplos y en viñetas" : p.label });
+      ? t("Ejemplo: explícame como a alguien que recién empieza, con ejemplos y en viñetas") : p.label });
   f.value = prefs[p.key] ?? "";
   let timer;
   const save = () => { clearTimeout(timer); const v = f.value.trim(); if (v !== (prefs[p.key] ?? "")) setPref(p.key, v); };
@@ -2010,14 +2072,14 @@ function homeBgRow(p) {
       if (value === "imagen" && !prefs.home_bg_rev) { pickHomeBg(); return; }  // sin imagen aún: primero elegirla
       setPref(p.key, value); renderPrefs();
     } } }, icon(ICON[value] || "film"), text)),
-    cur === "imagen" ? btn("Cambiar imagen", { icon: "upload", size: "sm", variant: "ghost", onClick: pickHomeBg }) : null);
+    cur === "imagen" ? btn(t("Cambiar imagen"), { icon: "upload", size: "sm", variant: "ghost", onClick: pickHomeBg }) : null);
   const lead = typeof heroVideo === "function" ? heroVideo() : null;
   // el inicio se arma a tamaño de escritorio (HOME_PREVIEW_W) y se reduce entero: una miniatura fiel, sin apretar nada
   const first = typeof homeRows === "function" ? homeRows(lead?.v.id)[0] : null;  // y la primera fila, como en el inicio
   const stage = el("div", { class: "hp-stage" }, homeLight(lead?.v, cur, true),
-    lead ? hero(lead) : el("p", { class: "home-preview-empty", text: "Aquí aparecerá lo que sigues viendo" }),
+    lead ? hero(lead) : el("p", { class: "home-preview-empty", text: t("Aquí aparecerá lo que sigues viendo") }),
     first ? row(first) : null);
-  const preview = el("div", { class: "home-preview", "aria-label": "Vista previa del inicio" }, stage);
+  const preview = el("div", { class: "home-preview", "aria-label": t("Vista previa del inicio") }, stage);
   const fit = () => {
     const k = preview.clientWidth / HOME_PREVIEW_W;
     stage.style.transform = `scale(${k})`;
@@ -2046,7 +2108,7 @@ function pickHomeBg() {
       setPref("home_bg", "imagen");
       renderPrefs();
     } catch {
-      toast("No se pudo usar esa imagen. Prueba con otra.");
+      toast(t("No se pudo usar esa imagen. Prueba con otra."));
     }
   });
   f.click();
@@ -2055,8 +2117,8 @@ function pickHomeBg() {
 // color propio (el del agente): muestras como las del color de énfasis
 function swatchRow(p) {
   const cur = prefs[p.key] || "";
-  return el("div", { class: "vcolors" }, ...p.options.map(([value, name]) =>
-    el("button", { type: "button", class: "vcolor" + (value ? "" : " theme") + (cur === value ? " on" : ""), title: name,
+  return el("div", { class: "vcolors", "data-pref": p.key }, ...p.options.map(([value, name]) =>
+    el("button", { type: "button", class: "vcolor" + (value ? "" : " theme") + (cur === value ? " on" : ""), title: name, "data-v": value,
       "aria-label": name, "aria-pressed": String(cur === value), style: value ? `--vc: ${value}` : null,
       on: { click: () => { setPref(p.key, value); renderPrefs(); if (typeof renderAgent === "function") renderAgent(); } } },
     value ? null : icon("theme"))));
@@ -2065,29 +2127,29 @@ function swatchRow(p) {
 // modelo del agente: agrupados por si son compatibles con este equipo, con su calidad en el laboratorio y su tamaño
 // (vt/agentsvc.py › catalog); «Automático» dice cuál usaría
 // calidad en el laboratorio: palabra y su color (de verde a ámbar; «Poco confiable», el que inventa respuestas, en un rojo apagado)
-const QUALITY_LEVEL = (q) => (q == null ? null : q >= 0.97 ? ["Excelente", "exc"] : q >= 0.9 ? ["Muy buena", "good"]
-  : q >= 0.8 ? ["Buena", "ok"] : ["Básica", "low"]);
+const QUALITY_LEVEL = (q) => (q == null ? null : q >= 0.97 ? [t("Excelente"), "exc"] : q >= 0.9 ? [t("Muy buena"), "good"]
+  : q >= 0.8 ? [t("Buena"), "ok"] : [t("Básica"), "low"]);
 function agentModelRow(p) {
   const cat = state.agentModels;
   if (!cat) send({ type: "agent_models" });  // llega en un momento y la página se redibuja
   const info = new Map((cat?.models || []).map((m) => [m.key, m]));
   const name = (k) => info.get(k)?.name || (p.options.find(([v]) => v === k) || [k, k])[1];
-  const gb = (m) => `${m.gb.toLocaleString("es", { maximumFractionDigits: 1 })} GB`;
+  const gb = (m) => `${m.gb.toLocaleString(LOCALE, { maximumFractionDigits: 1 })} GB`;
   const opt = (k, text, hint) => { const o = new Option(text, k, false, (prefs[p.key] || "auto") === k); if (hint) o._hint = hint; return o; };
   const sel = el("select", { class: "select", "aria-label": p.label, on: { change: (e) => { setPref(p.key, e.target.value); renderPrefs(); } } });
-  sel.append(opt("auto", cat?.recommended ? `Automático (${name(cat.recommended)})` : "Automático"));
+  sel.append(opt("auto", cat?.recommended ? t("Automático ({name})", { name: name(cat.recommended) }) : t("Automático")));
   if (cat) {
     const ms = [...info.values()].sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0));
     const hint = (m) => () => {
-      const [word, tone] = m.honest ? QUALITY_LEVEL(m.quality) || ["", ""] : ["Poco confiable", "bad"];
+      const [word, tone] = m.honest ? QUALITY_LEVEL(m.quality) || ["", ""] : [t("Poco confiable"), "bad"];
       return el("kbd", { class: "model-hint" }, word ? el("b", { class: "q-" + tone, text: word }) : null,
-        word ? " · " : "", m.downloaded ? "descargado" : gb(m));
+        word ? " · " : "", m.downloaded ? t("descargado") : gb(m));
     };
     const groups = [
-      ["Recomendado", ms.filter((m) => m.key === cat.recommended)],
-      ["Compatibles", ms.filter((m) => m.key !== cat.recommended && m.fits && !m.slow)],
-      ["Lentos en este equipo", ms.filter((m) => m.key !== cat.recommended && m.fits && m.slow)],
-      ["Necesitan más memoria", ms.filter((m) => m.key !== cat.recommended && !m.fits)],
+      [t("Recomendado"), ms.filter((m) => m.key === cat.recommended)],
+      [t("Compatibles"), ms.filter((m) => m.key !== cat.recommended && m.fits && !m.slow)],
+      [t("Lentos en este equipo"), ms.filter((m) => m.key !== cat.recommended && m.fits && m.slow)],
+      [t("Necesitan más memoria"), ms.filter((m) => m.key !== cat.recommended && !m.fits)],
     ];
     for (const [label, list] of groups) {
       if (!list.length) continue;
@@ -2106,21 +2168,116 @@ function agentModelFile(cat) {
   const key = prefs.agent_model && prefs.agent_model !== "auto" ? prefs.agent_model : cat?.recommended;
   const m = cat?.models.find((x) => x.key === key);
   if (!m) return null;
-  const size = `${m.gb.toLocaleString("es", { maximumFractionDigits: 1 })} GB`;
-  if (m.downloaded) return el("p", { class: "pref-model-file" }, icon("check"), `Descargado · ${size}`);
-  if (!canImport()) return el("p", { class: "pref-model-file", text: `Se descarga con la primera pregunta · ${size}` });
+  const size = `${m.gb.toLocaleString(LOCALE, { maximumFractionDigits: 1 })} GB`;
+  if (m.downloaded) return el("p", { class: "pref-model-file" }, icon("check"), t("Descargado · {size}", { size }));
+  if (!canImport()) return el("p", { class: "pref-model-file", text: t("Se descarga con la primera pregunta · {size}", { size }) });
   const busy = m.downloading != null;
-  return btn(busy ? `Descargando ${m.downloading} %` : `Descargar · ${size}`, { icon: "download", size: "sm", variant: "ghost",
+  return btn(busy ? t("Descargando {pct} %", { pct: m.downloading }) : t("Descargar · {size}", { size }), { icon: "download", size: "sm", variant: "ghost",
     disabled: busy, onClick: () => { m.downloading = 0; send({ type: "agent_model_download", key: m.key }); renderPrefs(); } });
 }
 
 // avatar del agente: íconos de línea, el elegido con su color
+// el creador del agente (web/js/star.js): la estrella grande con sus estados y, al lado, cada parte con su muestra
+// la estrella grande del creador es siempre el mismo elemento: Ajustes se redibuja al guardar (y otra vez cuando el
+// servidor confirma), y así la transición de una estrella a otra sigue sin cortarse
+const STAR_STATES = ["", "think", "talk"];
+const starStage = { el: null, key: null, state: "", timer: null };
+// cambia la estrella grande: la actual sale por un lado (al azar: derecha, izquierda, arriba o abajo) y la nueva
+// entra por el opuesto con un rebote, como cuando el agente se asoma en el chat. La nueva entra recién cuando la otra
+// salió: nunca se cruzan. Si se cambia algo seguido, las que están saliendo terminan de irse y solo entra la última.
+const STAR_EXITS = [[1, 0], [-1, 0], [0, -1], [0, 1]];
+function starSwap(stage, svg) {
+  const [dx, dy] = STAR_EXITS[Math.floor(Math.random() * STAR_EXITS.length)];
+  const away = (k) => `translate(${dx * k}%, ${dy * k}%) rotate(${dx * k / 10}deg)`;
+  const leave = [...stage.querySelectorAll(".agent-star:not(.leaving)")];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for (const o of leave) {
+    o.classList.add("leaving");
+    if (reduce) { o.remove(); continue; }
+    o.animate([{ transform: "none", opacity: 1 }, { transform: away(140), opacity: 1 }],
+      { duration: 240, easing: "cubic-bezier(.5, 0, .9, .4)", fill: "forwards" });
+    setTimeout(() => o.remove(), 260);  // (no onfinish: Ajustes puede mover el escenario y cancelar la animación)
+  }
+  stage.append(svg);
+  if (reduce || !leave.length) return;
+  svg.animate([{ transform: away(-140) }, { transform: away(-140), offset: .3 }, { transform: "translate(0, 0)" }],
+    { duration: 680, easing: "cubic-bezier(.3, 1.35, .55, 1)", fill: "backwards" });
+}
+// la muestra de una opción: la estrella entera para la forma y el accesorio; para ojos, boca y mejillas, de cerca
+// (a ese tamaño no se distinguían)
+// todas a la misma escala (la estrella entera, un poco de cerca); en ojos, boca y mejillas, sin el accesorio, que
+// puede tapar la cara (unos lentes)
+const STAR_FACE = new Set(["eyes", "mouth", "cheeks"]);
+function starThumb(look, part) {
+  const svg = starSvg(STAR_FACE.has(part) ? { ...look, acc: "ninguno" } : look);
+  svg.setAttribute("viewBox", "4 1 72 70");
+  return svg;
+}
 function avatarRow(p) {
-  const cur = prefs[p.key] || "agent";
-  return el("div", { class: "avatars" }, ...p.options.map(([value, name]) =>
-    el("button", { type: "button", class: "avatar-opt" + (cur === value ? " on" : ""), title: name, "aria-label": name,
-      "aria-pressed": String(cur === value), on: { click: () => { setPref(p.key, value); renderPrefs(); if (typeof renderAgent === "function") renderAgent(); } } },
-    icon(value))));
+  const look = agentLook();
+  const key = () => JSON.stringify(agentLook()) + (prefs.agent_color || themeStarColor());
+  const current = () => starSvg(agentLook(), null, starStage.state);
+  if (!starStage.el) {
+    starStage.el = el("div", { class: "star-big" }, current());
+    starStage.el.addEventListener("click", agentBoop);  // tocarla: se pone contenta (web/js/agentview.js)
+    starStage.key = key();
+    // la vista previa pasa sola por sus gestos: en reposo, pensando y respondiendo (sin selector: elegido 2026-11-14)
+    starStage.timer = setInterval(() => {
+      if (!starStage.el.isConnected) return;
+      starStage.state = STAR_STATES[(STAR_STATES.indexOf(starStage.state) + 1) % STAR_STATES.length];
+      starStage.el.querySelector(".agent-star:not(.leaving)")?.setAttribute("class", ("agent-star " + starStage.state).trim());
+    }, 2600);
+  }
+  const stage = starStage.el;
+  const sync = () => {  // si cambió algo (aquí, otro color, el servidor), la nueva entra sobre la anterior
+    if (starStage.key !== key()) { starStage.key = key(); starSwap(stage, current()); }
+  };
+  sync();
+  const opts = {};  // parte → sus botones (para marcar la elegida y redibujar sus muestras)
+  const refresh = () => {
+    const now = agentLook();
+    for (const [k, buttons] of Object.entries(opts)) {
+      for (const b of buttons) {
+        const on = now[k] === b.dataset.v;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", String(on));
+        b.replaceChildren(starThumb({ ...now, [k]: b.dataset.v }, k));
+      }
+    }
+    sync();
+  };
+  const save = (patch) => {
+    setPref(p.key, JSON.stringify({ ...agentLook(), ...patch }));
+    if (typeof renderAgent === "function") renderAgent();
+    if (typeof refreshAgentPreviews === "function") refreshAgentPreviews();
+  };
+  const part = (k, label) => {
+    opts[k] = STAR_PARTS[k].map(([value, name]) => {
+      const b = el("button", { type: "button", class: "star-opt" + (look[k] === value ? " on" : ""), title: name, "aria-label": name,
+        "aria-pressed": String(look[k] === value), "data-v": value }, starThumb({ ...look, [k]: value }, k));
+      b.addEventListener("click", () => { if (agentLook()[k] !== value) { save({ [k]: value }); refresh(); } });
+      return b;
+    });
+    // de a 4, grandes, con flechas para ver las anteriores y las siguientes (web/js/ui.js › carousel)
+    return el("div", { class: "star-part" }, el("span", { text: label }),
+      carousel(opts[k], { per: 4, start: opts[k].find((b) => b.classList.contains("on")), label }));
+  };
+  // al azar: todas las partes y el color, sin redibujar la página (el color, en su fila, se marca aparte)
+  const random = btn(t("Al azar"), { icon: "dice", size: "sm", variant: "ghost", onClick: () => {
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const now = agentLook();
+    const patch = Object.fromEntries(Object.keys(STAR_PARTS).map((k) => [k, pick(STAR_PARTS[k].filter(([v]) => v !== now[k]))[0]]));
+    const colors = (prefsSchema.find((x) => x.key === "agent_color")?.options || []).map((o) => o[0]).filter((c) => c && c !== prefs.agent_color);
+    if (colors.length) {
+      setPref("agent_color", pick(colors));
+      document.querySelectorAll('[data-pref="agent_color"] [data-v]').forEach((x) => x.classList.toggle("on", x.dataset.v === prefs.agent_color));
+    }
+    save(patch);
+    refresh();
+  } });
+  return el("div", { class: "star-maker" }, el("div", { class: "star-stage" }, stage, random),
+    el("div", { class: "star-parts" }, part("shape", t("Forma")), part("eyes", t("Ojos")), part("mouth", t("Boca")),
+      part("cheeks", t("Mejillas")), part("acc", t("Accesorio"))));
 }
 
 // colores del código (web/js/codetheme.js): los temas a la izquierda y, al lado, cómo se ve un ejemplo
@@ -2143,10 +2300,10 @@ function exportAskRow(p) {
   const dir = prefs.export_dir || "";
   const fixed = prefs.export_ask === "carpeta" && dir;
   return el("div", { class: "segs" },
-    el("button", { type: "button", class: "seg" + (fixed ? "" : " on"), on: { click: () => { setPref("export_ask", "preguntar"); renderPrefs(); } } }, "Preguntar"),
+    el("button", { type: "button", class: "seg" + (fixed ? "" : " on"), on: { click: () => { setPref("export_ask", "preguntar"); renderPrefs(); } } }, t("Preguntar")),
     el("button", { type: "button", class: "seg" + (fixed ? " on" : ""), title: dir,
       on: { click: () => { if (!dir || fixed) send({ type: "export_pick_folder" }); else { setPref("export_ask", "carpeta"); renderPrefs(); } } } },
-    icon("folder"), dir ? shortPath(dir) : "Elegir carpeta"));
+    icon("folder"), dir ? shortPath(dir) : t("Elegir carpeta")));
 }
 
 function renderPrefs() {
@@ -2189,11 +2346,11 @@ function renderPrefs() {
   const [sec, title, desc] = sections.find(([k]) => k === lib.prefSec);
   // volver al inicio de Ajustes (también con el botón Ajustes del encabezado)
   const back = el("button", { type: "button", class: "pref-back", on: { click: () => { lib.prefSec = "inicio"; renderPrefs(); body.scrollTop = 0; } } },
-    icon("chevron"), "Ajustes");
+    icon("chevron"), t("Ajustes"));
   const page = el("div", { class: "pref-page" },
     el("header", { class: "pref-head" }, back, el("h2", { text: title }), desc ? el("p", { text: desc }) : null,
       vaultName && prefsSchema.some((p) => p.section === sec && vaultKeys.has(p.key)) || sec === "glosario" && vaultName
-        ? el("span", { class: "pref-scope" }, vaultBadge(currentVault(), "xs"), `Se guarda en «${vaultName}»`) : null));
+        ? el("span", { class: "pref-scope" }, vaultBadge(currentVault(), "xs"), t("Se guarda en «{name}»", { name: vaultName })) : null));
   // opciones, por grupo
   const groups = new Map();
   for (const base of prefsSchema.filter((x) => x.section === sec && (!x.only || x.only === mode))) {
@@ -2241,7 +2398,7 @@ function prefsBlocks(sections) {
   const out = prefsGroups.map(([g, keys]) => [g, keys.filter((k) => byKey.has(k)).map((k) => { used.add(k); return byKey.get(k); })])
     .filter(([, list]) => list.length);
   const rest = sections.filter((s) => !used.has(s[0]));
-  if (rest.length) out.push(["Más", rest]);
+  if (rest.length) out.push([t("Más"), rest]);
   return out;
 }
 
@@ -2259,13 +2416,13 @@ function renderPrefsHome(sections) {
       el("div", { class: "set-cards" }, ...list.map(([k, title, desc, ic]) => el("button", { type: "button", class: "set-card",
         on: { click: () => { lib.prefSec = k; renderPrefs(); $("#prefs-body").scrollTop = 0; } } },
         el("span", { class: "set-card-ic" }, icon(ic || "sliders")), el("strong", { text: title }), desc ? el("p", { text: desc }) : null)))))
-      : [emptyState("search", "Sin resultados", "Prueba con otra palabra, como «subtítulos» o «modelo».")]));
+      : [emptyState("search", t("Sin resultados"), t("Prueba con otra palabra, como «subtítulos» o «modelo»."))]));
   };
-  const input = el("input", { type: "search", placeholder: "Buscar en ajustes", "aria-label": "Buscar en ajustes",
+  const input = el("input", { type: "search", placeholder: t("Buscar en ajustes"), "aria-label": t("Buscar en ajustes"),
     on: { input: (e) => draw(e.target.value) } });
   draw("");
   return el("div", { class: "pref-page set-home" },
-    el("header", { class: "pref-head set-home-head" }, el("h2", { text: "Ajustes" }),
+    el("header", { class: "pref-head set-home-head" }, el("h2", { text: t("Ajustes") }),
       el("label", { class: "field set-search" }, icon("search"), input)),
     grid);
 }
@@ -2326,11 +2483,14 @@ $("#side-tabs").addEventListener("click", (e) => {
 });
 
 /* ------------------------------------------------------------ descargas */
-const DOWNLOAD_STEPS = [["buscando", "Buscando"], ["video", "Video"], ["audio", "Audio"],
-  ["uniendo", "Uniendo"], ["preparando", "Preparando"]];
+const DOWNLOAD_STEPS = [["buscando", t("Buscando")], ["video", t("Video")], ["audio", t("Audio")],
+  ["uniendo", t("Uniendo")], ["preparando", t("Preparando")]];
+i18nTrack(DOWNLOAD_STEPS);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 function downloadText(m) {
-  const name = (DOWNLOAD_STEPS.find(([k]) => k === m.stage) || [, m.stage])[1].toLowerCase();
-  return m.stage === "video" || m.stage === "audio" ? `descargando ${name} ${m.pct} %` : `${name}…`;
+  if (m.stage === "video") return t("descargando video {pct} %", { pct: m.pct });
+  if (m.stage === "audio") return t("descargando audio {pct} %", { pct: m.pct });
+  const name = { buscando: t("buscando"), uniendo: t("uniendo"), preparando: t("preparando") }[m.stage] || m.stage;
+  return `${name}…`;
 }
 
 /* ------------------------------------------------------------ avisos */
@@ -2379,53 +2539,56 @@ function renderAccount(a) {
   acts.replaceChildren();
   YT_ACCOUNT.hidden = !a.available;
   if (!a.available) return;
-  const busy = { conectando: "Esperando inicio de sesión…", renovando: "Renovando…", desconectando: "Desconectando…" }[a.busy];
+  const busy = { conectando: t("Esperando inicio de sesión…"), renovando: t("Renovando…"), desconectando: t("Desconectando…") }[a.busy];
   if (a.connected && !a.expired) {
-    acts.append(btn(busy || "Desconectar", { icon: "x", disabled: !!busy || !state.access.local,
+    acts.append(btn(busy || t("Desconectar"), { icon: "x", disabled: !!busy || !state.access.local,
       onClick: () => send({ type: "yt_disconnect" }) }));
-    status.textContent = `Conectada con ${a.browser_name} · renovada ${ago(a.renewed)}`;
+    status.textContent = t("Conectada con {browser} · renovada {ago}", { browser: a.browser_name, ago: ago(a.renewed) });
     return;
   }
   if (!browsers.length) {
-    status.textContent = "No se encontró un navegador compatible (Brave, Chrome, Edge, Vivaldi o Chromium). Usa «Subir cookies.txt».";
+    status.textContent = t("No se encontró un navegador compatible (Brave, Chrome, Edge, Vivaldi o Chromium). Usa «Subir cookies.txt».");
     return;
   }
-  const label = busy || (a.expired ? `Volver a conectar con ${name}` : `Conectar con ${name}`);
+  const label = busy || (a.expired ? t("Volver a conectar con {name}", { name }) : t("Conectar con {name}", { name }));
   const main = btn(label, { icon: "user", variant: "dark", disabled: !!busy || !state.access.local, onClick: () => connectYouTube() });
   acts.append(main);
-  if (browsers.length > 1 && !busy) acts.append(btn("Otro navegador", { icon: "chevron", disabled: !state.access.local,
+  if (browsers.length > 1 && !busy) acts.append(btn(t("Otro navegador"), { icon: "chevron", disabled: !state.access.local,
     onClick: (e) => {
       e.stopPropagation();
       openMenu(browsers.map((b) => ({ label: b.name, check: b.key === ytAcc.browser,
         onClick: () => { ytAcc.browser = b.key; renderAccount(ytAcc.status); } })), e.currentTarget.getBoundingClientRect());
     } }));
-  status.textContent = !state.access.local ? "Solo se puede conectar desde el equipo donde se ejecuta Translay."
-    : a.busy === "conectando" ? `Inicia sesión en YouTube en la ventana de ${name} y ciérrala.`
-    : a.expired ? "La sesión de YouTube expiró" : "Sin cuenta conectada";
+  status.textContent = !state.access.local ? t("Solo se puede conectar desde el equipo donde se ejecuta Translay.")
+    : a.busy === "conectando" ? t("Inicia sesión en YouTube en la ventana de {name} y ciérrala.", { name })
+    : a.expired ? t("La sesión de YouTube expiró") : t("Sin cuenta conectada");
 }
 
 function renderCookies(m) {
   if (m.account) renderAccount(m.account);
-  if (m.connected_now) toast("Cuenta de YouTube conectada. Se usará en las descargas.", "ok");
-  if (m.disconnected) toast("Cuenta de YouTube desconectada y borrada de este equipo.", "ok");
-  if (m.cancelled) toast("Se cerró la ventana sin iniciar sesión en YouTube.", "warn");
+  if (m.connected_now) toast(t("Cuenta de YouTube conectada. Se usará en las descargas."), "ok");
+  if (m.disconnected) toast(t("Cuenta de YouTube desconectada y borrada de este equipo."), "ok");
+  if (m.cancelled) toast(t("Se cerró la ventana sin iniciar sesión en YouTube."), "warn");
   const box = $("#yt-browsers");
   box.replaceChildren();
   for (const b of m.browsers) {
-    box.append(el("button", { type: "button", class: "btn sm", text: `Importar de ${b.name}`, on: { click: () => {
-      $("#cookies-status").textContent = `leyendo la sesión de ${b.name}…`;
+    box.append(el("button", { type: "button", class: "btn sm", text: t("Importar de {name}", { name: b.name }), on: { click: () => {
+      $("#cookies-status").textContent = t("leyendo la sesión de {name}…", { name: b.name });
       send({ type: "cookies_import", browser: b.key });
     } } }));
   }
   const st = m.status || {};
   $("#cookies-status").textContent = st.present
-    ? `Sesión importada · ${st.count} cookies · ${st.logged_in ? "con sesión iniciada" : "sin sesión iniciada"} · ${st.updated}`
-    : "Sin sesión importada";
+    ? t("Sesión importada · {count} cookies · {session} · {updated}", { count: st.count, updated: st.updated,
+      session: st.logged_in ? t("con sesión iniciada") : t("sin sesión iniciada") })
+    : t("Sin sesión importada");
   if (m.error) toast(m.error);
   if (m.imported) {
-    const src = m.imported.source === "archivo" ? "del archivo" : `de ${m.imported.source}`;
-    if (m.imported.logged_in) toast(`Sesión de YouTube importada ${src}. Se usará en las descargas.`, "ok");
-    else toast(`Se importaron cookies ${src}, pero no hay una sesión de YouTube iniciada. Inicia sesión en YouTube y vuelve a importar.`, "warn");
+    const fromFile = m.imported.source === "archivo", source = m.imported.source;
+    if (m.imported.logged_in) toast(fromFile ? t("Sesión de YouTube importada del archivo. Se usará en las descargas.")
+      : t("Sesión de YouTube importada de {source}. Se usará en las descargas.", { source }), "ok");
+    else toast(fromFile ? t("Se importaron cookies del archivo, pero no hay una sesión de YouTube iniciada. Inicia sesión en YouTube y vuelve a importar.")
+      : t("Se importaron cookies de {source}, pero no hay una sesión de YouTube iniciada. Inicia sesión en YouTube y vuelve a importar.", { source }), "warn");
   }
 }
 
@@ -2433,12 +2596,12 @@ $("#cookies-file").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   e.target.value = "";
   if (!f) return;
-  $("#cookies-status").textContent = "importando el archivo…";
+  $("#cookies-status").textContent = t("importando el archivo…");
   try {
     const r = await fetch("/api/cookies", { method: "PUT", body: f });
-    if (!r.ok) toast(`No se pudo importar: ${await r.text()}`);
+    if (!r.ok) toast(t("No se pudo importar: {error}", { error: await r.text() }));
   } catch (err) {
-    toast("No se pudo subir el archivo");
+    toast(t("No se pudo subir el archivo"));
   }
 });
 
@@ -2504,7 +2667,7 @@ $("#c-mute").addEventListener("click", () => setVolume(player.volume || 1, !play
 
 // velocidad: cada clic pasa a la siguiente; Shift + < / > también
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
-const fmtRate = (r) => `${String(r).replace(".", ",")}×`;
+const fmtRate = (r) => `${r.toLocaleString(LOCALE)}×`;
 function setRate(r) {
   vEn.playbackRate = r;
   try { localStorage.setItem("vt-rate", String(r)); } catch (e) { /* sin almacenamiento */ }
@@ -2540,22 +2703,22 @@ function toggleSubs() {
   if (subsOn()) {
     state.subsWere = { sub_es: !!prefs.sub_es, sub_orig: !!prefs.sub_orig, screen_text: prefs.screen_text !== false };
     for (const k of Object.keys(state.subsWere)) if (state.subsWere[k]) setPref(k, false);
-    toast("Subtítulos desactivados", "ok");
+    toast(t("Subtítulos desactivados"), "ok");
   } else {
     const was = state.subsWere || { sub_es: true, sub_orig: true, screen_text: true };
     for (const [k, v] of Object.entries(was)) if (v) setPref(k, true);
-    toast("Subtítulos activados", "ok");
+    toast(t("Subtítulos activados"), "ok");
   }
   applySubs();
 }
 const subsMenu = () => [
-  state.translates && { label: "En español", icon: "captions", check: !!prefs.sub_es, onClick: () => setSub("sub_es", !prefs.sub_es) },
-  { label: state.translates ? `Del original (${langName(state.lang)})` : "Subtítulos", icon: "captions", check: !!prefs.sub_orig,
+  state.translates && { label: t("En {lang}", { lang: langName(targetLang()) }), icon: "captions", check: !!prefs.sub_es, onClick: () => setSub("sub_es", !prefs.sub_es) },
+  { label: state.translates ? t("Del original ({lang})", { lang: langName(state.lang) }) : t("Subtítulos"), icon: "captions", check: !!prefs.sub_orig,
     onClick: () => setSub("sub_orig", !prefs.sub_orig) },
-  state.translates && { label: "Texto del video en español", icon: "eye", check: prefs.screen_text !== false,
+  state.translates && { label: t("Texto del video en {lang}", { lang: langName(targetLang()) }), icon: "eye", check: prefs.screen_text !== false,
     onClick: () => setSub("screen_text", prefs.screen_text === false) },
   "sep",
-  { label: subsOn() ? "Apagar todos" : "Prender todos", icon: subsOn() ? "x" : "check", kbd: "C", onClick: toggleSubs },
+  { label: subsOn() ? t("Apagar todos") : t("Prender todos"), icon: subsOn() ? "x" : "check", kbd: "C", onClick: toggleSubs },
 ].filter(Boolean);
 $("#c-cc").addEventListener("click", (e) => {
   openMenu(subsMenu(), e.currentTarget.getBoundingClientRect());  // DOMRect: abajo si cabe, si no arriba
@@ -2587,7 +2750,7 @@ document.addEventListener("keydown", (e) => {
 // texto del campo de enlaces según el ancho: nunca cortado
 const narrowMQ = window.matchMedia("(max-width: 760px)");
 function fitLinkHint() {
-  $("#yt-url").placeholder = narrowMQ.matches ? "Pega un enlace" : "Pega un enlace de YouTube o Dropbox";
+  $("#yt-url").placeholder = narrowMQ.matches ? t("Pega un enlace") : t("Pega un enlace de YouTube o Dropbox");
 }
 narrowMQ.addEventListener("change", fitLinkHint);
 fitLinkHint();
@@ -2615,45 +2778,45 @@ function renderPeople() {
   const saved = state.peopleSaved || [];
   const savedUrl = (v) => v?.startsWith("p:") ? saved.find((p) => p.id === v.slice(2))?.url : null;
   const names = el("datalist", { id: "people-names" }, ...saved.map((p) => el("option", { value: p.name })));
-  const vname = typeof currentVault === "function" ? (vaultById(state.videoVault) || currentVault()).name : "la biblioteca";
+  const vname = typeof currentVault === "function" ? (vaultById(state.videoVault) || currentVault()).name : t("la biblioteca");
   const rows = [...order].map(([spk, n]) => {
     const key = String(spk);
-    const name = el("input", { class: "input", type: "text", maxlength: 60, placeholder: `Persona ${n}`, list: "people-names",
-      value: state.people.names[key] || "", "aria-label": `Nombre de la persona ${n}` });
+    const name = el("input", { class: "input", type: "text", maxlength: 60, placeholder: t("Persona {n}", { n }), list: "people-names",
+      value: state.people.names[key] || "", "aria-label": t("Nombre de la persona {n}", { n }) });
     name.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, name: name.value }));
     name.addEventListener("keydown", (e) => { if (e.key === "Enter") name.blur(); });
-    const voice = el("select", { class: "select", "aria-label": "Voz en español" },
-      el("option", { value: "", text: refs[key] ? "Su propia voz" : "Su voz (aún sin referencia)" }),
+    const voice = el("select", { class: "select", "aria-label": t("Voz en {lang}", { lang: langName(targetLang()) }) },
+      el("option", { value: "", text: refs[key] ? t("Su propia voz") : t("Su voz (aún sin referencia)") }),
       ...[...order].filter(([o]) => o !== spk && refs[String(o)])
-        .map(([o, m]) => el("option", { value: String(o), text: `Voz de ${personName(o, m)}` })),
-      saved.length ? el("optgroup", { label: `Guardadas en «${vname}»` },
-        ...saved.map((p) => el("option", { value: `p:${p.id}`, text: `Voz de ${p.name}` }))) : null);
+        .map(([o, m]) => el("option", { value: String(o), text: t("Voz de {name}", { name: personName(o, m) }) })),
+      saved.length ? el("optgroup", { label: t("Guardadas en «{name}»", { name: vname }) },
+        ...saved.map((p) => el("option", { value: `p:${p.id}`, text: t("Voz de {name}", { name: p.name }) }))) : null);
     voice.value = state.people.voices[key] || "";
     voice.addEventListener("change", () => send({ type: "people_set", video: state.videoId, spk: key, voice: voice.value }));
     const used = state.people.voices[key] || key;
     const usedUrl = savedUrl(used) || refs[used];
-    const listen = usedUrl ? previewBtn(usedUrl, "Escuchar la voz de referencia") : null;
+    const listen = usedUrl ? previewBtn(usedUrl, t("Escuchar la voz de referencia")) : null;
     // guardar a esta persona (nombre y su voz) para usarla en otros videos de la biblioteca
     const nm = (state.people.names[key] || "").trim();
     const same = saved.find((p) => p.name.toLowerCase() === nm.toLowerCase() && nm);
-    const keep = refs[key] ? btn(same ? "Actualizar voz" : "Guardar", { icon: "bookmark", size: "xs", variant: "ghost", cls: "owner-only",
-      title: `Guardar su nombre y su voz en «${vname}»`,
-      onClick: () => send({ type: "people_save", video: state.videoId, spk: key, name: nm || `Persona ${n}`, id: same?.id || "" }) }) : null;
+    const keep = refs[key] ? btn(same ? t("Actualizar voz") : t("Guardar"), { icon: "bookmark", size: "xs", variant: "ghost", cls: "owner-only",
+      title: t("Guardar su nombre y su voz en «{name}»", { name: vname }),
+      onClick: () => send({ type: "people_save", video: state.videoId, spk: key, name: nm || t("Persona {n}", { n }), id: same?.id || "" }) }) : null;
     return el("div", { class: "person" },
       el("span", { class: `chip who ${whoClass(n)}`, text: `P${n}` }),
       el("div", { class: "pfields" }, name, voice),
-      el("div", { class: "pmeta" }, el("small", { text: `${count.get(spk)} ${count.get(spk) === 1 ? "frase" : "frases"}` }),
+      el("div", { class: "pmeta" }, el("small", { text: count.get(spk) === 1 ? t("1 frase") : t("{n} frases", { n: count.get(spk) }) }),
         el("span", { class: "pacts" }, keep, listen)));
   });
   // las guardadas en la biblioteca (para escucharlas u olvidarlas)
   const kept = saved.length ? el("div", { class: "people-saved" },
-    el("h4", { text: `Guardadas en «${vname}»` }),
+    el("h4", { text: t("Guardadas en «{name}»", { name: vname }) }),
     ...saved.map((p) => el("div", { class: "psaved" },
       el("span", { text: p.name }),
       el("span", { class: "pacts" },
-        previewBtn(p.url, "Escuchar esta voz"),
-        btn("Olvidar", { icon: "x", size: "xs", variant: "ghost", cls: "owner-only", onClick: async () => {
-          if (await confirmDlg(`¿Olvidar a ${p.name}?`, "Los videos que usan esta voz recuperarán la voz original de cada persona al procesarse de nuevo.", "Olvidar")) {
+        previewBtn(p.url, t("Escuchar esta voz")),
+        btn(t("Olvidar"), { icon: "x", size: "xs", variant: "ghost", cls: "owner-only", onClick: async () => {
+          if (await confirmDlg(t("¿Olvidar a {name}?", { name: p.name }), t("Los videos que usan esta voz recuperarán la voz original de cada persona al procesarse de nuevo."), t("Olvidar"))) {
             send({ type: "people_forget", id: p.id, vault: state.videoVault });
           }
         } }))))) : null;
@@ -2665,7 +2828,8 @@ function renderPeople() {
 
 /* ------------------------------------------------------------ glosario */
 const GLOSSARY_BLOCK = el("div", { class: "pref glossary", id: "pref-glossary" },
-  el("span", { class: "pref-label", text: "Términos" }), el("div", { class: "pref-ctl" }));
+  el("span", { class: "pref-label", text: t("Términos") }), el("div", { class: "pref-ctl" }));
+i18nTrack(GLOSSARY_BLOCK);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 const glossary = { entries: [], dirty: false };
 
 function glossaryUpdate(entries) {
@@ -2676,46 +2840,46 @@ function renderGlossary(entries) {
   const ctl = GLOSSARY_BLOCK.querySelector(".pref-ctl");
   const rows = el("div", { class: "grows" });
   const addRow = (e = { src: "", dst: "" }) => {
-    const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Como en el original", value: e.src });
-    const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: "Sin traducir", value: e.dst });
+    const src = el("input", { class: "input", type: "text", maxlength: 120, placeholder: t("Como en el original"), value: e.src });
+    const dst = el("input", { class: "input", type: "text", maxlength: 120, placeholder: t("Sin traducir"), value: e.dst });
     const row = el("div", { class: "grow" }, src, el("span", { class: "arrow", text: "→" }), dst,
-      btn("Quitar", { icon: "x", size: "xs", variant: "ghost", onClick: () => { row.remove(); glossary.dirty = true; } }));
+      btn(t("Quitar"), { icon: "x", size: "xs", variant: "ghost", onClick: () => { row.remove(); glossary.dirty = true; } }));
     for (const i of [src, dst]) i.addEventListener("input", () => { glossary.dirty = true; });
     rows.append(row);
     return src;
   };
   for (const e of entries) addRow(e);
   if (!entries.length) addRow();
-  const save = btn("Guardar glosario", { icon: "check", variant: "dark", onClick: () => {
+  const save = btn(t("Guardar glosario"), { icon: "check", variant: "dark", onClick: () => {
     const items = [...rows.querySelectorAll(".grow")].map((r) => {
       const [a, b] = r.querySelectorAll("input");
       return { src: a.value.trim(), dst: b.value.trim() };
     }).filter((x) => x.src);
     glossary.dirty = false;
     send({ type: "glossary_set", entries: items });
-    toast("Glosario guardado. Se volverán a traducir las frases afectadas.", "ok");
+    toast(t("Glosario guardado. Se volverán a traducir las frases afectadas."), "ok");
   } });
   ctl.replaceChildren(rows, el("div", { class: "acts" },
-    btn("Agregar término", { icon: "plus", onClick: () => addRow().focus() }), save),
-    el("small", { class: "label", text: "Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas)." }));
+    btn(t("Agregar término"), { icon: "plus", onClick: () => addRow().focus() }), save),
+    el("small", { class: "label", text: t("Si la traducción queda vacía, el término se mantiene como en el original (nombres, marcas, siglas).") }));
 }
 renderGlossary([]);
 
 /* ------------------------------------------------------------ avisos del navegador */
 function requestNotify() {
   if (!("Notification" in window)) {
-    toast("Este navegador no admite notificaciones", "warn");
+    toast(t("Este navegador no admite notificaciones"), "warn");
     setPref("notify", false);
     renderPrefs();
     return;
   }
   Notification.requestPermission().then((p) => {
     if (p !== "granted") {
-      toast("El navegador bloqueó las notificaciones", "warn");
+      toast(t("El navegador bloqueó las notificaciones"), "warn");
       setPref("notify", false);
       renderPrefs();
     } else {
-      notifyUser("Notificaciones activadas", "Recibirás un aviso cuando termine una descarga, un video o una exportación.", true);
+      notifyUser(t("Notificaciones activadas"), t("Recibirás un aviso cuando termine una descarga, un video o una exportación."), true);
     }
   });
 }
@@ -2734,7 +2898,10 @@ function notifyLater(kind, name) {
   clearTimeout(b.timer);
   b.timer = setTimeout(() => {
     const n = b.names.length;
-    notifyUser(n === 1 ? `${kind[0].toUpperCase() + kind.slice(1)}: ${b.names[0]}` : `${n} videos ${kind}`,
+    // kind es un identificador que manda library.js («traducidos», «descargados»): cada uno tiene sus frases
+    const one = { traducidos: t("Traducido: {name}", { name: b.names[0] }), descargados: t("Descargado: {name}", { name: b.names[0] }) }[kind];
+    const many = { traducidos: t("{n} videos traducidos", { n }), descargados: t("{n} videos descargados", { n }) }[kind];
+    notifyUser(n === 1 ? one || `${kind[0].toUpperCase() + kind.slice(1)}: ${b.names[0]}` : many || `${n} videos ${kind}`,
       n === 1 ? "" : b.names.slice(0, 3).join(" · ") + (n > 3 ? "…" : ""));
     b.names = [];
   }, 4000);

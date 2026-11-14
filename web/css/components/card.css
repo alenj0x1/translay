@@ -24,6 +24,8 @@
 .card .thumb .chip, .card .pending-dl { background: rgba(10, 11, 13, .72); color: #fff; }
 .card .tchips { right: var(--s2); bottom: var(--s2); display: flex; gap: var(--s1); }
 .card .tchips .chip { position: static; }
+/* idioma y duración: un gris translúcido más sutil (antes casi negro) */
+.card .tchips .chip { background: rgba(40, 40, 40, .55); color: rgba(255, 255, 255, .88); }
 .card .num { left: var(--s2); bottom: var(--s2); }
 .card .aud { left: var(--s2); bottom: var(--s2); }
 .card .num ~ .aud { left: 40px; }
@@ -119,8 +121,9 @@
 .tk-op { color: var(--tk-op); }
 .tk-prompt { color: var(--tk-prompt); }
 .tk-flag { color: var(--tk-flag); }
-/* en oscuro, un tema claro (o al revés) lleva un borde fino para no fundirse con la tarjeta */
-.codeblk, .code-sample { box-shadow: inset 0 0 0 1px var(--line); }
+/* en claro, el código (blanco) lleva un borde fino para no fundirse con la tarjeta; en oscuro ya se distingue por
+   ser más oscuro que el panel */
+[data-theme="light"] .codeblk, [data-theme="light"] .code-sample { box-shadow: inset 0 0 0 1px var(--line); }
 
 /* Ajustes: los temas en una cuadrícula (cada uno con sus colores) y el ejemplo debajo */
 .code-theme-row { display: grid; gap: var(--s3); min-width: 0; }
@@ -149,3 +152,5 @@
 
 /* en claro, el código va en blanco con una línea fina que lo separa de lo que tiene alrededor */
 [data-theme="light"] .code-sample, [data-theme="light"] .codeblk { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.card.open { cursor: pointer; }
+.card.open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

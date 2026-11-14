@@ -35,6 +35,12 @@ The video goes first and the question last, so the server reuses its cache betwe
 
 `vt/agentintents.py` recognizes requests the app can carry out by itself (export the video for another agent, jump to a moment, change the subtitles, save to a collection, set notices while watching) and answers them without the model, so they are instant and work with the agent turned off. Each answer carries a card and an action; the card is saved with the conversation and the view carries out the action. Any other question goes to the model.
 
+Requests are understood in Spanish, English and Portuguese (`PHRASES`, one table of phrases per language) and the answer comes in the app's language ([Languages](../languages/#the-agents-and-the-summarys-language)).
+
+## The character
+
+The agent is a star with rounded points that you build in **Ajustes › Agente › Avatar** (Settings › Agent › Avatar): shape, eyes, mouth, cheeks, accessory and **Al azar** (Random). It takes the agent's color or, if it has none, the accent color. It sleeps while the model is off, wakes up while it turns on, thinks and talks while it answers, and jumps with hearts when you touch it. In an empty chat it appears large in the center with what it can do below; with the first question it flies to its place in the answer, and it peeks out when you return to the top of the conversation. How it is drawn: [Interface](../interface/#the-agent-as-a-character).
+
 ## Citing the moment
 
 Each fact in an answer carries its moment as `[m:ss]`, which the player turns into a button that jumps there. Small models rarely write times by themselves, so Translay adds them: each sentence of the answer without a time is searched in the transcript and gets the moment of the part that looks most like it. In the lab this took correct citations from 0–3 % to 66–93 %.

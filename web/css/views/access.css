@@ -60,3 +60,17 @@ body.locked > :not(.login):not(script):not(dialog):not(.toast) { visibility: hid
   .acc-row { grid-template-columns: minmax(0, 1fr); }
   .acc-row .vacts { justify-content: flex-start; }
 }
+
+/* acceso a cada biblioteca: una fila por biblioteca con su patrón en la esquina y el acceso en un desplegable */
+.acc-libs { display: grid; gap: var(--s2); }
+.acc-lib { display: grid; gap: var(--s2); border-radius: var(--r-md); background: var(--surface-2); overflow: hidden; }
+.acc-lib-row { position: relative; isolation: isolate; display: flex; align-items: center; gap: var(--s3); min-height: 60px; padding: var(--s3) var(--s3) var(--s3) var(--s4); }
+.acc-lib-row .vascii.corner { top: 0; right: 0; bottom: 0; width: 46%; z-index: -1; opacity: .5;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 80%); mask-image: linear-gradient(to right, transparent, #000 80%); }
+.acc-lib-row .vinfo { flex: 1; min-width: 0; }
+.acc-lib-row .vinfo small { color: var(--fg-muted); }
+.acc-pick { flex: none; background: var(--bg); }
+.acc-pick:hover { background: var(--surface); }
+.acc-lib-extra { display: grid; gap: var(--s2); padding: 0 var(--s4) var(--s3); }
+[data-theme="light"] .acc-lib { background: var(--surface-2); }
+[data-theme="light"] .acc-pick { background: #fff; }

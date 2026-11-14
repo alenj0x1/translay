@@ -25,7 +25,7 @@ for (const name of Object.keys(PANELS)) {
 
 function resizer(name) {
   const h = el("div", { class: `rz rz-${name}`, role: "separator", "aria-orientation": "vertical",
-    title: name === "aside" ? "Arrastra para cambiar el ancho de la barra lateral" : "Arrastra para cambiar el ancho del panel" });
+    title: name === "aside" ? t("Arrastra para cambiar el ancho de la barra lateral") : t("Arrastra para cambiar el ancho del panel") });
   h.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     e.preventDefault();

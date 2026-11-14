@@ -5,41 +5,42 @@
 const trash = { items: [] };
 
 const TRASH_BLOCK = el("div", { class: "pref trash-pref", id: "pref-trash" },
-  el("span", { class: "pref-label", text: "En la papelera" }), el("div", { class: "pref-ctl" }));
+  el("span", { class: "pref-label", text: t("En la papelera") }), el("div", { class: "pref-ctl" }));
+i18nTrack(TRASH_BLOCK);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 
 const TRASH_ICON = { videos: "film", "biblioteca-vaciada": "library", biblioteca: "folder" };
 
 function daysLeft(x) {
   const d = Math.max(0, Math.ceil((x.expires * 1000 - Date.now()) / 86400000));
-  return d === 1 ? "Se borra mañana" : `Se borra en ${d} días`;
+  return d === 1 ? t("Se borra mañana") : t("Se borra en {n} días", { n: d });
 }
 
 function renderTrash() {
   const ctl = TRASH_BLOCK.querySelector(".pref-ctl");
   if (!trash.items.length) {
-    ctl.replaceChildren(emptyState("trash", "La papelera está vacía",
-      "Los videos y bibliotecas eliminados se conservan aquí durante 30 días."));
+    ctl.replaceChildren(emptyState("trash", t("La papelera está vacía"),
+      t("Los videos y bibliotecas eliminados se conservan aquí durante 30 días.")));
     return;
   }
-  const when = (t) => new Date(t * 1000).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const when = (t) => new Date(t * 1000).toLocaleString(LOCALE, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const rows = trash.items.map((x) => el("div", { class: "trow" },
     el("span", { class: "trow-ic" }, icon(TRASH_ICON[x.kind] || "trash")),
     el("div", { class: "vinfo" },
       el("strong", { text: x.title }),
       el("small", { text: [x.kind === "biblioteca" ? "" : x.vault_name,
-        x.count ? `${x.count} ${x.count === 1 ? "video" : "videos"}` : "", `borrado el ${when(x.created)}`, daysLeft(x)]
+        x.count ? (x.count === 1 ? t("1 video") : t("{n} videos", { n: x.count })) : "", t("borrado el {fecha}", { fecha: when(x.created) }), daysLeft(x)]
         .filter(Boolean).join(" · ") })),
     el("div", { class: "vacts" },
-      btn("Restaurar", { icon: "undo", size: "sm", onClick: () => send({ type: "trash_restore", id: x.id, vault: x.vault }) }),
-      btn("Borrar para siempre", { icon: "trash", size: "sm", variant: "ghost", cls: "icon", title: "Borrar para siempre",
+      btn(t("Restaurar"), { icon: "undo", size: "sm", onClick: () => send({ type: "trash_restore", id: x.id, vault: x.vault }) }),
+      btn(t("Borrar para siempre"), { icon: "trash", size: "sm", variant: "ghost", cls: "icon", title: t("Borrar para siempre"),
         onClick: async () => {
-          if (await confirmDlg(`¿Borrar «${x.title}» para siempre?`, "Esta acción no se puede deshacer.", "Borrar para siempre")) {
+          if (await confirmDlg(t("¿Borrar «{title}» para siempre?", { title: x.title }), t("Esta acción no se puede deshacer."), t("Borrar para siempre"))) {
             send({ type: "trash_purge", id: x.id, vault: x.vault });
           }
         } }))));
   ctl.replaceChildren(el("div", { class: "vrows" }, ...rows), el("div", { class: "acts" },
-    btn("Vaciar la papelera", { icon: "trash", size: "sm", variant: "danger", onClick: async () => {
-      if (await confirmDlg("¿Vaciar la papelera?", "Todo lo que hay en ella se borra para siempre.", "Vaciar la papelera")) {
+    btn(t("Vaciar la papelera"), { icon: "trash", size: "sm", variant: "danger", onClick: async () => {
+      if (await confirmDlg(t("¿Vaciar la papelera?"), t("Todo lo que hay en ella se borra para siempre."), t("Vaciar la papelera"))) {
         send({ type: "trash_purge", all: true });
       }
     } })));
@@ -51,8 +52,8 @@ function trashUpdate(m) {
   renderTrash();
 }
 function trashed(m) {
-  toast(`«${m.title}» se movió a la papelera`, "ok", { label: "Deshacer", onClick: () => send({ type: "trash_restore", id: m.id, vault: m.vault }) });
+  toast(t("«{title}» se movió a la papelera", { title: m.title }), "ok", { label: t("Deshacer"), onClick: () => send({ type: "trash_restore", id: m.id, vault: m.vault }) });
 }
 function trashRestored() {
-  toast("Restaurado", "ok");
+  toast(t("Restaurado"), "ok");
 }

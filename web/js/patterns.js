@@ -127,7 +127,7 @@ function collBanner(c, onShuffle) {
     b.append(img);
   }
   if (onShuffle && c.kind !== "canal") {
-    b.append(btn("Otro patrón", { icon: "shuffle", size: "xs", cls: "cb-shuffle", onClick: () => { reshufflePattern(c.id); onShuffle(); } }));
+    b.append(btn(t("Otro patrón"), { icon: "shuffle", size: "xs", cls: "cb-shuffle", onClick: () => { reshufflePattern(c.id); onShuffle(); } }));
   }
   return b;
 }

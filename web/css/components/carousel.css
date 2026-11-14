@@ -1,0 +1,27 @@
+/* =====================================================================
+   Carrusel (web/js/ui.js › carousel): una tira de N elementos del mismo ancho, rectos y casi pegados, con flechas a los lados
+   que pasan de a una página. Las flechas van pegadas a la tira, con su alto y su fondo, y hacen de puntas
+   redondeadas; con una sola página siguen ahí, deshabilitadas (todas las filas iguales). Primero lo usó el creador del agente (Ajustes › Agente).
+   ===================================================================== */
+.carousel { --per: 4; --gap: 2px; display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; align-items: stretch; }
+.carousel-track {
+  display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
+  gap: var(--gap); overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.carousel-track::-webkit-scrollbar { display: none; }
+/* una sola tira: los de adentro rectos y casi pegados; solo las esquinas de afuera (las flechas) van redondeadas */
+.carousel .carousel-track > * { scroll-snap-align: start; min-width: 0; border-radius: 0; }
+.carousel-nav {
+  display: grid; place-items: center; width: 28px; padding: 0; border: 0; border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--fg-muted); cursor: pointer;
+}
+.carousel-nav:hover { background: var(--surface-3); color: var(--fg); }
+.carousel-nav svg { width: 14px; height: 14px; }
+.carousel-nav.prev { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.carousel-nav.prev svg { transform: rotate(90deg); }
+.carousel-nav.next { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.carousel-nav.next svg { transform: rotate(-90deg); }
+.carousel-nav[disabled] { pointer-events: none; }
+.carousel-nav[disabled] svg { opacity: .3; }  /* solo la flecha se apaga: el fondo sigue cerrando la tira */
+@media (prefers-reduced-motion: reduce) { .carousel-track { scroll-behavior: auto; } }

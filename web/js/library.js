@@ -159,13 +159,13 @@ function fmtBytes(b) {
   const u = ["B", "KB", "MB", "GB"];
   let i = 0;
   while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return `${b.toFixed(b < 10 && i ? 1 : 0).replace(".", ",")} ${u[i]}`;
+  return `${b.toFixed(b < 10 && i ? 1 : 0).replace(".", I18N.lang === "en" ? "." : ",")} ${u[i]}`;
 }
 function dlText(d) {
   if (d.stage !== "video" && d.stage !== "audio") return `${d.stage}…`;
-  const parts = [`descargando ${d.pct} %`];
+  const parts = [t("descargando {pct} %", { pct: d.pct })];
   if (d.speed) parts.push(`${fmtBytes(d.speed)}/s`);
-  if (d.eta != null && d.eta > 0) parts.push(`quedan ${fmtDur(d.eta)}`);
+  if (d.eta != null && d.eta > 0) parts.push(t("quedan {time}", { time: fmtDur(d.eta) }));
   return parts.join(" · ");
 }
 
@@ -173,11 +173,11 @@ function pendingText(v) {
   const j = jobOf(v.id);
   if (v.media) {  // descargado: en cola o procesándose hasta tener la voz
     if (!j || ["listo", "error", "descargado"].includes(j.state) || (v.progress && v.progress.dub >= 0.97)) return "";
-    return j.state === "procesando" ? "procesando" : "en cola";  // el % va en la barra de la tarjeta
+    return j.state === "procesando" ? t("procesando") : t("en cola");  // el % va en la barra de la tarjeta
   }
   if (j?.dl) return dlText(j.dl);
-  if (j?.state === "error") return "error al descargar";
-  return j ? "en cola · sin descargar" : "sin descargar";
+  if (j?.state === "error") return t("error al descargar");
+  return j ? t("en cola · sin descargar") : t("sin descargar");
 }
 
 /* ------------------------------------------------------------ biblioteca */
@@ -209,7 +209,7 @@ function refreshCards() {
     const fb = art.querySelector(".act-fetch");
     if (fb) {
       const label = fetchLabel(jobOf(v.id));
-      if (fb.textContent !== (label || "Descargar video")) setBtn(fb, label || "Descargar video", "film");
+      if (fb.textContent !== (label || t("Descargar video"))) setBtn(fb, label || t("Descargar video"), "film");
       fb.disabled = !!label;
     }
     const pend = art.querySelector(".pending-dl");
@@ -225,10 +225,13 @@ function refreshCards() {
     else if (ring) ring.remove();
     else if (nr) art.querySelector(".thumb").append(nr);
     const disc = art.querySelector(".thumb .play");
-    if (disc) {  // solo cambia lo distinto (el anillo de descarga o el botón de reproducir)
-      const dl = downloadPct(v);
-      if ((dl !== null) !== disc.classList.contains("dl")) disc.replaceWith(playDisc(dl));
-      else if (dl !== null) {
+    const dlNow = downloadPct(v);
+    // el avance de descarga aparece y se va solo (sin descarga, la miniatura queda limpia)
+    if (!disc && dlNow !== null && (v.media || isRemote(v))) art.querySelector(".thumb")?.append(playDisc(dlNow));
+    else if (disc && dlNow === null) disc.remove();
+    else if (disc) {  // solo cambia lo distinto
+      const dl = dlNow;
+      if (dl !== null) {
         disc.style.setProperty("--p", dl);
         if (disc.firstChild.textContent !== `${dl}%`) disc.firstChild.textContent = `${dl}%`;
       }
@@ -279,20 +282,20 @@ function renderSidebar() {
   nav.replaceChildren();
   top.replaceChildren(el("button", { class: "item" + (lib.sel === "home" && !lib.search ? " active" : ""), type: "button",
     on: { click: () => goColl("home") } },
-    el("span", {}, icon("home"), "Inicio")));
-  top.firstChild.title = "Inicio";
+    el("span", {}, icon("home"), t("Inicio"))));
+  top.firstChild.title = t("Inicio");
   const KIND_ICON = { recent: "clock", all: "grid", propia: "bookmark", playlist: "queue", canal: "user", "categoría": "tag" };
-  const groups = [["auto", null], ["propia", "Colecciones"], ["playlist", "Playlists"], ["canal", "Canales"],
-    ["categoría", "Categorías"]];
+  const groups = [["auto", null], ["propia", t("Colecciones")], ["playlist", t("Playlists")], ["canal", t("Canales")],
+    ["categoría", t("Categorías")]];
   for (const [kind, label] of groups) {
     if (kind === "canal" && prefs.lib_channels === false) continue;  // Ajustes → Biblioteca
     const items = lib.collections.filter((c) => c.kind === kind);
     if (label && (items.length || kind === "propia")) {
       nav.append(kind === "propia"
-        ? el("h4", { class: "with-add" }, label, btn("Nueva colección", { icon: "plus", size: "xs", variant: "ghost", cls: "icon owner-only",
-          title: "Nueva colección", onClick: async () => {
+        ? el("h4", { class: "with-add" }, label, btn(t("Nueva colección"), { icon: "plus", size: "xs", variant: "ghost", cls: "icon owner-only",
+          title: t("Nueva colección"), onClick: async () => {
             if (innerWidth <= 760) {  // celular: la barra es una fila de píldoras, sin lugar para el formulario
-              const name = await promptDlg("Nueva colección", "", "Crear");
+              const name = await promptDlg(t("Nueva colección"), "", t("Crear"));
               if (name) send({ type: "coll_create", name });
               return;
             }
@@ -308,14 +311,14 @@ function renderSidebar() {
         el("span", { text: String(c.items.length) })));
     }
     if (kind === "propia") {
-      const input = el("input", { class: "input sm", type: "text", placeholder: "Nombre de la colección", maxlength: 80,
+      const input = el("input", { class: "input sm", type: "text", placeholder: t("Nombre de la colección"), maxlength: 80,
         on: { keydown: (e) => { if (e.key === "Escape") { input.value = ""; form.hidden = true; } } } });
       const form = el("form", { class: "inline-form owner-only", hidden: true, on: { submit: (e) => {
         e.preventDefault();
         if (input.value.trim()) send({ type: "coll_create", name: input.value.trim() });
         input.value = "";
         form.hidden = true;
-      } } }, input, btn("Crear", { type: "submit", size: "sm" }));
+      } } }, input, btn(t("Crear"), { type: "submit", size: "sm" }));
       nav.append(form);
     }
   }
@@ -327,7 +330,7 @@ function renderShelf() {
   if (lib.search) return renderSearch();
   if (lib.sel === "home" && Object.keys(lib.videos).length) return renderHome();  // portada (web/js/home.js)
   const c = lib.collections.find((x) => x.id === lib.sel) || lib.collections.find((x) => x.id === "recent")
-    || { name: "Recientes", items: [], kind: "auto" };
+    || { name: t("Recientes"), items: [], kind: "auto" };
   renderShelfHead(c);
   const grid = $("#grid");
   grid.classList.remove("results");
@@ -339,10 +342,10 @@ function renderShelf() {
   grid.classList.toggle("picking", lib.picked.size > 0);
   if (!c.items.length) {
     grid.append(el("div", { class: "empty-state" }, el("span", { class: "vnew-ic" }, icon(collIcon(c))),
-      el("h3", { text: c.kind === "propia" ? "Aún no hay videos" : "Sin videos" }),
-      el("p", { text: c.kind === "propia" ? "Importa enlaces de YouTube a esta colección o guarda un video desde el reproductor." : "Aquí aparecerán sus videos." }),
+      el("h3", { text: c.kind === "propia" ? t("Aún no hay videos") : t("Sin videos") }),
+      el("p", { text: c.kind === "propia" ? t("Importa enlaces de YouTube a esta colección o guarda un video desde el reproductor.") : t("Aquí aparecerán sus videos.") }),
       c.kind === "propia" || c.kind === "categoría" ? el("div", { class: "acts" },
-        btn("Agregar", { icon: "plus", variant: "dark", cls: "import-only", onClick: () => openMulti("", c.id) })) : null));
+        btn(t("Agregar"), { icon: "plus", variant: "dark", cls: "import-only", onClick: () => openMulti("", c.id) })) : null));
     return;
   }
   // de a 200 tarjetas (con miles de videos, dibujarlas todas trabaría la página)
@@ -352,12 +355,13 @@ function renderShelf() {
     if (v) grid.append(card(v, c, i));
   });
   if (c.items.length > lib.limit) {
-    grid.append(el("div", { class: "more" }, btn(`Mostrar más (${c.items.length - lib.limit})`, {
+    grid.append(el("div", { class: "more" }, btn(t("Mostrar más ({n})", { n: c.items.length - lib.limit }), {
       icon: "plus", onClick: () => { lib.limit += 200; renderLibrary(); } })));
   }
 }
 
-const KIND_NAME = { propia: "Colección", playlist: "Playlist de YouTube", canal: "Canal", "categoría": "Categoría" };
+const KIND_NAME = { propia: t("Colección"), playlist: t("Playlist de YouTube"), canal: t("Canal"), "categoría": t("Categoría") };
+i18nTrack(KIND_NAME);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 // mientras llega la biblioteca (al recargar): la silueta de lo que se va a ver
 function renderSkeleton() {
   lib.shelfSig = null;
@@ -380,67 +384,67 @@ function renderShelfHead(c) {
     head.classList.add("picking");
     head.replaceChildren(
       el("h2", { text: c.name }),
-      el("span", { class: "label", text: n === 1 ? "1 seleccionado" : `${n} seleccionados` }),
+      el("span", { class: "label", text: n === 1 ? t("1 seleccionado") : t("{n} seleccionados", { n }) }),
       el("div", { class: "acts" },
-        btn("Abrir", { icon: "play", variant: "dark", onClick: () => openPicked(c) }),
-        btn("Procesar", { icon: "spark", cls: "import-only", onClick: () => {
+        btn(t("Abrir"), { icon: "play", variant: "dark", onClick: () => openPicked(c) }),
+        btn(t("Procesar"), { icon: "spark", cls: "import-only", onClick: () => {
           for (const id of pickedIn(c)) send({ type: "queue_add", video: id });
           lib.picked.clear();
           renderLibrary();
         } }),
-        btn("Exportar", { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`, c) }),
-        audioOnly(pickedIn(c)).length ? btn(`Descargar video (${audioOnly(pickedIn(c)).length})`, { icon: "film", cls: "import-only",
-          title: "Descarga el video completo de los seleccionados que solo tienen audio",
+        btn(t("Exportar"), { icon: "download", onClick: () => openExport(pickedIn(c), n === 1 ? "" : `${c.name} (${n})`, c) }),
+        audioOnly(pickedIn(c)).length ? btn(t("Descargar video ({n})", { n: audioOnly(pickedIn(c)).length }), { icon: "film", cls: "import-only",
+          title: t("Descarga el video completo de los seleccionados que solo tienen audio"),
           onClick: () => { send({ type: "queue_video", videos: audioOnly(pickedIn(c)) }); lib.picked.clear(); renderLibrary(); } }) : null,
         moveMenu(() => pickedIn(c), () => { lib.picked.clear(); renderLibrary(); }),
-        btn("Eliminar", { icon: "trash", variant: "danger", cls: "owner-only", onClick: async () => {
+        btn(t("Eliminar"), { icon: "trash", variant: "danger", cls: "owner-only", onClick: async () => {
           const ids = pickedIn(c);
-          const what = ids.length === 1 ? "este video" : `estos ${ids.length} videos`;
-          if (await confirmDlg(`¿Eliminar ${what}?`,
-            "Se moverán a la papelera con su traducción, voces y archivos descargados. Puedes restaurarlos durante 30 días.", "Eliminar")) {
+          const what = ids.length === 1 ? t("¿Eliminar este video?") : t("¿Eliminar estos {n} videos?", { n: ids.length });
+          if (await confirmDlg(what,
+            t("Se moverán a la papelera con su traducción, voces y archivos descargados. Puedes restaurarlos durante 30 días."), t("Eliminar"))) {
             send({ type: "lib_delete", videos: ids });
             lib.picked.clear();
           }
         } }),
-        btn("Quitar selección", { icon: "x", variant: "ghost", onClick: () => { lib.picked.clear(); renderLibrary(); } })));
+        btn(t("Quitar selección"), { icon: "x", variant: "ghost", onClick: () => { lib.picked.clear(); renderLibrary(); } })));
     fitPickActs();
     return;
   }
   const acts = el("div", { class: "acts" });
   if ((c.kind === "propia" || c.kind === "categoría" || c.kind === "playlist") && c.items.length) {  // importar directo aquí
-    acts.append(btn("Agregar", { icon: "plus", variant: c.kind === "playlist" ? "" : "dark", cls: "import-only", onClick: () => openMulti("", c.id) }));
+    acts.append(btn(t("Agregar"), { icon: "plus", variant: c.kind === "playlist" ? "" : "dark", cls: "import-only", onClick: () => openMulti("", c.id) }));
   }
   if (c.kind === "playlist") {
     acts.append(
-      btn("Reproducir", { icon: "play", variant: "dark", disabled: !c.items.length,
+      btn(t("Reproducir"), { icon: "play", variant: "dark", disabled: !c.items.length,
         onClick: () => { setContext({ name: c.name, coll: c.id, auto: true }); playItem(c.items[0]); } }),
-      btn("Abrir en YouTube", { icon: "external", href: c.url }));
+      btn(t("Abrir en YouTube"), { icon: "external", href: c.url }));
   }
   if (c.items.length) {
     // solo lo que ya está en el equipo (con su audio), sin lo que sigue en la cola: para exportarlo o moverlo
     const got = downloaded(c.items);
-    if (got.length && got.length < c.items.length) acts.append(btn(`Seleccionar descargados (${got.length})`, {
+    if (got.length && got.length < c.items.length) acts.append(btn(t("Seleccionar descargados ({n})", { n: got.length }), {
       icon: "check", onClick: () => { for (const id of got) lib.picked.add(id); renderLibrary(); } }));
     // con parte sin bajar: solo lo descargado (exportar el resto lo bajaría de YouTube uno por uno);
     // la colección entera sigue en el menú contextual («Exportar todo…»)
     if (got.length && got.length < c.items.length) {
-      acts.append(btn(`Exportar descargados (${got.length})`, { icon: "download", onClick: () => openExport(got, `${c.name} (descargados)`, c) }));
-    } else acts.append(btn("Exportar", { icon: "download", onClick: () => openExport(c.items, c.name, c) }));
+      acts.append(btn(t("Exportar descargados ({n})", { n: got.length }), { icon: "download", onClick: () => openExport(got, t("{name} (descargados)", { name: c.name }), c) }));
+    } else acts.append(btn(t("Exportar"), { icon: "download", onClick: () => openExport(c.items, c.name, c) }));
     const ao = audioOnly(c.items);
-    if (ao.length) acts.append(btn(`Descargar video de ${ao.length === 1 ? "1 que" : `${ao.length} que`} solo ${ao.length === 1 ? "tiene" : "tienen"} audio`, {
+    if (ao.length) acts.append(btn(ao.length === 1 ? t("Descargar video de 1 que solo tiene audio") : t("Descargar video de {n} que solo tienen audio", { n: ao.length }), {
       icon: "film", cls: "import-only", onClick: async () => {
-        if (ao.length < 20 || await confirmDlg(`¿Descargar ${ao.length} videos completos?`,
-          "Se descargarán uno por uno, con pausas, desde la cola. No se vuelven a traducir.", "Descargar videos")) {
+        if (ao.length < 20 || await confirmDlg(t("¿Descargar {n} videos completos?", { n: ao.length }),
+          t("Se descargarán uno por uno, con pausas, desde la cola. No se vuelven a traducir."), t("Descargar videos"))) {
           send({ type: "queue_video", videos: ao });
         }
       } }));
   }
   if (c.kind === "propia" || c.kind === "playlist") {
-    const what = c.kind === "playlist" ? "la playlist" : "la colección";
-    acts.append(btn(c.kind === "playlist" ? "Eliminar playlist" : "Eliminar colección", { icon: "trash", variant: "ghost", cls: "owner-only",
+    acts.append(btn(c.kind === "playlist" ? t("Eliminar playlist") : t("Eliminar colección"), { icon: "trash", variant: "ghost", cls: "owner-only",
       onClick: async () => {
-        const extra = c.kind === "playlist" ? "Los videos descargados se conservan. Los pendientes se quitan de la cola." : "Los videos no se borran.";
-        if (await confirmDlg(`¿Eliminar ${what} «${c.name}»?`, extra, "Eliminar")) send({ type: "coll_delete", coll: c.id });
+        const extra = c.kind === "playlist" ? t("Los videos descargados se conservan. Los pendientes se quitan de la cola.") : t("Los videos no se borran.");
+        const ask = c.kind === "playlist" ? t("¿Eliminar la playlist «{name}»?", { name: c.name }) : t("¿Eliminar la colección «{name}»?", { name: c.name });
+        if (await confirmDlg(ask, extra, t("Eliminar"))) send({ type: "coll_delete", coll: c.id });
       } }));
   }
 
@@ -452,7 +456,7 @@ function renderShelfHead(c) {
     el("div", { class: "sh-title" },
       el("h2", { text: c.name, title: c.name }),
       own ? el("small", { text: [KIND_NAME[c.kind], c.kind === "playlist" ? c.channel : "",
-        c.items.length === 1 ? "1 video" : `${c.items.length} videos`].filter(Boolean).join(" · ") }) : null),
+        c.items.length === 1 ? t("1 video") : t("{n} videos", { n: c.items.length })].filter(Boolean).join(" · ") }) : null),
     acts].filter(Boolean));
 }
 
@@ -473,16 +477,16 @@ function openPicked(c) {
 // Agregar desde la página: el campo del enlace y, a la vista, subir, grabar y varios enlaces.
 // Grande, con su título, arriba del inicio (con o sin videos); compacta donde haga falta.
 function addBox(big, more = false) {
-  const input = el("input", { type: "text", spellcheck: "false", "aria-label": "Enlace de YouTube o Dropbox",
-    placeholder: "Enlace de YouTube o Dropbox" });
+  const input = el("input", { type: "text", spellcheck: "false", "aria-label": t("Enlace de YouTube o Dropbox"),
+    placeholder: t("Enlace de YouTube o Dropbox") });
   const file = el("input", { type: "file", accept: "video/*,audio/*,.csv,text/csv", multiple: true, hidden: true,
     on: { change: (e) => { $("#file").files = e.target.files; $("#file").dispatchEvent(new Event("change")); e.target.value = ""; } } });
   const form = el("form", { class: "field", on: { submit: (e) => { e.preventDefault(); if (addFromText(input.value.trim())) input.value = ""; } } },
-    icon("link"), input, btn("Agregar", { icon: "plus", variant: "dark", type: "submit" }));
+    icon("link"), input, btn(t("Agregar"), { icon: "plus", variant: "dark", type: "submit" }));
   const acts = el("div", { class: "add-acts" },
-    el("label", { class: "btn sm" + (big ? "" : " ghost"), title: "Videos o audios de este equipo" }, icon("upload"), el("span", { class: "btn-text", text: "Subir archivos" }), file),
-    canCapture() ? btn("Grabar pantalla", { icon: "record", variant: big ? "" : "ghost", title: "Una pestaña, una ventana o toda la pantalla, con su sonido", onClick: openCapture }) : null,
-    btn("Varios enlaces", { icon: "queue", variant: big ? "" : "ghost", title: "Listas y canales también", onClick: () => openMulti("") }));
+    el("label", { class: "btn sm" + (big ? "" : " ghost"), title: t("Videos o audios de este equipo") }, icon("upload"), el("span", { class: "btn-text", text: t("Subir archivos") }), file),
+    canCapture() ? btn(t("Grabar pantalla"), { icon: "record", variant: big ? "" : "ghost", title: t("Una pestaña, una ventana o toda la pantalla, con su sonido"), onClick: openCapture }) : null,
+    btn(t("Varios enlaces"), { icon: "queue", variant: big ? "" : "ghost", title: t("Listas y canales también"), onClick: () => openMulti("") }));
   if (!big) return el("div", { class: "addbar" }, form, acts);
   // entra con una animación solo al llegar al inicio, no cada vez que la biblioteca se redibuja (elegir una tarjeta, la cola)
   const fresh = !welcomeShown;
@@ -491,11 +495,11 @@ function addBox(big, more = false) {
     // el título sigue a lo que se va a hacer (el modo de la app o «Solo transcribir» elegido aquí)
     el("h2", {}, el("span", { text: welcomeTitle(more) })),
     form, importTaskSegs(), acts,
-    el("small", { text: "o arrastra un video aquí" }));
+    el("small", { text: t("o arrastra un video aquí") }));
 }
 function welcomeTitle(more) {
-  return transcribeMode() || importTask === "transcribe" ? (more ? "Transcribe un video" : "Transcribe tu primer video")
-    : (more ? "Traduce un video" : "Traduce tu primer video");
+  return transcribeMode() || importTask === "transcribe" ? (more ? t("Transcribe un video") : t("Transcribe tu primer video"))
+    : (more ? t("Traduce un video") : t("Traduce tu primer video"));
 }
 // al elegir «Traducir y doblar» o «Solo transcribir»: el título sale hacia arriba y entra el nuevo desde abajo
 function swapWelcomeTitle() {
@@ -520,10 +524,10 @@ function progressBar(v) {
   const j = jobOf(v.id);
   const p = j && j.state !== "listo" ? { dub: j.dub } : v.progress || { dub: 0 };
   const pct = Math.round(p.dub * 100);
-  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), translatesV(v) ? "Listo en español" : "Transcrito"));
-  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: translatesV(v) ? "Descargado, sin traducir" : "Descargado, sin transcribir" }));
-  const label = j?.state === "procesando" ? `procesando · ${pct} %`
-    : j?.state === "en cola" ? `en cola · ${pct} %` : pct ? `${translatesV(v) ? "doblado" : "transcrito"} ${pct} %` : "";
+  if (p.dub >= 0.97) return el("div", { class: "stage-bar done" }, el("span", {}, icon("check"), translatesV(v) ? t("Listo en {lang}", { lang: langName(targetLang()) }) : t("Transcrito")));
+  if (j?.state === "descargado" && !pct) return el("div", { class: "stage-bar" }, el("span", { text: translatesV(v) ? t("Descargado, sin traducir") : t("Descargado, sin transcribir") }));
+  const label = j?.state === "procesando" ? t("procesando · {pct} %", { pct })
+    : j?.state === "en cola" ? t("en cola · {pct} %", { pct }) : pct ? (translatesV(v) ? t("doblado {pct} %", { pct }) : t("transcrito {pct} %", { pct })) : "";
   if (!label) return null;
   return el("div", { class: "stage-bar" + (j?.state === "procesando" ? " run" : "") }, meter(pct), el("span", { text: cap(label) }));
 }
@@ -554,7 +558,7 @@ function hoverPreview(thumb, v) {
 function card(v, coll, i) {
   const pct = v.duration ? Math.min(100, (v.position || 0) / v.duration * 100) : 0;
   const pending = pendingText(v);
-  const pick = el("input", { type: "checkbox", class: "pick", "aria-label": "Seleccionar", checked: lib.picked.has(v.id),
+  const pick = el("input", { type: "checkbox", class: "pick", "aria-label": t("Seleccionar"), checked: lib.picked.has(v.id),
     on: { change: (e) => {
       if (e.target.checked) lib.picked.add(v.id); else lib.picked.delete(v.id);
       renderLibrary();
@@ -566,40 +570,50 @@ function card(v, coll, i) {
     setContext({ name: coll.name, coll: coll.id, auto: coll.kind === "playlist" });
     playItem(v.id);
   };
-  const thumb = el("div", { class: "thumb" + (canOpen ? " open" : ""), title: canOpen ? "Ver" : "La copia del archivo aún no está en la biblioteca",
+  const thumb = el("div", { class: "thumb" + (canOpen ? " open" : ""), title: canOpen ? t("Ver") : t("La copia del archivo aún no está en la biblioteca"),
     on: { click: open, mouseenter: () => hoverPreview(thumb, v), mouseleave: () => hoverPreview(null) } }, pick,
     v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : patternEl(v.id, "fill", 8, 4.5),
     coll.kind === "playlist" ? el("span", { class: "chip solid num", text: String(i + 1) }) : null,
     pending ? el("span", { class: "pending-dl", text: cap(pending) }) : null,
     // abajo a la derecha: el idioma en que se habla (EN, PT…) y la duración
     v.lang || v.duration ? el("span", { class: "tchips" },
-      v.lang ? el("span", { class: "chip lang", text: v.lang.toUpperCase(), title: `En ${langName(v.lang)}` }) : null,
+      v.lang ? el("span", { class: "chip lang", text: v.lang.toUpperCase(), title: t("En {lang}", { lang: langName(v.lang) }) }) : null,
       v.duration ? el("span", { class: "chip dur", text: fmtDur(v.duration) }) : null) : null,
-    v.audio_only ? el("span", { class: "chip aud", title: "Solo se descargó el audio" }, icon("music"), "Solo audio") : null,
+    v.audio_only ? el("span", { class: "chip aud", title: t("Solo se descargó el audio") }, icon("music"), t("Solo audio")) : null,
     pct > 1 ? el("div", { class: "prog" }, Object.assign(el("i"), { style: `width:${pct}%` })) : null,
     v.media ? progressRing(jobOf(v.id) && jobOf(v.id).state !== "listo" ? jobOf(v.id) : v.progress) : null,
     canOpen ? playDisc(downloadPct(v)) : null);
-  const sub = [v.channel, { youtube: "YouTube", link: "Dropbox" }[v.source] || "archivo"].filter(Boolean).join(" · ");
+  const sub = [v.channel, { youtube: "YouTube", link: "Dropbox" }[v.source] || t("archivo")].filter(Boolean).join(" · ");
   const job = jobOf(v.id);
   const acts = [
-    // «Ver» primero; luego lo que se puede hacer según su estado; a la derecha, exportar
-    canOpen ? (canDownload(v) ? watchSplit(v, open) : btn(v.position > 5 ? "Continuar" : "Ver", { icon: "play", variant: "dark", onClick: open })) : null,
-    canProcess(v) ? btn("Procesar", { icon: "spark", variant: "ghost", cls: "import-only", title: "Traducir y doblar en segundo plano",
+    // sin «Ver» ni «Continuar»: toda la tarjeta lo abre (como en las plataformas de video); aquí, lo que se puede
+    // hacer según su estado y, a la derecha, exportar
+    canDownload(v) ? btn(t("Descargar sin abrir"), { icon: "download", variant: "ghost", cls: "icon", title: t("Descargar sin abrir"),
+      onClick: () => downloadOnly(v) }) : null,
+    canProcess(v) ? btn(t("Procesar"), { icon: "spark", variant: "ghost", cls: "import-only", title: t("Traducir y doblar en segundo plano"),
       onClick: () => send({ type: "queue_add", video: v.id }) }) : null,
-    v.audio_only && isRemote(v) ? btn(fetchLabel(job) || "Descargar video", { icon: "film", variant: "ghost", cls: "import-only act-fetch",
+    v.audio_only && isRemote(v) ? btn(fetchLabel(job) || t("Descargar video"), { icon: "film", variant: "ghost", cls: "import-only act-fetch",
       disabled: !!fetchLabel(job),
-      title: "Solo se descargó el audio. Descarga el video completo sin volver a traducirlo",
+      title: t("Solo se descargó el audio. Descarga el video completo sin volver a traducirlo"),
       onClick: () => send({ type: "queue_video", videos: [v.id] }) }) : null,
     el("span", { class: "grow" }),
-    coll.kind === "propia" ? btn("Quitar de la colección", { icon: "x", variant: "ghost", cls: "owner-only icon",
-      title: "Quitar de la colección", onClick: () => send({ type: "coll_toggle", coll: coll.id, video: v.id, on: false }) }) : null,
-    btn("Exportar", { icon: "download", variant: "ghost", cls: "icon", title: "Exportar (video, audio, subtítulos…)", onClick: () => openExport([v.id]) }),
+    // «⋯»: el mismo menú del clic derecho (allí «Quitar de la colección» se lee con su nombre; una «X» sola se
+    // confundía con cancelar un proceso)
+    btn(t("Más opciones"), { icon: "dots", variant: "ghost", cls: "icon", title: t("Más opciones"),
+      onClick: (e) => { e.stopPropagation(); openMenu(videoMenu(v, coll), e.currentTarget.getBoundingClientRect()); } }),
+    btn(t("Exportar"), { icon: "download", variant: "ghost", cls: "icon", title: t("Exportar (video, audio, subtítulos…)"), onClick: () => openExport([v.id]) }),
   ].flat().filter(Boolean);
-  return el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") + (pending ? " pending" : ""),
-    "data-id": v.id, "data-coll": coll.id }, thumb,
+  const card = el("article", { class: "card" + (lib.picked.has(v.id) ? " picked" : "") + (pending ? " pending" : "") + (canOpen ? " open" : ""),
+    "data-id": v.id, "data-coll": coll.id, tabIndex: canOpen ? 0 : null,
+    on: {
+      // un clic en cualquier parte la abre, menos en sus botones y la casilla de selección
+      click: (e) => { if (!e.target.closest("button, a, input, .thumb, h3")) open(e); },
+      keydown: (e) => { if (e.key === "Enter" && e.target === e.currentTarget) open(e); },
+    } }, thumb,
     el("div", { class: "meta" }, el("h3", { class: canOpen ? "open" : "", text: v.title || v.id, on: { click: open } }), el("p", { text: sub })),
     progressBar(v),
     acts.length ? el("div", { class: "actions" }, ...acts) : null);
+  return card;
 }
 
 // centro de la miniatura: reproducir, o un anillo con el avance mientras se descarga
@@ -607,19 +621,14 @@ function card(v, coll, i) {
 const canDownload = (v) => !v.media && isRemote(v) && downloadPct(v) === null && document.body.classList.contains("can-import");
 function downloadOnly(v) {
   send({ type: "queue_add", video: v.id, front: true, download_only: true });
-  toast("Se descargará y quedará en la biblioteca sin abrirse", "ok");
-}
-// «Ver» (se abre al terminar de bajarse) y, al lado, descargarlo sin abrirlo
-function watchSplit(v, open) {
-  return [btn("Ver", { icon: "play", variant: "dark", onClick: open }),
-    btn("Descargar sin abrir", { icon: "download", variant: "ghost", cls: "icon", title: "Descargar sin abrir",
-      onClick: () => downloadOnly(v) })];
+  toast(t("Se descargará y quedará en la biblioteca sin abrirse"), "ok");
 }
 
+// sobre la miniatura solo va el avance de una descarga; el botón de reproducir no (el de abajo ya dice «Ver»)
 function playDisc(dl) {
   return dl === null
-    ? el("span", { class: "play" }, icon("play"))
-    : el("span", { class: "play dl", style: `--p:${dl}`, title: `Descargando ${dl} %` }, el("b", { text: `${dl}%` }));
+    ? null
+    : el("span", { class: "play dl", style: `--p:${dl}`, title: t("Descargando {pct} %", { pct: dl }) }, el("b", { text: `${dl}%` }));
 }
 
 // avance de descarga de un video sin copia (la cola o al abrirlo); null si no se descarga
@@ -647,7 +656,7 @@ function playItem(id) {
   if (isRemote(v)) {
     lib.openWhenReady = id;
     send({ type: "queue_add", video: id, front: true });
-    toast("Se abrirá cuando termine la descarga", "ok");
+    toast(t("Se abrirá cuando termine la descarga"), "ok");
   }
 }
 
@@ -672,9 +681,9 @@ const needsVideo = (v) => !!v && v.audio_only && isRemote(v);
 // texto de un botón que trabaja: «Bajando video 42 %» (o en espera, si aún no empezó)
 function fetchLabel(j) {
   if (!j?.fetch_video) return null;
-  if (!j.dl) return "En espera de descarga";
+  if (!j.dl) return t("En espera de descarga");
   const pct = j.dl.stage === "video" ? Math.round(j.dl.pct * 0.9) : j.dl.stage === "audio" ? 90 + Math.round(j.dl.pct * 0.08) : 99;
-  return `Bajando video ${pct} %`;
+  return t("Bajando video {pct} %", { pct });
 }
 // botón trabajando: con la barra angosta (solo íconos) igual muestra lo corto (el porcentaje)
 function setWorking(b, label) {
@@ -687,7 +696,7 @@ function syncFetchBtn() {
   b.hidden = !needsVideo(v);
   if (b.hidden) return;
   const label = fetchLabel(jobOf(v.id));
-  setBtn(b, label || "Descargar video", "film");
+  setBtn(b, label || t("Descargar video"), "film");
   b.disabled = !!label;
   setWorking(b, label);
 }
@@ -695,16 +704,16 @@ function syncFetchBtn() {
 function syncExportBtn() {
   const b = $("#export-btn");
   const x = state.videoId && lib.exports.find((e) => (e.videos || []).includes(state.videoId) && !["listo", "error"].includes(e.state));
-  const label = x ? (x.state === "exportando" ? `Exportando ${x.pct || 0} %` : "En espera para exportar") : "";
-  setBtn(b, label || "Exportar", "download");
+  const label = x ? (x.state === "exportando" ? t("Exportando {pct} %", { pct: x.pct || 0 }) : t("En espera para exportar")) : "";
+  setBtn(b, label || t("Exportar"), "download");
   b.disabled = !!x;
   setWorking(b, label);
 }
 function fetchVideo(id) {
   send({ type: "queue_video", videos: [id] });
-  toast("Video completo en la cola de descargas. La traducción se conserva.", "ok");
+  toast(t("Video completo en la cola de descargas. La traducción se conserva."), "ok");
   const b = $("#fetch-video");
-  setBtn(b, "En espera de descarga", "film");
+  setBtn(b, t("En espera de descarga"), "film");
   b.disabled = true;
 }
 $("#fetch-video").addEventListener("click", () => state.videoId && fetchVideo(state.videoId));
@@ -718,11 +727,11 @@ function renderUpNext(scroll) {
   const ol = $("#upnext");
   const pl = lib.ctx.coll && lib.collections.find((x) => x.id === lib.ctx.coll)?.kind === "playlist";
   const frag = document.createDocumentFragment();
-  frag.append(el("li", { class: "head", text: (pl ? "Playlist · " : "") + lib.ctx.name }));
+  frag.append(el("li", { class: "head", text: pl ? t("Playlist · {name}", { name: lib.ctx.name }) : lib.ctx.name }));
   items.forEach((id, i) => {
     const v = lib.videos[id];
     const now = id === state.videoId;
-    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? (translatesV(v) ? "Listo en español" : "Transcrito") : "")]
+    const info = [fmtDur(v.duration), cap(pendingText(v)) || (v.progress && v.progress.dub >= 0.97 ? (translatesV(v) ? t("Listo en {lang}", { lang: langName(targetLang()) }) : t("Transcrito")) : "")]
       .filter(Boolean).join(" · ");
     frag.append(el("li", { class: now ? "now" : "", "data-id": id, on: { click: () => { if (!now) playItem(id); } } },
       el("span", { class: "n", text: String(i + 1) }),
@@ -744,7 +753,7 @@ function playNextInContext() {
 
 /* ------------------------------------------------------------ playlists */
 function playlistAdded(m) {
-  toast(`Playlist «${m.name}» agregada: ${m.count} videos a la cola.`, "ok");
+  toast(t("Playlist «{name}» agregada: {n} videos a la cola.", { name: m.name, n: m.count }), "ok");
   lib.sel = m.coll;
   lib.picked.clear();
   if (currentView() !== "player") setView("library");  // viendo un video: no se sale de él
@@ -779,12 +788,12 @@ function queueUpdate(m) {
     if (!p) continue;
     const title = lib.videos[j.id]?.title || j.id;
     // no se pudo bajar (privado, solo para miembros, pide cuenta…): se avisa en vez de quedar callado en la cola
-    if (p.state !== "error" && j.state === "error") toast(`«${title}»: ${j.error || "no se pudo procesar"}`, "warn");
+    if (p.state !== "error" && j.state === "error") toast(t("«{title}»: {error}", { title, error: j.error || t("no se pudo procesar") }), "warn");
     else if (p.state !== "listo" && j.state === "listo") notifyLater("traducidos", title);
     else if (!p.downloaded && j.downloaded) notifyLater("descargados", title);
   }
   const busy = (jobs) => jobs.some((j) => j.state === "en cola" || j.state === "procesando");
-  if (busy(lib.queue.jobs) && !busy(m.jobs) && m.jobs.length) notifyUser("Cola completada", "Se procesaron todos los elementos pendientes.");
+  if (busy(lib.queue.jobs) && !busy(m.jobs) && m.jobs.length) notifyUser(t("Cola completada"), t("Se procesaron todos los elementos pendientes."));
   const before = lib.queue.jobs.map((j) => j.id + j.state + j.downloaded).join();
   lib.queue = m;
   // al terminar o cambiar un trabajo, refrescar el avance de las tarjetas
@@ -822,24 +831,24 @@ function renderQueuePanel() {
   const running = q.jobs.find((j) => j.state === "procesando");
   const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
   const downloading = q.jobs.find((j) => j.dl);
-  $("#queue-state").textContent = cap(blocked ? `descargas en espera · YouTube pidió verificación · ${blocked} min`
+  $("#queue-state").textContent = cap(blocked ? t("descargas en espera · YouTube pidió verificación · {n} min", { n: blocked })
     : q.paused
-    ? (running && running.watching ? "cola detenida · procesando el video actual" : "cola detenida")
-    : running ? "procesando" : downloading ? (q.careful ? "descargando · modo cuidadoso" : "descargando")
-    : state.power === "cargando" ? "preparando los modelos"
-    : active.length ? "en espera" : "sin trabajos");
-  setBtn($("#queue-toggle"), q.paused ? "Continuar todo" : "Detener todo", q.paused ? "resume" : "stop");
-  $("#queue-toggle").title = q.paused ? "Reanudar las descargas y el procesamiento de la cola" : "Detener las descargas y el procesamiento de la cola";
+    ? (running && running.watching ? t("cola detenida · procesando el video actual") : t("cola detenida"))
+    : running ? t("procesando") : downloading ? (q.careful ? t("descargando · modo cuidadoso") : t("descargando"))
+    : state.power === "cargando" ? t("preparando los modelos")
+    : active.length ? t("en espera") : t("sin trabajos"));
+  setBtn($("#queue-toggle"), q.paused ? t("Continuar todo") : t("Detener todo"), q.paused ? "resume" : "stop");
+  $("#queue-toggle").title = q.paused ? t("Reanudar las descargas y el procesamiento de la cola") : t("Detener las descargas y el procesamiento de la cola");
   $("#queue-clear").hidden = !q.jobs.some((j) => j.state === "listo" || j.state === "error" || j.state === "descargado")
     && !lib.exports.some((x) => x.state === "listo" || x.state === "error");
   const ul = $("#queue-list");
   ul.replaceChildren();
   // exportaciones
-  if (lib.exports.length) ul.append(el("li", { class: "qsec", text: "Exportar" }));
+  if (lib.exports.length) ul.append(el("li", { class: "qsec", text: t("Exportar") }));
   for (const x of lib.exports) ul.append(exportItem(x));
   // descargas de YouTube en curso (al abrir un enlace): cada etapa visible
   const downloads = Object.values(state.downloads);
-  if (lib.exports.length && (downloads.length || q.jobs.length)) ul.append(el("li", { class: "qsec", text: "Traducir" }));
+  if (lib.exports.length && (downloads.length || q.jobs.length)) ul.append(el("li", { class: "qsec", text: t("Traducir") }));
   for (const d of downloads) {
     const idx = DOWNLOAD_STEPS.findIndex(([k]) => k === d.stage);
     const steps = el("div", { class: "steps" }, ...DOWNLOAD_STEPS.map(([k, text], i) =>
@@ -848,20 +857,20 @@ function renderQueuePanel() {
     ul.append(el("li", { class: "qitem run" },
       el("div", { class: "qthumb" }),
       el("div", { class: "qbody" },
-        el("strong", { text: d.title || "Video de YouTube" }),
+        el("strong", { text: d.title || t("Video de YouTube") }),
         steps,
         meter(pct),
         el("small", { text: downloadText(d) })),
       el("div", { class: "qactions" })));
   }
-  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(qEmpty("queue", "No hay nada en la cola",
-    "Los videos que importes en esta biblioteca aparecerán aquí con su progreso."));
+  if (!mine.length && !downloads.length && !lib.exports.length) ul.append(qEmpty("queue", t("No hay nada en la cola"),
+    t("Los videos que importes en esta biblioteca aparecerán aquí con su progreso.")));
   // los trabajos, en orden de estado (lo que se descarga, primero); el resto en la pantalla de la Cola
   const jobs = orderedJobs(null, mine);
   for (const j of jobs.slice(0, 50)) ul.append(jobItem(j));
-  if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: `Y ${jobs.length - 50} más en «Ver todo»` }));
+  if (jobs.length > 50) ul.append(el("li", { class: "empty-row", text: t("Y {n} más en «Ver todo»", { n: jobs.length - 50 }) }));
   const others = q.jobs.length - mine.length;
-  if (others > 0) ul.append(el("li", { class: "empty-row" }, btn(`${others} en otras bibliotecas`, { size: "xs", variant: "ghost",
+  if (others > 0) ul.append(el("li", { class: "empty-row" }, btn(t("{n} en otras bibliotecas", { n: others }), { size: "xs", variant: "ghost",
     icon: "queue", onClick: () => { closeQueue(); lib.qlib = "all"; setView("queue"); } })));
   if (currentView() === "queue") renderQueueScreen();
   syncFetchBtn();
@@ -882,17 +891,17 @@ function jobLabel(j, v) {
   const q = lib.queue;
   const dl = !j.downloaded && j.state !== "listo" && j.state !== "error";
   const pct = dl ? (j.dl?.pct || 0) : Math.round(j.dub * 100);
-  const label = j.held && !j.watching && j.state !== "listo" && j.state !== "error" ? `detenido${pct ? ` · ${pct} %` : ""}`
-    : j.fetch_video && !j.dl ? (q.blocked_until ? "video en espera · YouTube pidió verificación" : "en espera de descarga del video")
-    : j.state === "listo" ? "listo"
-    : j.state === "error" ? "error"
-    : j.state === "descargado" ? (transcribeMode() ? "descargado · sin transcribir" : "descargado · sin traducir")
+  const label = j.held && !j.watching && j.state !== "listo" && j.state !== "error" ? (pct ? t("detenido · {pct} %", { pct }) : t("detenido"))
+    : j.fetch_video && !j.dl ? (q.blocked_until ? t("video en espera · YouTube pidió verificación") : t("en espera de descarga del video"))
+    : j.state === "listo" ? t("listo")
+    : j.state === "error" ? t("error")
+    : j.state === "descargado" ? (transcribeMode() ? t("descargado · sin transcribir") : t("descargado · sin traducir"))
     : j.dl ? dlText(j.dl)
-    : dl && j.retry_at ? "error de descarga · se reintentará en unos minutos"
-    : dl && q.blocked_until ? "en espera · YouTube pidió verificación"
-    : dl ? pendingText(v) || "sin descargar"
-    : j.state === "procesando" ? `procesando · ${pct} %`
-    : j.prio ? "siguiente" : "en espera";
+    : dl && j.retry_at ? t("error de descarga · se reintentará en unos minutos")
+    : dl && q.blocked_until ? t("en espera · YouTube pidió verificación")
+    : dl ? pendingText(v) || t("sin descargar")
+    : j.state === "procesando" ? t("procesando · {pct} %", { pct })
+    : j.prio ? t("siguiente") : t("en espera");
   return { pct, text: cap(j.error || label) };
 }
 
@@ -919,27 +928,28 @@ function jobItem(j) {
   return el("li", { class: "qitem" + (j.state === "procesando" || j.dl ? " run" : "") + (j.held ? " held" : ""), "data-id": j.id },
     el("div", { class: "qthumb" }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
     el("div", { class: "qbody" },
-      el("strong", { text: v.title || j.id, class: canOpen ? "open" : "", title: canOpen ? "Abrir el video" : null,
+      el("strong", { text: v.title || j.id, class: canOpen ? "open" : "", title: canOpen ? t("Abrir el video") : null,
         on: canOpen ? { click: () => openJob(j, v) } : {} }),
       meter(pct),
       el("small", {}, away ? vaultBadge(away, "xs") : null, away ? `${away.name} · ${text}` : text)),
     el("div", { class: "qactions" },
-      j.state === "descargado" ? btn("Procesar", { icon: "spark", size: "xs", cls: "import-only", title: "Traducir y doblar",
+      j.state === "descargado" ? btn(t("Procesar"), { icon: "spark", size: "xs", cls: "import-only", title: t("Traducir y doblar"),
         onClick: () => send({ type: "queue_add", video: j.id }) }) : null,
-      jobActive(j) && !j.watching ? btn(j.held ? "Continuar" : "Detener", { icon: j.held ? "resume" : "stop", size: "xs", cls: "owner-only",
-        title: j.held ? "Reanudar la descarga y el procesamiento de este video" : "Detener la descarga y el procesamiento de este video",
+      jobActive(j) && !j.watching ? btn(j.held ? t("Continuar") : t("Detener"), { icon: j.held ? "resume" : "stop", size: "xs", cls: "owner-only",
+        title: j.held ? t("Reanudar la descarga y el procesamiento de este video") : t("Detener la descarga y el procesamiento de este video"),
         onClick: () => send({ type: "queue_hold", video: j.id, held: !j.held }) }) : null,
-      j.state === "en cola" && !j.prio && !j.watching ? btn("Priorizar", { icon: "first", size: "xs", cls: "import-only",
-        title: "Pasar este video al primer lugar de la cola", onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
-      btn("Quitar de la cola", { icon: "x", variant: "ghost", size: "xs", cls: "owner-only", title: "Quitar de la cola",
+      j.state === "en cola" && !j.prio && !j.watching ? btn(t("Priorizar"), { icon: "first", size: "xs", cls: "import-only",
+        title: t("Pasar este video al primer lugar de la cola"), onClick: () => send({ type: "queue_add", video: j.id, front: true }) }) : null,
+      btn(t("Quitar de la cola"), { icon: "x", variant: "ghost", size: "xs", cls: "owner-only", title: t("Quitar de la cola"),
         onClick: () => send({ type: "queue_remove", video: j.id }) })));
 }
 
 /* ------------------------------------------------------------ pantalla de la Cola */
 // Como la página de descargas del navegador: estados a la izquierda (con su cantidad)
 // y la lista a la derecha, de a 100. El avance se actualiza en su lugar (sin perder clics).
-const QSECTIONS = [["todo", "Todo"], ["descargando", "Descargando"], ["procesando", "Procesando"],
-  ["en cola", "En cola"], ["descargado", "Descargados sin procesar"], ["error", "Con error"], ["listo", "Listos"]];
+const QSECTIONS = [["todo", t("Todo")], ["descargando", t("Descargando")], ["procesando", t("Procesando")],
+  ["en cola", t("En cola")], ["descargado", t("Descargados sin procesar")], ["error", t("Con error")], ["listo", t("Listos")]];
+i18nTrack(QSECTIONS);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 lib.qsec = "todo";
 lib.qlimit = 100;
 
@@ -955,29 +965,29 @@ function renderQueueScreen() {
   const navSig = JSON.stringify([lib.qsec, counts, lib.exports.length, lib.qlib, vaults.current, libCounts]);
   if (nav.dataset.sig !== navSig) {
     nav.dataset.sig = navSig;
-    nav.replaceChildren(el("h4", { text: "Cola" }), ...QSECTIONS.filter(([k]) => k === "todo" || counts[k]).map(([k, t]) =>
+    nav.replaceChildren(el("h4", { text: t("Cola") }), ...QSECTIONS.filter(([k]) => k === "todo" || counts[k]).map(([k, name]) =>
       el("button", { type: "button", class: "item" + (lib.qsec === k ? " active" : ""),
         on: { click: () => { lib.qsec = k; lib.qlimit = 100; renderQueueScreen(); } } },
-        el("span", { text: t }), el("span", { text: String(counts[k]) }))));
+        el("span", { text: name }), el("span", { text: String(counts[k]) }))));
     if (multi) {  // de qué biblioteca: la abierta (por defecto), otra o todas
       const cur = lib.qlib || vaults.current;
       const pick = (id) => { lib.qlib = id === vaults.current ? null : id; lib.qlimit = 100; $("#qlist").dataset.sig = ""; renderQueueScreen(); };
-      nav.append(el("h4", { text: "Bibliotecas" }),
+      nav.append(el("h4", { text: t("Bibliotecas") }),
         ...vaults.list.map((v, i) => el("button", { type: "button", class: "item" + (cur === v.id ? " active" : ""), on: { click: () => pick(v.id) } },
           el("span", {}, vaultBadge(v, "xs"), v.name), el("span", { text: String(libCounts[i]) }))),
         el("button", { type: "button", class: "item" + (cur === "all" ? " active" : ""), on: { click: () => pick("all") } },
-          el("span", { text: "Todas" }), el("span", { text: String(q.jobs.length) })));
+          el("span", { text: t("Todas") }), el("span", { text: String(q.jobs.length) })));
     }
     if (lib.exports.length || lib.qsec === "exportar") {  // la sección abierta no desaparece al vaciarse
-      nav.append(el("h4", { text: "Exportar" }), el("button", { type: "button", class: "item" + (lib.qsec === "exportar" ? " active" : ""),
+      nav.append(el("h4", { text: t("Exportar") }), el("button", { type: "button", class: "item" + (lib.qsec === "exportar" ? " active" : ""),
         on: { click: () => { lib.qsec = "exportar"; renderQueueScreen(); } } },
-        el("span", { text: "Exportaciones" }), el("span", { text: String(lib.exports.length) })));
+        el("span", { text: t("Exportaciones") }), el("span", { text: String(lib.exports.length) })));
     }
   }
   // encabezado: estado y acciones generales
   const blocked = q.blocked_until ? Math.max(1, Math.ceil((q.blocked_until * 1000 - Date.now()) / 60000)) : 0;
   const head = $("#qhead");
-  const title = (QSECTIONS.find(([k]) => k === lib.qsec) || [, "Exportaciones"])[1];
+  const title = (QSECTIONS.find(([k]) => k === lib.qsec) || [, t("Exportaciones")])[1];
   const headSig = JSON.stringify([title, q.paused, blocked, $("#queue-state").textContent, counts.listo + counts.error + counts.descargado]);
   if (head.dataset.sig !== headSig) {
     head.dataset.sig = headSig;
@@ -985,11 +995,11 @@ function renderQueueScreen() {
       el("h2", { text: title }),
       el("span", { class: "label", text: $("#queue-state").textContent }),
       el("div", { class: "acts owner-only" },
-        btn(q.paused ? "Continuar todo" : "Detener todo", { icon: q.paused ? "resume" : "stop",
-          title: q.paused ? "Reanudar las descargas y el procesamiento de la cola" : "Detener las descargas y el procesamiento de la cola",
+        btn(q.paused ? t("Continuar todo") : t("Detener todo"), { icon: q.paused ? "resume" : "stop",
+          title: q.paused ? t("Reanudar las descargas y el procesamiento de la cola") : t("Detener las descargas y el procesamiento de la cola"),
           onClick: () => send({ type: q.paused ? "queue_resume" : "queue_pause" }) }),
-        blocked ? btn("Reintentar descargas", { icon: "download", onClick: () => send({ type: "queue_unblock" }) }) : null,
-        counts.listo + counts.error + counts.descargado ? btn("Limpiar terminados", { icon: "check", variant: "ghost",
+        blocked ? btn(t("Reintentar descargas"), { icon: "download", onClick: () => send({ type: "queue_unblock" }) }) : null,
+        counts.listo + counts.error + counts.descargado ? btn(t("Limpiar terminados"), { icon: "check", variant: "ghost",
           onClick: () => $("#queue-clear").click() }) : null));
   }
   // lista
@@ -997,8 +1007,8 @@ function renderQueueScreen() {
   if (lib.qsec === "exportar") {
     ul.dataset.sig = "exportar";  // distinta de cualquier lista de la cola (también de la vacía)
     ul.replaceChildren(...lib.exports.map(exportItem));  // con sus botones (una copia no los traería)
-    if (!lib.exports.length) ul.append(qEmpty("download", "No hay exportaciones en curso",
-      "Exporta un video, una colección o una selección para ver su progreso aquí."));
+    if (!lib.exports.length) ul.append(qEmpty("download", t("No hay exportaciones en curso"),
+      t("Exporta un video, una colección o una selección para ver su progreso aquí.")));
     return;
   }
   const jobs = orderedJobs(lib.qsec === "todo" ? null : lib.qsec);
@@ -1018,10 +1028,10 @@ function renderQueueScreen() {
   ul.dataset.sig = sig;
   ul.replaceChildren(...shown.map(jobItem));
   if (!shown.length) ul.append(lib.qsec === "todo"
-    ? qEmpty("queue", "No hay nada en la cola", "Los videos que importes para traducir o descargar aparecerán aquí con su progreso.")
-    : qEmpty("queue", "Sin elementos", "Los videos en este estado aparecerán aquí."));
+    ? qEmpty("queue", t("No hay nada en la cola"), t("Los videos que importes para traducir o descargar aparecerán aquí con su progreso."))
+    : qEmpty("queue", t("Sin elementos"), t("Los videos en este estado aparecerán aquí.")));
   if (jobs.length > shown.length) {
-    ul.append(el("li", { class: "empty-row" }, btn(`Mostrar más (${jobs.length - shown.length})`, {
+    ul.append(el("li", { class: "empty-row" }, btn(t("Mostrar más ({n})", { n: jobs.length - shown.length }), {
       icon: "plus", onClick: () => { lib.qlimit += 100; renderQueueScreen(); } })));
   }
 }
@@ -1061,15 +1071,23 @@ function openExport(ids, name = "", coll = null) {
   if (!exportVideos.length) return;
   const one = exportVideos.length === 1;
   const first = lib.videos[exportVideos[0]];
-  $("#export-title").textContent = one ? first.title || first.id : name || `${exportVideos.length} videos`;
-  $("#export-sub").textContent = one ? "" : `${exportVideos.length} videos · ${exportToFolder() ? "en una carpeta" : "un archivo .zip"}`;
+  $("#export-title").textContent = one ? first.title || first.id : name || t("{n} videos", { n: exportVideos.length });
+  $("#export-sub").textContent = one ? "" : exportToFolder() ? t("{n} videos · en una carpeta", { n: exportVideos.length }) : t("{n} videos · un archivo .zip", { n: exportVideos.length });
   $("#export-form").dataset.name = one ? "" : name || "videos";
+  // la miniatura de lo que se exporta (la del primero; con varios, cuántos son en una esquina)
+  const thumb = $("#export-thumb");
+  thumb.replaceChildren(first.thumb ? el("img", { src: first.thumb, alt: "" }) : patternEl(first.id, "fill", 8, 4.5));
+  thumb.classList.toggle("many", !one);
+  thumb.dataset.n = one ? "" : String(exportVideos.length);
   updateExportNote();
   $("#export-dlg").showModal();
 }
 function updateExportNote() {
   const kinds = [...$("#export-form").querySelectorAll("input[name=kind]:checked")].map((x) => x.value);
   $("#export-go").disabled = !kinds.length;
+  // el botón dice cuántos archivos salen (con varios videos, van en una carpeta o un .zip)
+  const files = kinds.length * Math.max(1, exportVideos.length);
+  setBtn($("#export-go"), files === 1 ? t("Exportar 1 archivo") : t("Exportar {n} archivos", { n: files }), "download");
   $("#export-audio").hidden = !kinds.some((k) => k.endsWith("_audio"));
   $("#export-video").hidden = !kinds.some((k) => k.endsWith("_video"));
   $("#export-dest").hidden = !(state.access?.local && state.access?.owner);  // una carpeta de este equipo
@@ -1082,21 +1100,21 @@ function updateExportNote() {
   const needText = !needDub && kinds.some((k) => TEXT_KINDS.includes(k))
     ? vs.filter((v) => !(v.progress && v.progress.asr >= 0.99)).length : 0;
   const parts = [];
-  if (needDl) parts.push(exportVideos.length === 1 ? "se descarga primero" : `${needDl} se descargan primero`);
+  if (needDl) parts.push(exportVideos.length === 1 ? t("se descarga primero") : t("{n} se descargan primero", { n: needDl }));
   const audioOnly = kinds.some((k) => k.endsWith("_video")) ? vs.filter((v) => v.audio_only).length : 0;
-  if (audioOnly) parts.push(exportVideos.length === 1 ? "se descargará primero el video completo"
-    : `${audioOnly} sin video completo se descargarán primero`);
-  if (needText) parts.push(exportVideos.length === 1 ? "se exportará al terminar la transcripción"
-    : `${needText} se exportarán al terminar la transcripción`);
-  if (needDub) parts.push(exportVideos.length === 1 ? "se exportará al terminar el doblaje"
-    : `${needDub} se exportarán al terminar el doblaje`);
+  if (audioOnly) parts.push(exportVideos.length === 1 ? t("se descargará primero el video completo")
+    : t("{n} sin video completo se descargarán primero", { n: audioOnly }));
+  if (needText) parts.push(exportVideos.length === 1 ? t("se exportará al terminar la transcripción")
+    : t("{n} se exportarán al terminar la transcripción", { n: needText }));
+  if (needDub) parts.push(exportVideos.length === 1 ? t("se exportará al terminar el doblaje")
+    : t("{n} se exportarán al terminar el doblaje", { n: needDub }));
   const needSum = kinds.includes("summary") ? vs.filter((v) => !v.summarized).length : 0;
-  if (needSum) parts.push(exportVideos.length === 1 ? "se generará el resumen antes de exportar"
-    : `${needSum} sin resumen se resumirán antes de exportar`);
+  if (needSum) parts.push(exportVideos.length === 1 ? t("se generará el resumen antes de exportar")
+    : t("{n} sin resumen se resumirán antes de exportar", { n: needSum }));
   // lo que más se achica con la calidad: el audio suelto (≈ kbps × 0,45 MB por hora)
   const nAudio = kinds.filter((k) => k.endsWith("_audio")).length;
   const secs = vs.reduce((n, v) => n + (v.duration || 0), 0);
-  if (nAudio && secs) parts.push(`audio ≈ ${fmtBytes(nAudio * secs * AUDIO_KBPS[exportAudio][exportQuality] * 125)}`);
+  if (nAudio && secs) parts.push(t("audio ≈ {size}", { size: fmtBytes(nAudio * secs * AUDIO_KBPS[exportAudio][exportQuality] * 125) }));
   $("#export-note").textContent = parts.join(" · ");
   $("#export-note").textContent = $("#export-note").textContent.replace(/^./, (c) => c.toUpperCase());
 }
@@ -1117,11 +1135,11 @@ function syncExportOpts() {
   const folder = $("#export-dest-folder");
   // la carpeta fija (Ajustes › Exportar): sus dos últimas partes (la ruta entera al pasar el mouse)
   const dir = prefs.export_dir || "";
-  setBtn(folder, dir ? shortPath(dir) : "Elegir carpeta", "folder");
+  setBtn(folder, dir ? shortPath(dir) : t("Elegir carpeta"), "folder");
   folder.title = dir;
   seg("#export-dest", "dest", prefs.export_ask === "carpeta" && dir ? "folder" : "ask");
   // a una carpeta, varios archivos van sueltos (sin .zip), en una carpeta con el nombre de lo exportado
-  if (exportVideos.length > 1) $("#export-sub").textContent = `${exportVideos.length} videos · ${exportToFolder() ? "en una carpeta" : "un archivo .zip"}`;
+  if (exportVideos.length > 1) $("#export-sub").textContent = exportToFolder() ? t("{n} videos · en una carpeta", { n: exportVideos.length }) : t("{n} videos · un archivo .zip", { n: exportVideos.length });
   updateExportNote();
 }
 // dónde guardar (solo el dueño, en este equipo): preguntar con el cuadro de Windows al exportar o la carpeta
@@ -1194,14 +1212,15 @@ function exportsUpdate(m) {
     if (x.state === "listo" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
       lib.delivered.add(x.id);
       if (!x.path) download(x);
-      toast(x.skipped ? `Exportación lista: ${x.name} · ${x.skipped} no se pudo exportar${x.skipped > 1 ? "n" : ""} (ver omitidos.txt)`
-        : `Exportación lista: ${x.name}`, "ok", x.path ? { label: "Mostrar en el Explorador", onClick: () => revealExport(x) } : undefined);
-      notifyUser("Exportación lista", x.name);
+      toast(x.skipped ? (x.skipped === 1 ? t("Exportación lista: {name} · 1 no se pudo exportar (ver omitidos.txt)", { name: x.name })
+          : t("Exportación lista: {name} · {n} no se pudieron exportar (ver omitidos.txt)", { name: x.name, n: x.skipped }))
+        : t("Exportación lista: {name}", { name: x.name }), "ok", x.path ? { label: t("Mostrar en el Explorador"), onClick: () => revealExport(x) } : undefined);
+      notifyUser(t("Exportación lista"), x.name);
     }
     if (x.state === "error" && lib.mine.has(x.id) && !lib.delivered.has(x.id)) {
       lib.delivered.add(x.id);
-      toast(`No se pudo exportar «${x.name}»: ${x.error}`);
-      notifyUser("No se pudo exportar", x.name);
+      toast(t("No se pudo exportar «{name}»: {error}", { name: x.name, error: x.error }));
+      notifyUser(t("No se pudo exportar"), x.name);
     }
   }
   renderQueuePanel();
@@ -1226,7 +1245,7 @@ function renderSaveList() {
       on: { change: (e) => send({ type: "coll_toggle", coll: c.id, video: state.videoId, on: e.target.checked }) } });
     ul.append(el("li", {}, el("label", {}, box, el("span", { text: c.name }))));
   }
-  if (!own.length) ul.append(emptyState("bookmark", "Aún no tienes colecciones", "Escribe un nombre abajo para crear la primera.", "li"));
+  if (!own.length) ul.append(emptyState("bookmark", t("Aún no tienes colecciones"), t("Escribe un nombre abajo para crear la primera."), "li"));
 }
 function openSave() { renderSaveList(); $("#save-pop").hidden = false; }
 function closeSave() { $("#save-pop").hidden = true; }
@@ -1369,34 +1388,34 @@ function renderSearch() {
   const lines = m.total;
   const head = $("#shelf-head");
   head.classList.remove("has-banner");
-  const count = [found.videos.length && `${found.videos.length} ${found.videos.length === 1 ? "video" : "videos"}`,
-    lines && `${lines} ${lines === 1 ? "frase" : "frases"}`,
-    found.colls.length && `${found.colls.length} ${found.colls.length === 1 ? "colección" : "colecciones"}`].filter(Boolean).join(" · ");
+  const count = [found.videos.length && (found.videos.length === 1 ? t("1 video") : t("{n} videos", { n: found.videos.length })),
+    lines && (lines === 1 ? t("1 frase") : t("{n} frases", { n: lines })),
+    found.colls.length && (found.colls.length === 1 ? t("1 colección") : t("{n} colecciones", { n: found.colls.length }))].filter(Boolean).join(" · ");
   head.replaceChildren(
-    el("h2", { text: `Resultados para «${m.q}»` }),
-    el("span", { class: "label", text: count || "sin coincidencias" }),
-    el("div", { class: "acts" }, btn("Cerrar búsqueda", { icon: "x", variant: "ghost", onClick: () => closeSearch(true) })));
+    el("h2", { text: t("Resultados para «{q}»", { q: m.q }) }),
+    el("span", { class: "label", text: count || t("sin coincidencias") }),
+    el("div", { class: "acts" }, btn(t("Cerrar búsqueda"), { icon: "x", variant: "ghost", onClick: () => closeSearch(true) })));
   const grid = $("#grid");
   grid.classList.add("results");
   grid.replaceChildren();
   if (!m.results.length && !found.videos.length && !found.colls.length) {
-    grid.append(emptyState("search", "Sin coincidencias", "No hay videos, colecciones, canales, transcripciones ni comentarios que coincidan. Prueba con otra palabra."));
+    grid.append(emptyState("search", t("Sin coincidencias"), t("No hay videos, colecciones, canales, transcripciones ni comentarios que coincidan. Prueba con otra palabra.")));
     return;
   }
   const group = (title, ...content) => el("section", { class: "res-group" }, el("h3", { text: title }), ...content);
   if (found.videos.length) {
-    grid.append(group("Videos", el("div", { class: "res-cards" }, ...found.videos.slice(0, 12).map((v, i, all) =>
-      card(v, { id: "", name: `Búsqueda «${m.q}»`, kind: "búsqueda", items: all.map((x) => x.id) }, i)))));
+    grid.append(group(t("Videos"), el("div", { class: "res-cards" }, ...found.videos.slice(0, 12).map((v, i, all) =>
+      card(v, { id: "", name: t("Búsqueda «{q}»", { q: m.q }), kind: "búsqueda", items: all.map((x) => x.id) }, i)))));
   }
   if (found.colls.length) {
-    grid.append(group("Colecciones y canales", el("div", { class: "res-colls" }, ...found.colls.slice(0, 24).map((c) =>
+    grid.append(group(t("Colecciones y canales"), el("div", { class: "res-colls" }, ...found.colls.slice(0, 24).map((c) =>
       el("button", { type: "button", class: "res-coll", on: { click: () => goColl(c.id) } },
         collBadge(c), el("span", { class: "res-coll-name" }, highlight(c.name, m.q)),
-        el("small", { text: `${KIND_NAME[c.kind] || "Colección"} · ${c.items.length} ${c.items.length === 1 ? "video" : "videos"}` }))))));
+        el("small", { text: `${KIND_NAME[c.kind] || t("Colección")} · ${c.items.length === 1 ? t("1 video") : t("{n} videos", { n: c.items.length })}` }))))));
   }
   if (!m.results.length) return;
   const hits = el("div", { class: "res-hits" });
-  grid.append(group("En transcripciones", hits));
+  grid.append(group(t("En transcripciones"), hits));
   for (const r of m.results) {
     const v = lib.videos[r.video];
     if (!v) continue;
@@ -1404,7 +1423,7 @@ function renderSearch() {
       el("div", { class: "qthumb", on: { click: () => openAt(v, r.hits[0].t) } }, v.thumb ? el("img", { src: v.thumb, alt: "", loading: "lazy" }) : null),
       el("div", { class: "hitbody" },
         el("h3", { text: v.title || v.id }),
-        el("ul", {}, ...r.hits.map((h) => el("li", { on: { click: () => openAt(v, h.t) }, title: "Ver desde aquí" },
+        el("ul", {}, ...r.hits.map((h) => el("li", { on: { click: () => openAt(v, h.t) }, title: t("Ver desde aquí") },
           el("span", { class: "chip", text: fmtDur(h.t) }),
           el("div", {},
             el("p", {}, h.field === "en" ? highlight(h.text, m.q) : document.createTextNode(h.text)),
@@ -1414,13 +1433,14 @@ function renderSearch() {
 }
 
 /* Una exportación en la cola (panel y pantalla Cola → Exportaciones) */
+const EXPORT_STATE = { exportando: () => t("exportando"), "en cola": () => t("en cola"), listo: () => t("listo"), error: () => t("error") };
 function exportItem(x) {
   // guardado en una carpeta: dónde quedó (la ruta entera al pasar el mouse; clic derecho, mostrarlo en el Explorador)
-  const where = x.path ? ` · en ${shortPath(x.path.replace(/[\\/][^\\/]*$/, "")) || x.path}` : "";
-  const label = cap(x.state === "listo" ? (x.skipped ? `listo · ${x.skipped} omitido${x.skipped > 1 ? "s" : ""} (ver omitidos.txt)` : "listo") + where
-    : x.state === "error" ? (x.error || "error")
+  const where = x.path ? ` · ${t("en {ruta}", { ruta: shortPath(x.path.replace(/[\\/][^\\/]*$/, "")) || x.path })}` : "";
+  const label = cap(x.state === "listo" ? (x.skipped ? (x.skipped === 1 ? t("listo · 1 omitido (ver omitidos.txt)") : t("listo · {n} omitidos (ver omitidos.txt)", { n: x.skipped })) : t("listo")) + where
+    : x.state === "error" ? (x.error || t("error"))
     // el porcentaje adelante: un título largo lo cortaría en el panel
-    : x.detail ? `${x.state === "exportando" ? `${x.pct} % · ` : ""}${x.detail}` : x.state);
+    : x.detail ? `${x.state === "exportando" ? `${x.pct} % · ` : ""}${x.detail}` : (EXPORT_STATE[x.state]?.() || x.state));
   const done = x.state === "listo" || x.state === "error";
   return el("li", { class: "qitem" + (x.state === "exportando" ? " run" : ""), "data-export": x.id, title: x.path || undefined },
     el("div", { class: "qthumb exp" }, icon(x.count > 1 ? "zip" : "film")),
@@ -1429,7 +1449,7 @@ function exportItem(x) {
       meter(x.pct),
       el("small", { text: label })),
     el("div", { class: "qactions" },
-      x.state === "listo" && !x.path ? btn("Descargar", { icon: "download", size: "xs", onClick: () => download(x) }) : null,
-      btn(done ? "Quitar" : "Cancelar", { icon: "x", variant: "ghost", size: "xs", title: done ? "Quitar" : "Cancelar",
+      x.state === "listo" && !x.path ? btn(t("Descargar"), { icon: "download", size: "xs", onClick: () => download(x) }) : null,
+      btn(done ? t("Quitar") : t("Cancelar"), { icon: "x", variant: "ghost", size: "xs", title: done ? t("Quitar") : t("Cancelar"),
         onClick: () => send({ type: "export_remove", job: x.id }) })));
 }

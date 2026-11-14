@@ -7,7 +7,7 @@
   flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px;
   background: var(--vc, var(--primary)); color: #fff;
 }
-.vbadge svg { width: 13px; height: 13px; stroke-width: 1.7; }
+.vbadge svg { width: 13px; height: 13px; stroke-width: 1.9; }
 .vbadge.lg { width: 40px; height: 40px; border-radius: 12px; }
 .vbadge.lg svg { width: 20px; height: 20px; }
 .vbadge.xs { width: 16px; height: 16px; border-radius: 5px; }
@@ -21,7 +21,13 @@
 .vault-btn .chev { width: 14px; height: 14px; color: var(--fg-muted); }
 .vault-pop { left: 0; right: auto; width: 300px; }
 .vault-pop ul, .move-pop ul { margin: 0; max-height: 320px; }
-#vault-list li { display: flex; align-items: center; gap: 2px; padding-right: 4px; border-radius: var(--r-sm); }
+#vault-list li { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; gap: 2px; padding-right: 4px; border-radius: var(--r-sm); }
+/* el patrón de cada biblioteca asomando en la esquina derecha, como en la pantalla de Bibliotecas */
+#vault-list li .vascii.corner { top: 0; right: 0; bottom: 0; width: 55%; z-index: -1; opacity: .22; transition: opacity .2s;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 80%); mask-image: linear-gradient(to right, transparent, #000 80%); }
+#vault-list li:hover .vascii.corner, #vault-list li.on .vascii.corner { opacity: .6; }
+[data-theme="light"] #vault-list li .vascii.corner { opacity: .18; }
+[data-theme="light"] #vault-list li:hover .vascii.corner, [data-theme="light"] #vault-list li.on .vascii.corner { opacity: .45; }
 #vault-list li:hover { background: var(--surface-2); }
 #vault-list li.on { background: var(--surface-3); }
 #vault-list li .vitem, #vault-list li .vitem:hover { background: none; }
@@ -120,18 +126,81 @@
 .vcards.big .vcard-top { height: 132px; }
 .vcards.big .vcard-top .vbadge.lg { box-shadow: 0 0 0 3px var(--surface); }
 .vcards.big .vcard.new { min-height: 236px; }
+/* la abierta destacada (escena de caracteres en su color) y las demás al lado (patrón en la esquina derecha) */
+.vbadge.md { width: 34px; height: 34px; border-radius: 10px; flex: none; }
+.vbadge.md svg { width: 17px; height: 17px; }
+.vbadge.xl { width: 52px; height: 52px; border-radius: 15px; flex: none; }
+.vbadge.xl svg { width: 26px; height: 26px; }
+.vstage { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); gap: var(--s4); align-items: start; }
+.vascii { position: absolute; margin: 0; pointer-events: none; user-select: none; overflow: hidden; white-space: pre;
+  font: 500 10px/10px var(--mono, "JetBrains Mono", monospace); letter-spacing: 0; color: var(--vc); }
+.vhero { position: relative; isolation: isolate; min-height: 320px; overflow: hidden; border-radius: var(--r-lg); background: var(--surface);
+  cursor: pointer; outline-offset: 2px; }
+.vhero .vascii.fill { inset: 0; opacity: .75;
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 55%); mask-image: linear-gradient(to top, transparent 0, #000 55%); }
+.vhero-info { position: absolute; left: var(--s5); right: var(--s5); bottom: var(--s5); display: flex; align-items: center; gap: var(--s4); }
+.vhero-text { display: grid; gap: 4px; min-width: 0; }
+.vhero-text strong { font: 800 var(--fs-2xl)/1.15 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vhero-text small, .vmini-text small { font: 600 var(--fs-xs)/1.4 var(--font); color: var(--fg-muted); }
+.vhero .vmore { position: absolute; top: var(--s3); right: var(--s3); }
+.vside { display: grid; gap: var(--s2); align-content: start; }
+.vmini { position: relative; isolation: isolate; display: flex; align-items: center; gap: var(--s3); min-height: 64px; padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  overflow: hidden; border: 0; border-radius: var(--r-md); background: var(--surface); color: var(--fg); text-align: left; cursor: pointer;
+  font: inherit; transition: background-color .15s; }
+.vmini:hover, .vhero:hover { background: var(--surface-2); }
+[data-theme="dark"] .vhero, [data-theme="dark"] .vmini:not(.new) { background: var(--bg); }
+[data-theme="dark"] .vhero:hover, [data-theme="dark"] .vmini:not(.new):hover { background: var(--surface-2); }
+.vmini .vascii.corner { top: 0; right: 0; bottom: 0; width: 46%; z-index: -1; opacity: .55;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 75%); mask-image: linear-gradient(to right, transparent, #000 75%); }
+.vmini-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.vmini-text strong { font: 700 var(--fs-body)/1.25 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vmini .vmore { opacity: 0; transition: opacity .15s; }
+.vmini:hover .vmore, .vmini:focus-within .vmore { opacity: 1; }
+.vmini.new { background: transparent; color: var(--fg-muted); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.vmini.new .vnew-ic { width: 34px; height: 34px; margin: 0; border-radius: 10px; }
+.vmini.new strong { font: 700 var(--fs-md)/1.3 var(--font); }
+[data-theme="light"] .vhero, [data-theme="light"] .vmini:not(.new) { background: var(--bg); }
+[data-theme="light"] .vhero:hover, [data-theme="light"] .vmini:not(.new):hover { background: var(--surface-2); }
+[data-theme="light"] .vhero .vascii.fill { opacity: .55; }
+[data-theme="light"] .vmini .vascii.corner { opacity: .45; }
+@media (hover: none) { .vmini .vmore { opacity: 1; } }
+
 @media (max-width: 760px) {
+  .vstage { grid-template-columns: minmax(0, 1fr); }
+  .vhero { min-height: 200px; }
+  .vhero-text strong { font-size: var(--fs-xl); }
   .vault-screen form { padding: var(--s4); }
   .vs-head { flex-wrap: wrap; }
   .vs-head h3 { font-size: var(--fs-xl); }
 }
 
 /* diálogo de biblioteca: vista previa con su banner */
-.vpreview { position: relative; height: 120px; margin: calc(-1 * var(--s6)) calc(-1 * var(--s6)) 0; overflow: hidden; border-radius: var(--r-lg) var(--r-lg) 0 0; }
-.vpreview .vbadge.lg { position: absolute; left: var(--s6); bottom: var(--s4); width: 52px; height: 52px; border-radius: 15px; box-shadow: 0 0 0 3px var(--raised); }
-.vpreview .vbadge.lg svg { width: 26px; height: 26px; }
-.vpreview strong { position: absolute; left: calc(var(--s6) + 64px); bottom: var(--s5); max-width: calc(100% - 120px); padding: 4px 10px; border-radius: var(--r-xs);
-  background: rgba(10, 11, 13, .72); color: #fff; font: 800 var(--fs-lg)/1.2 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vdlg-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
-.vcolor.on { box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--fg-faint); }
-.vicon.on { background: var(--sel); box-shadow: inset 0 0 0 1.5px var(--fg-faint); }
+/* arriba, su escena de caracteres en su color, con el avatar y el nombre; «Otro patrón» y «Al azar» encima */
+#vault-form { position: relative; }
+.vpreview { position: relative; isolation: isolate; height: 132px; margin: calc(-1 * var(--s6)) calc(-1 * var(--s6)) 0; overflow: hidden;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--bg); }
+.vpreview .vascii.fill { inset: 0; opacity: .75; z-index: -1;
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 70%); mask-image: linear-gradient(to top, transparent 0, #000 70%); }
+.vpreview .vbadge.xl { position: absolute; left: var(--s6); bottom: var(--s4); }
+.vpreview strong { position: absolute; left: calc(var(--s6) + 66px); bottom: calc(var(--s4) + 12px); max-width: calc(100% - 120px);
+  color: var(--fg); font: 800 var(--fs-xl)/1.2 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vpreview-acts { position: absolute; top: var(--s3); right: var(--s3); display: flex; gap: var(--s1); }
+.vpreview-acts .btn { background: color-mix(in srgb, var(--bg) 70%, transparent); }
+/* muestras de color: mitad como se ve en claro y mitad en oscuro, partidas en diagonal */
+#vault-colors .vcolor { background: linear-gradient(135deg, var(--vc) 50%, color-mix(in srgb, var(--vc) 45%, #fff) 50%); }
+.vcolor.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--fg); }
+#vault-icons .vicon { background: var(--surface-2); color: var(--fg-muted); }
+#vault-icons .vicon:hover { color: var(--fg); }
+#vault-icons .vicon.on { background: var(--sel); color: var(--fg); box-shadow: none; }
+[data-theme="light"] .vpreview { background: var(--surface-2); }
+[data-theme="light"] .vcolor.on { box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--fg); }
+
+/* Ajustes › Bibliotecas: arriba de cada tarjeta, su escena de caracteres sobre oscuro (como la pantalla de
+   Bibliotecas), no un banner de color plano */
+.vcard-top { overflow: hidden; background: var(--bg); }
+.vcard-top .vascii.fill { inset: 0; opacity: .75;
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 65%); mask-image: linear-gradient(to top, transparent 0, #000 65%); }
+.vcard-top .vbadge.lg { box-shadow: none; }
+.vcard .vcur { background: rgba(40, 40, 40, .7); }
+[data-theme="light"] .vcard-top { background: var(--surface-2); }
+[data-theme="light"] .vcard-top .vascii.fill { opacity: .55; }

@@ -8,6 +8,16 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Agregado
 
+- Idiomas: Translay en español, inglés y portugués. Una sola elección de idioma (Ajustes › Uso › Idioma, por defecto el del sistema; las instalaciones de antes quedan en español) para la interfaz, la traducción y la voz, el agente y los resúmenes; **Traducir a** lo separa para la traducción y el doblaje. Cambiar el idioma se aplica al instante, sin recargar la app.
+- Idiomas: cada video guarda su traducción y su voz doblada por idioma. Al elegir otro idioma vuelve lo que ya estaba hecho en él, y lo que falta se traduce y dobla al abrir el video.
+- Rutas de traducción medidas con FLEURS: inglés → portugués con Opus-MT tc-big en-pt, español → portugués con Opus-MT itc-itc, y español/portugués → inglés con Opus-MT tc-bible roa-eng, preparado desde la publicación oficial como itc-itc.
+- Catálogos de la interfaz (web/i18n/*.json, con el texto en español como clave) para toda la app y los mensajes del servidor; `tools/i18n.py` lista lo que falta y una prueba exige catálogos completos.
+- Agente: un personaje que armas tú, una estrella de puntas redondeadas con su forma, ojos, boca, mejillas y un accesorio (Ajustes › Agente › Avatar, con «Al azar»). Duerme con su modelo apagado, despierta mientras carga, piensa y habla al responder, y salta con corazones al tocarlo. Con el chat vacío está al centro con lo que sabe hacer debajo; con la primera pregunta vuela a su respuesta.
+- Agente: las acciones rápidas (exportar, ir a un momento, subtítulos, guardar, avisos) entienden español, inglés y portugués y responden en el idioma de la app.
+- Pantalla de Bibliotecas: la abierta destacada con su escena de caracteres y las demás en tarjetas compactas con su patrón en la esquina; el menú de bibliotecas también muestra el patrón de cada una.
+- Exportar: un diálogo nuevo con la miniatura del video y tres tarjetas (Video, Audio, Texto) con sus opciones; el botón dice cuántos archivos se van a guardar.
+- Un componente de carrusel para filas de opciones (de a cuatro, con flechas a los lados), usado primero por el creador del agente.
+- Lab `tools/lab/lang_adherence.py`: cuántas veces cada modelo del agente responde en el idioma pedido.
 - Ajustes: una página de inicio con una tarjeta por sección, en cinco bloques (General, Mirar, Videos, Bibliotecas y acceso, Equipo), y una búsqueda que también encuentra las opciones de dentro de cada sección; la barra lateral usa los mismos bloques.
 - Aspecto: escenas animadas hechas de caracteres como fondo de la app (Translay, por defecto, con la onda del logo hablando; fondo marino, atardecer, medusas, arañas, y «Arañas, Shade y Manchita»: arañas con un perrito peludo y una gatita) con los colores del tema, un logo nuevo (una onda de voz y «translay») y JetBrains Mono para el código y los datos técnicos. Los bloques de código siguen el modo claro u oscuro: cada tema de código tiene su versión clara y oscura. Los íconos de los menús giran un poco al pasar el mouse, y el contenido principal tiene la esquina de arriba a la izquierda redondeada, donde se juntan el encabezado y la barra lateral. El encabezado y los paneles son levemente translúcidos, así la escena de fondo se asoma detrás. El texto seleccionado toma el color del tema.
 - Agente: **Uso del equipo** (Ajustes › Agente) define cuánto del equipo toman el resumen y las descripciones: descansan entre pedidos, y en equipos sin tarjeta gráfica también limita los núcleos. Las preguntas siguen a toda velocidad.
@@ -33,6 +43,13 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Cambiado
 
+- Los pedidos del agente, el resumen y la descripción van en inglés con la orden de responder en el idioma de la app, repetida al final de cada pedido: las respuestas en el idioma pedido pasaron de 0–93 % a 93–100 % en los cuatro modelos por defecto y los tres idiomas.
+- Traductor de respaldo: MADLAD-400 3B (Apache-2.0) en vez de NLLB-200 (CC-BY-NC); empata o gana a NLLB en los pares medidos.
+- Las tarjetas de video se abren con un clic en cualquier parte (sin botón «Ver»/«Continuar» ni botón de reproducir sobre la miniatura); «⋯» abre el menú del clic derecho y reemplaza la «X» suelta para quitar de una colección.
+- El título, la descripción y los botones del video van debajo del video. Los diálogos se cierran al hacer clic afuera.
+- Tema oscuro: sin bordes ni grises más claros que el de lo activo; lo elegido con el color de énfasis; lo siguen los diálogos, los campos, las pestañas, el panel de transcripción, los bloques de código y todas las páginas de Ajustes. Los avatares de biblioteca son sólidos; el diálogo de crear o editar biblioteca muestra su escena con «Otro patrón» y «Al azar». Ajustes › Acceso muestra una fila por biblioteca con su acceso en un desplegable.
+- La luz de banner detrás de los encabezados de colecciones y canales es más tenue.
+- El color de énfasis se recuerda en el navegador y se aplica antes de pintar la página (sin botones ni logo en blanco al cargar).
 - Ajustes: la sesión de YouTube pasó a Agregar y descargar, y Uso ahora dice para qué sirve.
 - Color de énfasis: pasteles suaves en claro con el texto en un tono profundo del mismo color (sin texto negro sobre el verde); cada muestra en Ajustes enseña su versión en claro y en oscuro, partidas por una diagonal ondulada.
 - Fondo (antes «Fondo del inicio»): las luces de la miniatura y del color y la galería se reemplazan por las escenas; la imagen propia sigue.
@@ -47,6 +64,9 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Corregido
 
+- Biblioteca de demostración: las tarjetas ya no muestran «Doblado 2 %» (el tiempo cubierto se estira junto con las frases) y cada video demo tiene su propio audio doblado.
+- El reproductor ya no pide una y otra vez un audio doblado que falta (miles de pedidos): un archivo que no existe no se vuelve a pedir y un error de red se reintenta a los pocos segundos.
+- El chat del agente ya no vibra al hacer scroll mientras escribe: solo se actualiza la respuesta en curso.
 - Aspecto: las escenas de fondo usan como máximo el 15 % de un núcleo del procesador en cualquier equipo (celdas más grandes en pantallas grandes, un tope de uso y las posiciones calculadas una vez por cuadro), y se detienen mientras se reproduce un video y cuando usas otra ventana (las dos cosas se pueden desactivar en Ajustes › Apariencia).
 - Aspecto: la escena de fondo se dibuja en su propio hilo, con caracteres ya dibujados y solo donde algo cambió, así la navegación ya no se pone lenta (en pantalla completa llegaba a tomar la mitad del tiempo de la interfaz).
 - Ajustes: la píldora de la opción elegida ahora se desliza a la nueva en todos los grupos de opciones (al redibujar la página, saltaba).

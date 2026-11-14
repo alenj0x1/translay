@@ -8,6 +8,16 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Added
 
+- Languages: Translay in Spanish, English and Portuguese. One choice of language (Settings › Uso › Idioma, the system's by default; existing installs stay in Spanish) for the interface, translation and voice, the agent and summaries; **Traducir a** (Translate into) separates it for translation and dubbing. Changing the language applies at once, without reloading the app.
+- Languages: each video keeps its translation and dubbed voice per language. Choosing another language brings back what was already done in it, and what's missing is translated and dubbed when the video is opened.
+- Translation routes measured on FLEURS: English → Portuguese with Opus-MT tc-big en-pt, Spanish → Portuguese with Opus-MT itc-itc, and Spanish/Portuguese → English with Opus-MT tc-bible roa-eng, prepared from the official release like itc-itc.
+- Interface catalogs (web/i18n/*.json, keyed by the Spanish text) for the whole app and the server's messages; `tools/i18n.py` lists what's missing and a test requires complete catalogs.
+- Agent: a character you build — a rounded star with its shape, eyes, mouth, cheeks and an accessory (Settings › Agente › Avatar, with «Al azar»). It sleeps while its model is off, wakes up while it loads, thinks and talks while answering, and hops with hearts when you tap it. In an empty chat it sits in the middle with what it can do below; with the first question it flies into its answer.
+- Agent: quick actions (export, jump to a moment, subtitles, save, alerts) understand Spanish, English and Portuguese and answer in the app's language.
+- Libraries screen: the open library highlighted with its character scene, the others in compact cards with their pattern in the corner; the libraries menu shows each pattern too.
+- Export: a new dialog with the video's thumbnail and three cards (Video, Audio, Text) holding their options; the button says how many files will be saved.
+- A carousel component for option rows (four per page, arrows on the sides), first used by the agent's creator.
+- Lab `tools/lab/lang_adherence.py`: how often each agent model answers in the requested language.
 - Settings: a home page with a card for each section, in five blocks (General, Watching, Videos, Libraries and access, Computer), and a search that also finds the options inside each section; the sidebar uses the same blocks.
 - Look: animated scenes made of characters as the app's background (Translay, the default, with the logo's wave speaking; seabed, sunset, jellyfish, spiders, and «Arañas, Shade y Manchita»: spiders with a fluffy dog and a kitten) in the theme's colors, a new logo (a voice wave and «translay») and JetBrains Mono for code and technical data. Code blocks follow light and dark mode: each code theme has its light and dark version. Menu icons tilt slightly on hover, and the main content has a rounded top-left corner where the header and the sidebar meet. The header and the panels are slightly see-through, so the background scene shows behind them. Selected text takes the theme's color.
 - Agent: **Uso del equipo** (Settings › Agente) sets how much of the computer the summary and descriptions take: they rest between requests, and on CPU-only computers it also limits the cores. Questions keep full speed.
@@ -33,6 +43,13 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Changed
 
+- Agent, summary and description prompts are in English with an instruction to answer in the app's language, repeated at the end of each request: answers in the requested language went from 0–93 % to 93–100 % across the four default models and three languages.
+- Fallback translator: MADLAD-400 3B (Apache-2.0) instead of NLLB-200 (CC-BY-NC); it ties or beats NLLB on the measured pairs.
+- Video cards open with a click anywhere (no «Ver»/«Continuar» button and no play button over the thumbnail); «⋯» opens the right-click menu, which replaces the lone «X» to remove from a collection.
+- The video's title, description and buttons sit below the video. Dialogs close when clicking outside.
+- Dark theme: no borders and no greys lighter than the active one; chosen options use the accent color; dialogs, fields, tabs, the transcript panel, code blocks and every Settings page follow it. Library avatars are solid; the create/edit library dialog shows the library's scene with «Otro patrón» and «Al azar». Settings › Acceso lists one row per library with its access in a dropdown.
+- Banner light behind collection and channel headers is softer.
+- The accent color is remembered in the browser and applied before the page paints (no white buttons and logo while loading).
 - Settings: the YouTube session moved into Agregar y descargar (Add and download), and Uso now says what it is for.
 - Accent color: soft pastels in light mode with text in a deep tone of the same color (no more black text on green); each swatch in Settings shows its light and dark versions, split by a wavy diagonal.
 - Background (formerly «Fondo del inicio»): the thumbnail and color lights and the gallery are replaced by the scenes; your own image stays.
@@ -47,6 +64,9 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Fixed
 
+- Demo library: cards no longer show «Doblado 2 %» (the covered time is stretched with the sentences), and each demo video has its own dubbed audio.
+- The player no longer requests a missing dubbed audio over and over (thousands of requests); a missing file isn't requested again and a network error retries after a few seconds.
+- The agent's chat no longer jitters when scrolling while it writes: only the answer being written is updated.
 - Look: the background scenes use at most 15 % of one processor core on any computer (larger cells on big screens, a usage cap and positions computed once per frame), and stop while a video plays and while another window is in front (both can be turned off in Settings › Apariencia).
 - Look: the background scene is drawn in its own thread, from pre-drawn characters and only where something changed, so navigating no longer slows down (it took up to half of the interface's time on a full-screen window).
 - Settings: the chosen option's pill now slides to the new one in every option group (redrawing the page used to make it jump).

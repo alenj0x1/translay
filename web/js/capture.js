@@ -25,11 +25,12 @@
 const CAP_DB = "translay-capture";
 // altura y tope de video (kbit/s) a 30 cuadros: los mismos de vt/capture.py (QUALITY)
 const CAP_Q = {
-  alta: { label: "Alta", h: 1080, kbps: 4000 },
-  media: { label: "Media", h: 720, kbps: 2000 },
-  ligera: { label: "Ligera", h: 480, kbps: 900 },
-  audio: { label: "Solo audio", h: 0, kbps: 0 },
+  alta: { label: t("Alta"), h: 1080, kbps: 4000 },
+  media: { label: t("Media"), h: 720, kbps: 2000 },
+  ligera: { label: t("Ligera"), h: 480, kbps: 900 },
+  audio: { label: t("Solo audio"), h: 0, kbps: 0 },
 };
+i18nTrack(CAP_Q);  // al cambiar de idioma, sus textos también cambian (i18n.js)
 const CAP_PART_MS = 1000;
 const CAP_LIVE_KEEP = 600;  // segundos de audio sin confirmar que se guardan para reenviar
 
@@ -91,8 +92,8 @@ function capKbps(out, q, fps) {
 const capAudioKbps = (q) => (q === "audio" ? 96 : 128);
 const capMBperMin = (kbps, q) => ((kbps + capAudioKbps(q)) * 60) / 8 / 1000;
 function fmtMB(mb) {
-  if (mb >= 1000) return `${(mb / 1000).toLocaleString("es", { maximumFractionDigits: 1 })} GB`;
-  return `${mb < 10 ? mb.toLocaleString("es", { maximumFractionDigits: 1 }) : Math.round(mb)} MB`;
+  if (mb >= 1000) return `${(mb / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 1 })} GB`;
+  return `${mb < 10 ? mb.toLocaleString(LOCALE, { maximumFractionDigits: 1 }) : Math.round(mb)} MB`;
 }
 const fmtClock = (s) => {
   s = Math.floor(s);
@@ -289,7 +290,7 @@ async function pickSource() {
     if (DESKTOP) desktopWindow().setFocus().catch(() => {});
     return s;
   } catch (e) {
-    if (e?.name !== "NotAllowedError" && e?.name !== "AbortError") toast("No se pudo compartir la pantalla.");
+    if (e?.name !== "NotAllowedError" && e?.name !== "AbortError") toast(t("No se pudo compartir la pantalla."));
     return null;
   }
 }
@@ -298,7 +299,7 @@ function capStopStream(s) { s?.getTracks().forEach((t) => t.stop()); }
 
 async function openCapture() {
   $("#import-pop").hidden = true;
-  if (capRec.rec) return toast("Ya hay una grabación en curso", "warn");
+  if (capRec.rec) return toast(t("Ya hay una grabación en curso"), "warn");
   const s = await pickSource();
   if (!s) return;
   capUseStream(s);
@@ -337,10 +338,10 @@ function capRender() {
   // pestaña trae únicamente el suyo
   const surface = capUI.stream?.getVideoTracks()[0]?.getSettings?.().displaySurface;
   $("#cap-warn").textContent = !hasAudio
-    ? "Esta fuente no tiene audio y no se puede transcribir. Comparte una pestaña o la pantalla completa con «Compartir audio» activado."
+    ? t("Esta fuente no tiene audio y no se puede transcribir. Comparte una pestaña o la pantalla completa con «Compartir audio» activado.")
     : surface && surface !== "browser"
-      ? "Se graba todo el audio del equipo, incluidas llamadas y notificaciones."
-        + (DESKTOP ? "" : " Para grabar solo un video, comparte su pestaña.")
+      ? (DESKTOP ? t("Se graba todo el audio del equipo, incluidas llamadas y notificaciones.")
+        : t("Se graba todo el audio del equipo, incluidas llamadas y notificaciones. Para grabar solo un video, comparte su pestaña."))
       : "";
   $("#cap-go").disabled = !hasAudio;
   const audioOnly = capOpts.q === "audio";
@@ -351,10 +352,10 @@ function capRender() {
   for (const b of $("#cap-fps").children) b.classList.toggle("on", Number(b.dataset.fps) === capOpts.fps);
   const src = capSrcSize(), crop = capCropPx();
   const out = capOutSize(crop?.w || src.w, crop?.h || src.h, capOpts.q);
-  $("#cap-zone").textContent = !src.w ? "" : crop ? `Zona · ${crop.w} × ${crop.h}` : `Área completa · ${src.w} × ${src.h}`;
+  $("#cap-zone").textContent = !src.w ? "" : crop ? t("Zona · {w} × {h}", { w: crop.w, h: crop.h }) : t("Área completa · {w} × {h}", { w: src.w, h: src.h });
   $("#cap-all").hidden = !crop;
   const mb = capMBperMin(capKbps(out, capOpts.q, capOpts.fps), capOpts.q);
-  $("#cap-size").textContent = (out ? `${out.w} × ${out.h} · ` : "") + `hasta ${fmtMB(mb)} por minuto, ${fmtMB(mb * 60)} por hora`;
+  $("#cap-size").textContent = (out ? `${out.w} × ${out.h} · ` : "") + t("hasta {min} por minuto, {hour} por hora", { min: fmtMB(mb), hour: fmtMB(mb * 60) });
 }
 
 // el video ocupa la caja con «contain»: dónde quedó dibujado
@@ -504,18 +505,19 @@ async function startRecording(stream, crop) {
     rec = new MediaRecorder(new MediaStream(tracks), { mimeType: capMime(audioOnly), videoBitsPerSecond: recKbps * 1000 || undefined, audioBitsPerSecond: 128000 });
   } catch {
     capStopStream(stream);
-    return toast("Este navegador no puede grabar la pantalla.");
+    return toast(t("Este navegador no puede grabar la pantalla."));
   }
   const id = "cap_" + [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
   const when = new Date();
-  const title = `Grabación de pantalla ${when.toLocaleDateString("es", { day: "numeric", month: "short" })} ${when.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`;
+  const title = t("Grabación de pantalla {date} {time}", { date: when.toLocaleDateString(LOCALE, { day: "numeric", month: "short" }),
+    time: when.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }) });
   const record = { id, title, lib: vaults.current || "", q, fps, crop: crop ? [crop.x, crop.y, crop.w, crop.h].join(",") : "",
     sizes: src.w ? [`${src.w}x${src.h}`] : [], parts: 0, ended: false, started: Date.now() };
   try {
     await capPut(record);
   } catch {
     capStopStream(stream);
-    return toast("No se puede guardar la grabación en este navegador (sin espacio o en modo privado).");
+    return toast(t("No se puede guardar la grabación en este navegador (sin espacio o en modo privado)."));
   }
   const track = audioOnly ? null : stream.getVideoTracks()[0] || null;
   Object.assign(capRec, { rec, id, t0: performance.now(), seq: 0, kbps: kbps + capAudioKbps(q), track, mutedAt: 0, record });
@@ -532,7 +534,7 @@ async function startRecording(stream, crop) {
         record.parts = seq + 1;
         await capPut(record);
       } catch {
-        toast("El navegador no tiene espacio suficiente. La grabación se detuvo.");
+        toast(t("El navegador no tiene espacio suficiente. La grabación se detuvo."));
         stopRecording();
         return;
       }
@@ -541,7 +543,7 @@ async function startRecording(stream, crop) {
   };
   // el grabador se cae (la fuente se desconectó de golpe): lo grabado ya está guardado por partes
   rec.onerror = () => {
-    toast("La grabación se interrumpió. Se guardó lo grabado hasta ese momento.", "warn");
+    toast(t("La grabación se interrumpió. Se guardó lo grabado hasta ese momento."), "warn");
     stopRecording();
   };
   rec.onstop = async () => {
@@ -557,7 +559,7 @@ async function startRecording(stream, crop) {
   };
   // «Dejar de compartir» del navegador, o la ventana o el dispositivo que se grababa ya no existe
   stream.getVideoTracks()[0]?.addEventListener("ended", () => {
-    if (capRec.rec?.state === "recording") toast("Se dejó de compartir la fuente. La grabación se guardó.", "ok");
+    if (capRec.rec?.state === "recording") toast(t("Se dejó de compartir la fuente. La grabación se guardó."), "ok");
     stopRecording();
   });
   // sin imagen un rato (ventana minimizada, celular bloqueado o desconectado): se avisa en la barra
@@ -634,8 +636,8 @@ async function capUpload(record) {
     if (e.fatal) {
       u.state = "error";
       capBar();
-      toast(e.message === "perdida" ? "No se encontró la copia de la grabación en el servidor. No se pudo completar."
-        : `No se pudo guardar la grabación. ${e.message}`);
+      toast(e.message === "perdida" ? t("No se encontró la copia de la grabación en el servidor. No se pudo completar.")
+        : t("No se pudo guardar la grabación. {error}", { error: e.message }));
       return;
     }
     // sin conexión: lo grabado sigue en este equipo y se reintenta con espera creciente
@@ -662,7 +664,7 @@ async function capFinish(record, u) {
   if (!r.ok) {
     u.state = "error";
     capBar();
-    toast(r.status === 400 ? "La grabación está vacía y no se guardó" : `${text}.`);
+    toast(r.status === 400 ? t("La grabación está vacía y no se guardó") : `${text}.`);
     if (r.status === 400) await capDrop(record.id).catch(() => {});
     return;
   }
@@ -672,8 +674,8 @@ async function capFinish(record, u) {
   send({ type: "library" });
   if (prefs.import_mode !== "descargar") send({ type: "queue_add", video: record.id });
   capBar();
-  toast(prefs.import_mode !== "descargar" ? "Grabación guardada y agregada a la cola" : "Grabación guardada en la biblioteca", "ok",
-    { label: "Ver", onClick: () => playItem(record.id) });
+  toast(prefs.import_mode !== "descargar" ? t("Grabación guardada y agregada a la cola") : t("Grabación guardada en la biblioteca"), "ok",
+    { label: t("Ver"), onClick: () => playItem(record.id) });
 }
 
 // Al abrir la app: lo que quedó a medias (pestaña cerrada, sin conexión, equipo apagado)
@@ -796,12 +798,12 @@ function capBar() {
     capTrackSize();
     const secs = (performance.now() - capRec.t0) / 1000;
     $("#cap-time").textContent = fmtClock(secs);
-    $("#cap-meta").textContent = noImage ? "La fuente no envía imagen"
-      : offline ? "Sin conexión. Guardando en este equipo" : `hasta ${fmtMB((capRec.kbps * secs) / 8 / 1000)}`;
+    $("#cap-meta").textContent = noImage ? t("La fuente no envía imagen")
+      : offline ? t("Sin conexión. Guardando en este equipo") : t("hasta {size}", { size: fmtMB((capRec.kbps * secs) / 8 / 1000) });
   } else {
     const done = ups.find((x) => x.state === "armando"), u = ups[0];
-    $("#cap-time").textContent = done ? "Generando el video" : offline ? "Sin conexión" : "Guardando la grabación";
-    $("#cap-meta").textContent = done ? "" : offline ? "Se subirá al restablecer la conexión"
+    $("#cap-time").textContent = done ? t("Generando el video") : offline ? t("Sin conexión") : t("Guardando la grabación");
+    $("#cap-meta").textContent = done ? "" : offline ? t("Se subirá al restablecer la conexión")
       : u.record.parts ? `${Math.min(99, Math.round((u.next / u.record.parts) * 100))} %` : "";
   }
   $("#cap-live").textContent = recording ? live.text : "";

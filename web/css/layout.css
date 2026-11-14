@@ -82,7 +82,7 @@ body.side-mini .libside #collections .item + h4 + .item, body.side-mini .navlist
 /* ------------------------------------------------------------ reproductor: barra lateral · video · transcripción */
 body:not(.view-library):not(.view-prefs):not(.view-queue) {
   --aside: var(--side-w);
-  grid-template-columns: var(--aside) minmax(0, 1fr) var(--panel-w); grid-template-rows: var(--head-h) auto minmax(0, 1fr);
+  grid-template-columns: var(--aside) minmax(0, 1fr) var(--panel-w); grid-template-rows: var(--head-h) minmax(0, 1fr) auto;
   gap: var(--s4); padding: 0 var(--s5) var(--s5) 0;
 }
 body.side-mini:not(.view-library):not(.view-prefs):not(.view-queue) { --aside: var(--side-w-min); }
@@ -95,8 +95,8 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library {
 body:not(.view-library):not(.view-prefs):not(.view-queue) .library .shelf { display: none; }
 body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { height: 100%; }
 
-/* barra del video: título y acciones */
-.vbar { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: var(--s4); min-width: 0; padding: 0 0 0 var(--s1); container-type: inline-size; }
+/* barra del video, debajo del video: título, descripción y acciones (como en las plataformas de video) */
+.vbar { grid-column: 2; grid-row: 3; display: flex; align-items: flex-start; gap: var(--s4); min-width: 0; padding: 0 0 0 var(--s1); container-type: inline-size; }
 .vhead { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .vtitle { min-width: 0; font: 800 var(--fs-xl)/1.25 var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* la descripción corta del video (la escribe el modelo chico del agente): dos renglones como máximo */
@@ -166,7 +166,9 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   body:not(.view-library):not(.view-prefs):not(.view-queue) .bar { margin: 0 -10px 10px; }
   body:not(.view-library):not(.view-prefs):not(.view-queue) .library { display: none; }
   body .vbar, body .stage { grid-column: 1; }  /* gana a la de views/player.css, que se carga después */
-  .vbar { flex-wrap: wrap; gap: var(--s2); }
+  .vbar { flex-wrap: wrap; gap: var(--s2); grid-row: 3; }
+  body:not(.view-library):not(.view-prefs):not(.view-queue) .stage { grid-row: 2; }
+  body:not(.view-library):not(.view-prefs):not(.view-queue) .side { grid-row: 4; }
   .vhead { flex-basis: 100%; }
   .vtitle { font-size: var(--fs-lg); white-space: normal; }
 }
@@ -241,3 +243,5 @@ body.resizing .bar::after { transition: none; }
 body:is(.view-library, .view-prefs, .view-queue) .bar::after {
   background: radial-gradient(circle at 100% 100%, transparent calc(var(--r-lg) - .5px), var(--chrome) var(--r-lg));
 }
+/* abajo de la pantalla: «Guardar en…» abre hacia arriba */
+.vbar .save-wrap .popover { top: auto; bottom: calc(100% + 8px); }
