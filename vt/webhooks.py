@@ -81,7 +81,7 @@ class Webhooks:
     def test(self, hid: str):
         h = next((x for x in self.hooks if x["id"] == hid), None)
         if h:
-            self._q.put((h, "prueba", None, {"mensaje": "Webhook de prueba desde el traductor"}, 0))
+            self._q.put((h, "prueba", None, {"mensaje": "Webhook de prueba de Translay"}, 0))
 
     # ---------------------------------------------------------------- envío
     def _wants(self, h, name, vault) -> bool:

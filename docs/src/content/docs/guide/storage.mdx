@@ -28,7 +28,7 @@ All your libraries together; with several, each row says how much is in each one
 
 Transcripts are never loose files: a video you opened without saving it to the library also has one.
 
-## Lo que más ocupa (What takes the most)
+## Mayor uso de espacio (Largest space use)
 
 The 40 largest downloads, with their length and whether they're translated. **Liberar** frees one: it stays in the library and is downloaded again when you open it. If it was translated, the translation and the voice are kept.
 
@@ -39,6 +39,8 @@ A YouTube audio is AAC at 128 kbps: about 58 MB per hour. A thousand two-hour se
 ## Models
 
 The models Translay downloaded (recognition, translation, voice and speaker separation). Each one says what it's for, which [profiles](../performance/) use it and when it was last used: **En uso ahora** (In use now), **Usado por última vez hace 5 días** (Last used 5 days ago) or **Sin usar desde el 2 nov** (Unused since Nov 2, the day Translay started keeping track). First come the ones in use, then the ones used before (most recent first), and last the ones never used. Those in use can't be deleted. **Borrar los que tu perfil no usa** (Delete the ones your profile doesn't use) deletes all the others at once, with the total. Before deleting another one, the confirmation repeats what it's for, when it was last used and which profiles would download it again. Use is saved in `data/models.json` (`vt/modelusage.py`), at most every 10 minutes per model. Only Translay's models are listed; other apps' models in the Hugging Face cache are never touched.
+
+The agent's models (**Agente · …**) don't depend on the profile: they say «Modelo del agente», are deleted one at a time and «Borrar los que tu perfil no usa» leaves them alone. The one the agent uses (loaded, the last one it used or the one fixed in Settings) can't be deleted; the others are downloaded again if the agent needs them.
 
 ## Translay
 

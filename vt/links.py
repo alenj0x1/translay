@@ -33,7 +33,7 @@ def parse(url: str) -> dict | None:
     name = parts[-1] if len(parts) >= 3 else ""
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
     if ext not in MEDIA_EXTS:
-        raise ValueError("el enlace de Dropbox no es de un video: abre el video y copia su enlace")
+        raise ValueError("El enlace de Dropbox no corresponde a un video. Abre el video y copia su enlace")
     keep = {k: q[k][0] for k in ("rlkey",) if k in q}  # sin "st", "e" ni "dl": cambian cada vez
     clean = urllib.parse.urlunsplit(("https", "www.dropbox.com", u.path, urllib.parse.urlencode(keep), ""))
     direct = urllib.parse.urlunsplit(("https", "www.dropbox.com", u.path,

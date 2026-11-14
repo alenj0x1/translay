@@ -93,6 +93,9 @@ La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y l
 | `textproc.py` | Texto antes y después de traducir: oraciones y modismos de cada idioma de origen, forma y convenciones latinoamericanas. |
 | `glossary.py` | Glosario de cada biblioteca: términos que no se traducen o con traducción fija. |
 | `speakers.py` | Diarización en línea: huella de voz (WeSpeaker en ONNX) y referencias de cada persona. |
+| `ocr.py` | Lee el texto de una imagen: PP-OCRv5 en ONNX en la CPU, con su post-proceso propio. |
+| `textkind.py` | Registro de tipos de texto (texto, comentario, código, comando, enlace…): qué se traduce. |
+| `screentext.py` | [Texto en el video](../screen-text/): lo lee a lo largo del video, lo sigue, lo traduce y lo escribe como ASS para exportar. |
 | `dub.py` | Doblaje por frase: persona, referencia, síntesis, ajuste de duración y sonoridad. |
 | `tts.py` | Cliente del proceso de voz. |
 | `tts_worker.py` | Proceso de voz: OmniVoice (y Chatterbox o VoxCPM, para comparar). |
@@ -114,7 +117,7 @@ La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y l
 | `storage.py` | Ajustes › Almacenamiento: cuánto ocupa cada cosa y qué se puede liberar. |
 | `modelset.py` | Qué modelos usa cada perfil, cuáles faltan y bajarlos (también `python -m vt.modelset` para el instalador de escritorio). |
 | `modelusage.py` | Cuándo se usó por última vez cada modelo (`data/models.json`). |
-| `auth.py` | Acceso: dueño, bibliotecas privadas, con contraseña o públicas, y claves de API. |
+| `auth.py` | Acceso: propietario, bibliotecas privadas, con contraseña o públicas, y claves de API. |
 | `api.py` | API HTTP v1, inicio de sesión y guardián de archivos (`make_guard`). |
 | `events.py` | Catálogo de eventos y su emisión. |
 | `webhooks.py` | Envío firmado de eventos a otras apps, con reintentos. |

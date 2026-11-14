@@ -24,6 +24,78 @@
         "dev"
       ],
       "port": 4321
+    },
+    {
+      "name": "ui-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "run.py",
+        "--no-browser",
+        "--port",
+        "8797",
+        "--data-dir",
+        "C:/Users/ALEJAN~1/AppData/Local/Temp/claude/C--Users-Alejandro-Desktop-video-translator/43c9f3ff-6427-4143-922e-4b81aebce0fb/scratchpad/ui-data"
+      ],
+      "port": 8797,
+      "env": {
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    },
+    {
+      "name": "summary-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "run.py",
+        "--no-browser",
+        "--port",
+        "8798",
+        "--data-dir",
+        "C:/Users/ALEJAN~1/AppData/Local/Temp/claude/C--Users-Alejandro--claude-spares-spare-gQ6E18/f4e51cbc-db54-4d0c-8e1e-ff587241d2db/scratchpad/ui-data"
+      ],
+      "port": 8798,
+      "env": {
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    },
+    {
+      "name": "demo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "run.py",
+        "--no-browser",
+        "--port",
+        "8799",
+        "--data-dir",
+        "C:/Users/ALEJAN~1/AppData/Local/Temp/claude/79d834cc2edf96c2/7dc22c1b-58b2-4824-8480-e7521ee6de9a/scratchpad/demo-data"
+      ],
+      "port": 8799,
+      "env": {
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    },
+    {
+      "name": "screentext-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "run.py",
+        "--no-browser",
+        "--port",
+        "8796",
+        "--data-dir",
+        "C:/Users/ALEJAN~1/AppData/Local/Temp/claude/2027cdade933f068/fae0e73d-e89a-4068-9428-bc573b395f6f/scratchpad/st-data",
+        "--device",
+        "cpu",
+        "--voice",
+        "none"
+      ],
+      "port": 8796,
+      "env": {
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
+        "PYTHONIOENCODING": "utf-8"
+      }
     }
   ]
 }

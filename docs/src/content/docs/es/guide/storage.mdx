@@ -28,7 +28,7 @@ Todas tus bibliotecas juntas; con varias, cada fila dice cuánto hay en cada una
 
 Las transcripciones nunca son archivos sueltos: también tiene una lo que abriste sin guardarlo en la biblioteca.
 
-## Lo que más ocupa
+## Mayor uso de espacio
 
 Las 40 descargas más pesadas, con lo que duran y si están traducidas. «Liberar» libera una: sigue en la biblioteca y se vuelve a bajar al abrirla. Si estaba traducida, la traducción y la voz se conservan.
 
@@ -39,6 +39,8 @@ Un audio de YouTube es AAC a 128 kbps: unos 58 MB por hora. Mil sets de dos hora
 ## Modelos
 
 Los modelos que bajó Translay (reconocimiento, traducción, voz y separar quién habla). Cada uno dice para qué sirve, qué [perfiles](../performance/) lo usan y cuándo se usó por última vez: «En uso ahora», «Usado por última vez hace 5 días» o «Sin usar desde el 2 nov» (el día en que Translay empezó a llevar la cuenta). Primero van los que están en uso, después los que se usaron alguna vez (el más reciente arriba) y al final los que nunca se usaron. Los que están en uso no se pueden borrar. «Borrar los que tu perfil no usa» borra todos los demás de una vez, con el total. Antes de borrar otro, la confirmación repite para qué sirve, cuándo se usó y qué perfiles lo volverían a descargar. El uso se guarda en `data/models.json` (`vt/modelusage.py`), a lo sumo cada 10 minutos por modelo. Solo se listan los de Translay; los modelos de otras apps en la caché de Hugging Face nunca se tocan.
+
+Los modelos del agente («Agente · …») no dependen del perfil: dicen «Modelo del agente», se borran de a uno y «Borrar los que tu perfil no usa» no los toca. El que usa el agente (el cargado, el último que usó o el fijado en Ajustes) no se puede borrar; los demás se vuelven a descargar si el agente los necesita.
 
 ## Translay
 
@@ -55,5 +57,5 @@ Los modelos que bajó Translay (reconocimiento, traducción, voz y separar quié
 - **Una exportación que falló o se canceló**: al momento.
 
 <Aside>
-El código está en `vt/storage.py`. Solo el dueño ve esta página.
+El código está en `vt/storage.py`. Solo el propietario ve esta página.
 </Aside>

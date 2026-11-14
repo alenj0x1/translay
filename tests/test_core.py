@@ -190,7 +190,7 @@ def test_youtube_account_session():
             s.jar()
             raise AssertionError("debió fallar")
         except ValueError as e:
-            assert "vuelve a conectarla" in str(e)
+            assert "vuelve a conectarla" in str(e).lower()
 
 
 def test_pending_titles():

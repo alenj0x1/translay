@@ -93,6 +93,9 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 | `textproc.py` | Text before and after translating: sentences and idioms per source language, form and Latin American conventions. |
 | `glossary.py` | Each library's glossary: terms that aren't translated or have a fixed translation. |
 | `speakers.py` | Online diarization: voiceprint (WeSpeaker in ONNX) and each person's references. |
+| `ocr.py` | Reads the text in an image: PP-OCRv5 in ONNX on the CPU, with its own post-processing. |
+| `textkind.py` | Registry of text types (text, comment, code, command, link…): what is translated. |
+| `screentext.py` | [Text in the video](../screen-text/): reads it along the video, follows it, translates it and writes it as ASS for exports. |
 | `dub.py` | Per-sentence dubbing: person, reference, synthesis, duration and loudness adjustment. |
 | `tts.py` | Voice process client. |
 | `tts_worker.py` | Voice process: OmniVoice (and Chatterbox or VoxCPM, for comparison). |

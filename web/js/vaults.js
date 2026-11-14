@@ -176,7 +176,6 @@ $("#vault-pick").addEventListener("click", () => send({ type: "vault_pick_folder
 $("#vault-name").addEventListener("input", () => {
   $("#vault-preview strong").textContent = $("#vault-name").value.trim() || $("#vault-name").placeholder.split(",")[0];
 });
-$("#vault-shuffle").addEventListener("click", () => { vaults.dlg.pattern = newPattern(); renderVaultLook(); });
 // todo al azar: nombre (si es nueva), color, ícono y banner
 $("#vault-random").addEventListener("click", () => {
   const d = vaults.dlg;
@@ -220,7 +219,7 @@ const VAULTS_BLOCK = el("div", { class: "pref vaults-pref", id: "pref-vaults" },
 function renderVaultsPref() {
   const ctl = VAULTS_BLOCK.querySelector(".pref-ctl");
   ctl.replaceChildren(el("div", { class: "vcards" }, ...vaults.list.map((v) => vaultCard(v, "pref")), newVaultCard()),
-    el("div", { class: "acts" }, btn("Abrir carpeta", { icon: "folder", size: "sm", title: "Una carpeta que ya es biblioteca (de un disco externo u otro equipo)",
+    el("div", { class: "acts" }, btn("Abrir carpeta", { icon: "folder", size: "sm", title: "Abre una biblioteca existente (de un disco externo u otro equipo)",
       onClick: () => send({ type: "vault_pick_folder", for: "open" }) })));
 }
 
@@ -237,24 +236,23 @@ function vaultCard(v, mode) {
       { head: v.name },
       !isCur && { label: "Abrir", icon: "arrow", onClick: () => { closeVaultScreen(); openVault(v.id); } },
       owner && { label: "Editar…", icon: "pencil", onClick: () => { closeVaultScreen(); editVault(v.id); } },
-      owner && { label: "Otro patrón", icon: "shuffle", onClick: () => reshuffleVault(v.id) },
       "sep",
       owner && !v.main && { label: "Quitar de la lista", icon: "x", onClick: async () => {
         if (await confirmDlg(`¿Quitar «${v.name}» de la lista?`,
-          "Sus videos y archivos quedan en su carpeta; puedes volver a abrirla con «Abrir carpeta».", "Quitar")) {
+          "Sus videos y archivos se conservan en su carpeta. Puedes volver a abrirla con «Abrir carpeta».", "Quitar")) {
           send({ type: "vault_remove", id: v.id, delete_files: false });
         }
       } },
       owner && count > 0 && { label: "Vaciar…", icon: "trash", danger: true, onClick: async () => {
         if (await confirmDlg(`¿Vaciar «${v.name}»?`,
-          `${count === 1 ? "Su video" : `Sus ${count} videos`}, con traducciones, voces, descargas y colecciones, van a la papelera. Puedes devolverlos durante 30 días.`,
+          `${count === 1 ? "Su video" : `Sus ${count} videos`}, con traducciones, voces, descargas y colecciones, se moverán a la papelera. Puedes restaurarlos durante 30 días.`,
           "Vaciar", v.name)) {
           send({ type: "lib_clear", vault: v.id });
         }
       } },
       owner && !v.main && { label: "Eliminar", icon: "trash", danger: true, onClick: async () => {
         if (await confirmDlg(`¿Eliminar «${v.name}»?`,
-          `La biblioteca, con sus ${v.count} videos y todos sus archivos, va a la papelera. Puedes devolverla durante 30 días.`,
+          `La biblioteca, con sus ${v.count} videos y todos sus archivos, se moverá a la papelera. Puedes restaurarla durante 30 días.`,
           "Eliminar", v.name)) {
           send({ type: "vault_remove", id: v.id, delete_files: true });
         }

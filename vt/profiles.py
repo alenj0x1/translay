@@ -114,7 +114,7 @@ def estimate(profile: str, eff: dict) -> dict:
         speed = _interp(SPEED[profile], gb)
         wait = _interp(WAIT[profile], gb) if speed >= 1 else None
         if gb < VRAM_MB[profile] / 1024 + 1.0:  # + ~1 GB del escritorio
-            notes.append("No entra entero en la VRAM: el driver desborda a la memoria compartida y algunas frases tardan mucho más.")
+            notes.append("No cabe por completo en la VRAM. El driver usa la memoria compartida y algunas frases tardan mucho más.")
     else:
         # sin GPU: medido con 8 hilos; con menos, proporcionalmente más lento (4 hilos ≈ 0.85×)
         speed = SPEED[profile][0] * min(1.0, 0.7 + 0.3 * eff["threads"] / 8)

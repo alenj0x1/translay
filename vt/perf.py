@@ -79,17 +79,17 @@ class Perf:
         if act and act["state"] in ("forzado", "muy-forzado"):
             out.append({"level": "bad" if act["state"] == "muy-forzado" else "warn",
                         "text": f"«{act['name']}» va {act['state_label'].lower()} en este equipo: procesa a "
-                                f"{act['speed']}× el tiempo real, así que no alcanza para ver en vivo. Prueba con "
+                                f"{act['speed']}× el tiempo real, insuficiente para ver en vivo. Prueba con "
                                 f"«{profiles.PROFILES[profiles.recommend(hw, lim)]['name']}»."})
         for n in (act or {}).get("notes", []):
             out.append({"level": "warn", "text": n})
         if (hw.get("gpu") or {}).get("unified"):
             out.append({"level": "info", "text": "Memoria unificada: la GPU usa la RAM del sistema (como en DGX Spark)."})
         if lim.get("vram_mb") and lim["vram_mb"] < 2048:
-            out.append({"level": "warn", "text": "Con menos de 2 GB de VRAM solo entran los subtítulos ligeros."})
+            out.append({"level": "warn", "text": "Con menos de 2 GB de VRAM solo es compatible el perfil Subtítulos ligeros."})
         if lim.get("ram_mb") and lim["ram_mb"] < 3072:
-            out.append({"level": "bad", "text": "Con menos de 3 GB de RAM Translay va a pasar casi todo al disco: "
-                                               "hasta los subtítulos van a ir muy lentos."})
+            out.append({"level": "bad", "text": "Con menos de 3 GB de RAM, Translay paginará casi todo al disco. "
+                                               "Incluso los subtítulos serán muy lentos."})
         if lim.get("threads") == 1:
             out.append({"level": "warn", "text": "Con un solo hilo, preparar audio y descargar compiten con el reconocimiento."})
         if self.wanted() != self.active:
@@ -98,15 +98,15 @@ class Perf:
         if live.get("tts_slow"):
             out.append({"level": "bad", "text": f"{live['tts_slow']} frases de voz tardaron mucho más de lo normal en los "
                         f"últimos minutos (hasta {live['tts_max']} s): la GPU se queda sin memoria y desborda a la "
-                        "compartida. Un perfil más liviano o cerrar otros programas que usan la GPU lo arregla."})
+                        "compartida. Usa un perfil más ligero o cierra otros programas que usen la GPU."})
         ram_av = live.get("ram_available_mb")
         if ram_av is not None and ram_av < 1024:
             out.append({"level": "warn", "text": f"El sistema tiene solo {ram_av} MB de RAM libres: Windows está usando el "
-                        "disco y todo va más lento. Cerrar programas pesados ayuda."})
+                        "disco y el rendimiento disminuye. Cierra programas pesados."})
         if eff["gpu"] and live.get("vram_free_mb") is not None and live["vram_free_mb"] < 600 and self.res and \
                 self.res.state == "reposo":
-            out.append({"level": "warn", "text": "Otro programa está usando casi toda la VRAM: cuando Translay despierte "
-                        "no va a tener lugar y va a ir muy forzado."})
+            out.append({"level": "warn", "text": "Otro programa usa casi toda la VRAM. Cuando Translay se reactive, "
+                        "no tendrá memoria suficiente y funcionará muy forzado."})
         return out
 
     def public(self) -> dict:

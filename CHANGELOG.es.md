@@ -6,9 +6,54 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ## Sin publicar
 
+### Agregado
+
+- Ajustes: una página de inicio con una tarjeta por sección, en cinco bloques (General, Mirar, Videos, Bibliotecas y acceso, Equipo), y una búsqueda que también encuentra las opciones de dentro de cada sección; la barra lateral usa los mismos bloques.
+- Aspecto: escenas animadas hechas de caracteres como fondo de la app (Translay, por defecto, con la onda del logo hablando; fondo marino, atardecer, medusas, arañas, y «Arañas, Shade y Manchita»: arañas con un perrito peludo y una gatita) con los colores del tema, un logo nuevo (una onda de voz y «translay») y JetBrains Mono para el código y los datos técnicos. Los bloques de código siguen el modo claro u oscuro: cada tema de código tiene su versión clara y oscura. Los íconos de los menús giran un poco al pasar el mouse, y el contenido principal tiene la esquina de arriba a la izquierda redondeada, donde se juntan el encabezado y la barra lateral. El encabezado y los paneles son levemente translúcidos, así la escena de fondo se asoma detrás. El texto seleccionado toma el color del tema.
+- Agente: **Uso del equipo** (Ajustes › Agente) define cuánto del equipo toman el resumen y las descripciones: descansan entre pedidos, y en equipos sin tarjeta gráfica también limita los núcleos. Las preguntas siguen a toda velocidad.
+- Reproductor: una descripción corta bajo el título del video (una o dos frases), escrita por el modelo más chico del agente al terminar de procesarlo, o tomada de su resumen.
+- Agente: **Continuar** sigue una respuesta detenida desde donde quedó.
+- Texto en el video: los títulos, letreros, diapositivas y comentarios del código escritos en un video se leen en la CPU (PP-OCRv5), se traducen y aparecen encima del original en el mismo lugar y con sus colores; el video traducido los lleva grabados en la imagen. El código, los comandos y los enlaces quedan como están, y los tipos de elementos nuevos se agregan con una función en `vt/textkind.py`. Activado por defecto (Ajustes › Audio y subtítulos › «Texto del video en español»), también en `GET /api/v1/videos/{id}/screen-text`.
+- Transcripción: el código, los comandos, los enlaces y los comentarios del código escritos en el video aparecen en su lugar entre las frases, con un botón para copiarlos y un clic para ir ahí.
+- «Copiar para un agente» (clic derecho en el video, una frase o una tarjeta) copia el video completo en Markdown para cualquier agente: transcripción con horas, personas y traducción, resumen, lo que aparece en pantalla y hasta dónde lo viste; también en `GET /api/v1/videos/{id}/context`.
+- Agente: la pestaña «Resumen» pasa a ser el agente del video. Pregúntale lo que quieras (lo que se dice, lo que aparece en pantalla, en qué minuto pasa algo, qué te falta por ver) y responde en tu equipo, sin internet, con cada momento como un botón que lleva ahí y sugerencias según el video. Corre con llama.cpp en la tarjeta gráfica, la gráfica integrada o el procesador, con el modelo que entra en tu equipo; nombre, avatar, color, tono y modelo en Ajustes › Agente. El resumen es su primera tarjeta.
+- Colores de código: el código, los comandos y los comentarios de la transcripción y del agente salen con el tema elegido en Ajustes › Apariencia (Visual Studio Code Dark por defecto; One Dark, Catppuccin, Dracula, Monokai, Nord y GitHub Light).
+- Reproductor: un botón de subtítulos (CC) y la tecla <kbd>C</kbd> para elegir o apagar los subtítulos y el texto del video, también desde el clic derecho.
+- Resumen: mucho más completo, escrito por el modelo del agente con lo que se dice y lo que aparece en pantalla: idea general, ideas para llevarse, capítulos con sus puntos y momentos, conceptos clave, y los enlaces, comandos y código del video como recursos. Se genera solo cuando el video está listo (Ajustes › Agente).
+- Agente: su nombre, avatar, color y tono se cambian desde su propia pestaña (botón del pincel) sin salir del video; sus respuestas van en una burbuja con un tinte de su color, cada momento es un botón con ▶ de ese color y un video de ejemplo (resumen con capítulos, conceptos y recursos, y varias preguntas) queda junto a las opciones para mostrar cómo se verá, también en Ajustes.
+- Reproductor: el código, los comandos, los enlaces y el texto traducido del video se copian o se le preguntan al agente desde el mismo video (al pasar el mouse, con clic o con clic derecho), con un recuadro que se desliza de uno a otro; el código y los comandos de la transcripción también tienen «Preguntar a Lumi».
+- Agente: acciones con su propia tarjeta, al instante y también apagado: exportar el video para Claude u otro agente (copiar o descargar .md), ir a un momento o a donde se explica algo, cambiar los subtítulos, guardar el video en una colección y avisos mientras ves (marcados en la barra de avance, con un aviso al llegar a cada uno).
+- Agente: con clic derecho en la barra de avance se pregunta sobre ese momento; aparece como una mención sobre la caja de preguntar.
+- Agente: muestra cada paso mientras responde (cargar el modelo, leer el video, escribir), y cada mensaje muestra su hora y un botón para copiarlo; las respuestas terminadas llevan un check verde y las preguntas hechas mientras responde esperan en cola.
+- Agente: antes de la primera pregunta muestra lo que sabe hacer con chips que preguntan o dejan la pregunta empezada.
+- Agente: dicta las preguntas con el botón del micrófono; el Whisper de Translay escribe lo que dijiste en la caja para revisarlo antes de enviar.
+- Ajustes › Agente: la lista de modelos indica cuáles son compatibles con tu equipo, cuál se recomienda, qué tan bien respondió cada uno en el laboratorio y cuáles ya están descargados; el elegido se puede descargar de antemano con el avance en el botón. Los modelos del agente aparecen en Ajustes › Almacenamiento, se borran de a uno y «Borrar los que tu perfil no usa» ya no los borra.
+- Ajustes › Agente: un color «Del tema», marcado con su propio ícono, que sigue al color de énfasis de la app.
+- Agente: se enciende o apaga desde su pestaña (apagado, el modelo deja la memoria; también entra en reposo tras 5 minutos sin preguntas). Las sugerencias de preguntas salen del resumen, así funcionan aunque esté apagado y al tocar una se enciende. Modelos por defecto elegidos con el laboratorio: Qwen3.5 4B o Gemma 4 E2B en tarjetas gráficas, Qwen3.5 0.8B en la gráfica integrada y Qwen3.5 2B o 0.8B en el procesador.
+
+### Cambiado
+
+- Ajustes: la sesión de YouTube pasó a Agregar y descargar, y Uso ahora dice para qué sirve.
+- Color de énfasis: pasteles suaves en claro con el texto en un tono profundo del mismo color (sin texto negro sobre el verde); cada muestra en Ajustes enseña su versión en claro y en oscuro, partidas por una diagonal ondulada.
+- Fondo (antes «Fondo del inicio»): las luces de la miniatura y del color y la galería se reemplazan por las escenas; la imagen propia sigue.
+- Textos de la interfaz revisados en toda la app para que suenen a producto terminado: «Descargar» en vez de «Bajar», «Iniciar sesión» y «propietario», «Priorizar», «Notificaciones», «Estilo de respuesta», «Dispositivo», «Ideas clave», «Subtítulos activados» y avisos cortos sin dos puntos ni punto final.
+- La opción elegida en pestañas, grupos de opciones, ES / EN y botones activos se marca solo con su tono, sin anillo ni sombra.
+- Inicio: lo que estás viendo va primero, grande, con la luz de su miniatura detrás; la caja para agregar salió del inicio (agregar y grabar están en la barra de arriba). El fondo se elige en Ajustes › Apariencia › «Fondo del inicio»: la luz del video, la del color de énfasis, liso o una imagen propia, con el inicio de verdad como vista previa. Ocho fondos más en una galería (Aurora, Atardecer, Océano, Bosque, Brasa, Medianoche, Arena, Niebla), y el texto del destacado pasa a claro u oscuro para leerse sobre cualquier fondo. En pantallas grandes el destacado crece con la ventana y muestra las ideas clave y los primeros capítulos de su resumen, cada uno un botón a ese momento.
+- La barra lateral y el panel del video cambian de ancho arrastrando su borde; pasado el mínimo, la barra queda en íconos y el panel se oculta (se vuelve a sacar arrastrando su borde). Se quitó el botón «Transcripción» sobre el video: el panel tiene más que la transcripción.
+- Encabezado: los botones son siempre los mismos y en el mismo lugar (Grabar, Agregar, Cola, Biblioteca, Ajustes), con el de la pantalla abierta marcado; «Biblioteca» ya no se convierte en «Volver al video». Un video abierto queda en la miniatura de abajo a la derecha también en pausa, para volver a él.
+- Biblioteca: al pasar el mouse sobre un video descargado se reproduce una vista previa sin sonido en su miniatura, como en YouTube.
+- Colecciones, playlists, canales y categorías abren con un encabezado (distintivo, nombre, videos y acciones) con la luz de su banner o sus miniaturas detrás, como el modo ambiente de YouTube. El patrón de puntos salió de los banners, las tarjetas y las bibliotecas.
+- Tema oscuro: grises neutros puros, sin el tinte azulado (fondo #161616, paneles #181818, campos #1f1f1f, menús #1a1a1a).
+
 ### Corregido
 
+- Aspecto: las escenas de fondo usan como máximo el 15 % de un núcleo del procesador en cualquier equipo (celdas más grandes en pantallas grandes, un tope de uso y las posiciones calculadas una vez por cuadro), y se detienen mientras se reproduce un video y cuando usas otra ventana (las dos cosas se pueden desactivar en Ajustes › Apariencia).
+- Aspecto: la escena de fondo se dibuja en su propio hilo, con caracteres ya dibujados y solo donde algo cambió, así la navegación ya no se pone lenta (en pantalla completa llegaba a tomar la mitad del tiempo de la interfaz).
+- Ajustes: la píldora de la opción elegida ahora se desliza a la nueva en todos los grupos de opciones (al redibujar la página, saltaba).
+- Agente: detener una respuesta funciona al instante, también mientras todavía lee el video, y deja lo que alcanzó a escribir.
 - Script de versiones: ya no falla en la consola de Windows al mostrar las notas; escribe su salida en UTF-8.
+- Ajustes › Agente: la muestra del color «El de énfasis» no se veía.
+- Agente: si Translay se cierra de golpe, el servidor del modelo se cierra con él en vez de quedarse en la memoria.
 
 ## 1.13.0 · 2026-11-13
 

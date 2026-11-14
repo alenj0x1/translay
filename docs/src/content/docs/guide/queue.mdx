@@ -14,7 +14,7 @@ Everything is processed in a single queue, on the server (`vt/processor.py`). It
 ## Order and priorities
 
 1. **The video you are watching** always goes first. It is processed from your playback position to the end, then whatever came before; if you jump to an unprocessed part, processing jumps with you. When you go back to the library it stays in the queue like any other.
-2. **Videos moved first**: **Hacer primero** (Do first), in the Queue, puts a video at the top. If it is already downloaded, it goes ahead of the background work in progress, which resumes later without losing progress. It lives only in the Queue: in the library it read like a way of sorting the library.
+2. **Prioritized videos**: **Priorizar** (Prioritize), in the Queue, puts a video at the top. If it is already downloaded, it goes ahead of the background work in progress, which resumes later without losing progress. It lives only in the Queue: in the library it read like a way of sorting the library.
 3. **Everything else**, in the order it was added.
 
 If a stretch that was already recognized is missing its translation or voice (because processing was interrupted), the queue completes it when it gets there.
@@ -22,7 +22,7 @@ If a stretch that was already recognized is missing its translation or voice (be
 ## Stop
 
 - **Detener todo** (Stop all) stops the whole queue: background processing and downloads (a download in progress stops and later continues where it was). The video you are watching keeps being processed and downloaded. If you stop it with no video open, the models leave the GPU immediately. **Continuar todo** (Continue all) resumes it.
-- **Detener** (Stop), on each job, does the same for one video: it keeps its place and what was done, but it isn't downloaded or processed until you press **Continuar** (Continue). **Hacer primero** on a stopped video also resumes it.
+- **Detener** (Stop), on each job, does the same for one video: it keeps its place and what was done, but it isn't downloaded or processed until you press **Continuar** (Continue). **Priorizar** on a stopped video also resumes it.
 
 The queue says «detenido» (stopped) and «en espera» (waiting) instead of «en pausa» (paused), and its jobs have no play button: next to a waiting job, a play button read like «resume the queue», when it opened the video.
 
@@ -44,13 +44,13 @@ The Queue screen has the states on the left, with their counts, and the list on 
 
 If you have more than one [library](../libraries/#queue-and-libraries), below you can choose which one's jobs to see, or **Todas** (All). If there are exports, they appear in their own section.
 
-The header has **Detener todo** or **Continuar todo**, **Reintentar descargas** (Retry downloads, only while YouTube asks for verification) and **Limpiar terminados** (Clear finished), which removes from the list what is done, downloaded without translation and what failed. Each job has, depending on its state, **Detener** or **Continuar**, **Hacer primero** or **Procesar**, and **Quitar de la cola** (Remove from queue). Its title opens the video; right-clicking it offers the same plus **Abrir el video** (Open the video) and **Detener toda la cola** (Stop the whole queue).
+The header has **Detener todo** or **Continuar todo**, **Reintentar descargas** (Retry downloads, only while YouTube asks for verification) and **Limpiar terminados** (Clear finished), which removes from the list what is done, downloaded without translation and what failed. Each job has, depending on its state, **Detener** or **Continuar**, **Priorizar** or **Procesar**, and **Quitar de la cola** (Remove from queue). Its title opens the video; right-clicking it offers the same plus **Abrir el video** (Open the video) and **Detener toda la cola** (Stop the whole queue).
 
 ## Downloads
 
-Downloads run on a separate thread, one at a time and with a short random pause between them, so they don't look like a burst to YouTube. To avoid filling the disk, only a few videos ahead of what has already been processed are downloaded; videos moved first, ones you ask to open and ones imported with **Solo descargar** don't wait for that turn.
+Downloads run on a separate thread, one at a time and with a short random pause between them, so they don't look like a burst to YouTube. To avoid filling the disk, only a few videos ahead of what has already been processed are downloaded; prioritized videos, ones you ask to open and ones imported with **Solo descargar** don't wait for that turn.
 
-With Settings › Agregar y descargar › **Orden de las descargas** › **Aleatorio (variado)** (Settings › Add and download › Download order › Random (varied)), downloads come from anywhere in the queue; videos moved first still go first.
+With Settings › Agregar y descargar › **Orden de las descargas** › **Aleatorio** (Settings › Add and download › Download order › Random), downloads come from anywhere in the queue; prioritized videos still go first.
 
 Each download shows its stage: first the video and then the audio (with percentage, speed and time remaining), then "uniendo" (merging) and "preparando" (preparing), while the tracks are joined and the audio to be processed is separated.
 
@@ -71,5 +71,5 @@ The models use the GPU only while there is something to process. After a while w
 The details on timing and memory are in [GPU and idle](../../how-it-works/gpu-and-idle/).
 
 <Aside>
-With **Avisos del navegador** (Browser notifications; Settings › Agregar y descargar) you get a system notification when a download, a video, the whole queue or an export finishes, only if the tab is in the background. Several notifications in a row are merged into one.
+With **Notificaciones del navegador** (Browser notifications; Settings › Agregar y descargar) you get a system notification when a download, a video, the whole queue or an export finishes, only if the tab is in the background. Several notifications in a row are merged into one.
 </Aside>

@@ -38,12 +38,12 @@ Translay cambia `dl=0` por `dl=1` para recibir el archivo directo y quita los pa
 
 No hace falta decir en qué idioma está un video: Translay lo detecta con los primeros segundos de voz (inglés, portugués o español; ver [Idiomas](../../how-it-works/languages/)). La flecha junto a «Agregar» en el panel tiene dos opciones para lo que agregas en ese momento (YouTube o Dropbox, uno o varios enlaces):
 
-- «Agregar y traducir»: se traduce y dobla al español. Un video detectado en el idioma de Ajustes › Agregar y descargar › «Solo transcribir lo que está en» (español, si no lo cambias) solo se transcribe.
+- «Agregar y traducir»: se traduce y dobla al español. Un video detectado en el idioma de Ajustes › Agregar y descargar › «Solo transcribir videos en» (español, si no lo cambias) solo se transcribe.
 - «Agregar y solo transcribir»: se transcribe en su idioma y nada más, sea cual sea: sin traducción ni voz, se reproduce con el audio original y un solo subtítulo, la transcripción muestra una columna y la tarjeta dice «Transcrito» al terminar.
 
 Un idioma que Translay todavía no traduce solo se transcribe, en ese idioma.
 
-Para cambiarlo después, usa «Idioma y traducción» en el menú contextual del video. «Se habla en» corrige el idioma: lo transcrito en el otro se borra y el video se vuelve a procesar, por eso pregunta antes. «Traducir y doblar» y «Solo transcribir» cambian el modo sin borrar nada: lo reconocido sirve para los dos y las traducciones quedan guardadas.
+Para cambiarlo después, usa «Idioma y traducción» en el menú contextual del video. «Idioma del video» corrige el idioma: lo transcrito en el otro se borra y el video se vuelve a procesar, por eso pregunta antes. «Traducir y doblar» y «Solo transcribir» cambian el modo sin borrar nada: lo reconocido sirve para los dos y las traducciones quedan guardadas.
 
 <Aside>
 Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que reconoce todos los idiomas pero se equivoca más en portugués que en inglés (ver [Rendimiento](../performance/)). Un modelo `.en` elegido con `--model` solo reconoce inglés: un video en otro idioma termina en un error que pide cambiar de perfil.
@@ -128,7 +128,7 @@ En un video de YouTube o de Dropbox aún sin descargar, «Ver ▾» › «Descar
 
 Ajustes › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» baja solo la pista de audio. Se traduce y se dobla igual; el reproductor muestra la miniatura en lugar de la imagen y la tarjeta lleva la etiqueta «Solo audio».
 
-Para tener la imagen después, usa «Bajar video» en la tarjeta (o en la selección): se descarga el video completo sin volver a traducir. Si exportas un video, original o traducido, el video completo se descarga primero.
+Para tener la imagen después, usa «Descargar video» en la tarjeta (o en la selección): se descarga el video completo sin volver a traducir. Si exportas un video, original o traducido, el video completo se descarga primero.
 
 Estas dos preferencias son propias de cada [biblioteca](../libraries/).
 
@@ -138,9 +138,9 @@ El botón «Agregar» sigue disponible en el reproductor. Qué pasa con lo que a
 
 | Opción | Qué hace |
 |---|---|
-| Ponerlo a continuación (por defecto) | Entra a la cola y queda justo después del actual en «Siguientes». |
-| Procesarlo en segundo plano | Solo entra a la cola. |
-| Abrirlo | Se descarga con prioridad y se abre en cuanto termina. Con archivos del equipo, se abre el primero y los demás quedan en «Siguientes». |
+| Reproducir a continuación (por defecto) | Entra a la cola y queda justo después del actual en «Siguientes». |
+| Procesar en segundo plano | Solo entra a la cola. |
+| Abrir | Se descarga con prioridad y se abre en cuanto termina. Con archivos del equipo, se abre el primero y los demás quedan en «Siguientes». |
 
 <Aside>
 Los videos que ya están en otra biblioteca no se duplican: se quedan allá y un aviso lo indica. Ver [Bibliotecas](../libraries/#mover-videos).

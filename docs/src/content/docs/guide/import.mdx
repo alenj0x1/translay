@@ -38,12 +38,12 @@ Translay changes `dl=0` to `dl=1` to get the file directly and drops the trackin
 
 You don't say what language a video is in: Translay detects it from the first seconds of speech (English, Portuguese or Spanish; see [Languages](../../how-it-works/languages/)). The arrow next to «Agregar» in the panel has two options for what you're adding right now (YouTube or Dropbox, one link or several):
 
-- «Agregar y traducir» (Add and translate): translated and dubbed into Spanish. A video detected in the language set in Settings › Agregar y descargar › «Solo transcribir lo que está en» (Only transcribe what is in; Spanish by default) is only transcribed.
+- «Agregar y traducir» (Add and translate): translated and dubbed into Spanish. A video detected in the language set in Settings › Agregar y descargar › «Solo transcribir videos en» (Only transcribe videos in; Spanish by default) is only transcribed.
 - «Agregar y solo transcribir» (Add and only transcribe): transcribed in its own language and that's it, whatever the language: no translation or voice, it plays with the original audio and a single subtitle, the transcript shows one column and the card says «Transcrito» (Transcribed) when it's done.
 
 A language Translay can't translate yet is only transcribed in that language.
 
-To change it later, use «Idioma y traducción» (Language and translation) in the video's context menu. «Se habla en» (Spoken in) corrects the language: what was transcribed in the other one is deleted and the video is processed again, so it asks first. «Traducir y doblar» (Translate and dub) and «Solo transcribir» (Transcribe only) switch the mode without deleting anything: the recognized text works for both and translations are kept.
+To change it later, use «Idioma y traducción» (Language and translation) in the video's context menu. «Idioma del video» (Video language) corrects the language: what was transcribed in the other one is deleted and the video is processed again, so it asks first. «Traducir y doblar» (Translate and dub) and «Solo transcribir» (Transcribe only) switch the mode without deleting anything: the recognized text works for both and translations are kept.
 
 <Aside>
 The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which recognizes every language but makes more mistakes in Portuguese than in English (see [Performance](../performance/)). A `.en` model passed with `--model` only recognizes English: a video in another language ends with an error that tells you to change the profile.
@@ -128,7 +128,7 @@ On a YouTube or Dropbox video not yet downloaded, «Ver ▾» › «Descargar si
 
 Ajustes › Agregar y descargar › «Qué descargar» › «Solo el audio (más rápido)» (What to download › Audio only (faster)) downloads only the audio track. It is translated and dubbed all the same; the player shows the thumbnail instead of the picture and the card carries the «Solo audio» (Audio only) label.
 
-To get the picture afterward, use «Bajar video» (Download video) on the card (or in the selection): the full video is downloaded without translating again. If you export a video, original or translated, the full video is downloaded first.
+To get the picture afterward, use «Descargar video» (Download video) on the card (or in the selection): the full video is downloaded without translating again. If you export a video, original or translated, the full video is downloaded first.
 
 These two preferences are specific to each [library](../libraries/).
 
@@ -138,9 +138,9 @@ The «Agregar» button remains available in the player. What happens with what y
 
 | Option | What it does |
 |---|---|
-| Ponerlo a continuación (Put it next) (default) | It enters the queue and sits right after the current one in «Siguientes» (Up next). |
-| Procesarlo en segundo plano (Process it in the background) | It only enters the queue. |
-| Abrirlo (Open it) | It is downloaded with priority and opens as soon as it finishes. With files from your machine, the first one opens and the rest stay in «Siguientes». |
+| Reproducir a continuación (Play next) (default) | It enters the queue and sits right after the current one in «Siguientes» (Up next). |
+| Procesar en segundo plano (Process in the background) | It only enters the queue. |
+| Abrir (Open) | It is downloaded with priority and opens as soon as it finishes. With files from your machine, the first one opens and the rest stay in «Siguientes». |
 
 <Aside>
 Videos that are already in another library aren't duplicated: they stay there and a notice says so. See [Libraries](../libraries/#move-videos).

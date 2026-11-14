@@ -108,10 +108,10 @@ def friendly(e: Exception, key: str) -> str:
     msg = str(e)
     name = BROWSERS.get(key, (key,))[0]
     if "Could not copy" in msg:
-        return f"{name} tiene bloqueadas sus cookies mientras está abierto: ciérralo, importa, y vuelve a abrirlo."
+        return f"{name} bloquea sus cookies mientras está abierto. Ciérralo, importa la sesión y vuelve a abrirlo."
     if "no hay cookies de YouTube" in msg:
         return (f"No se encontraron cookies de YouTube en {name}. Si iniciaste sesión ahí, puede que las "
-                "cifre (versiones recientes): usa «Subir cookies.txt».")
+                "cifre (versiones recientes). Usa «Subir cookies.txt».")
     if "decrypt" in msg.lower() or "app-bound" in msg.lower():
-        return f"{name} cifra sus cookies y no se pueden leer desde aquí: usa «Subir cookies.txt»."
+        return f"{name} cifra sus cookies y no se pueden leer. Usa «Subir cookies.txt»."
     return msg[:300]

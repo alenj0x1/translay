@@ -17,7 +17,7 @@ You are the owner if you connect **from the same computer where the app runs**: 
 
 `X-Forwarded-For` · `X-Real-IP` · `Forwarded` · `CF-Connecting-IP` · `X-Forwarded-Host`
 
-That way you get in without a password. From any other computer, the owner signs in with the **owner password** (**contraseña del dueño**).
+That way you get in without a password. From any other computer, the owner signs in with the **owner password** (**Contraseña de propietario**).
 
 <Aside type="caution" title="Tunnels count as remote">
 A tunnel such as Cloudflare Tunnel or ngrok runs on the same computer, so its connection also arrives from `127.0.0.1`. What gives it away are the headers it adds (`CF-Connecting-IP`, `X-Forwarded-For`): that is why anyone coming in through a tunnel is a remote visitor and needs a password.
@@ -60,13 +60,13 @@ When you sign in, the server stores a `vt_s` cookie with a random token, `HttpOn
 
 A single cookie can count as the owner and as a guest of several libraries at once: each library password you type is added to your session.
 
-## Who gets into each library
+## Access to each library
 
-In **Ajustes → Acceso y API → Bibliotecas** (Libraries), each library has its own visibility:
+In **Ajustes → Acceso y API → Bibliotecas** (Libraries), in the **Acceso a cada biblioteca** (Access to each library) block, each library has its own visibility:
 
 | Visibility | In the app | Who gets in |
 | --- | --- | --- |
-| `privada` | Solo yo (Only me) | Only the owner. This is the default. |
+| `privada` | Privada (Private) | Only the owner. This is the default. |
 | `clave` | Con contraseña (With password) | Anyone with the link and the password of that library. |
 | `publica` | Pública (Public) | Anyone who reaches the app. |
 
@@ -83,7 +83,7 @@ Changes take effect instantly: if you remove someone's access to the library the
 
 Each library has its own link, `/b/<id>`, which appears with the **Copiar enlace** (Copy link) button when the visibility is not private. It opens the app directly in that library. If the person opening it doesn't have access to anything yet:
 
-- with a `clave` library, the app asks for that library's password (and, if there is an owner password, offers to sign in as the owner);
+- with a `clave` library, the app asks for that library's password (and, if there is an owner password, offers **Iniciar sesión como propietario**, Sign in as owner);
 - with a `privada` one, it only lets them in with the owner password;
 - in both cases it lists the public libraries, if there are any.
 

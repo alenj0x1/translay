@@ -90,17 +90,17 @@ function renderStorage() {
     nFree ? stRow("film", "Sin traducir", stPlural(nFree, "descarga que nunca se tradujo", "descargas que nunca se tradujeron"),
       free, freeBtn("Liberar", "untranslated", () => storageFree({ what: "untranslated" },
         `¿Liberar ${stPlural(nFree, "descarga", "descargas")} sin traducir?`,
-        `Se borra la copia en el equipo (${stBytes(free)}). Los videos siguen en la biblioteca y se vuelven a bajar al abrirlos o exportarlos.`,
+        `Se borra la copia en el equipo (${stBytes(free)}). Los videos siguen en la biblioteca y se descargan de nuevo al abrirlos o exportarlos.`,
         "Liberar"))) : null,
     stSum(libs, "dubs") ? stRow("speaker", "Voz en español", by("dubs") || "Las frases dobladas de cada video", stSum(libs, "dubs"), null) : null,
     stSum(libs, "text") ? stRow("book", "Textos y miniaturas", by("text") || "Transcripciones, voces, personas y miniaturas", stSum(libs, "text"), null) : null,
-    trashB ? stRow("trash", "Papelera", "Se vacía sola a los 30 días", trashB,
+    trashB ? stRow("trash", "Papelera", "Se vacía automáticamente a los 30 días", trashB,
       freeBtn("Vaciar", "trash", () => storageFree({ what: "trash" }, "¿Vaciar la papelera?",
         "Todo lo que hay en ella se borra para siempre.", "Vaciar la papelera"))) : null,
-    loose ? stRow("x", "Archivos sueltos", stCount(libs, "loose") === 1 ? "1 archivo que ya no es de ningún video o quedó a medias"
-      : `${stPlural(stCount(libs, "loose"), "archivo", "archivos")} que ya no son de ningún video o quedaron a medias`, loose,
+    loose ? stRow("x", "Archivos sueltos", stCount(libs, "loose") === 1 ? "1 archivo sin video asociado o incompleto"
+      : `${stPlural(stCount(libs, "loose"), "archivo", "archivos")} sin video asociado o incompletos`, loose,
       freeBtn("Borrar", "loose", () => storageFree({ what: "loose" }, "¿Borrar los archivos sueltos?",
-        `No son de ningún video de tus bibliotecas (${stBytes(loose)}).`, "Borrar"))) : null));
+        `No pertenecen a ningún video de tus bibliotecas (${stBytes(loose)}).`, "Borrar"))) : null));
 
   // lo que más ocupa: de a uno
   const items = d.largest;
@@ -109,23 +109,25 @@ function renderStorage() {
     stRow(x.translated ? "check" : "film", x.title, [stDur(x.duration), x.translated ? "Traducido" : "Sin traducir",
       many ? libs.find((l) => l.id === x.vault)?.name : ""].filter(Boolean).join(" · "), x.bytes,
       freeBtn("Liberar", "videos" + x.video, () => storageFree({ what: "videos", vault: x.vault, videos: [x.video] },
-        `¿Liberar «${x.title}»?`, `Se borra la copia en el equipo (${stBytes(x.bytes)}). Sigue en la biblioteca y se vuelve a bajar al abrirlo${x.translated ? ". La traducción y la voz se conservan" : ""}.`,
-        "Liberar"))))) : emptyState("download", "No hay descargas", "Lo que bajes de YouTube o de un enlace aparece aquí, de lo que más ocupa a lo que menos."),
+        `¿Liberar «${x.title}»?`, `Se borra la copia en el equipo (${stBytes(x.bytes)}). Sigue en la biblioteca y se descarga de nuevo al abrirlo${x.translated ? ". La traducción y la voz se conservan" : ""}.`,
+        "Liberar"))))) : emptyState("download", "No hay descargas", "Las descargas de YouTube o de enlaces aparecerán aquí, ordenadas por tamaño."),
   ...(items.length > 8 ? [el("div", { class: "acts" }, btn(storage.more ? "Ver menos" : `Ver ${items.length - 8} más`, { icon: "chevron", size: "sm", variant: "ghost",
     onClick: () => { storage.more = !storage.more; renderStorage(); } }))] : []));
 
   // modelos: para qué sirve, qué perfiles lo usan y cuándo se usó por última vez
   const since = new Date((d.usage_since || Date.now() / 1000) * 1000).toLocaleDateString("es", { day: "numeric", month: "short" });
   const lastUse = (m) => m.in_use ? "En uso ahora" : m.used ? `Usado por última vez ${stAgo(m.used)}` : `Sin usar desde el ${since}`;
-  const profilesOf = (m) => m.profiles.length ? `Perfiles ${m.profiles.join(", ")}` : "Ningún perfil lo usa";
+  // los del agente no dependen del perfil: los elige el agente (o tú, en Ajustes › Agente) y se borran de a uno
+  const profilesOf = (m) => m.agent ? "Modelo del agente" : m.profiles.length ? `Perfiles ${m.profiles.join(", ")}` : "Ningún perfil lo usa";
   ctl(STORAGE_MODELS).replaceChildren(d.models.length ? el("div", { class: "vrows" }, ...d.models.map((m) =>
     stRow("spark", m.label, [m.purpose, `${lastUse(m)} · ${profilesOf(m)}`], m.bytes, m.in_use ? el("span", { class: "chip ok", text: "En uso" })
       : freeBtn("Borrar", "model" + m.repo, () => storageFree({ what: "model", repo: m.repo }, `¿Borrar ${m.label}?`,
-        `${m.purpose}. ${lastUse(m)}. ${m.profiles.length ? `Lo usan los perfiles ${m.profiles.join(", ")}: si cambias a uno, se vuelve a descargar (${stBytes(m.bytes)}).`
+        `${m.purpose}. ${lastUse(m)}. ${m.agent ? `Si el agente lo vuelve a necesitar, se descarga de nuevo (${stBytes(m.bytes)}).`
+          : m.profiles.length ? `Lo usan los perfiles ${m.profiles.join(", ")}: si cambias a uno, se vuelve a descargar (${stBytes(m.bytes)}).`
           : "Ningún perfil lo usa."} Libera ${stBytes(m.bytes)}.`, "Borrar el modelo"))))) :
     emptyState("spark", "Sin modelos descargados", "Se descargan la primera vez que se usan."),
   ...(() => {  // de una vez: todo lo que el perfil que usas no necesita
-    const off = d.models.filter((m) => !m.in_use);
+    const off = d.models.filter((m) => !m.in_use && !m.agent);
     const bytes = off.reduce((n, m) => n + m.bytes, 0);
     return off.length > 1 ? [el("div", { class: "acts" }, freeBtn(`Borrar los que tu perfil no usa · ${stBytes(bytes)}`, "unused_models",
       () => storageFree({ what: "unused_models" }, `¿Borrar ${off.length} modelos que tu perfil no usa?`,
@@ -136,16 +138,16 @@ function renderStorage() {
   // de la app
   const x = d.extra;
   const app = [
-    x.exports ? stRow("zip", "Exportaciones para descargar", "Se borran solas a las 24 h", x.exports,
+    x.exports ? stRow("zip", "Exportaciones para descargar", "Se eliminan automáticamente a las 24 h", x.exports,
       freeBtn("Borrar", "exports", () => storageFree({ what: "exports" }, "¿Borrar las exportaciones?",
-        "Lo que ya descargaste queda en tu carpeta de descargas.", "Borrar"))) : null,
+        "Los archivos descargados se conservan en tu carpeta de descargas.", "Borrar"))) : null,
     d.has_install ? stRow("update", "Caché de instalación", "Paquetes que solo aceleran la próxima actualización", d.install ?? "…",
       d.install ? freeBtn("Borrar", "install", () => storageFree({ what: "install" }, "¿Borrar la caché de instalación?",
         `Libera ${stBytes(d.install)}. La próxima actualización descarga los paquetes de nuevo.`, "Borrar")) : null) : null,
     x.labs ? stRow("flask", "Mediciones de rendimiento", "Pruebas de desarrollo (data/labs)", x.labs,
       freeBtn("Borrar", "labs", () => storageFree({ what: "labs" }, "¿Borrar las mediciones?",
         `Libera ${stBytes(x.labs)}. Translay no las usa: son de las pruebas de desarrollo.`, "Borrar"))) : null,
-    x.session ? stRow("user", "Sesión de YouTube", "El navegador aparte con el que entras a YouTube", x.session, null) : null,
+    x.session ? stRow("user", "Sesión de YouTube", "Navegador independiente para la sesión de YouTube", x.session, null) : null,
   ].filter(Boolean);
   ctl(STORAGE_APP).replaceChildren(el("div", { class: "vrows" }, ...app));
   STORAGE_APP.closest(".set-group")?.toggleAttribute("hidden", !app.length);
@@ -162,5 +164,5 @@ function storageError() {  // «vault_error» mientras se liberaba: el botón vu
 }
 function storageFreed(m) {
   storage.busy = "";
-  toast(m.bytes ? `Se liberaron ${stBytes(m.bytes)}.` : "No había nada que liberar.", "ok");
+  toast(m.bytes ? `Se liberaron ${stBytes(m.bytes)}.` : "No hay espacio para liberar", "ok");
 }

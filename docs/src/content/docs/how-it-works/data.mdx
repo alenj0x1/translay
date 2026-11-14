@@ -126,6 +126,8 @@ Automatic collections (recent, all, channels, categories) aren't stored: they ar
 
 A new sentence replaces those that overlap with it by more than half of the shorter one.
 
+Next to it, `transcripts/<video>.screen.json` (`vt/screentext.py`) keeps the [text in the video](../screen-text/): `items` (each with `start`, `end`, `box` as `[x, y, w, h]` in fractions of the frame, `kind`, `text`, `translation`, `lines`, `align`, `bg` and `fg`), `upto` (how far it was read) and `done`. It lives apart because it is written from another thread; it moves, goes to the trash and is deleted with the video.
+
 ## HTTP routes
 
 `AppServer` (`vt/httpws.py`) serves files with `Range` support (to seek within the video). Images are cached for one hour; everything else, never. With `?dl=<name>` the file downloads with that name instead of opening. No route can escape its folder.

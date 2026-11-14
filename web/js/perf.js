@@ -58,10 +58,10 @@ function renderPerf() {
       d.active === id ? el("span", { class: "pcard-tag", text: "En uso" }) : null);
     return b;
   };
-  const cards = [card("auto", "Automático", rec, `Elige solo según tu equipo: ahora, «${rec.name}».`),
+  const cards = [card("auto", "Automático", rec, `Se elige automáticamente según tu equipo. Actual: «${rec.name}».`),
     ...d.profiles.map((p) => card(p.id, p.name, p))];
   const restart = d.wanted !== d.active
-    ? el("div", { class: "perf-apply" }, el("span", { text: `Para usar «${d.profiles.find((p) => p.id === d.wanted).name}» hay que reiniciar Translay (se cargan otros modelos).` }),
+    ? el("div", { class: "perf-apply" }, el("span", { text: `Para usar «${d.profiles.find((p) => p.id === d.wanted).name}» es necesario reiniciar Translay (se cargan otros modelos).` }),
       btn("Reiniciar ahora", { icon: "reload", variant: "dark", size: "sm",
         onClick: () => send({ type: "perf_plan", profile: d.choice }) }))  // antes, qué hay que bajar (perfPlan)
     : null;
@@ -71,7 +71,7 @@ function renderPerf() {
   PERF_PROFILE.querySelector(".pref-ctl").replaceChildren(...[
     el("div", { class: "perf-calc" }, el("span", { text: "Tiempos para un video de" }), mins),
     el("div", { class: "pcards" }, ...cards), restart,
-    Object.keys(d.cli || {}).length ? el("small", { class: "label", text: `Por línea de comandos se fijó: ${Object.entries(d.cli).map(([k, v]) => `${k} ${v}`).join(", ")} (gana sobre el perfil).` }) : null].filter(Boolean));
+    Object.keys(d.cli || {}).length ? el("small", { class: "label", text: `Fijado por línea de comandos: ${Object.entries(d.cli).map(([k, v]) => `${k} ${v}`).join(", ")} (tiene prioridad sobre el perfil).` }) : null].filter(Boolean));
 
   // ---------------------------------------------------------------- límites
   const limitRow = (key, title, desc, total, fmt, opts) => {
@@ -85,11 +85,11 @@ function renderPerf() {
   };
   const opt = (k) => (prefsSchema.find((p) => p.key === k)?.options || []).map(([v]) => v);
   PERF_LIMITS.querySelector(".pref-ctl").replaceChildren(el("div", { class: "set-rows" }, ...[
-    g ? limitRow("vram_mb", "VRAM", `Cuánta memoria de la GPU puede usar Translay (tiene ${gb(g.vram_total_mb)}). El perfil automático elige modelos que entren.`,
+    g ? limitRow("vram_mb", "VRAM", `Memoria de la GPU que puede usar Translay (total: ${gb(g.vram_total_mb)}). El perfil automático elige modelos compatibles.`,
       g.vram_total_mb, gb, opt("limit_vram_mb")) : null,
-    limitRow("ram_mb", "RAM", `Tope de memoria para Translay y su proceso de voz (el equipo tiene ${gb(hw.ram.total_mb || 0)}). Lo que no entra se pasa al disco.`,
+    limitRow("ram_mb", "RAM", `Límite de memoria para Translay y su proceso de voz (total: ${gb(hw.ram.total_mb || 0)}). El exceso se pagina al disco.`,
       hw.ram.total_mb, gb, opt("limit_ram_mb")),
-    limitRow("threads", "Hilos de la CPU", `Cuántos hilos puede usar (tiene ${hw.cpu.threads}). Deja el resto libre para otros programas.`,
+    limitRow("threads", "Hilos de la CPU", `Hilos que puede usar Translay (total: ${hw.cpu.threads}). El resto queda libre para otros programas.`,
       hw.cpu.threads + 1, (n) => `${n} ${n === 1 ? "hilo" : "hilos"}`, opt("limit_threads"))].filter(Boolean)));
 
   // ---------------------------------------------------------------- avisos
@@ -98,7 +98,7 @@ function renderPerf() {
     ? el("div", { class: "alerts" }, ...al.map((a) => el("div", { class: `alert ${a.level}` },
       icon(a.level === "bad" ? "x" : a.level === "info" ? "reload" : "clock"), el("span", { text: a.text }))))
     : el("div", { class: "alert ok" }, icon("check"), el("span", { text: d.live.tts_count
-      ? `Todo en orden: la voz tarda ~${d.live.tts_p50} s por frase.` : "Todo en orden para este equipo." })));
+      ? `Todo en orden. La voz tarda ~${d.live.tts_p50} s por frase.` : "Todo en orden para este equipo." })));
 }
 
 function fmtMinutes(m) {
@@ -113,7 +113,7 @@ function perfUpdate(m) {
   if (currentView() === "prefs" && lib.prefSec === "rendimiento") renderPerf();
 }
 function restarting() {
-  toast("Reiniciando Translay: vuelve solo en unos segundos.", "warn");
+  toast("Reiniciando Translay. Estará disponible en unos segundos.", "warn");
 }
 
 // Al reiniciar con otro perfil (vt/modelset.py · plan): si le faltan modelos (o, en la app de escritorio, el
@@ -122,7 +122,7 @@ async function perfPlan(m) {
   const needVoiceEnv = DESKTOP && m.voice_env;
   const down = m.missing_bytes + (needVoiceEnv ? m.voice_env_bytes : 0);
   if (!down && !m.unused_bytes) {
-    if (await confirmDlg("¿Reiniciar Translay?", "Lo que se esté procesando se retoma solo al volver. Tarda unos segundos.", "Reiniciar")) {
+    if (await confirmDlg("¿Reiniciar Translay?", "El procesamiento en curso se reanudará automáticamente. Tarda unos segundos.", "Reiniciar")) {
       send({ type: "server_restart" });
     }
     return;
@@ -131,12 +131,12 @@ async function perfPlan(m) {
   $("#plan-title").textContent = `Cambiar a «${m.name}»`;
   $("#plan-sub").textContent = down
     ? `Se descarga${m.missing.length + (needVoiceEnv ? 1 : 0) === 1 ? "" : "n"} ${fmtBytes(down)} y Translay se reinicia al terminar. Lo que se esté procesando se retoma solo.`
-    : "Translay se reinicia con los modelos de este perfil. Lo que se esté procesando se retoma solo.";
+    : "Translay se reinicia con los modelos de este perfil. El procesamiento en curso se reanudará automáticamente.";
   const row = (ic, title, detail, bytes) => el("div", { class: "trow st-row" }, el("span", { class: "trow-ic" }, icon(ic)),
     el("div", { class: "vinfo" }, el("strong", { text: title }), detail ? el("small", { text: detail }) : null),
     el("div", { class: "vacts" }, el("span", { class: "st-size", text: fmtBytes(bytes) })));
   $("#plan-list").replaceChildren(...[
-    needVoiceEnv ? row("speaker", "Motor de voz", "Se instala una vez, para doblar al español", m.voice_env_bytes) : null,
+    needVoiceEnv ? row("speaker", "Motor de voz", "Se instala una sola vez para el doblaje al español", m.voice_env_bytes) : null,
     ...m.missing.map((x) => row("download", x.label, x.purpose, x.bytes))].filter(Boolean));
   $("#plan-list").hidden = !down;
   $("#plan-prune-row").hidden = !m.unused_bytes;

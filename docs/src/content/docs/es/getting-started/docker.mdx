@@ -26,7 +26,7 @@ La imagen trae todo: CUDA 12.8 y cuDNN 9, el servidor (Python 3.12), el motor de
    cd translay
    ```
 
-1. Define la contraseña del dueño:
+1. Define la contraseña de propietario:
 
    ```sh
    cp .env.example .env
@@ -52,7 +52,7 @@ docker compose logs -f
 
 ## Por qué hace falta la contraseña
 
-Fuera de Docker, quien entra desde el mismo equipo (`127.0.0.1`) es el dueño sin iniciar sesión. Dentro del contenedor las conexiones llegan desde la red de Docker, así que nadie cuenta como local: sin contraseña nadie podría administrar la app. `TRANSLAY_OWNER_PASSWORD` (o `--owner-password`) la fija al arrancar. Más en [Acceso](../../integrations/access/).
+Fuera de Docker, quien entra desde el mismo equipo (`127.0.0.1`) es el propietario sin iniciar sesión. Dentro del contenedor las conexiones llegan desde la red de Docker, así que nadie cuenta como local: sin contraseña nadie podría administrar la app. `TRANSLAY_OWNER_PASSWORD` (o `--owner-password`) la fija al arrancar. Más en [Acceso](../../integrations/access/).
 
 ## Volúmenes
 

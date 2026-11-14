@@ -6,7 +6,10 @@ interface Props { section?: string; except?: string[] }
 const { section, except = [] } = Astro.props;
 const items = prefs.schema.filter((p) => (section ? p.section === section : !except.includes(p.section)));
 // «path»: una carpeta de este equipo, que se elige con el cuadro de Windows (sin opciones fijas)
+// «text»: lo que escribe la persona (nombre, instrucción), con su largo máximo
+// «range»: una cantidad con deslizador (entre min y max, en su unidad)
 const label = (p) => (p.type === "bool" ? (p.default ? "Sí" : "No") : p.type === "path" ? "—"
+  : p.type === "text" ? (p.default || "—") : p.type === "range" ? `${p.default} ${p.unit || ""}`.trim()
   : (p.options.find((o) => o[0] === p.default) || [p.default, p.default])[1]);
 ---
 {items.length > 0 && (
@@ -21,6 +24,8 @@ const label = (p) => (p.type === "bool" ? (p.default ? "Sí" : "No") : p.type ==
             {p.desc}
           </td>
           <td>{p.type === "bool" ? "Sí / No" : p.type === "path" ? "Una carpeta"
+            : p.type === "text" ? `Texto (hasta ${p.max} caracteres)`
+            : p.type === "range" ? `De ${p.min} a ${p.max} ${p.unit || ""}`.trim()
             : p.options.map((o, i) => <>{i ? <br /> : null}{o[1]}</>)}</td>
           <td>{label(p)}</td>
         </tr>

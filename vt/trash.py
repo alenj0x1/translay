@@ -33,7 +33,9 @@ def _rel_files(root: Path, vid: str) -> list[Path]:
     out = []
     if not _SAFE_VID.match(vid):  # un id raro nunca apunta fuera de la biblioteca
         return out
-    for rel in (Path("transcripts") / f"{vid}.json", Path("audio") / vid, Path("voices") / vid):
+    for rel in (Path("transcripts") / f"{vid}.json", Path("transcripts") / f"{vid}.screen.json",
+                Path("transcripts") / f"{vid}.agent.json",
+                Path("audio") / vid, Path("voices") / vid):
         if (root / rel).exists():
             out.append(rel)
     folder, stem = (Path("youtube"), vid[3:]) if vid.startswith("yt_") else (Path("library"), vid)
@@ -136,7 +138,7 @@ class Trash:
     def _entry(self, tid: str) -> tuple[dict, Path]:
         d = self.dir / str(tid)
         if not _TID.match(str(tid)) or not (d / "entry.json").exists():
-            raise ValueError("eso ya no está en la papelera")
+            raise ValueError("El elemento ya no está en la papelera")
         return json.loads((d / "entry.json").read_text(encoding="utf-8")), d
 
     # ------------------------------------------------------------- devolver
@@ -150,7 +152,7 @@ class Trash:
                  if vid in lib.data["videos"] or (vaults is not None and vaults.of(vid) not in (None, vault))]
         if clash:
             raise ValueError("Ya hay una copia nueva de " + ("ese video" if len(clash) == 1 else f"{len(clash)} de esos videos")
-                             + " en tus bibliotecas: elimínala primero si quieres recuperar la de la papelera.")
+                             + " en tus bibliotecas. Elimínala antes de restaurar la de la papelera.")
         left = []
         for rel in e.get("files", []):
             src, dst = d / "files" / rel, self.root / rel
@@ -194,7 +196,7 @@ class Trash:
         root.mkdir(parents=True, exist_ok=True)
         left = [n for n in e.get("files", []) if (src_dir / n).exists() and not _rename(src_dir / n, root / n)]
         if left:
-            raise ValueError("Algunos archivos de la biblioteca están en uso; cierra lo que los use y vuelve a intentar.")
+            raise ValueError("Algunos archivos de la biblioteca están en uso. Ciérralos y vuelve a intentarlo.")
         if e.get("store"):
             shutil.rmtree(src_dir, ignore_errors=True)
         shutil.rmtree(d, ignore_errors=True)

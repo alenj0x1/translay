@@ -289,7 +289,7 @@ class Session:
             try:
                 self._jar = json.loads(_dpapi(self.store.read_bytes(), False))
             except (OSError, ValueError):
-                raise ValueError("No se pudo leer la cuenta de YouTube guardada: vuelve a conectarla en "
+                raise ValueError("No se pudo leer la cuenta de YouTube guardada. Vuelve a conectarla en "
                                  "Ajustes → YouTube.") from None
         return [_cookie(c) for c in self._jar]
 
@@ -324,9 +324,9 @@ class Session:
         secure»). El canal se usa después, ya sin ventana, solo para leer las cookies."""
         exe = _exe(key)
         if not available() or not exe:
-            raise ValueError("ese navegador no está instalado")
+            raise ValueError("El navegador no está instalado")
         if not self._lock.acquire(blocking=False):
-            raise ValueError("ya hay una conexión en curso")
+            raise ValueError("Ya hay una conexión en curso")
         try:
             self.busy = "conectando"
             on_change and on_change()
@@ -347,7 +347,7 @@ class Session:
                     raise TimeoutError("pasaron 10 minutos sin cerrar la ventana")
                 time.sleep(1)
             if time.time() - t0 < 4:  # se cerró al arrancar (p. ej. Edge con una actualización a medias)
-                raise ValueError(f"{BROWSERS[key][0]} no se pudo abrir: prueba con otro navegador")
+                raise ValueError(f"No se pudo abrir {BROWSERS[key][0]}. Prueba con otro navegador")
             b = _Browser(exe, self.profile, "about:blank", headless=True)
             try:
                 ua = b.call("Browser.getVersion").get("userAgent", "").replace("HeadlessChrome", "Chrome")

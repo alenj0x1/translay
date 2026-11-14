@@ -241,12 +241,12 @@ class Vaults:
                 vid, n = f"{base}-{n}", n + 1
             root = Path(folder).expanduser() if folder else self.data / "libraries" / vid
             if not root.is_absolute():
-                raise ValueError("la carpeta debe ser una ruta completa (p. ej. D:\\Videos\\Ciencia)")
+                raise ValueError("La carpeta debe ser una ruta completa (p. ej., D:\\Videos\\Ciencia)")
             root = root.resolve()
             if any(v.root.resolve() == root for v in self._vaults.values()):
-                raise ValueError("esa carpeta ya es una biblioteca")
+                raise ValueError("La carpeta ya es una biblioteca")
             if root.exists() and (root / "library.json").exists():
-                raise ValueError("esa carpeta ya tiene una biblioteca: usa «Abrir carpeta»")
+                raise ValueError("La carpeta ya contiene una biblioteca. Usa «Abrir carpeta»")
             v = Vault(vid, root, self.cookies)
             v.meta.update(name=name, color=color if color in COLORS else COLORS[len(self._vaults) % len(COLORS)],
                           icon=icon if icon in ICONS else "library", prefs=dict(prefs or {}),
@@ -261,7 +261,7 @@ class Vaults:
         """Una carpeta que ya es biblioteca (p. ej. de otro equipo o de un disco externo)."""
         root = Path(folder).expanduser()
         if not root.is_absolute() or not (root / "library.json").exists():
-            raise ValueError("esa carpeta no tiene una biblioteca (falta library.json)")
+            raise ValueError("La carpeta no contiene una biblioteca (falta library.json)")
         root = root.resolve()
         with self._lock:
             hit = next((v for v in self._vaults.values() if v.root.resolve() == root), None)
@@ -309,7 +309,7 @@ class Vaults:
         """Quita la biblioteca de la lista (sus archivos quedan) o la elimina con sus archivos.
         Devuelve sus videos (para quitarlos de la cola)."""
         if vid == MAIN or vid not in self._vaults:
-            raise ValueError("la biblioteca Principal no se puede quitar")
+            raise ValueError("La biblioteca Principal no se puede quitar")
         with self._lock:
             v = self._vaults.pop(vid)
             if self.last == vid:
@@ -341,6 +341,8 @@ class Vaults:
                     t.save()
                     t.deleted = True  # otra pestaña que lo tenga abierto ya no escribe en la carpeta vieja
                 files = [(src.root / "transcripts" / f"{video}.json", dest.root / "transcripts"),
+                         (src.root / "transcripts" / f"{video}.screen.json", dest.root / "transcripts"),
+                         (src.root / "transcripts" / f"{video}.agent.json", dest.root / "transcripts"),
                          (src.root / "audio" / video, dest.root / "audio"),
                          (src.root / "voices" / video, dest.root / "voices")]
                 folder, stem = (("youtube", video[3:]) if video.startswith("yt_") else ("library", video))

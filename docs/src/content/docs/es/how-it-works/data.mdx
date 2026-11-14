@@ -25,7 +25,7 @@ Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se 
   - prefs.json preferencias generales (`vt/prefs.py`)
   - models.json cuándo se usó por última vez cada modelo, para Ajustes › Almacenamiento (`vt/modelusage.py`)
   - queue.json cola de procesamiento: trabajos, estado, pausa (`vt/processor.py`)
-  - auth.json contraseña del dueño (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)
+  - auth.json contraseña de propietario (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)
   - webhooks.json webhooks con su URL, eventos, biblioteca y secreto de firma (`vt/webhooks.py`)
   - cookies.txt sesión de YouTube en formato Netscape, solo cookies de YouTube y Google (`vt/cookies.py`)
   - yt-session/ cuenta de YouTube conectada: el perfil de navegador propio de Translay, las cookies de youtube.com cifradas con DPAPI (`cookies.bin`) y cuándo se renovó (`session.json`) (`vt/ytsession.py`)
@@ -126,6 +126,8 @@ Las colecciones automáticas (recientes, todos, canales, categorías) no se guar
 
 Una frase nueva reemplaza a las que se solapan con ella en más de la mitad de la más corta.
 
+Junto a ella, `transcripts/<video>.screen.json` (`vt/screentext.py`) guarda el [texto en el video](../screen-text/): `items` (cada uno con `start`, `end`, `box` como `[x, y, w, h]` en fracción del cuadro, `kind`, `text`, `translation`, `lines`, `align`, `bg` y `fg`), `upto` (hasta dónde se leyó) y `done`. Va aparte porque se escribe desde otro hilo; se mueve, va a la papelera y se borra con el video.
+
 ## Rutas HTTP
 
 `AppServer` (`vt/httpws.py`) sirve archivos con soporte de `Range` (para saltar dentro del video). Las imágenes se guardan en caché una hora; lo demás, nunca. Con `?dl=<nombre>` el archivo se descarga con ese nombre en vez de abrirse. Ninguna ruta puede salir de su carpeta.
@@ -148,7 +150,7 @@ Antes de servir un archivo o aceptar una subida, el guardián `make_guard` (`vt/
 | `PUT /api/upload/<video>?name=&lib=` | Guarda la copia de un archivo del equipo en `<biblioteca>/library/` | Quien puede importar en esa biblioteca. |
 | `PUT /api/capture/<video>/<n>?lib=` · `…/end?parts=&q=&fps=&crop=&title=` | Recibe una grabación de pantalla parte por parte (reanudable) y, al final, arma el archivo en `<biblioteca>/library/` | Quien puede importar en esa biblioteca. |
 | `PUT /api/thumb/<video>?lib=` | Guarda su miniatura (hasta 2 MB) | Quien puede importar en esa biblioteca. |
-| `PUT /api/cookies` | Valida y guarda `data/cookies.txt` | El dueño. |
+| `PUT /api/cookies` | Valida y guarda `data/cookies.txt` | El propietario. |
 
 `/api/v1` y `/api/auth/` hacen su propia autenticación (ver [API](../../integrations/api/)) y aceptan cuerpos de hasta 2 MB. El WebSocket es `/ws`.
 

@@ -38,11 +38,11 @@ let loginFor = "";  // "" = dueño · id = biblioteca con contraseña
 function showLogin(m, asOwner = false) {
   const lockVault = !asOwner && m.asked && m.asked_mode === "clave";
   loginFor = lockVault ? m.asked : "";
-  $("#login-title").textContent = lockVault ? m.asked_name : "Entrar";
-  $("#login-sub").textContent = lockVault ? "Esta biblioteca pide contraseña."
-    : m.owner_set ? "Contraseña del dueño."
+  $("#login-title").textContent = lockVault ? m.asked_name : "Iniciar sesión";
+  $("#login-sub").textContent = lockVault ? "Esta biblioteca requiere contraseña."
+    : m.owner_set ? "Contraseña de propietario."
     : m.asked && m.asked_mode === "privada" ? "Esta biblioteca es privada."
-    : "Desde otro equipo se entra con la contraseña del dueño, y aún no hay una: ponla en Ajustes → Acceso y API desde el equipo donde corre la app.";
+    : "Para acceder desde otro equipo se necesita una contraseña de propietario. Configúrala en Ajustes → Acceso y API desde el equipo donde se ejecuta la app.";
   $("#login-form").hidden = !lockVault && !m.owner_set;
   $("#login-err").textContent = "";
   $("#login-pw").value = "";
@@ -64,7 +64,7 @@ $("#login-form").addEventListener("submit", async (e) => {
   const r = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password: $("#login-pw").value, vault: loginFor }) });
   if (r.ok) return location.reload();
-  $("#login-err").textContent = "Contraseña incorrecta.";
+  $("#login-err").textContent = "Contraseña incorrecta";
   $("#login-pw").select();
 });
 $("#login-owner").addEventListener("click", () => showLogin(state.access, true));
@@ -102,9 +102,9 @@ function baseUrl() {
 /* ------------------------------------------------------------ Ajustes → Acceso y API */
 const accBlock = (id, label) => el("div", { class: "pref acc", id }, el("span", { class: "pref-label", text: label }), el("div", { class: "pref-ctl" }));
 const ACC = {
-  owner: accBlock("pref-acc-owner", "Contraseña del dueño"),
+  owner: accBlock("pref-acc-owner", "Contraseña de propietario"),
   net: accBlock("pref-acc-net", "Acceso desde otros equipos"),
-  libs: accBlock("pref-acc-libs", "Quién entra a cada biblioteca"),
+  libs: accBlock("pref-acc-libs", "Acceso a cada biblioteca"),
   keys: accBlock("pref-acc-keys", "Claves de API"),
   hooks: accBlock("pref-acc-hooks", "Webhooks"),
 };
@@ -131,15 +131,15 @@ function renderAccOwner(ctl) {
     e.preventDefault();
     if (pw.value.length < 6) return toast("La contraseña debe tener al menos 6 caracteres.", "warn");
     send({ type: "admin_owner_pw", password: pw.value });
-    toast("Contraseña del dueño guardada.", "ok");
+    toast("Contraseña de propietario guardada", "ok");
   } } }, pw, btn(a.owner_set ? "Cambiar" : "Guardar", { type: "submit", icon: "check", variant: "dark" }));
   fill(ctl, 
-    el("small", { class: "label", text: a.owner_set ? "Desde este equipo entras sin contraseña; desde otros, con esta."
-      : "Sin contraseña, solo se entra como dueño desde este equipo." }),
+    el("small", { class: "label", text: a.owner_set ? "En este equipo no se solicita. En otros equipos, sí."
+      : "Sin contraseña, solo este equipo tiene acceso como propietario." }),
     form,
     el("div", { class: "acts" },
       a.owner_set ? btn("Quitar contraseña", { icon: "x", variant: "ghost", onClick: async () => {
-        if (await confirmDlg("¿Quitar la contraseña del dueño?", "Desde otros equipos ya no se podrá entrar como dueño.", "Quitar")) {
+        if (await confirmDlg("¿Quitar la contraseña de propietario?", "Ya no se podrá acceder como propietario desde otros equipos.", "Quitar")) {
           send({ type: "admin_owner_pw", password: "" });
         }
       } }) : null,
@@ -157,12 +157,12 @@ function renderAccNet(ctl) {
       el("code", { text: u }), copyBtn(u, "Copiar", "Dirección copiada")))
       : [el("small", { class: "label", text: "No se encontró una red local." })])) : null,
     el("small", { class: "label", text: a.network
-      ? "Otros equipos y celulares de tu misma red entran con esta dirección. Para entrar desde internet, usa un túnel (p. ej. Cloudflare Tunnel) hacia el puerto " + a.port + "."
+      ? "Los equipos y celulares de tu red pueden acceder con esta dirección. Para acceder desde internet, usa un túnel (p. ej., Cloudflare Tunnel) hacia el puerto " + a.port + "."
       : "Solo este equipo puede abrir la app." }));
 }
 
 function renderAccLibs(ctl) {
-  const modes = [["privada", "Solo yo"], ["clave", "Con contraseña"], ["publica", "Pública"]];
+  const modes = [["privada", "Privada"], ["clave", "Con contraseña"], ["publica", "Pública"]];
   const perms = [["ver", "Solo ver"], ["importar", "Ver e importar"]];
   fill(ctl, el("div", { class: "vrows" }, ...vaults.list.map((v) => {
     const acc = v.access || { mode: "privada", perm: "ver" };
@@ -188,7 +188,7 @@ function renderAccLibs(ctl) {
           e.preventDefault();
           if (!pw.value) return pw.focus();
           apply("clave", draft.perm, pw.value);
-          toast(`Contraseña de «${v.name}» guardada.`, "ok");
+          toast(`Contraseña de «${v.name}» guardada`, "ok");
         } } }, pw, btn(acc.has_pw ? "Cambiar" : "Guardar", { type: "submit", icon: "check" })) : null,
         draft.mode !== "privada" && acc.mode === draft.mode
           ? el("div", { class: "acc-url" }, el("code", { text: link }), copyBtn(link, "Copiar enlace", "Enlace copiado")) : null));
@@ -206,11 +206,11 @@ function renderAccKeys(ctl) {
       el("small", { text: `${k.scope === "all" ? "todas" : vaultById(k.scope)?.name || k.scope} · ${k.perm} · usada ${ago(k.used)}` }),
       el("code", { text: k.hint })),
     btn("Revocar", { icon: "trash", size: "xs", variant: "danger", onClick: async () => {
-      if (await confirmDlg(`¿Revocar la clave «${k.name}»?`, "Lo que la use dejará de funcionar.", "Revocar")) send({ type: "admin_key_revoke", id: k.id });
+      if (await confirmDlg(`¿Revocar la clave «${k.name}»?`, "Las apps y scripts que la usen dejarán de funcionar.", "Revocar")) send({ type: "admin_key_revoke", id: k.id });
     } })));
   fill(ctl, 
     accDraft.newToken ? el("div", { class: "acc-token" },
-      el("small", { class: "label", text: "Cópiala ahora: no se vuelve a mostrar." }),
+      el("small", { class: "label", text: "Cópiala ahora. No se volverá a mostrar." }),
       el("div", { class: "acc-url" }, el("code", { text: accDraft.newToken }), copyBtn(accDraft.newToken, "Copiar", "Clave copiada"),
         btn("Listo", { size: "xs", icon: "check", onClick: () => { accDraft.newToken = null; renderAccKeys(ctl); } }))) : null,
     rows.length ? el("div", { class: "vrows" }, ...rows) : emptyState("lock", "Sin claves de API",
@@ -239,7 +239,7 @@ function renderAccHooks(ctl) {
         + (h.active ? "" : " · pausado") }),
       el("code", { text: h.url })),
     el("div", { class: "vacts" },
-      btn("Probar", { size: "xs", icon: "spark", onClick: () => { send({ type: "admin_hook_test", id: h.id }); toast("Aviso de prueba enviado.", "ok"); } }),
+      btn("Probar", { size: "xs", icon: "spark", onClick: () => { send({ type: "admin_hook_test", id: h.id }); toast("Webhook de prueba enviado", "ok"); } }),
       copyBtn(h.secret, "Secreto", "Secreto copiado"),
       btn("Editar", { size: "xs", icon: "pencil", variant: "ghost", onClick: () => { accDraft.hook = { ...h }; renderAccHooks(ctl); } }),
       btn("Quitar", { size: "xs", icon: "trash", variant: "danger", onClick: async () => {
@@ -248,7 +248,7 @@ function renderAccHooks(ctl) {
   const log = (a.log || []).slice(0, 8);
   fill(ctl, 
     rows.length ? el("div", { class: "vrows" }, ...rows) : accDraft.hook ? null : emptyState("external", "Sin webhooks",
-      "Agrega uno para que otra app reciba un aviso cuando un video se importe, se traduzca o se exporte."),
+      "Notifica a otras apps cuando un video se importa, se traduce o se exporta."),
     accDraft.hook ? hookForm(ctl, cat) : el("div", { class: "acts" },
       btn("Agregar webhook", { icon: "plus", variant: "dark", onClick: () => { accDraft.hook = { events: [], vault: "all", active: true }; renderAccHooks(ctl); } })),
     log.length ? el("div", { class: "acc-log" }, el("h4", { text: "Últimos envíos" }), ...log.map((x) => el("div", { class: "acc-logrow" + (x.ok ? "" : " bad") },

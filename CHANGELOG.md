@@ -6,9 +6,54 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ## Unreleased
 
+### Added
+
+- Settings: a home page with a card for each section, in five blocks (General, Watching, Videos, Libraries and access, Computer), and a search that also finds the options inside each section; the sidebar uses the same blocks.
+- Look: animated scenes made of characters as the app's background (Translay, the default, with the logo's wave speaking; seabed, sunset, jellyfish, spiders, and «Arañas, Shade y Manchita»: spiders with a fluffy dog and a kitten) in the theme's colors, a new logo (a voice wave and «translay») and JetBrains Mono for code and technical data. Code blocks follow light and dark mode: each code theme has its light and dark version. Menu icons tilt slightly on hover, and the main content has a rounded top-left corner where the header and the sidebar meet. The header and the panels are slightly see-through, so the background scene shows behind them. Selected text takes the theme's color.
+- Agent: **Uso del equipo** (Settings › Agente) sets how much of the computer the summary and descriptions take: they rest between requests, and on CPU-only computers it also limits the cores. Questions keep full speed.
+- Player: a short description under the video's title (one or two sentences), written by the agent's smallest model when the video finishes processing, or taken from its summary.
+- Agent: **Continuar** (Continue) picks up a stopped answer from where it was left.
+- Text in the video: titles, signs, slides and code comments written in a video are read on the CPU (PP-OCRv5), translated and shown on top of the original in the same place and colors; the translated video carries them burned into the image. Code, commands and links are left as they are, and new kinds of elements are added with one function in `vt/textkind.py`. On by default (Ajustes › Audio y subtítulos › «Texto del video en español»), also at `GET /api/v1/videos/{id}/screen-text`.
+- Transcript: code, commands, links and code comments written in the video show in their place among the sentences, with a button to copy them and a click to jump there.
+- «Copiar para un agente» (right click on the video, a sentence or a card) copies the whole video as Markdown for any agent: transcript with times, people and translation, summary, what's on screen and how far you watched; also at `GET /api/v1/videos/{id}/context`.
+- Agent: the «Resumen» tab becomes the video's agent. Ask it anything about the video (what is said, what's on screen, in which minute something happens, what you still have to watch) and it answers on your computer, without internet, with each moment as a button that jumps there and suggestions that follow the video. It runs with llama.cpp on the graphics card, integrated graphics or the processor, with the model chosen for your machine; name, avatar, color, tone and model in Ajustes › Agente. The summary is its first card.
+- Code colors: code, commands and comments in the transcript and the agent are highlighted with the theme chosen in Ajustes › Apariencia (Visual Studio Code Dark by default; One Dark, Catppuccin, Dracula, Monokai, Nord and GitHub Light).
+- Player: a subtitles button (CC) and the <kbd>C</kbd> key to choose or turn off the subtitles and the video's text, also from the right-click menu.
+- Summary: much more complete, written by the agent's model from what is said and what is on screen: overview, ideas to take away, chapters with their points and moments, key terms, and links, commands and code from the video as resources. Generated automatically when the video is ready (Ajustes › Agente).
+- Agent: customize its name, avatar, color and tone from its own tab (brush button) without leaving the video; its answers come in a bubble tinted with its color, each moment is a button with ▶ in that color, and a sample video (summary with chapters, terms and resources, and a few questions) stays beside the options to show how it will look, also in Settings.
+- Player: code, commands, links and translated text in the video can be copied or sent to the agent from the video itself (hover, click or right-click), with a highlight box that glides from one to the next; the transcript's code and commands have «Preguntar a Lumi» too.
+- Agent: actions with their own card, instant and also while it is off: export the video for Claude or another agent (copy or download .md), jump to a moment or to where something is explained, change the subtitles, save the video to a collection, and notices while watching (marked on the progress bar, with a notice when you reach each one).
+- Agent: right-click a moment on the progress bar to ask about it; it appears as a mention above the question box.
+- Agent: shows each step while it answers (loading the model, reading the video, writing), and every message shows its time and a copy button; finished answers end with a green check, and questions asked while it answers wait in a queue.
+- Agent: before the first question it shows what it can do as chips that ask or start the question for you.
+- Agent: dictate questions with the microphone button; Translay's Whisper writes what you said in the box so you can review it before sending.
+- Settings › Agente: the model list shows which models are compatible with your computer, which one is recommended, how well each answered in the lab and which are downloaded; the chosen model can be downloaded ahead with its progress on the button. Agent models appear in Settings › Almacenamiento, are deleted one at a time and «Borrar los que tu perfil no usa» no longer deletes them.
+- Settings › Agente: a «Del tema» color, marked with its own icon, that follows the app's accent color.
+- Agent: turn it on or off from its tab (off, the model leaves memory; it also sleeps after 5 minutes without questions). Question suggestions come from the summary, so they work while it is off and clicking one turns it on. Default models chosen with the lab: Qwen3.5 4B or Gemma 4 E2B on graphics cards, Qwen3.5 0.8B on integrated graphics and Qwen3.5 2B or 0.8B on the processor.
+
+### Changed
+
+- Settings: the YouTube session moved into Agregar y descargar (Add and download), and Uso now says what it is for.
+- Accent color: soft pastels in light mode with text in a deep tone of the same color (no more black text on green); each swatch in Settings shows its light and dark versions, split by a wavy diagonal.
+- Background (formerly «Fondo del inicio»): the thumbnail and color lights and the gallery are replaced by the scenes; your own image stays.
+- Interface texts reviewed across the app so they read like a finished product: «Descargar» instead of «Bajar», «Iniciar sesión» and «propietario», «Priorizar», «Notificaciones», «Estilo de respuesta», «Dispositivo», «Ideas clave», «Subtítulos activados» and short notices without colons or a trailing period.
+- The chosen option in tabs, option groups, ES / EN and active buttons is marked by its tone alone, without a ring or shadow.
+- Home: what you are watching comes first, large, with the light of its thumbnail behind; the add box left the home page (adding and recording are in the top bar). The background is chosen in Settings › Apariencia › «Fondo del inicio»: the video's light, the accent color's, plain or your own image, with the real home page as a preview. Eight more backgrounds in a gallery (Aurora, Atardecer, Océano, Bosque, Brasa, Medianoche, Arena, Niebla), and the featured text switches between light and dark to stay readable over any background. On large screens the featured video grows with the window and shows its summary's key ideas and first chapters, each one a button to that moment.
+- The sidebar and the video's panel change width by dragging their edge; past the minimum the sidebar turns into icons and the panel hides (drag its edge back to show it). The «Transcripción» button above the video is gone: the panel holds more than the transcript.
+- Header: the buttons are always the same and in the same place (Grabar, Agregar, Cola, Biblioteca, Ajustes), with the open screen's one highlighted; «Biblioteca» no longer turns into «Volver al video». An open video stays in the thumbnail at the bottom right also when paused, to go back to it.
+- Library: hovering over a downloaded video plays a silent preview in its thumbnail, like YouTube.
+- Collections, playlists, channels and categories open with a header (badge, name, videos and actions) with the light of their banner or thumbnails behind, like YouTube's ambient mode. The dot pattern is gone from banners, cards and libraries.
+- Dark theme: pure neutral grays without the bluish tint (background #161616, panels #181818, fields #1f1f1f, menus #1a1a1a).
+
 ### Fixed
 
+- Look: the background scenes use at most 15 % of one processor core on any computer (larger cells on big screens, a usage cap and positions computed once per frame), and stop while a video plays and while another window is in front (both can be turned off in Settings › Apariencia).
+- Look: the background scene is drawn in its own thread, from pre-drawn characters and only where something changed, so navigating no longer slows down (it took up to half of the interface's time on a full-screen window).
+- Settings: the chosen option's pill now slides to the new one in every option group (redrawing the page used to make it jump).
+- Agent: stopping an answer works at once, also while it is still reading the video, and keeps what it wrote so far.
 - Release script: it no longer fails in a Windows console when printing the notes; it writes its output in UTF-8.
+- Settings › Agente: the «El de énfasis» color swatch was invisible.
+- Agent: if Translay is closed abruptly, the model server closes with it instead of staying in memory.
 
 ## 1.13.0 · 2026-11-13
 

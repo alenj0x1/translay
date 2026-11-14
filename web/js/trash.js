@@ -18,7 +18,7 @@ function renderTrash() {
   const ctl = TRASH_BLOCK.querySelector(".pref-ctl");
   if (!trash.items.length) {
     ctl.replaceChildren(emptyState("trash", "La papelera está vacía",
-      "Lo que borres (videos, una biblioteca vaciada o eliminada) queda aquí 30 días."));
+      "Los videos y bibliotecas eliminados se conservan aquí durante 30 días."));
     return;
   }
   const when = (t) => new Date(t * 1000).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -33,7 +33,7 @@ function renderTrash() {
       btn("Restaurar", { icon: "undo", size: "sm", onClick: () => send({ type: "trash_restore", id: x.id, vault: x.vault }) }),
       btn("Borrar para siempre", { icon: "trash", size: "sm", variant: "ghost", cls: "icon", title: "Borrar para siempre",
         onClick: async () => {
-          if (await confirmDlg(`¿Borrar «${x.title}» para siempre?`, "Ya no se va a poder devolver.", "Borrar para siempre")) {
+          if (await confirmDlg(`¿Borrar «${x.title}» para siempre?`, "Esta acción no se puede deshacer.", "Borrar para siempre")) {
             send({ type: "trash_purge", id: x.id, vault: x.vault });
           }
         } }))));
@@ -51,8 +51,8 @@ function trashUpdate(m) {
   renderTrash();
 }
 function trashed(m) {
-  toast(`${m.title}: se movió a la papelera.`, "ok", { label: "Deshacer", onClick: () => send({ type: "trash_restore", id: m.id, vault: m.vault }) });
+  toast(`«${m.title}» se movió a la papelera`, "ok", { label: "Deshacer", onClick: () => send({ type: "trash_restore", id: m.id, vault: m.vault }) });
 }
 function trashRestored() {
-  toast("Se devolvió tal como estaba.", "ok");
+  toast("Restaurado", "ok");
 }

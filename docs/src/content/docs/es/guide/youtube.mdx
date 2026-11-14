@@ -38,7 +38,7 @@ Sin sesión, YouTube deja descargar la mayoría de los videos, pero no los que t
 
 ### Conectar tu cuenta de YouTube
 
-En Ajustes › YouTube › «Cuenta de YouTube»:
+En Ajustes › Agregar y descargar › «Cuenta de YouTube»:
 
 <Steps>
 
@@ -69,17 +69,17 @@ Usar la sesión para descargar va contra las condiciones de YouTube, y hay repor
 - **Un canal privado, sin puerto de red.** Para leer las cookies, Translay abre el perfil sin ventana y le habla al navegador por un canal entre los dos procesos (`--remote-debugging-pipe`), no por un puerto: ningún otro programa del equipo puede conectarse. Solo le pide las cookies; nunca ejecuta código en las páginas ni lee su contenido.
 - **Lo mínimo.** Se guardan solo las cookies de `youtube.com`; nada del correo, el nombre ni el canal. Después de cada uso se borran del perfil el historial, la caché y lo demás que no son cookies.
 - **Cifrado.** Las cookies quedan en `data/yt-session/cookies.bin`, cifradas con DPAPI: solo las descifra tu usuario de Windows en este equipo. Se le pasan a yt-dlp en memoria, sin escribir un `cookies.txt` en texto plano.
-- **Solo el dueño, desde este equipo.** Conectar y desconectar lo hace el dueño desde el equipo donde corre Translay (la ventana se abre ahí). Quien entra desde otro equipo o con una biblioteca compartida ve, como mucho, si hay una cuenta conectada.
+- **Solo el propietario, desde este equipo.** Conectar y desconectar lo hace el propietario desde el equipo donde corre Translay (la ventana se abre ahí). Quien entra desde otro equipo o con una biblioteca compartida ve, como mucho, si hay una cuenta conectada.
 
 El código está en `vt/ytsession.py`. Solo funciona en Windows; en Docker o en otro sistema, usa «Subir cookies.txt».
 
 ### Otras sesiones
 
-En Ajustes › YouTube › «Sesión para descargar» eliges cuál usar:
+En Ajustes › Agregar y descargar › «Sesión para descargar» eliges cuál usar:
 
 | Opción | Qué hace |
 |---|---|
-| No usar (por defecto) | Descarga sin sesión. |
+| Ninguna (por defecto) | Descarga sin sesión. |
 | Cuenta conectada | Usa la cuenta conectada (arriba). |
 | Firefox, Brave, Chrome o Edge | Lee la sesión de ese navegador en cada descarga. |
 | Archivo cookies.txt | Usa la sesión importada en `data/cookies.txt`. |

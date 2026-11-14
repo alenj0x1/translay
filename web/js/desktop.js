@@ -136,7 +136,7 @@ function onUpdateInfo(m) {
   renderUpdate();
   if (upd.state === "available" && !upd.manual && !upd.notified) {
     upd.notified = true;
-    toast(`Hay una versión nueva de Translay: ${m.version}.`, "ok", { label: "Ver", onClick: () => openPrefs("escritorio") });
+    toast(`Translay ${m.version} está disponible`, "ok", { label: "Ver", onClick: () => openPrefs("escritorio") });
   }
 }
 
@@ -178,7 +178,7 @@ function updateRows(row) {
     checking: "Buscando…",
     latest: "Tienes la última versión.",
     available: `Translay ${v} está disponible.`,
-    opened: `Se abrió la descarga de Translay ${v} en tu navegador: ejecuta el instalador. Tu biblioteca y tus ajustes se mantienen.`,
+    opened: `La descarga de Translay ${v} se abrió en el navegador. Ejecuta el instalador. Tu biblioteca y tus ajustes se conservarán.`,
     error: upd.error,
   }[upd.state] || "";
   const actions = upd.state === "available" || upd.state === "opened"
@@ -189,8 +189,8 @@ function updateRows(row) {
     on: { click: () => desktopCall("set_auto_update", { enabled: value }).then(() => { info.auto_update = value; renderUpdate(); }) } },
     icon(ic), text);
   return [
-    row("Buscar actualizaciones", info.auto_update ? "Al abrir Translay y cada 6 horas." : "Solo cuando lo pidas.",
-      el("div", { class: "segs" }, auto(true, "reload", "Automáticamente"), auto(false, "x", "Solo a mano"))),
+    row("Buscar actualizaciones", info.auto_update ? "Al abrir Translay y cada 6 horas." : "Solo de forma manual.",
+      el("div", { class: "segs" }, auto(true, "reload", "Automáticamente"), auto(false, "x", "Manualmente"))),
     row(`Translay ${info.version || ""}`, status, ...actions),
     upd.state === "available" || upd.state === "opened" ? updateNotes(upd.info?.notes) : null,
   ];
@@ -231,13 +231,13 @@ function desktopPrefsBlocks() {
       el("div", { class: "set-ctl" }, ...ctl));
     box.replaceChildren(
       row("Al cerrar la ventana", info.close_to_tray
-        ? "Translay sigue en la bandeja mientras la cola tenga trabajo y al terminar se cierra y libera todo. Si la cola está detenida o no hay nada en proceso, se cierra igual."
+        ? "Translay permanece en la bandeja mientras haya trabajos en la cola y se cierra al terminar. Si la cola está detenida o vacía, se cierra de inmediato."
         : "Translay se cierra por completo.",
-        el("div", { class: "segs" }, seg(false, "x", "Salir"), seg(true, "tray", "Seguir en la bandeja"))),
+        el("div", { class: "segs" }, seg(false, "x", "Salir"), seg(true, "tray", "Minimizar a la bandeja"))),
       row("Biblioteca Principal", info.data_dir || "",
         btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),
         btn("Cambiar…", { icon: "pencil", onClick: () => desktopCall("change_data_dir") })),
-      row("Registros", "Lo que escribe el servidor; sirve para reportar un problema.",
+      row("Registros", "Registro del servidor, útil para reportar problemas.",
         btn("Abrir carpeta", { icon: "folder", onClick: () => desktopCall("open_folder", { which: "logs" }) })),
     );
   };

@@ -45,6 +45,17 @@ def summarize_module():
     raise KeyError("MODELS no está en vt/summarize.py")
 
 
+def llm_module():
+    """De vt/llm.py, solo la clave y el nombre de cada modelo del agente (las opciones de «Modelo»)."""
+    from types import SimpleNamespace
+    for node in parse("llm.py").body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "MODELS":
+            calls = node.value.generators[0].iter.elts
+            return SimpleNamespace(MODELS={ast.literal_eval(c.args[0]): SimpleNamespace(name=ast.literal_eval(c.args[1]))
+                                           for c in calls})
+    raise KeyError("MODELS no está en vt/llm.py")
+
+
 def evaluate(expr: ast.expr, env: dict):
     """Una expresión que no es literal (p. ej. una lista armada con `langs`), con solo `env`."""
     code = compile(ast.Expression(expr), "<vt>", "eval")
@@ -59,7 +70,7 @@ def literal(mod: ast.Module, name: str):
             try:
                 return ast.literal_eval(node.value)
             except ValueError:
-                return evaluate(node.value, {"langs": langs_module(), "summarize": summarize_module()})
+                return evaluate(node.value, {"langs": langs_module(), "summarize": summarize_module(), "llm": llm_module()})
     raise KeyError(f"{name} no está en el módulo")
 
 
