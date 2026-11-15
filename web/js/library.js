@@ -107,6 +107,7 @@ function libraryUpdate(m) {
   for (const id of [...lib.picked]) if (!lib.videos[id]) lib.picked.delete(id);
   softRenderLibrary();
   renderSaveList();
+  if (typeof maybeWelcome === "function") maybeWelcome();
   if (lib.openAfterSwitch && lib.videos[lib.openAfterSwitch]) {  // desde la cola: video de otra biblioteca
     const id = lib.openAfterSwitch;
     lib.openAfterSwitch = null;

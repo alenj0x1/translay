@@ -52,7 +52,7 @@ const ICONS = {
   sun: '<circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/>',
   moon: '<path d="M12.8 10.2A5.5 5.5 0 0 1 5.8 3.2a5.5 5.5 0 1 0 7 7z"/>',
   monitor: '<rect x="2" y="2.5" width="12" height="8.5"/><path d="M5.5 13.5h5M8 11v2.5"/>',
-  zip: '<rect x="3" y="2" width="10" height="12"/><path d="M8 2v2M8 5v1M8 7v1M7 9h2v2.5H7z"/>',
+  phone: '<rect x="4.5" y="1.8" width="7" height="12.4" rx="1.6"/><path d="M7.2 11.8h1.6"/>',  zip: '<rect x="3" y="2" width="10" height="12"/><path d="M8 2v2M8 5v1M8 7v1M7 9h2v2.5H7z"/>',
   film: '<rect x="2" y="3" width="12" height="10"/><path d="M5 3v10M11 3v10M2 6h3M2 10h3M11 6h3M11 10h3"/>',
   music: '<path d="M6 12V3.5l7-1.5V10"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="11.5" cy="10" r="1.5"/>',
   library: '<path d="M2.5 2.5v11M5.5 2.5v11M8.5 3.5l3 10M2 13.5h12"/>',
@@ -266,6 +266,23 @@ function setBtn(b, text, ic) {
   return b;
 }
 
+// muestra de un color partida en diagonal: arriba a la izquierda como se ve en claro (pastel), abajo a la derecha como
+// en oscuro; el corte, una línea ondulada. El cuadro por fuera queda igual (prefs.css › .swatch-split).
+function splitSwatch() {
+  const n = 28, amp = 1.6, waves = 2.5;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, off = Math.sin(t * Math.PI * 2 * waves) * amp;  // a lo largo de la diagonal, de arriba a la derecha
+    pts.push(`${(30 * (1 - t) + off * 0.7071).toFixed(2)} ${(30 * t + off * 0.7071).toFixed(2)}`);
+  }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 30 30");
+  svg.setAttribute("class", "swatch-split");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `<rect class="dk" width="30" height="30"/><path class="lt" d="M0 0 L30 0 L${pts.join(" L")} L0 30 Z"/>`;
+  return svg;
+}
+
 // HTML estático: <button data-icon="queue">Cola</button> → ícono + texto
 function hydrateIcons(root = document) {
   for (const n of root.querySelectorAll("[data-icon]")) {
@@ -294,7 +311,8 @@ const outsideDialog = (e) => {
 document.addEventListener("pointerdown", (e) => { dlgDownOutside = outsideDialog(e); }, true);
 document.addEventListener("click", (e) => {
   const d = outsideDialog(e);
-  if (d && d === dlgDownOutside) d.close("cancel");
+  // salvo los que se cierran solo con su botón (la bienvenida: un clic afuera la omitiría entera)
+  if (d && d === dlgDownOutside && !d.hasAttribute("data-modal")) d.close("cancel");
   dlgDownOutside = null;
 }, true);
 

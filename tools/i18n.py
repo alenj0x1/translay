@@ -6,7 +6,7 @@
     python tools/i18n.py --missing pt los que faltan en un idioma, como JSON (para traducirlos de una vez)
 
 De dónde salen los textos:
-  web/js/*.js       t("…") y t(`…`) (sin ${…}: las variables van como {nombre})
+  web/js/*.js, desktop/ui/*.js   t("…") y t(`…`) (sin ${…}: las variables van como {nombre})
   web/index.html    textos y atributos fijos (placeholder, title, aria-label, data-tip, alt, data-label)
   vt/*.py           i18n.t("…") y las preferencias de vt/prefs.py (secciones, opciones, grupos y descripciones)
 
@@ -37,13 +37,14 @@ def _unescape(s: str) -> str:
 
 def from_js() -> dict[str, str]:
     out = {}
-    for f in sorted((ROOT / "web" / "js").glob("*.js")):
+    # Translay's page and the desktop app's setup and startup screens (desktop/ui), which use the same catalogues
+    for f in [*sorted((ROOT / "web" / "js").glob("*.js")), *sorted((ROOT / "desktop" / "ui").glob("*.js"))]:
         if f.name in ("i18n.js",):
             continue
         for m in _JS.finditer(f.read_text(encoding="utf-8")):
             s = _unescape(next(g for g in m.groups() if g is not None))
             if _LETTER.search(s):
-                out.setdefault(s, f"web/js/{f.name}")
+                out.setdefault(s, f.relative_to(ROOT).as_posix())
     return out
 
 
@@ -70,9 +71,14 @@ class _Html(HTMLParser):
 
 
 def from_html() -> dict[str, str]:
-    p = _Html()
-    p.feed((ROOT / "web" / "index.html").read_text(encoding="utf-8"))
-    return {s: "web/index.html" for s in p.found if s not in ("Translay", "translay")}
+    out = {}
+    for page in ("web/index.html", "desktop/ui/index.html"):
+        p = _Html()
+        p.feed((ROOT / page).read_text(encoding="utf-8"))
+        for s in p.found:
+            if s not in ("Translay", "translay"):
+                out.setdefault(s, page)
+    return out
 
 
 def from_py() -> dict[str, str]:

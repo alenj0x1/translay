@@ -89,13 +89,22 @@ body.layout-wide:not(.mini) #pane-en .ctrl {
 /* subtítulos: apagados se ven tenues, prendidos con el color del texto */
 .ctrl #c-cc { color: var(--fg-faint); }
 .ctrl #c-cc.on { color: var(--fg); }
-#c-play { background: var(--accent); color: var(--on-accent); }
-#c-play:hover { background: color-mix(in srgb, var(--accent) 84%, var(--bg)); }
-.c-time { flex: none; min-width: 88px; font: 600 var(--fs-xs)/1 var(--font); font-variant-numeric: tabular-nums; color: var(--fg-muted); }
+/* reproducir: solo el ícono, sin círculo ni caja; al pasar el mouse toma el tono del énfasis */
+.ctrl #c-play, .ctrl #c-play:hover { background: none; }
+#c-play { color: var(--fg); transition: color .15s, transform .15s; }
+#c-play svg { width: 20px; height: 20px; }
+#c-play:hover { color: color-mix(in oklab, var(--accent) 80%, var(--fg)); transform: scale(1.08); }
+/* el tiempo: el actual en el color del texto y el total, tenue */
+.c-time { flex: none; min-width: 88px; font: 600 var(--fs-xs)/1 var(--font); font-variant-numeric: tabular-nums; color: var(--fg); }
+.c-time small { color: var(--fg-muted); font-size: inherit; font-weight: 500; }
 
 .track { position: relative; flex: 1; min-width: 60px; height: 22px; cursor: pointer; touch-action: none; }
-.track::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: var(--r-pill); background: var(--surface-3); }
-.t-layer, .t-play { position: absolute; left: 0; right: 0; top: 9px; height: 4px; pointer-events: none; border-radius: var(--r-pill); overflow: hidden; }
+.track::before { content: ""; position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: var(--r-pill); background: var(--surface-3); transition: top .15s, height .15s; }
+.t-layer, .t-play { position: absolute; left: 0; right: 0; top: 9px; height: 4px; pointer-events: none; border-radius: var(--r-pill); overflow: hidden; transition: top .15s, height .15s; }
+/* al pasar el mouse la barra se engrosa (más fácil de apuntar) y la bolita aparece */
+.track:hover::before, .track:hover .t-layer, .track:hover .t-play { top: 7px; height: 8px; }
+/* sin bolita: la posición la marca el avance mismo (no le gustó el círculo, 2026-11-14) */
+.t-head { display: none; }
 .t-layer b { position: absolute; top: 0; bottom: 0; }
 .t-cov b { background: var(--track-cov); }
 .t-dub b { background: var(--track-dub); }
@@ -113,7 +122,42 @@ body.layout-wide:not(.mini) #pane-en .ctrl {
 #c-vol { -webkit-appearance: none; appearance: none; width: 76px; height: 4px; border-radius: var(--r-pill); background: var(--surface-3); outline: 0; cursor: pointer; }
 #c-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--fg); border: 0; }
 #c-vol::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--fg); border: 0; }
-.ctrl .speed { min-width: 44px; height: var(--h-xs); padding: 0 8px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+/* la velocidad: solo el número, que gira como una rueda al cambiar (hacia arriba si sube, hacia abajo si baja) */
+.c-speed { flex: none; display: grid; place-items: center; min-width: 40px; height: var(--h-xs); padding: 0 6px; border: 0; border-radius: var(--r-pill);
+  background: none; color: var(--fg-muted); font: 600 var(--fs-xs)/1 var(--font); font-variant-numeric: tabular-nums; cursor: pointer; }
+.c-speed:hover { color: var(--fg); }
+.c-speed .odo { position: relative; display: block; height: 18px; overflow: hidden; }
+.c-speed .odo span { display: block; height: 18px; line-height: 18px; text-align: center; transition: transform .32s cubic-bezier(.3, 1.3, .55, 1); }
+.c-speed .odo span.out { position: absolute; left: 0; right: 0; top: 0; }
+/* el idioma: su nombre y una flechita, sin fondo; el fondo aparece solo con la lista abierta */
+.c-lang { position: relative; flex: none; }
+.c-lang-btn { display: inline-flex; align-items: center; gap: 6px; height: var(--h-xs); padding: 0 10px; border: 0; border-radius: var(--r-pill);
+  background: none; color: var(--fg-muted); font: 600 var(--fs-xs)/1 var(--font); cursor: pointer; white-space: nowrap; }
+.c-lang-btn:hover { color: var(--fg); }
+.c-lang-btn[aria-expanded="true"] { background: var(--surface-2); color: var(--fg); }
+.c-lang-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* abierto, el selector se despliega ahí mismo en la barra (no un menú encima del video): los idiomas lado a lado */
+.c-lang-menu { display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--surface-2); animation: lang-open .22s cubic-bezier(.2, .8, .2, 1); }
+.c-lang-menu[hidden] { display: none; }
+.c-lang:has(.c-lang-menu:not([hidden])) .c-lang-btn { display: none; }
+/* se abre desde el botón hacia la izquierda, como si el botón se estirara, y los idiomas aparecen de a uno */
+@keyframes lang-open { from { clip-path: inset(0 0 0 calc(100% - 90px) round 999px); } to { clip-path: inset(0 round 999px); } }
+.c-lang-menu button { animation: lang-item .2s ease-out both; }
+.c-lang-menu button:nth-child(2) { animation-delay: .04s; }
+.c-lang-menu button:nth-child(3) { animation-delay: .08s; }
+.c-lang-menu button:nth-child(4) { animation-delay: .12s; }
+@keyframes lang-item { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .c-lang-menu, .c-lang-menu button { animation: none; } }
+.c-lang-menu button { height: 26px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--fg-muted);
+  font: 600 var(--fs-xs)/1 var(--font); white-space: nowrap; cursor: pointer; }
+.c-lang-menu button:hover { color: var(--fg); }
+.c-lang-menu button.on { background: color-mix(in srgb, var(--accent) 32%, var(--bg)); color: var(--fg); }
+.c-lang-menu button.later { color: var(--fg-faint); }
+.c-lang-menu button.later:hover { color: var(--fg); }
+/* la marca de «se procesa al elegirlo»: dos flechitas en el tono del énfasis */
+.c-lang-menu button { display: inline-flex; align-items: center; gap: 5px; }
+.c-lang-todo { display: grid; color: color-mix(in oklab, var(--accent) 80%, var(--fg)); }
+.c-lang-todo svg { width: 11px; height: 11px; }
 
 @container (max-width: 600px) {
   .ctrl { flex-wrap: wrap; gap: var(--s2); }
@@ -123,7 +167,8 @@ body.layout-wide:not(.mini) #pane-en .ctrl {
 @container (max-width: 420px) {  /* con CC, todo en una fila */
   #c-vol { display: none; }
   .ctrl { gap: 4px; padding-inline: 8px; }
-  .ctrl .speed { min-width: 36px; padding: 0 4px; }
+  .c-speed { min-width: 34px; padding: 0 2px; }
+  .c-lang-btn { padding: 0 6px; }
 }
 
 /* sin mover el mouse mientras se reproduce: solo el video */
@@ -153,7 +198,7 @@ body.mini .mini-acts { display: flex; gap: 6px; position: absolute; top: var(--s
 body.mini .mini-acts .ic { background: rgba(10, 11, 13, .7); color: #fff; }
 body.mini .ctrl { position: static; flex-wrap: nowrap; gap: var(--s2); padding: 6px var(--s2); border-radius: 0; }
 body.mini .ctrl .track { order: 0; flex-basis: auto; }
-body.mini .c-time, body.mini .lang, body.mini .vol, body.mini #c-full, body.mini #c-cc, body.mini .ctrl .speed { display: none; }
+body.mini .c-time, body.mini .c-lang, body.mini .vol, body.mini #c-full, body.mini #c-cc, body.mini .c-speed { display: none; }
 body.mini .ctrl .ic { width: var(--h-xs); height: var(--h-xs); }
 
 @media (max-width: 760px) {
@@ -168,7 +213,7 @@ body.mini .ctrl .ic { width: var(--h-xs); height: var(--h-xs); }
 }
 
 /* video que ya está en español: sin voz que elegir ni subtítulo repetido */
-body.native #c-lang, body.native #cap-en, body.native #layout { display: none !important; }
+body.native #cap-en, body.native #layout, body.app-transcribe #c-lang { display: none !important; }
 
 /* «Transcribir y resumir» (Ajustes › Uso): sin nada de traducción ni voz */
 body.app-transcribe #export-form label:has(> input[value^="es_"]),
@@ -181,20 +226,23 @@ body.app-transcribe #export-form label:has(> input[value="txt"]) { display: none
 .st-hits { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 .st-hit { position: absolute; pointer-events: auto; border-radius: 4px; cursor: pointer; outline: 0; }
 .st-hit.pinned, .st-hit:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 80%, transparent); }
-.sh-bar { position: absolute; right: 0; bottom: calc(100% + 6px); display: none; gap: 2px; padding: 3px; border-radius: var(--r-pill);
-  background: var(--raised); box-shadow: var(--menu-shadow); white-space: nowrap; }
+.sh-bar { position: absolute; z-index: 3; left: 0; top: calc(100% + 6px); display: none; align-items: center; gap: 2px; padding: 3px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface-2) 94%, transparent); white-space: nowrap; }
 .st-hit:hover .sh-bar, .st-hit.pinned .sh-bar, .st-hit:focus-within .sh-bar { display: flex; }
-.sh-bar button { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border: 0; border-radius: var(--r-pill);
-  background: transparent; color: var(--fg); font: 600 var(--fs-xs)/1 var(--font); cursor: pointer; }
-.sh-bar button:hover { background: var(--surface-2); }
-.sh-bar svg { width: 13px; height: 13px; }
+.sh-bar button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-pill);
+  background: transparent; color: var(--fg); font: 600 var(--fs-xs)/1 var(--font); cursor: pointer; transition: background .15s; }
+.sh-bar button:hover { background: var(--surface-3); }
+.sh-bar svg { width: 14px; height: 14px; }
+.sh-bar .agent-star { width: 18px; height: 18px; }
+.sh-sep { width: 1px; height: 16px; background: var(--line-strong); }
 body.idle .st-hit:not(.pinned):not(:hover) { pointer-events: none; }
 /* el texto traducido sobre el video se puede seleccionar y también muestra la barrita */
 .st-item { pointer-events: auto; user-select: text; cursor: text; overflow: visible; }
 .st-item .sh-bar { user-select: none; }
 .st-item:hover .sh-bar, .st-item:focus-within .sh-bar { display: flex; }
 /* puente invisible entre el recuadro y su barrita: no se cierra al mover el mouse hacia ella */
-.sh-bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
+/* puente invisible alrededor de la píldora: no se cierra al mover el mouse hacia ella (la píldora sale junto al puntero) */
+.sh-bar::before { content: ""; position: absolute; inset: -16px; z-index: -1; }
 /* el recuadro que se desliza entre los textos del video (screentext.js › glideTo) */
 .sh-glide { position: absolute; z-index: 2; pointer-events: none; border-radius: 6px; opacity: 0;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 85%, transparent);
@@ -207,3 +255,12 @@ body.idle .st-hit:not(.pinned):not(:hover) { pointer-events: none; }
 /* avisos mientras ves: los momentos marcados en la barra de avance (agentui.js › drawAlerts) */
 .t-alerts { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; pointer-events: none; }
 .t-alerts i { position: absolute; bottom: 0; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: var(--accent); }
+/* con la lista de idiomas abierta, los controles quedan por encima de los subtítulos */
+
+/* sobre el video, los controles aparecen solo con el mouse encima del video (o con el foco o un menú abierto) */
+@media (hover: hover) {
+  body.layout-wide:not(.mini) #pane-en .ctrl { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  body.layout-wide:not(.mini) #pane-en:hover .ctrl, body.layout-wide:not(.mini) #pane-en .ctrl:focus-within,
+  body.layout-wide:not(.mini) #pane-en .ctrl:has(.c-lang-menu:not([hidden])) { opacity: 1; transform: none; pointer-events: auto; }
+  body.idle:not(.mini) #pane-en:hover .ctrl:not(:focus-within) { opacity: 0; transform: translateY(8px); pointer-events: none; }
+}

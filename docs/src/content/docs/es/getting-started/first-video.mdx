@@ -1,33 +1,36 @@
 ---
 title: Tu primer video
-description: De abrir Translay a ver un video de YouTube doblado al español, paso a paso.
+description: De abrir Translay a ver un video de YouTube doblado a tu idioma, paso a paso.
 sidebar:
   order: 3
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
+import Captura from "../../../../components/Captura.astro";
 
 <Steps>
 
 1. **Abre Translay.** Con el servidor corriendo (`python run.py`), el navegador se abre solo en `http://127.0.0.1:8765`. Si no, entra a esa dirección. Al conectarse, el inicio muestra la caja para agregar tu primer video.
 
-2. **Pega un enlace.** Con la biblioteca vacía aparece «Traduce tu primer video»: pega el enlace de un video de YouTube en el campo y toca «Agregar». Más adelante lo harás con el botón «Agregar» del encabezado, o pegando el enlace en cualquier parte de la página.
+2. **Revisa el idioma.** Translay traduce y dobla al idioma de la app: español, inglés o portugués, por defecto el de tu sistema (la bienvenida de la primera vez lo pregunta antes que nada). Se cambia en Ajustes › Uso › **Idioma**; para doblar a un idioma distinto del de la interfaz, elígelo en **Traducir a**. Un video que ya se habla en ese idioma solo se transcribe. Este ejemplo dobla al español.
 
-3. **Mira cómo entra a la cola.** El video aparece en la portada, atenuado y con su estado: «En cola · sin descargar», luego el porcentaje de descarga y después «Procesando». La cola sigue trabajando aunque cierres la pestaña.
+3. **Pega un enlace.** Con la biblioteca vacía aparece «Traduce tu primer video»: pega el enlace de un video de YouTube en el campo y toca «Agregar». Más adelante lo harás con el botón «Agregar» del encabezado, o pegando el enlace en cualquier parte de la página.
 
-4. **Ábrelo.** Toca la miniatura o «Ver». Si aún se está descargando, se abre solo al terminar. Al abrirlo pasa primero en la cola y se procesa desde donde estás mirando.
+4. **Mira cómo entra a la cola.** El video aparece en la portada, atenuado y con su estado: «En cola · sin descargar», luego el porcentaje de descarga y después «Procesando». La cola sigue trabajando aunque cierres la pestaña.
 
-5. **Espera a que esté listo.** Sobre el video, «Preparando NN %» muestra cuánto falta para escuchar sin cortes. La primera vez, o después de un rato sin uso, dice antes «Cargando modelos». Cuando llega a «Listo para reproducir», el video empieza solo.
+5. **Ábrelo.** Toca la miniatura o «Ver». Si aún se está descargando, se abre solo al terminar. Al abrirlo pasa primero en la cola y se procesa desde donde estás mirando.
 
-6. **Escúchalo en español.** Suena con la voz de cada persona en español y el original de fondo. **ES / EN** cambia entre el doblaje y el original, y la transcripción al costado muestra cada frase en los dos idiomas; un clic en una frase salta a ese momento.
+6. **Espera a que esté listo.** Sobre el video, «Preparando NN %» muestra cuánto falta para escuchar sin cortes. La primera vez, o después de un rato sin uso, dice antes «Cargando modelos». Cuando llega a «Listo para reproducir», el video empieza solo.
+
+7. **Escúchalo en tu idioma.** Suena con la voz de cada persona en el idioma elegido y el original de fondo. Los botones de idioma (**ES / EN** en un video en inglés doblado al español) cambian entre el doblaje y el original, y la transcripción al costado muestra cada frase en los dos idiomas; un clic en una frase salta a ese momento.
 
 </Steps>
 
 <Aside>
-Si saltas a una parte que aún no tiene voz en español, el video se pausa y sigue solo cuando está lista. Todo lo procesado queda guardado: la próxima vez el video abre al instante.
+Si saltas a una parte que aún no tiene la voz doblada, el video se pausa y sigue solo cuando está lista. Todo lo procesado queda guardado: la próxima vez el video abre al instante.
 </Aside>
 
-![Un video de NASA Science doblado al español, con su transcripción](../../../../assets/capturas/reproductor.webp)
+<Captura name="reproductor" alt="Un video de NASA Science doblado al español, con su transcripción" />
 
 ## Por dónde seguir
 

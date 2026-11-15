@@ -48,6 +48,7 @@
 <link rel="stylesheet" href="css/views/vaults.css">
 <link rel="stylesheet" href="css/views/access.css">
 <link rel="stylesheet" href="css/views/capture.css">
+<link rel="stylesheet" href="css/views/welcome.css">
 <link rel="stylesheet" href="css/patterns.css">
 <link rel="stylesheet" href="css/dark.css">  <!-- al final: las reglas del oscuro refinado ganan -->
 </head>
@@ -174,9 +175,10 @@
         <i class="t-head" id="t-head"></i>
         <span class="t-tip" id="t-tip" hidden></span>
       </div>
-      <button class="btn xs ghost speed" id="c-speed" type="button" title="Velocidad (Shift + &lt; / &gt;)"></button>
-      <div class="lang" id="c-lang">
-        <button type="button" data-v="es" title="Escuchar doblado">ES</button><button type="button" data-v="en" title="Escuchar el original">EN</button>
+      <button class="c-speed" id="c-speed" type="button" title="Velocidad (Shift + &lt; / &gt;)"><span class="odo"><span></span></span></button>
+      <div class="c-lang" id="c-lang">
+        <button class="c-lang-btn" id="c-lang-btn" type="button" aria-haspopup="listbox" aria-expanded="false" title="Idioma"><span id="c-lang-name"></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+        <div class="c-lang-menu" id="c-lang-menu" role="listbox" hidden></div>
       </div>
       <div class="vol">
         <button class="ic" id="c-mute" type="button" data-icon="speaker" aria-label="Silenciar"></button>
@@ -259,7 +261,7 @@
     </header>
     <div class="ex-tiles">
       <section class="ex-tile" data-group="video">
-        <div class="ex-tile-head" data-icon="film">Video</div>
+        <div class="ex-tile-head" data-icon="film">Video<span class="ex-fmt">MP4</span></div>
         <div class="ex-chips">
           <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="es_video" checked><span>Doblado</span></label>
           <label class="ex-chip"><input type="checkbox" name="kind" value="orig_video"><span>Original</span></label>
@@ -267,10 +269,9 @@
         <div class="ex-opt" id="export-video" hidden>
           <div class="segs"><button class="seg on" type="button" data-v="original">Original</button><button class="seg" type="button" data-v="480p">480p</button><button class="seg" type="button" data-v="360p">360p</button></div>
         </div>
-        <span class="ex-fmt">MP4</span>
       </section>
       <section class="ex-tile" data-group="audio">
-        <div class="ex-tile-head" data-icon="music">Audio</div>
+        <div class="ex-tile-head" data-icon="music">Audio<span class="ex-fmt audio-fmt">M4A</span></div>
         <div class="ex-chips">
           <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="es_audio"><span>Doblado</span></label>
           <label class="ex-chip"><input type="checkbox" name="kind" value="orig_audio"><span>Original</span></label>
@@ -279,19 +280,22 @@
           <div class="segs" id="export-fmt"><button class="seg on" type="button" data-fmt="m4a">M4A</button><button class="seg" type="button" data-fmt="mp3">MP3</button><button class="seg" type="button" data-fmt="opus">Opus</button></div>
           <div class="segs" id="export-quality"><button class="seg on" type="button" data-q="alta">Alta</button><button class="seg" type="button" data-q="media">Media</button><button class="seg" type="button" data-q="liviana">Liviana</button></div>
         </div>
-        <span class="ex-fmt audio-fmt">M4A</span>
+      </section>
+      <section class="ex-tile" data-group="subs">
+        <div class="ex-tile-head" data-icon="captions">Subtítulos<span class="ex-fmt">SRT</span></div>
+        <div class="ex-chips">
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="srt_es"><span>Traducidos</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="srt_orig"><span>Del original</span></label>
+        </div>
       </section>
       <section class="ex-tile" data-group="text">
-        <div class="ex-tile-head" data-icon="lines">Texto</div>
+        <div class="ex-tile-head" data-icon="lines">Texto<span class="ex-fmt">TXT</span></div>
         <div class="ex-chips">
-          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="srt_es"><span>Subtítulos traducidos</span></label>
-          <label class="ex-chip"><input type="checkbox" name="kind" value="srt_orig"><span>Subtítulos del original</span></label>
-          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt_es"><span>Texto traducido</span></label>
-          <label class="ex-chip"><input type="checkbox" name="kind" value="txt_orig"><span>Texto del original</span></label>
-          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt"><span>Transcripción bilingüe</span></label>
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt_es"><span>Traducido</span></label>
+          <label class="ex-chip"><input type="checkbox" name="kind" value="txt_orig"><span>Del original</span></label>
+          <label class="ex-chip translate-only"><input type="checkbox" name="kind" value="txt"><span>Bilingüe</span></label>
           <label class="ex-chip"><input type="checkbox" name="kind" value="summary"><span>Resumen</span></label>
         </div>
-        <span class="ex-fmt">SRT · TXT</span>
       </section>
     </div>
     <div class="ex-foot">
@@ -394,6 +398,20 @@
   </form>
 </dialog>
 
+<!-- la primera vez: idioma, biblioteca, apariencia y agente (web/js/welcome.js); solo se cierra con sus botones -->
+<dialog class="dlg onboard" id="welcome-dlg" data-modal>
+  <form method="dialog">
+    <div class="segs wl-tabs" id="wl-tabs"></div>
+    <div class="wl-body" id="wl-body"></div>
+    <div class="dlg-actions">
+      <button class="btn ghost" id="wl-skip" type="button">Omitir</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="wl-back" type="button">Atrás</button>
+      <button class="btn dark" id="wl-next" type="button"></button>
+    </div>
+  </form>
+</dialog>
+
 <dialog class="dlg" id="prompt-dlg">
   <form method="dialog">
     <h3 id="prompt-title"></h3>
@@ -471,6 +489,7 @@
 <script src="js/theme.js"></script>
 <script src="js/brand.js"></script>
 <script src="js/scenes.js"></script>
+<script src="js/vaultlook.js"></script>
 <script src="js/app.js"></script>
 <script src="js/patterns.js"></script>
 <script src="js/library.js"></script>
@@ -482,6 +501,7 @@
 <script src="js/screentext.js"></script>
 <script src="js/vaults.js"></script>
 <script src="js/home.js"></script>
+<script src="js/welcome.js"></script>
 <script src="js/panels.js"></script>
 <script src="js/access.js"></script>
 <script src="js/trash.js"></script>

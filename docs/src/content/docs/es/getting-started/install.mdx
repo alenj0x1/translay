@@ -26,15 +26,28 @@ No hace falta ser administrador: se instala para tu usuario.
 
 <Steps>
 
-1. Descarga `Translay_<versión>_x64-setup.exe` de la última versión en [Releases](https://github.com/alenj0x1/translay/releases/latest) y ábrelo.
+1. Descarga `Translay_<versión>_x64-setup.exe` de la última versión en [Releases](https://github.com/alenj0x1/translay/releases/latest) y ábrelo. El instalador habla español, inglés o portugués, según el idioma de Windows.
 
-2. Abre **Translay** desde el menú Inicio. La pantalla **Preparar Translay** muestra tu GPU, si tendrás voz en español o solo subtítulos, y dónde se guarda tu biblioteca (por defecto `Videos\Translay`; **Cambiar…** elige otra carpeta, por ejemplo otro disco).
+2. Abre **Translay** desde el menú Inicio. La pantalla **Preparar Translay** muestra tu GPU, si tendrás voz o solo subtítulos, y dónde se guarda tu biblioteca (por defecto `Videos\Translay`; **Cambiar…** elige otra carpeta, por ejemplo otro disco).
 
 3. Pulsa **Instalar**. Se instala el servidor (unos 2 GB); el botón muestra el avance (`Instalando 42 %`) y debajo, cuánto va de la descarga. El porcentaje sigue lo que se escribe y se descarga en el momento, también con los modelos, en vez de saltar de golpe cuando termina un archivo grande.
 
 4. **Elige cómo usar Translay**: los [perfiles](../../guide/performance/#perfiles), con el que conviene a tu equipo marcado como **Recomendado**, si cada uno tiene voz en español o solo subtítulos, cómo andaría y cuánto descarga. Los perfiles con voz necesitan una GPU NVIDIA de al menos 4 GB. Pulsa **Instalar y abrir**: instala el motor de voz solo si el perfil lo usa (unos 4,8 GB) y baja de Hugging Face los modelos de ese perfil, nada más (de 1,1 GB en «Subtítulos ligeros» a 5,8 GB en «Equilibrado»). El recomendado queda como **Automático** (sigue a tu equipo si cambia).
 
-5. Aparece **Abriendo Translay** mientras se cargan los modelos, y Translay abre listo. Después arranca en segundos.
+5. Mientras se bajan el motor de voz y los modelos, un asistente de primer uso prepara Translay en la misma ventana. La descarga sigue en su franja de abajo (qué se instala, con su porcentaje), así configuras todo mientras esperas. Los pasos están a la izquierda, cada uno con sus opciones y una vista previa en vivo al lado:
+
+   - **Idioma**: el de Translay (viene elegido el de Windows; el asistente cambia al que elijas en el momento), **Traducir a** y qué otro idioma solo se transcribe. La vista previa muestra la interfaz en ese idioma y qué pasa con un video en cada idioma.
+   - **Cómo lo usarás**: **Traducir y doblar** o **Transcribir y resumir**, con lo que trae cada uno y su reproductor.
+   - **Tu biblioteca**: nombre, color, avatar y patrón de caracteres de tu biblioteca principal, con su banner. La carpeta es la elegida en la primera pantalla.
+   - **Apariencia**: modo, escena de fondo y color de énfasis, lado a lado. La ventana misma cambia al elegir y la escena real es la vista previa.
+   - **Lumi**: el nombre del agente, su color y su estrella, con el mismo creador de Ajustes; la estrella pasa sola por sus gestos.
+   - **YouTube** (opcional): conectar tu cuenta al abrir Translay (se abre una ventana de tu navegador para iniciar sesión una vez), o ahora no.
+   - **Desde el celular** (opcional): permitir el acceso desde otros equipos y celulares de tu red, con la dirección de este equipo.
+   - **Conoce Translay**: demostraciones cortas hechas con piezas de la app, con un cursor que hace clic: pegar un enlace y que se doble, el texto escrito en un video traducido, preguntarle al agente, copiar código de la transcripción y exportar.
+
+   **Atrás** y **Siguiente** pasan de un paso a otro, **Omitir** salta los opcionales y **Empezar** lo termina. Si la descarga aún no termina, queda la franja de arranque con lo que se carga y consejos hasta que esté; si terminó antes, Translay te espera.
+
+6. Translay abre con todo lo elegido ya aplicado: sus preferencias, el aspecto de la biblioteca principal y, si los elegiste, la ventana para iniciar sesión en YouTube y el acceso desde otros equipos. Todo se puede cambiar después en Ajustes. Después arranca en segundos.
 
 </Steps>
 

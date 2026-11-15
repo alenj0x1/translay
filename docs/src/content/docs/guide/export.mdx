@@ -6,12 +6,13 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../components/Captura.astro";
 
-![Export dialog with translated video, audio, originals, subtitles and transcript](../../../assets/capturas/exportar.webp)
+<Captura name="exportar" alt="Export dialog for a NASA Science video, with its Video, Audio, Subtítulos and Texto cards and the dubbed video chosen" />
 
 ## What you can export
 
-The export dialog has the thumbnail and title of what is exported at the top and three cards below, **Video**, **Audio** and **Texto** (Text), each with its options inside; a card lights up on its own when it has one chosen. The button says how many files come out («Exportar 3 archivos», Export 3 files). You check any combination of:
+The export dialog has the thumbnail and title of what is exported at the top and below one row per type, **Video**, **Audio**, **Subtítulos** (Subtitles) and **Texto** (Text): its name with the format it produces, its options and, at the right, the quality or format when something is chosen; a row takes a hint of the accent color when it has one chosen. The button says how many files come out («Exportar 3 archivos», Export 3 files). You check any combination of:
 
 | Option | Format | Content |
 |---|---|---|

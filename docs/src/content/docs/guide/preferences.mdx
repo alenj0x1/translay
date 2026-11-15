@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../components/Captura.astro";
 
 **Ajustes** (Settings), in the header, opens its own screen. It starts on a page with a card for each section (its icon, its name and what it holds), in five blocks: **General** (Uso, Apariencia and the desktop app), **Mirar** (Watching: playback, audio and subtitles, the agent), **Videos** (adding and downloading, exporting, glossary), **Bibliotecas y acceso** (Libraries and access) and **Equipo** (Computer: performance, storage, trash). The search box at the top also finds the options inside each section (for example «subtítulos» leads to Audio y subtítulos). **Ajustes**, above each section's title (or the header's Ajustes button), goes back to that page. On the left, the same sections by block; on the right, the page for the chosen one, with its options grouped and a description of each. Yes/no options are switches; the rest are buttons to choose an option. Changes apply instantly, with no save button. Tapping **Ajustes** again takes you back to the video or the library.
 
@@ -13,7 +14,7 @@ They are saved on the server (`data/prefs.json`) and apply to all tabs and devic
 
 The full table, with each option and its default value, is in the [preferences reference](../../reference/preferences/).
 
-![Settings, Audio and subtitles page](../../../assets/capturas/preferencias.webp)
+<Captura name="preferencias" alt="Settings, Audio y subtítulos (Audio and subtitles) page" />
 
 
 ## Use

@@ -200,16 +200,20 @@ function askAgentAbout(it) {
   f.setSelectionRange(f.value.length, f.value.length);
 }
 
+// las acciones: una píldora pegada debajo del texto con Copiar y Preguntar (la estrella del agente tal como la armó la
+// persona), separadas por una línea fina y sin ningún botón resaltado (elegido 2026-11-14); arriba si abajo no cabe
 function hitBar(it) {
   const label = HIT_LABEL[it.kind] || t("Texto");
+  const act = (title, kid, text, onClick) => el("button", { type: "button", title,
+    on: { click: (e) => { e.stopPropagation(); onClick(); } } }, kid, text);
+  const sep = () => el("i", { class: "sh-sep", "aria-hidden": "true" });
+  const star = typeof starSvg === "function" ? starSvg(agentLook()) : icon("agent");
   return el("div", { class: "sh-bar" },
-    el("button", { type: "button", title: t("Copiar {what}", { what: label.toLowerCase() }), on: { click: (e) => { e.stopPropagation(); copyText(hitText(it), label); } } },
-      icon("copy"), t("Copiar")),
-    it.kind === "link" ? el("button", { type: "button", title: t("Abrir el enlace"), on: { click: (e) => {
-      e.stopPropagation(); window.open(/^https?:/i.test(it.text) ? it.text : `https://${it.text}`, "_blank", "noopener");
-    } } }, icon("external"), t("Abrir")) : null,
-    el("button", { type: "button", title: t("Preguntarle al agente sobre esto"), on: { click: (e) => { e.stopPropagation(); askAgentAbout(it); } } },
-      icon("agent"), t("Preguntar a Lumi")));
+    act(t("Copiar {what}", { what: label.toLowerCase() }), icon("copy"), t("Copiar"), () => copyText(hitText(it), label)),
+    ...(it.kind === "link" ? [sep(), act(t("Abrir el enlace"), icon("external"), t("Abrir"),
+      () => window.open(/^https?:/i.test(it.text) ? it.text : `https://${it.text}`, "_blank", "noopener"))] : []),
+    sep(),
+    act(t("Preguntarle al agente sobre esto"), star, t("Preguntar"), () => askAgentAbout(it)));
 }
 
 function renderHits() {
@@ -262,10 +266,32 @@ function glideOff() {
   clearTimeout(glideHide);
   glideHide = setTimeout(() => document.querySelectorAll(".sh-glide.on").forEach((g) => g.classList.remove("on")), 90);
 }
+// la píldora aparece donde está el mouse (justo debajo del puntero, o arriba si abajo no cabe), siempre dentro del
+// video; al entrar a un texto queda ahí, así se puede llegar a ella sin que se mueva
+function placeBar(t, x, y) {
+  const bar = t.querySelector(":scope > .sh-bar");
+  const screen = t.closest(".screen");
+  if (!bar || !screen) return;
+  const sr = screen.getBoundingClientRect(), tr = t.getBoundingClientRect();
+  const w = bar.offsetWidth || 200, h = bar.offsetHeight || 34, gap = 14, pad = 8;
+  let left = Math.max(sr.left + pad, Math.min(sr.right - pad - w, x - 18));
+  let top = y + gap;
+  if (top + h > sr.bottom - pad) top = y - gap - h;
+  top = Math.max(sr.top + pad, top);
+  bar.style.left = `${left - tr.left}px`;
+  bar.style.top = `${top - tr.top}px`;
+}
 document.addEventListener("pointerover", (e) => {
   const t = e.target.closest?.(".st-hit, .st-item");
-  if (t) glideTo(t);
+  if (!t) return;
+  glideTo(t);
+  // solo al entrar al texto (no al pasar a su propia píldora)
+  if (!e.relatedTarget || !t.contains(e.relatedTarget)) requestAnimationFrame(() => placeBar(t, e.clientX, e.clientY));
 });
+document.addEventListener("click", (e) => {
+  const t = e.target.closest?.(".st-hit, .st-item");
+  if (t && !e.target.closest(".sh-bar")) requestAnimationFrame(() => placeBar(t, e.clientX, e.clientY));
+}, true);
 document.addEventListener("pointerout", (e) => {
   const from = e.target.closest?.(".st-hit, .st-item");
   const to = e.relatedTarget?.closest?.(".st-hit, .st-item");

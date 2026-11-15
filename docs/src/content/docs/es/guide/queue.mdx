@@ -6,10 +6,11 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../../components/Captura.astro";
 
 Todo se procesa en una sola cola, en el servidor (`vt/processor.py`). Sigue trabajando aunque cierres la pestaña o recargues, y se retoma donde quedó si reinicias el servidor. Se guarda en `data/queue.json`.
 
-![Pantalla de la Cola con los videos de la biblioteca Ciencia listos](../../../../assets/capturas/cola.webp)
+<Captura name="cola" alt="Pantalla de la Cola con los cinco videos de la biblioteca Principal listos, y las bibliotecas Principal, Espacio y Océanos a la izquierda" />
 
 ## Orden y prioridades
 

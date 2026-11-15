@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../../components/Captura.astro";
 
 El panel al costado del video tiene hasta cuatro pestañas: «Transcripción», «Resumen», «Siguientes» y «Personas». «Resumen» aparece cuando el video ya tiene transcripción; las dos últimas, solo cuando tienen algo que mostrar. Se oculta con el botón «Transcripción» de la barra del video o con el botón junto al logo.
 
@@ -29,13 +30,15 @@ La segunda pestaña es el agente del video, con el nombre que le pongas (Ajustes
 
 Corre en tu equipo, sin internet: la primera pregunta baja su motor y su modelo (la respuesta muestra el avance) y desde ahí responde en segundos. En **Ajustes › Agente** eliges su nombre, avatar y color, escribes en **Estilo de respuesta** cómo quieres que responda, en tus palabras (tono, largo, a quién le habla) y, si quieres, eliges su modelo y el **Dispositivo** donde corre (**Automático**, **Tarjeta gráfica**, **Integrada** o **Procesador**). La lista de modelos está agrupada según tu equipo («Recomendado», «Compatibles», «Lentos en este equipo», «Necesitan más memoria») y cada modelo dice qué tan bien respondió en el laboratorio (Excelente, Muy buena, Buena, Básica, o «Poco confiable» si inventó respuestas a preguntas trampa) y su tamaño o «descargado». Debajo, el modelo que se va a usar dice «Descargado» o tiene un botón **Descargar** con el avance en él, así la primera pregunta no espera; los modelos del agente se borran en [Almacenamiento](../storage/#modelos). El botón del pincel en la barra del agente abre el nombre, el avatar, el color y el tono sin salir del video, y los cambios se ven al momento en la conversación; sus respuestas y sus minutos llevan el color del agente. Un video de ejemplo junto a las opciones, ahí y en Ajustes (un resumen con capítulos, conceptos y recursos, y varias preguntas), muestra cómo se verá mientras las cambias. La conversación se guarda con el video; el clic derecho sobre un mensaje lo copia, vuelve a preguntar o borra la conversación. Cómo funciona: [Agente](../../how-it-works/agent/).
 
+<Captura name="agente" alt="La pestaña del agente junto a un video de NASA Science: la estrella despierta, la tarjeta con el resumen del video y sugerencias de preguntas debajo" />
+
 ## Resumen
 
 El resumen es la primera tarjeta de la pestaña del agente: «Generar el resumen», entre las sugerencias del agente, lo pide. Se escribe con lo que se dice y lo que aparece en pantalla: una idea general del video, **Ideas clave**, **Capítulos** con sus puntos y el minuto de cada uno, **Conceptos clave** y **Recursos del video** (los enlaces, comandos y código que aparecen). Un clic en un capítulo o un punto salta a ese momento, y el punto que se está viendo queda resaltado como la frase de la transcripción. Sus sugerencias de preguntas pasan a ser las del agente, así funcionan aunque el agente esté apagado.
 
 Por defecto se hace solo al procesar cada video; con Ajustes › Agente › **Resumir** › **Manualmente** se hace cuando lo pides, cuando la transcripción está completa (aparece apenas termina, sin salir del video). El botón muestra cómo va («Resumiendo 40 %») y **Cancelar** lo detiene. La primera vez se descarga el modelo del agente (el botón muestra su avance).
 
-El resumen queda en español sea cual sea el idioma del video, se guarda con el video y se ve desde todas las pestañas. Su menú del clic derecho tiene **Copiar el resumen**, **Exportar el resumen** (en TXT) y **Regenerar el resumen** (por ejemplo, con otro modelo).
+El resumen queda en el idioma de la app (Ajustes › Uso › **Idioma**) sea cual sea el idioma del video, se guarda con el video y se ve desde todas las pestañas. Su menú del clic derecho tiene **Copiar el resumen**, **Exportar el resumen** (en TXT) y **Regenerar el resumen** (por ejemplo, con otro modelo).
 
 Se hace en tu equipo, con el modelo del agente (Ajustes › Agente › **Modelo**). Mientras resume tiene la GPU para sí: si el resto de los modelos de Translay no caben a su lado, se apartan y vuelven al terminar, así que lo que se esté procesando espera un momento. Cómo funciona: [Agente › El resumen completo](../../how-it-works/agent/#el-resumen-completo).
 
@@ -58,7 +61,7 @@ En cada fila puedes:
 - **«Escuchar»** la voz de referencia que se está usando. El mismo botón la pausa.
 - **«Guardar»** a la persona en la biblioteca, con su nombre y su voz. Si ya hay una guardada con el mismo nombre, el botón dice «Actualizar voz».
 
-![Pestaña Personas con Narración y Astronauta, cada una con su propia voz](../../../../assets/capturas/personas.webp)
+<Captura name="personas" alt="Pestaña Personas de una entrevista desde la EEI: cuatro personas, cada una con su propia voz, su cantidad de frases, Guardar y Escuchar" />
 
 ## Personas guardadas
 

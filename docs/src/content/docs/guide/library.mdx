@@ -6,18 +6,18 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
-import { Image } from "astro:assets";
-import movil from "../../../assets/capturas/movil-inicio.webp";
+import Captura from "../../../components/Captura.astro";
 
 The library is the screen Translay opens with. On the left is the sidebar with the collections; on the right, the home page or the selected collection.
 
-![Home page of the Ciencia library: featured continue-watching video and the sidebar with collections, channels and categories](../../../assets/capturas/inicio.webp)
+<Captura name="inicio" alt="Home page of the Principal library: the featured continue-watching video over the background scene, and the sidebar with channels and categories" />
 
 ## Home page
 
 **Inicio** (Home) starts with what you are watching: its thumbnail, title, the sentence you were on in both languages, **Continuar** (Continue), **Desde el inicio** (From the start) and **Exportar**, with the light of its thumbnail behind (or the last video added, if you haven't started any). On large screens it grows with the window and also shows its summary's key ideas and first chapters; a chapter starts the video at that moment. Adding and recording are in the top bar, on every screen.
 
-The background is chosen in Settings › Apariencia › **Fondo** (Background), with the real home page as a preview beside the options: an animated scene made only of characters, **Translay** (the logo's voice wave speaking in the center, with a music note, a video, a class, the agent, a microphone, subtitles, languages and a chat floating around it; the default), **Fondo marino** (seabed with fish), **Atardecer** (sunset), **Medusas** (jellyfish) **Arañas** (spiders, with webs and dew) or **Arañas, Shade y Manchita** (the same, with Shade, a little dog that walks by, stops to tilt its head when a toy squeaks, and goes on, while Manchita, a kitten with a spot on its nose, sits, blinks and twitches its ears), or **Imagen propia** (your own image, darkened; it is reduced in the browser and saved in `data/ui/home-bg.jpg`). The scene sits behind every screen (on screens other than the home page it is dimmer, so it doesn't compete with the text), takes the theme's accent color (soft pastels in light mode, more intense ones in dark mode) and stays still when the system asks to reduce motion. The featured text turns light or dark depending on what is behind it, so it can always be read.
+The background is chosen in Settings › Apariencia › **Fondo** (Background), with the real home page as a preview beside the options: an animated scene made only of characters, **Translay** (the logo's voice wave speaking in the center, with a music note, a video, a class, the agent, a microphone, subtitles, languages and a chat floating around it; the default), **Recorrido** (a journey through all the scenes below, one after another: from the logo to the Moon, down to the Earth, the sunset and the bottom of the sea), **Luna** (Translay's icons orbiting the Moon), **Tierra** (the Earth turning, with its continents and clouds), **Nubes** (clouds), **Atardecer** (sunset), **Fondo marino** (seabed with fish), **Arrecife** (a coral reef with a sea turtle), **Ballena** (a whale), **Medusas** (jellyfish), **Abismo** (the deep, with an anglerfish and its glowing lure), **Naufragio** (a shipwreck) and **Arañas** (spiders, with webs and dew), or **Imagen propia** (your own image, darkened; it is reduced in the browser and saved in `data/ui/home-bg.jpg`). The scene sits behind every screen (on screens other than the home page it is dimmer, so it doesn't compete with the text), takes the theme's accent color (soft pastels in light mode, more intense ones in dark mode) and stays still when the system asks to reduce motion. The featured text turns light or dark depending on what is behind it, so it can always be read.
+
 
 Hovering over a downloaded video's thumbnail for half a second plays it without sound, from where you left off (or from 10 %), like YouTube; it stops when the pointer leaves.
 
@@ -31,7 +31,7 @@ Below are the rows, each with its «Ver todo» (See all) when it has more than f
 With an empty library, the home page says so and offers **Agregar video** (Add video), the same as the top bar's button.
 
 <div class="capturas-par">
-  <Image src={movil} alt="The home page on a phone, with the collections as tabs" width={390} />
+  <Captura name="movil-inicio" alt="The home page on a phone, with the collections as tabs" width={390} />
   <p>On a phone, the collections become a row of tabs at the top and the home page takes the full width. In light mode it looks like this:</p>
 </div>
 
@@ -50,7 +50,7 @@ They are built from the videos themselves; they can't be renamed or deleted.
 
 Categories and channels are calculated from the videos in Recientes. The full list of categories is in `vt/library.py`.
 
-![The NASA Science channel collection with its banner and four videos ready in Spanish](../../../assets/capturas/coleccion.webp)
+<Captura name="coleccion" alt="The NASA Science channel collection with its banner and four videos ready in Spanish" />
 
 ## Custom collections
 
@@ -119,6 +119,10 @@ On a card's checkbox it's the video's menu. In text fields, on a link or with se
 ## Sidebar
 
 At the top, Inicio, Recientes and Todos stay fixed; below, with their own scrolling, Colecciones, Playlists, Canales and Categorías, each with its number of videos. The button next to the logo collapses it into a column of icons (in the player, that same button shows or hides the transcript). Your choice is remembered in the browser.
+
+## Dialogs
+
+Any dialog closes when you click outside it, on the dark backdrop, the same as «Cancelar» (Cancel). A click that starts inside and ends outside (for example, selecting text in the dialog and releasing the mouse past its edge) doesn't close it. The only exception is the first-run welcome, which closes only with its own buttons.
 
 ## The address remembers where you are
 

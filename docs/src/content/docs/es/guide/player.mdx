@@ -6,12 +6,13 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../../components/Captura.astro";
 
 Debajo del video están su título, una descripción corta de qué trata y sus acciones. La descripción (una o dos frases) la escribe el modelo más chico del agente (Qwen3.5 0.8B, que se descarga la primera vez) al terminar de procesar el video, o al abrir uno que todavía no la tiene; si el video ya tiene su resumen, toma sus primeras frases. Las acciones son «Guardar en…», «Ver dividido» y «Exportar». Los paneles cambian de ancho arrastrando su borde: la barra lateral a la izquierda y el panel del video a la derecha (transcripción, agente y personas). En su mínimo el panel se detiene; si sigues arrastrando, la barra lateral queda solo con íconos y el panel del video se oculta, y su borde queda a la derecha para volver a sacarlo. Doble clic en un borde vuelve al ancho de siempre, y los anchos se recuerdan en el navegador. El panel del video también se muestra u oculta desde el clic derecho del video.
 
 Los botones del encabezado no cambian: Grabar, Agregar, Cola, «Biblioteca» y Ajustes, siempre en ese orden; el de la pantalla abierta queda marcado.
 
-![Reproductor con subtítulos en español abajo, inglés arriba y la transcripción alineada al costado, con un comentario](../../../../assets/capturas/reproductor.webp)
+<Captura name="reproductor" alt="Reproductor con subtítulos en español abajo, inglés arriba y la transcripción alineada al costado, con un comentario" />
 
 ## Vista ampliada y dividida
 
@@ -20,22 +21,24 @@ Los botones del encabezado no cambian: Grabar, Agregar, Cola, «Biblioteca» y A
 
 El botón «Ver dividido» o «Ver ampliado» cambia entre las dos y la elección se guarda (Ajustes › Reproducción › «Vista del video»). Los subtítulos de cada idioma se pueden apagar en Ajustes › Audio y subtítulos.
 
-El texto escrito en el video (títulos, letreros, diapositivas, comentarios del código) aparece traducido encima del original, en el mismo lugar y con sus colores; al pasar el mouse se ve lo que decía. El código, los comandos y los enlaces quedan como están. Todo lo escrito en el video se puede usar sobre el mismo video: al pasar el mouse (o al hacer clic) se marca con un recuadro que se desliza de un texto a otro y aparecen **Copiar** y **Preguntar a Lumi** (abre el agente con la pregunta empezada y ese texto dentro), y **Abrir** en un enlace; el menú del clic derecho tiene las mismas opciones. El texto traducido encima también se puede seleccionar para copiar una parte. Se apaga con «Texto del video en español» en la misma página. Cómo funciona: [Texto en el video](../../how-it-works/screen-text/).
+El texto escrito en el video (títulos, letreros, diapositivas, comentarios del código) aparece traducido encima del original, en el mismo lugar y con sus colores; al pasar el mouse se ve lo que decía. El código, los comandos y los enlaces quedan como están. Todo lo escrito en el video se puede usar sobre el mismo video: al pasar el mouse (o al hacer clic) se marca con un recuadro que se desliza de un texto a otro y aparece una píldora justo donde está el mouse (siempre dentro del video): **Copiar**, **Abrir** en un enlace y **Preguntar** con la estrella del agente, que abre el agente con la pregunta empezada y ese texto dentro; el menú del clic derecho tiene las mismas opciones. El texto traducido encima también se puede seleccionar para copiar una parte. Se apaga con «Texto del video en español» en la misma página. Cómo funciona: [Texto en el video](../../how-it-works/screen-text/).
+
+<Captura name="texto" alt="«CORONAL HEATING PROBLEM», escrito en un video de la NASA, traducido en su lugar, con Copiar y Preguntar a Lumi encima" />
 
 Un video que [solo se transcribe](../import/#idioma-y-solo-transcribir) no tiene traducción ni voz: un solo subtítulo en su idioma, una sola columna en la transcripción y sin el cambio de audio.
 
-![Vista dividida: el original con subtítulos en inglés a la izquierda y el traducido a la derecha](../../../../assets/capturas/dividido.webp)
+<Captura name="dividido" alt="Vista dividida: el original con subtítulos en inglés a la izquierda y el traducido a la derecha" />
 
 ## Controles
 
-Los controles son propios y se esconden solos a los pocos segundos mientras el video se reproduce; vuelven al mover el mouse o tocar una tecla.
+Los controles son propios y solo se ven con el mouse sobre el video (en pantallas táctiles quedan a la vista); mientras se reproduce también se esconden a los pocos segundos sin mover el mouse. La línea de avance no tiene bolita: su color marca dónde vas.
 
 - **Reproducir o pausar**, también con un clic sobre el video.
 - **Tiempo** transcurrido y total.
-- **Línea de avance**: además de lo reproducido, una franja tenue marca lo ya reconocido y otra más marcada lo que ya tiene voz en español (o traducción, si la app corre sin voz). Al pasar el mouse muestra el tiempo; los puntitos son [comentarios](../transcript-and-people/#comentarios).
-- **Velocidad**: cada clic pasa al siguiente valor entre 0,75× y 2× (de a 0,25). La voz en español acelera sin cambiar de tono. La velocidad elegida se recuerda en el navegador.
-- **ES / EN** (o el código del original: PT…): ES es la voz en español con el original de fondo; el otro, el original a volumen normal. Con qué idioma empieza cada video y qué tan fuerte queda el original bajo la voz se elige en Ajustes › Audio y subtítulos.
-- **Volumen** y silencio.
+- **Línea de avance**: además de lo reproducido, una franja tenue marca lo ya reconocido y otra más marcada lo que ya tiene voz en tu idioma (o traducción, si la app corre sin voz). Se agranda al pasar el mouse y muestra el tiempo; la rueda del mouse sobre ella adelanta o retrocede 5 s. Los puntitos son [comentarios](../transcript-and-people/#comentarios).
+- **Velocidad**: cada clic pasa al siguiente valor entre 0,75× y 2× (de a 0,25), y la rueda del mouse sobre ella la sube o la baja; el número gira como una rueda en ese sentido. La voz doblada acelera sin cambiar de tono. La velocidad elegida se recuerda en el navegador.
+- **Idioma**: su nombre abre una lista con el original y cada idioma al que Translay dobla. Un idioma doblado suena con su voz y el original de fondo; el original, a volumen normal. La lista se abre ahí mismo en la barra. Un idioma en el que el video todavía no está lleva dos flechitas y también se puede elegir: pasa a ser «Traducir a» y el video se traduce y dobla en él ahí mismo, mientras lo miras. Qué tan fuerte queda el original bajo la voz se elige en Ajustes › Audio y subtítulos.
+- **Volumen** y silencio; la rueda del mouse sobre él lo sube o lo baja de a 5 %.
 - **Subtítulos** (CC): cuáles se muestran (en español, del original y el texto del video en español) o apagarlos todos. Se ve tenue cuando están apagados.
 - **Pantalla completa**, también con doble clic sobre el video.
 

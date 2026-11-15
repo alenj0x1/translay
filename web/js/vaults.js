@@ -7,18 +7,11 @@
 // Usa lo global de app.js y library.js (state, send, lib, toast, confirmDlg…).
 
 const vaults = { list: [], current: null, dlg: { mode: "new", id: null, folder: "", color: "", icon: "library" } };
-const VAULT_COLORS = ["#e4572e", "#f3a712", "#29bf12", "#00a5cf", "#7d5ba6", "#e84f9b", "#2b2d42", "#8d6e63"];
+// (los colores, los íconos, el patrón y la insignia de cada biblioteca están en web/js/vaultlook.js)
 const VAULT_NAMES = [t("Documentales"), t("Para aprender"), t("Risas"), t("Música en vivo"), t("Charlas"), t("Tecnología"), t("Viajes"),
   t("Cocina"), t("Historia"), t("Podcasts"), t("Pendientes"), t("Favoritos"), t("Clásicos"), t("Entrevistas"), t("Ciencia"), t("Deportes"),
   t("Videojuegos"), t("Tutoriales"), t("Noticias"), t("Para la noche")];
 i18nTrack(VAULT_NAMES);  // al cambiar de idioma, sus textos también cambian (i18n.js)
-const newPattern = () => Math.random().toString(36).slice(2, 8);
-const VAULT_ICONS = [["library", t("Biblioteca")], ["flask", t("Ciencia")], ["smile", t("Humor")], ["music", t("Música")],
-  ["book", t("Aprender")], ["globe", t("Mundo")], ["star", t("Favoritos")], ["film", t("Cine")], ["heart", t("Me gusta")], ["atom", t("Tecnología")],
-  ["cap", t("Educación")], ["gamepad", t("Videojuegos")], ["ball", t("Deportes")], ["plane", t("Viajes")], ["chat", t("Charlas")],
-  ["brush", t("Arte y estilo")], ["news", t("Noticias")], ["paw", t("Animales")]];
-i18nTrack(VAULT_ICONS);  // al cambiar de idioma, sus textos también cambian (i18n.js)
-
 const currentVault = () => vaults.list.find((v) => v.id === vaults.current) || vaults.list[0] || { name: t("Principal"), id: "principal" };
 const vaultById = (id) => vaults.list.find((v) => v.id === id);
 // «3 videos · 2 en el equipo»
@@ -26,13 +19,6 @@ function vaultCounts(v) {
   const n = v.count ?? 0;
   return (n === 1 ? t("1 video") : t("{n} videos", { n })) + (v.downloaded != null ? ` · ${t("{n} en el equipo", { n: v.downloaded })}` : "");
 }
-// insignia: el ícono de la biblioteca sobre su color, sólido (el patrón va solo en los banners; elegido 2026-11-14)
-function vaultBadge(v, cls = "") {
-  const b = el("span", { class: ("vbadge " + cls).trim(), "aria-hidden": "true" }, icon(v.icon || "library"));
-  b.style.setProperty("--vc", v.color || "var(--primary)");
-  return b;
-}
-
 // distintivo de cada biblioteca en las listas desplegables (web/js/menu.js)
 DD_DECO.vault = (o) => (o.value === "all" ? icon("library") : vaultById(o.value) ? vaultBadge(vaultById(o.value)) : null);
 
@@ -59,6 +45,7 @@ function vaultsUpdate(m) {
   }
   if (typeof renderPrefs === "function" && prefsSections.length) renderPrefs();
   if ($("#vault-screen").open) renderVaultScreen();
+  if (typeof maybeWelcome === "function") maybeWelcome();  // la primera vez (en la app de escritorio, con la biblioteca)
 }
 
 /* ------------------------------------------------------------ selector del encabezado */
@@ -208,6 +195,7 @@ $("#vault-form").addEventListener("submit", (e) => {
   if (d.where === "folder" && !folder) { e.preventDefault(); send({ type: "vault_pick_folder", for: "new" }); return; }
   if (d.mode === "new") {
     send({ type: "vault_create", name, folder, color: d.color, icon: d.icon, pattern: d.pattern });
+    closeVaultScreen();  // creada, se entra a ella (desde Bibliotecas también)
     if (currentView() !== "prefs") setView("library");
   } else {
     send({ type: "vault_update", id: d.id, name, color: d.color, icon: d.icon, pattern: d.pattern });
@@ -243,7 +231,7 @@ function vaultMenu(v, at) {
   openMenu([
       { head: v.name },
       !isCur && { label: t("Abrir"), icon: "arrow", onClick: () => { closeVaultScreen(); openVault(v.id); } },
-      owner && { label: t("Editar…"), icon: "pencil", onClick: () => { closeVaultScreen(); editVault(v.id); } },
+      owner && { label: t("Editar…"), icon: "pencil", onClick: () => editVault(v.id) },  // encima de Bibliotecas: al cerrar, se vuelve ahí
       "sep",
       owner && !v.main && { label: t("Quitar de la lista"), icon: "x", onClick: async () => {
         if (await confirmDlg(t("¿Quitar «{name}» de la lista?", { name: v.name }),
@@ -298,7 +286,7 @@ function vaultCard(v, mode) {
   return card;
 }
 function newVaultCard() {
-  return el("button", { type: "button", class: "vcard new owner-only", on: { click: () => { closeVaultScreen(); openVaultDlg("new"); } } },
+  return el("button", { type: "button", class: "vcard new owner-only", on: { click: () => openVaultDlg("new") } },
     el("span", { class: "vnew-ic" }, icon("plus")), el("strong", { text: t("Nueva biblioteca") }),
     el("small", { text: t("Con su propio color, ícono y carpeta") }));
 }
@@ -307,28 +295,7 @@ function newVaultCard() {
 // la abierta destacada, con una escena de caracteres en su color, y las demás al lado en tarjetas compactas con
 // su patrón asomando en la esquina derecha (elegido 2026-11-14)
 
-// campo de caracteres por densidad (el estilo de las escenas, web/js/scenes.js), quieto: cada biblioteca el suyo
-const ASCII_RAMP = " .·:-=+*#%@";
-function asciiField(seed, cols, rows) {
-  let h = 2166136261;
-  for (const ch of String(seed)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  const s = ((h >>> 0) % 1000) / 97;
-  const out = [];
-  for (let y = 0; y < rows; y++) {
-    let line = "";
-    for (let x = 0; x < cols; x++) {
-      const v = (Math.sin(x * 0.16 + s * 1.7 + Math.sin(y * 0.45 + s) * 1.4) + Math.sin(y * 0.38 - x * 0.06 + s) + 1.4) / 3.6;
-      line += ASCII_RAMP[Math.max(0, Math.min(10, Math.floor(v * v * 11)))];
-    }
-    out.push(line);
-  }
-  return out.join("\n");
-}
-function vaultAscii(v, cols, rows, cls) {
-  const pre = el("pre", { class: "vascii " + cls, "aria-hidden": "true", text: asciiField(`${v.id}:${v.pattern || ""}`, cols, rows) });
-  pre.style.setProperty("--vc", v.color || "var(--primary)");
-  return pre;
-}
+// (el campo de caracteres de cada biblioteca, vaultAscii, está en web/js/vaultlook.js)
 function vaultStats(v) {
   const n = vaultCount(v);
   const parts = [n === 1 ? t("1 video") : t("{n} videos", { n })];
@@ -364,7 +331,7 @@ function vaultMini(v) {
     moreBtn(v)), v);
 }
 function newVaultMini() {
-  return el("button", { type: "button", class: "vmini new owner-only", on: { click: () => { closeVaultScreen(); openVaultDlg("new"); } } },
+  return el("button", { type: "button", class: "vmini new owner-only", on: { click: () => openVaultDlg("new") } },
     el("span", { class: "vnew-ic" }, icon("plus")), el("strong", { text: t("Nueva biblioteca") }));
 }
 function renderVaultScreen() {

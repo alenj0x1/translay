@@ -6,12 +6,13 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../components/Captura.astro";
 
 Below the video are its title, a short description of what it is about and its actions. The description (one or two sentences) is written by the agent's smallest model (Qwen3.5 0.8B, downloaded the first time) when the video finishes processing, or when you open one that doesn't have it yet; if the video already has its summary, it takes its first sentences. The actions are «Guardar en…» (Save to…), «Ver dividido» (Split view) and «Exportar» (Export). The side panels change width by dragging their edge: the sidebar on the left and the video's panel on the right (transcript, agent and people). At its minimum the panel stops; keep dragging and the sidebar turns into icons only and the video's panel hides, leaving its edge on the right to drag it back out. A double click on an edge restores the usual width, and widths are remembered in the browser. The video's panel can also be shown or hidden from the video's right-click menu.
 
 The header's buttons never change: Grabar, Agregar, Cola, «Biblioteca» (Library) and Ajustes, always in that order; the one for the open screen is highlighted.
 
-![Player with Spanish subtitles at the bottom, English at the top and the aligned transcript on the side, with a comment](../../../assets/capturas/reproductor.webp)
+<Captura name="reproductor" alt="Player with Spanish subtitles at the bottom, English at the top and the aligned transcript on the side, with a comment" />
 
 ## Expanded and split view
 
@@ -20,22 +21,24 @@ The header's buttons never change: Grabar, Agregar, Cola, «Biblioteca» (Librar
 
 The «Ver dividido» or «Ver ampliado» (Expanded view) button switches between the two and your choice is saved (Ajustes › Reproducción › «Vista del video»; Settings › Playback › "Video view"). The subtitles of each language can be turned off in Ajustes › Audio y subtítulos (Audio and subtitles).
 
-Text written in the video (titles, signs, slides, code comments) shows up translated on top of the original, in the same place and colors; hover over it to see what it said. Code, commands and links are left as they are. Everything written in the video can be used on the video itself: hovering over it (or clicking it) marks it with a box that glides from one text to the next and shows **Copiar** (Copy) and **Preguntar a Lumi** (Ask Lumi; it opens the agent with the question started and that text in it), plus **Abrir** (Open) for a link; the right-click menu has the same options. The translated text on top can also be selected to copy part of it. It is turned off with **Texto del video en español** (Video text in Spanish) in the same page. How it works: [Text in the video](../../how-it-works/screen-text/).
+Text written in the video (titles, signs, slides, code comments) shows up translated on top of the original, in the same place and colors; hover over it to see what it said. Code, commands and links are left as they are. Everything written in the video can be used on the video itself: hovering over it (or clicking it) marks it with a box that glides from one text to the next and shows a pill right where the mouse is (always inside the video): **Copiar** (Copy), **Abrir** (Open) for a link, and **Preguntar** (Ask) with the agent's star, which opens the agent with the question started and that text in it; the right-click menu has the same options. The translated text on top can also be selected to copy part of it. It is turned off with **Texto del video en español** (Video text in Spanish) in the same page. How it works: [Text in the video](../../how-it-works/screen-text/).
+
+<Captura name="texto" alt="«CORONAL HEATING PROBLEM», written in a NASA video, shown translated in its place, with Copiar (Copy) and Preguntar a Lumi (Ask Lumi) above it" />
 
 A video that is [only transcribed](../import/#language-and-transcribe-only) has no translation or voice: a single subtitle in its own language, a single column in the transcript and no audio switch.
 
-![Split view: the original with English subtitles on the left and the translated one on the right](../../../assets/capturas/dividido.webp)
+<Captura name="dividido" alt="Split view: the original with English subtitles on the left and the translated one on the right" />
 
 ## Controls
 
-The controls are custom and hide by themselves after a few seconds while the video plays; they come back when you move the mouse or press a key.
+The controls are custom and only show with the mouse over the video (on touch screens they stay visible); while it plays they also hide after a few seconds without moving the mouse. The progress line has no handle: its color marks where you are.
 
 - **Play or pause**, also with a click on the video.
 - **Time** elapsed and total.
-- **Progress line**: besides what has been played, a faint band marks what has already been recognized and a stronger one what already has Spanish voice (or translation, if the app runs without voice). Hovering shows the time; the little dots are [comments](../transcript-and-people/#comments).
-- **Speed**: each click moves to the next value between 0.75× and 2× (in steps of 0.25). The Spanish voice speeds up without changing pitch. The chosen speed is remembered in the browser.
-- **ES / EN** (or the original's code: PT…): ES is the Spanish voice with the original in the background; the other is the original at normal volume. Which language each video starts with and how loud the original stays under the voice is chosen in Ajustes › Audio y subtítulos.
-- **Volume** and mute.
+- **Progress line**: besides what has been played, a faint band marks what has already been recognized and a stronger one what already has voice in your language (or translation, if the app runs without voice). It grows when you hover over it and shows the time; the mouse wheel over it skips 5 s forward or back. The little dots are [comments](../transcript-and-people/#comments).
+- **Speed**: each click moves to the next value between 0.75× and 2× (in steps of 0.25), and the mouse wheel over it goes up or down; the number rolls like a wheel in that direction. The dubbed voice speeds up without changing pitch. The chosen speed is remembered in the browser.
+- **Language**: its name opens a list with the original and every language Translay dubs into. A dubbed language plays its voice with the original in the background; the original plays at normal volume. The list opens right there in the bar. A language the video isn't in yet is marked with two little arrows and can be picked too: it becomes «Traducir a» (Translate into) and the video is translated and dubbed into it right there, while you watch. How loud the original stays under the voice is chosen in Ajustes › Audio y subtítulos.
+- **Volume** and mute; the mouse wheel over it goes up or down 5 %.
 - **Subtitles** (CC): which ones are shown (Spanish, the original's and the video's text in Spanish) or turn them all off. Dim when they're off.
 - **Full screen**, also with a double click on the video.
 

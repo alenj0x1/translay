@@ -117,6 +117,8 @@
 
 /* pantalla para cambiar de biblioteca */
 .vault-screen { width: min(1080px, calc(100vw - 48px)); max-height: calc(100vh - 48px); }
+/* crear o editar encima de Bibliotecas: el fondo ya está oscurecido por ella, no se oscurece dos veces */
+body:has(#vault-screen[open]) #vault-dlg::backdrop { background: transparent; }
 .vault-screen form { gap: var(--s5); padding: var(--s6) var(--s7) var(--s7); overflow-y: auto; max-height: calc(100vh - 48px); }
 .vs-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
 .vs-head h3 { font: 800 var(--fs-2xl)/1.15 var(--font); }

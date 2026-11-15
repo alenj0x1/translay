@@ -492,6 +492,370 @@ const SCENES = {
   },
 };
 
+// ── El recorrido: del logo a la Luna, de la Luna a la Tierra, entre las nubes hasta el atardecer y, bajo el mar, del
+// arrecife al naufragio en el fondo. Cada parada es una escena por sí sola (un fondo más en Ajustes) y «recorrido» las
+// encadena: cada una sube desde abajo, como el agua que se acerca, con su línea en el color de énfasis. La portada de
+// la documentación hace el mismo viaje con el scroll (journeyAt).
+const JOURNEY = [["translay", 0], ["luna", 0.06], ["tierra", 0.13], ["nubes", 0.21], ["atardecer", 0.28], ["mar", 0.36],
+  ["arrecife", 0.46], ["ballena", 0.55], ["medusas", 0.64], ["abismo", 0.73], ["naufragio", 0.84]];
+const JOURNEY_STAGE_S = 40, JOURNEY_WIPE_S = 5;  // en «recorrido», segundos en cada parada y lo que tarda en subir la siguiente
+const sclamp = (x) => Math.max(0, Math.min(1, x));
+// cuánto se avanzó dentro de la parada (0 al llegar, 1 al irse); null cuando la escena se ve sola
+let sceneLocal = null;
+
+// dibuja la parada i del recorrido, con la siguiente subiendo desde abajo cuando q > 0
+function journeyDraw(i, local, q, u, v, t, cell, A) {
+  const draw = (n, l) => { sceneLocal = l; const r = SCENES[JOURNEY[n][0]](u, v, t, cell, A); sceneLocal = null; return r; };
+  if (q <= 0) return draw(i, local);
+  const line = 1.04 - q * 1.12 + 0.025 * Math.sin(u * 5 + t * 0.9) + 0.012 * Math.sin(u * 13 - t * 1.3);
+  if (Math.abs(v - line) < cell * 0.9) return [0.85, 1];
+  return v > line ? draw((i + 1) % JOURNEY.length, 0) : draw(i, local);
+}
+// el recorrido según cuánto se bajó (0 a 1): la portada de la documentación lo mueve con el scroll
+function journeyAt(depth, u, v, t, cell, A) {
+  let i = 0;
+  while (i < JOURNEY.length - 1 && depth >= JOURNEY[i + 1][1]) i++;
+  const next = JOURNEY[i + 1];
+  if (!next) return journeyDraw(i, sclamp((depth - JOURNEY[i][1]) / (1 - JOURNEY[i][1])), 0, u, v, t, cell, A);
+  const local = sclamp((depth - JOURNEY[i][1]) / (next[1] - JOURNEY[i][1]));
+  return journeyDraw(i, local, sclamp((depth - (next[1] - 0.05)) / 0.05), u, v, t, cell, A);
+}
+
+// el cielo de estrellas: pocas, quietas, que titilan; `fade` las apaga al acercarse a la Tierra
+function starsAt(u, v, t, fade = 1) {
+  const h = hash2(Math.floor(u * 70), Math.floor(v * 40));
+  return h > 0.982 ? [(0.2 + 0.4 * (0.5 + 0.5 * Math.sin(t * 1.7 + h * 90))) * fade, h > 0.997 ? 1 : 0] : [0, 0];
+}
+// la Luna: disco con su lado iluminado, cráteres de borde claro y un halo fino en el color de énfasis
+function moonAt(u, v, cx, cy, R) {
+  const dx = u - cx, dy = v - cy, d = Math.hypot(dx, dy);
+  if (d > R * 1.06) return null;
+  if (d > R) return [0.55 * (1 - (d - R) / (R * 0.06)), 1];
+  let w = 0.2 + sclamp(0.55 + ((dx * 0.7 - dy * 0.5) / R) * 0.55) * 0.65;
+  for (const [ox, oy, cr] of [[-0.3, -0.2, 0.18], [0.25, 0.3, 0.14], [0.4, -0.35, 0.09], [-0.1, 0.45, 0.1], [-0.45, 0.25, 0.07]]) {
+    const cd = Math.hypot(dx - ox * R, dy - oy * R) / (cr * R);
+    if (cd < 1) w = cd > 0.78 ? Math.min(1, w + 0.2) : w * 0.62;
+  }
+  return [sclamp(w + 0.04 * Math.sin(u * 90) * Math.sin(v * 80)), 0];
+}
+// una elipse girada: < 1 adentro
+function rotEll(x, y, cx, cy, rx, ry, a) {
+  const dx = x - cx, dy = y - cy, c = Math.cos(a), s = Math.sin(a);
+  const X = (dx * c + dy * s) / rx, Y = (-dx * s + dy * c) / ry;
+  return X * X + Y * Y;
+}
+// los continentes, en contornos simples de longitud y latitud; se pasan una vez a un mapa de 2° por celda
+const CONTINENTS = [
+  [-168,66,-160,71,-140,70,-125,72,-95,72,-80,74,-62,66,-56,52,-66,45,-76,35,-81,31,-80,25,-84,30,-90,29,-97,26,-97,20,-90,21,-87,15,-83,9,-78,8,-86,12,-92,15,-105,20,-110,24,-115,30,-118,34,-124,40,-124,48,-132,55,-140,59,-152,58,-165,54,-160,60,-166,62],
+  [-55,60,-44,60,-20,70,-18,80,-35,83,-60,82,-72,78,-58,75,-52,68],
+  [-80,9,-72,12,-62,10,-50,0,-35,-6,-39,-14,-41,-22,-48,-26,-53,-34,-58,-38,-65,-42,-68,-52,-74,-52,-73,-42,-71,-30,-70,-18,-76,-14,-81,-5,-80,1],
+  [-10,36,-9,43,-1,44,-4,48,2,51,8,54,10,58,5,62,15,69,28,71,40,67,60,69,70,73,80,73,100,77,115,74,140,72,160,70,180,68,180,65,170,60,160,55,156,51,142,53,140,46,130,42,127,35,122,30,120,22,108,20,106,10,100,13,103,1,98,8,97,17,92,22,88,22,80,15,77,8,72,20,67,24,57,26,56,24,59,22,52,16,43,13,35,28,35,33,36,36,27,37,26,40,23,36,20,40,13,45,18,40,15,38,8,44,3,43,-5,36],
+  [-17,21,-17,14,-12,8,-5,5,8,4,9,-1,12,-6,13,-12,12,-18,15,-27,18,-34,26,-34,33,-28,35,-22,40,-15,40,-10,43,0,51,11,43,12,37,20,33,31,20,31,10,37,-6,36,-10,30],
+  [44,-25,47,-25,50,-15,49,-12,44,-17],
+  [114,-22,122,-18,130,-12,137,-12,142,-11,146,-19,153,-27,150,-37,141,-38,135,-34,129,-32,115,-35,113,-26],
+  [109,1,117,7,119,-2,114,-4,110,-2], [95,5,106,-6,101,-3], [131,-1,141,-3,150,-10,141,-9,134,-4],
+  [130,31,135,34,141,36,142,41,140,40,132,34], [-5,50,1,51,-2,56,-3,58,-6,57,-5,54], [-24,64,-14,64,-14,66,-22,66],
+];
+let landMap = null;
+function isLand(lon, lat) {
+  if (!landMap) {
+    landMap = new Uint8Array(180 * 90);
+    for (let r = 0; r < 90; r++) for (let c = 0; c < 180; c++) {
+      const x = -179 + c * 2, y = 89 - r * 2;
+      let inside = y < -70;  // la Antártida
+      for (const P of CONTINENTS) {
+        let hit = false;
+        for (let i = 0, j = P.length - 2; i < P.length; j = i, i += 2) {
+          if ((P[i + 1] > y) !== (P[j + 1] > y) && x < ((P[j] - P[i]) * (y - P[i + 1])) / (P[j + 1] - P[i + 1]) + P[i]) hit = !hit;
+        }
+        if (hit) { inside = true; break; }
+      }
+      landMap[r * 180 + c] = inside ? 1 : 0;
+    }
+  }
+  const c = Math.floor((((lon + 180) % 360) + 360) % 360 / 2), r = Math.min(89, Math.max(0, Math.floor((90 - lat) / 2)));
+  return landMap[r * 180 + c] === 1;
+}
+// agua de fondo con rayos de luz desde la superficie (más tenues cuanto más hondo)
+function waterAt(u, v, t, light) {
+  const ray = Math.max(0, Math.sin((u + v * 0.5) * 4 + t * 0.12)) * Math.max(0, Math.sin((u + v * 0.5) * 1.1 - t * 0.04));
+  return 0.03 + 0.03 * Math.sin(u * 3 + v * 5 + t * 0.3) + ray * light * (1 - v);
+}
+// una tortuga marina vista desde arriba: caparazón de placas, cabeza, aletas que reman y cola
+function turtleAt(u, v, cx, cy, s, t) {
+  const x = (u - cx) / s, y = (v - cy) / s;
+  if (Math.abs(x) > 1.6 || Math.abs(y) > 1.3) return null;
+  const flap = Math.sin(t * 1.6);
+  const e = x * x + (y * y) / 0.5;
+  if (e < 1) {
+    if (e > 0.82) return [0.8, 3];
+    const seam = Math.abs(Math.sin(x * 4.5 + Math.sin(y * 5))) < 0.16 || Math.abs(Math.sin(y * 6.5)) < 0.13;
+    return seam ? [0.3, 0] : [0.5 + 0.25 * (1 - e), 3];
+  }
+  if (Math.hypot(x - 1.03, y + 0.07) < 0.06) return [0.08, 0];  // el ojo
+  if (Math.hypot(x - 1.15, y) < 0.27) return [0.62, 0];
+  if (rotEll(x, y, 0.4, 0.62, 0.6, 0.16, 0.6 + flap * 0.35) < 1) return [0.55, 0];
+  if (rotEll(x, y, 0.4, -0.62, 0.6, 0.16, -0.6 - flap * 0.35) < 1) return [0.5, 0];
+  if (rotEll(x, y, -0.85, 0.42, 0.3, 0.12, -0.5 - flap * 0.15) < 1) return [0.45, 0];
+  if (rotEll(x, y, -0.85, -0.42, 0.3, 0.12, 0.5 + flap * 0.15) < 1) return [0.45, 0];
+  if (rotEll(x, y, -1.08, 0, 0.18, 0.06, 0) < 1) return [0.4, 0];
+  return null;
+}
+// cardumen de peces chicos que cruzan (los de web/js › fishAt), en colores distintos
+function smallFishAt(u, v, t, key, n, top, gap) {
+  const fish = perFrame(t, key, () => Array.from({ length: n }, (_, i) => {
+    const dir = i % 2 ? -1 : 1, run = (t * (0.05 + (i % 3) * 0.012) + hash2(i, 4) * 3.5) % 3.9;
+    return [dir > 0 ? run - 0.35 : 3.55 - run, top + i * gap + Math.sin(t * 0.7 + i) * 0.02, 0.035 + 0.012 * (i % 3), dir];
+  }));
+  for (let i = 0; i < fish.length; i++) {
+    const [fx, fy, fs, dir] = fish[i];
+    const f = fishAt(u, v, fx, fy, fs, dir, t + i);
+    if (f !== null) return [f, i % 3 === 0 ? 2 : i % 3 === 1 ? 3 : 0];
+  }
+  return null;
+}
+
+Object.assign(SCENES, {
+  // los íconos de Translay en órbita alrededor de la Luna: elipses inclinadas, cada uno a su ritmo; detrás de la Luna
+  // no se ven y de frente se ven un poco más grandes
+  luna(u, v, t, cell, A = ASPECT) {
+    const cx = 1.6, cy = 0.5, R = Math.min(0.34, A * 0.3), k = R / 0.34;  // en una pantalla angosta, todo a escala
+    const icons = perFrame(t, "orbitas", () => TRANSLAY_ICONS.map(([, , , size], n) => {
+      const rx = (0.52 + (n % 4) * 0.17) * k, ry = rx * (0.22 + (n % 3) * 0.06), tilt = ((n % 5) - 2) * 0.12;
+      const a = t * (0.16 + (n % 4) * 0.03) + n * 0.53;
+      const ox = Math.cos(a) * rx, oy = Math.sin(a) * ry;
+      return [cx + ox * Math.cos(tilt) - oy * Math.sin(tilt), cy + ox * Math.sin(tilt) + oy * Math.cos(tilt),
+        size * 0.8 * Math.max(0.7, k) * (0.82 + 0.3 * Math.sin(a)), Math.sin(a) < 0];
+    }));
+    const m = moonAt(u, v, cx, cy, R);
+    for (let n = 0; n < icons.length; n++) {
+      const [x, y, size, behind] = icons[n];
+      if (behind && m) continue;  // detrás de la Luna
+      const lx = (u - x) / size, ly = (v - y) / size;
+      if (Math.abs(lx) > 1.25 || Math.abs(ly) > 1.25) continue;
+      const f = ICON_SHAPES[TRANSLAY_ICONS[n][0]](lx, ly, (cell / size) * 0.75);
+      if (f) return [f * (behind ? 0.55 : 1), TRANSLAY_ICONS[n][4] ? 1 : 3];
+    }
+    return m || starsAt(u, v, t);
+  },
+
+  // la Tierra que gira, con sus continentes, nubes, polos y la atmósfera en el color de énfasis; en el recorrido crece
+  // hasta llenar el fondo (se baja hacia ella), sola se acerca y se aleja despacio; la Luna queda arriba, a un lado
+  tierra(u, v, t, cell, A = ASPECT) {
+    const p = sceneLocal ?? 0.22 + 0.18 * Math.sin(t * 0.03);
+    const R = Math.min(0.36, A * 0.32) + p * p * 1.5, cx = 1.6, cy = 0.6 + p * p * 1.75;
+    const dx = (u - cx) / R, dy = (v - cy) / R, d2 = dx * dx + dy * dy;
+    if (d2 < 1) {
+      const z = Math.sqrt(1 - d2), tilt = 0.38;
+      const y = -dy * Math.cos(tilt) + z * Math.sin(tilt), zz = z * Math.cos(tilt) + dy * Math.sin(tilt);
+      const lat = Math.asin(y) * 57.3, lon = Math.atan2(dx, zz) * 57.3 + t * 6 - 40;
+      const light = sclamp(0.35 + 0.75 * (-dx * 0.5 - dy * 0.3 + z * 0.8));  // el sol de frente, arriba a la izquierda
+      const cloud = Math.sin(lon * 0.09 + t * 0.1 + Math.sin(lat * 0.11) * 2.2) * Math.sin(lat * 0.16 + lon * 0.03) > 0.72;
+      if (cloud) return [sclamp(0.2 + 0.45 * light), 0];
+      if (Math.abs(lat) > 72) return [sclamp(0.25 + 0.6 * light), 0];  // el hielo de los polos
+      return isLand(lon, lat) ? [sclamp(0.3 + 0.7 * light), 2] : [sclamp(0.03 + 0.09 * light), 3];
+    }
+    const d = Math.sqrt(d2);
+    if (d < 1 + 0.025 / R) return [0.75 * (1 - ((d - 1) * R) / 0.025), 1];  // la atmósfera
+    const m = moonAt(u, v, 1.6 + Math.min(A / 2 - 0.2, 1.1), 0.25 - p * 0.3, Math.min(0.14, A * 0.12) * (1 - p * 0.6));
+    return m || starsAt(u, v, t, 1 - p * 0.8);
+  },
+
+  // entre las nubes: cúmulos (bultos redondos sobre una base plana, más claros arriba) en tres capas que se deslizan a
+  // distinta velocidad y suben, como al ir bajando; las de adelante, más grandes y más rápidas; pasa una bandada
+  nubes(u, v, t, cell, A = ASPECT) {
+    const k = Math.min(1, A / 1.6), climb = sceneLocal ?? fract(t * 0.004) * 3;
+    for (let L = 0; L < 3; L++) {  // de adelante hacia atrás: la primera que toca tapa a las demás
+      const s = (0.4 + (2 - L) * 0.22) * k, rise = climb * (0.5 + (2 - L) * 0.45);
+      for (let n = 0; n < 5; n++) {
+        const span = ASPECT + 1.2;
+        const cx = ((hash2(n, L * 7) * span + t * (0.012 + (2 - L) * 0.01)) % span) - 0.6;
+        const y0 = 0.25 + hash2(L, n * 3) * 0.9 + L * 0.12 + (L === 2 ? 0 : 0.3) - rise;
+        const cy = (((y0 + 0.3) % 1.9) + 1.9) % 1.9 - 0.1;  // las que se van por arriba vuelven por abajo
+        const x = (u - cx) / s, y = (v - cy) / s;
+        if (y > 0.02 || Math.abs(x) > 0.75) continue;  // la base plana
+        let w = 0;
+        for (let b = 0; b < 5; b++) {
+          const bx = -0.48 + b * 0.24, r = 0.16 + 0.1 * Math.sin(b * 2.1 + n) + (b === 2 ? 0.08 : 0);
+          const d = Math.hypot(x - bx, y + r * 0.45) / r;
+          if (d < 1) w = Math.max(w, 0.35 + 0.5 * sclamp(-(y + r * 0.45) / r + 0.3) + 0.15 * (1 - d));
+        }
+        if (w) return [sclamp(w * 0.85 * (1 - L * 0.22)), 0];
+      }
+    }
+    for (let b = 0; b < 5; b++) {  // la bandada: pájaros en V que aletean
+      const bx = ((t * 0.03 + b * 0.07) % (ASPECT + 0.8)) - 0.4, by = 0.22 + Math.abs(b - 2) * 0.03;
+      const x = (u - bx) / 0.025, y = (v - by) / 0.025, wing = Math.sin(t * 5 + b) * 0.35;
+      if (Math.abs(x) < 1 && Math.abs(y - (Math.abs(x) * (0.5 + wing) - 0.3)) < 0.22) return [0.6, 1];
+    }
+    return [0.03 + 0.02 * Math.sin(u * 4 + t * 0.2), 0];
+  },
+
+  // arrecife de coral: corales cerebro, ramificados y abanicos de mar sobre la arena, peces de colores y una tortuga
+  arrecife(u, v, t, cell, A = ASPECT) {
+    let w = waterAt(u, v, t, 0.14), k = 0;
+    const sand = 0.9 + 0.02 * Math.sin(u * 2.3) + 0.01 * Math.sin(u * 9);
+    if (v > sand) return [0.28 + 0.18 * Math.sin(u * 40 + Math.sin(v * 30) * 2) * Math.sin(v * 60), 0];
+    const ts = 0.1 * Math.min(1, 0.4 + A / 1.6);
+    const vis = Math.min(A, ASPECT), left = (ASPECT - vis) / 2;  // la tortuga cruza solo lo que se ve
+    const turtle = turtleAt(u, v, left - ts * 1.6 + ((t * 0.045 + 0.5) % (vis + ts * 3.2)), 0.34 + 0.03 * Math.sin(t * 0.5), ts, t);
+    if (turtle) return turtle;
+    const fish = smallFishAt(u, v, t, "arrecife-peces", 7, 0.46, 0.055);
+    if (fish) return fish;
+    for (let c = 0; c < 14; c++) {
+      const bx = 0.12 + c * 0.23 + hash2(c, 9) * 0.06;
+      if (Math.abs(u - bx) > 0.24) continue;  // lejos de este coral
+      const base = 0.9 + 0.02 * Math.sin(bx * 2.3) + 0.01 * Math.sin(bx * 9) + 0.01;
+      const kind = c % 3;
+      if (kind === 0) {  // cerebro: una cúpula con surcos
+        const dx = (u - bx) / 0.13, dy = (v - base) / 0.1;
+        if (dy < 0 && dx * dx + dy * dy < 1) {
+          const m = Math.sin(dx * 9 + Math.sin(dy * 8) * 1.6) * Math.sin(dy * 11);
+          return [0.45 + (Math.abs(m) < 0.3 ? 0.35 : 0), 2];
+        }
+      } else if (kind === 1) {  // ramificado, con puntas claras, que se mece
+        for (let b = 0; b < 5; b++) {
+          const ang = -Math.PI / 2 + (b - 2) * 0.32 + Math.sin(t * 0.6 + c + b) * 0.04, len = 0.22 + 0.07 * hash2(b, c);
+          const ex = bx + Math.cos(ang) * len, ey = base + Math.sin(ang) * len;
+          if (Math.hypot(u - ex, v - ey) < 0.018) return [0.85, 1];
+          if (segDist(u, v, bx, base, ex, ey) < 0.013) return [0.6, 1];
+          const mx = bx + Math.cos(ang) * len * 0.55, my = base + Math.sin(ang) * len * 0.55, a2 = ang + (b % 2 ? 0.5 : -0.5);
+          if (segDist(u, v, mx, my, mx + Math.cos(a2) * len * 0.35, my + Math.sin(a2) * len * 0.35) < 0.01) return [0.55, 1];
+        }
+      } else {  // abanico de mar: una red en semicírculo que ondea
+        const dx = u - bx, dy = v - base, r = Math.hypot(dx, dy), R = 0.2;
+        if (dy < 0 && r < R) {
+          const a = Math.atan2(dy, dx) + Math.sin(t * 0.7 + c) * 0.05 * (r / R);
+          if (Math.abs(Math.sin(a * 16)) < 0.25 || Math.abs(Math.sin(r * 60)) < 0.2) return [0.5 + 0.2 * (1 - r / R), 3];
+          w = Math.max(w, 0.1);
+        }
+      }
+    }
+    const bub = perFrame(t, "arrecife-burbujas", () => Array.from({ length: 5 }, (_, b) =>
+      [0.4 + b * 0.62 + Math.sin(t * 1.5 + b) * 0.02, 1 - fract(t * 0.07 + hash2(b, 6))]));
+    for (const [bx, by] of bub) {
+      const dd = Math.hypot(u - bx, v - by);
+      if (dd < 0.016 && dd > 0.007) { w = Math.max(w, 0.65); k = 0; }
+    }
+    return [w, k];
+  },
+
+  // mar abierto: una ballena enorme que cruza despacio (surcos en el vientre, aleta que rema, cola que ondula),
+  // entre plancton y rayos de luz
+  ballena(u, v, t, cell, A = ASPECT) {
+    let w = waterAt(u, v, t, 0.12) + v * 0.02;
+    if (hash2(Math.floor(u * 80), Math.floor((v - t * 0.004) * 45)) > 0.988) return [0.35, 3];  // plancton
+    // cruza solo lo que se ve (en una pantalla angosta no tarda en volver)
+    const vis = Math.min(A, ASPECT), left = (ASPECT - vis) / 2;
+    const L = Math.min(1, 0.35 + A * 0.4), span = vis + L * 1.25 + 0.3;
+    const wx = left + vis + 0.1 - ((t * 0.035 + 0.6) % span), wy = 0.5 + 0.03 * Math.sin(t * 0.2);
+    const p = (u - wx) / L;
+    if (p > -0.02 && p < 1.2) {
+      const y = (v - wy) / L - 0.03 * Math.sin(p * 3.5 - t * 0.9) * p * p;
+      const h = p < 0.3 ? 0.13 * Math.sqrt(Math.max(0, 1 - ((0.3 - p) / 0.3) ** 2)) : 0.13 * Math.max(0, 1 - (p - 0.3) / 0.7) ** 1.3 + 0.008;
+      if (p < 1 && Math.abs(y) < h) {
+        if (Math.hypot(p - 0.16, y + 0.015) < 0.012) return [0.06, 0];  // el ojo
+        if (p < 0.22 && Math.abs(y - 0.035) < 0.006) return [0.18, 0];  // la boca
+        if (y > h * 0.25 && p < 0.55) return [Math.abs(Math.sin((y / h) * 14)) < 0.3 ? 0.75 : 0.45, 3];  // los surcos del vientre
+        return [0.42 + 0.22 * (1 - Math.abs(y) / h) + 0.06 * Math.sin(p * 40) * Math.sin(y * 50), 0];
+      }
+      if (rotEll(p, y, 0.33, 0.17, 0.13, 0.025, 0.5 + 0.15 * Math.sin(t * 0.6)) < 1) return [0.55, 0];  // la aleta
+      const q = p - 0.97;
+      if (q > 0 && q < 0.2 && Math.abs(y) < q * 1.4 && Math.abs(y) > (q - 0.12) * 2.5) return [0.55, 0];  // la cola
+    }
+    return [w, 0];
+  },
+
+  // el abismo: casi sin luz, nieve marina que cae, chispas que se encienden y un pez linterna con su señuelo brillante
+  abismo(u, v, t, cell, A = ASPECT) {
+    let w = 0.015, k = 0;
+    if (hash2(Math.floor(u * 90), Math.floor((v - t * 0.006) * 50)) > 0.985) w = 0.25;  // la nieve marina
+    const g = hash2(Math.floor(u * 40), Math.floor(v * 25));
+    if (g > 0.996) { w = 0.3 + 0.5 * Math.max(0, Math.sin(t * 1.3 + g * 50)); k = 1; }
+    const s = 0.2 * Math.min(1, 0.4 + A / 1.6), reach = Math.max(0, Math.min(0.8, A / 2 - s * 1.8));
+    const ax = 1.6 + Math.sin(t * 0.07) * reach, ay = 0.55 + Math.sin(t * 0.23) * 0.04, dir = Math.cos(t * 0.07) >= 0 ? 1 : -1;
+    const x = ((u - ax) * dir) / s, y = (v - ay) / s;
+    if (Math.abs(x) > 2.2 || Math.abs(y) > 2) return [w, k];
+    const bob = Math.sin(t * 1.1) * 0.05;
+    const gd = Math.hypot(x - 1, y + 1.22 + bob);
+    if (gd < 0.16) return [1, 1];  // el señuelo
+    if (segDist(x, y, 0.25, -0.85, 0.55, -1.4) < 0.035 || segDist(x, y, 0.55, -1.4, 0.95, -1.3 - bob) < 0.035) return [0.6, 0];
+    const lit = Math.max(0, 1 - Math.hypot(x - 1, y + 1.2) / 1.6);
+    const e = x * x + (y * y) / 0.8;
+    if (e < 1) {
+      const top = 0.12 - (0.38 * (x - 0.25)) / 0.75, bot = 0.12 + (0.38 * (x - 0.25)) / 0.75;
+      if (x > 0.25 && y > top && y < bot) {  // la boca abierta, con dientes arriba y abajo
+        if ((y - top < 0.14 || bot - y < 0.14) && Math.sin(x * 26) > 0) return [0.95, 0];
+        return [0.03, 0];
+      }
+      if (Math.hypot(x - 0.45, y + 0.32) < 0.05) return [0.1, 0];
+      if (Math.hypot(x - 0.45, y + 0.32) < 0.1) return [0.9, 1];  // el ojo, que refleja el señuelo
+      return [0.5 + 0.15 * Math.sin(x * 12) * Math.sin(y * 10) + 0.35 * lit, 0];
+    }
+    if (x < -0.9 && x > -1.55 && Math.abs(y) < (-0.9 - x) * 0.9) return [0.5 + 0.2 * lit, 0];  // la cola
+    if (gd < 0.75) return [Math.max(w, 0.55 * (1 - gd / 0.75) ** 2), 1];  // el halo del señuelo
+    return [w, k];
+  },
+
+  // el fondo: un barco hundido sobre la arena (casco de tablas con ojos de buey, mástil roto con su vela rasgada),
+  // algas, peces que pasan y burbujas que salen del casco
+  naufragio(u, v, t, cell, A = ASPECT) {
+    let w = 0.02 + v * 0.02, k = 0;
+    if (hash2(Math.floor(u * 90), Math.floor((v - t * 0.006) * 50)) > 0.988) w = 0.22;
+    const sand = 0.82 + 0.025 * Math.sin(u * 2) + 0.01 * Math.sin(u * 8);
+    if (v > sand) return [0.3 + 0.2 * Math.sin(u * 40 + Math.sin(v * 30) * 2) * Math.sin(v * 60), 0];
+    const fish = smallFishAt(u, v, t, "naufragio-peces", 4, 0.3, 0.09);
+    if (fish) return fish;
+    const S = Math.min(0.42, A * 0.42), sx = 1.6, sy = 0.71;
+    const x = (u - sx) / S, y = (v - sy) / S, c = Math.cos(0.1), s = Math.sin(0.1);
+    const X = x * c + y * s, Y = -x * s + y * c;
+    if (Math.abs(X) < 1.1 && Y > -1.1 && Y < 0.5) {
+      const hull = Math.abs(X) < 1 && Y > -0.12 && Y < -0.12 + 0.38 * Math.sqrt(Math.max(0, 1 - (X > 0 ? X * X : (X * 0.6) ** 2)));
+      if (hull) {
+        if (rotEll(X, Y, 0.55, 0.08, 0.14, 0.07, 0.3) < 1) return [0.04, 0];  // el boquete
+        for (const px of [-0.6, -0.25, 0.1]) {
+          const d = Math.hypot(X - px, Y - 0.02);
+          if (d < 0.05) return [0.08, 0];
+          if (d < 0.075) return [0.8, 1];
+        }
+        if (Y < -0.08) return [0.7, 0];  // la borda
+        return [Math.abs(Math.sin(Y * 55)) < 0.2 ? 0.4 : 0.66 + 0.14 * Math.sin(X * 30) * Math.sin(Y * 20), 2];
+      }
+      if (X > -0.8 && X < -0.45 && Y > -0.38 && Y < -0.12) {  // la cabina
+        return Math.abs(X + 0.62) < 0.05 && Math.abs(Y + 0.27) < 0.05 ? [0.08, 0] : [0.6, 2];
+      }
+      if (segDist(X, Y, 0.05, -0.12, 0.2, -1.0) < 0.025 || segDist(X, Y, 0.5, -0.12, 0.95, -0.4) < 0.02) return [0.75, 0];
+      if (segDist(X, Y, -0.12, -0.72, 0.42, -0.8) < 0.018) return [0.7, 0];
+      if (X > -0.08 && X < 0.36 && Y > -0.74 + X * -0.15 && Y < -0.45 + 0.08 * Math.sin(X * 25 + t * 0.5)) {
+        return [Math.abs(Math.sin(X * 30 + t * 0.4)) < 0.3 ? 0.3 : 0.5, 3];  // la vela rasgada
+      }
+    }
+    for (let s2 = 0; s2 < 9; s2++) {  // algas
+      const [bx, len0] = KELP[s2], len = len0 * 0.6;
+      if (Math.abs(u - bx) > 0.08 || Math.abs(bx - sx) < S * 1.1) continue;
+      if (v > sand - len && v < sand) {
+        const q = (sand - v) / len, off = Math.sin(v * 14 - t * 1.2 + s2) * 0.04 * q;
+        if (Math.abs(u - bx - off) < 0.012 + 0.008 * Math.sin(v * 40 + s2)) { w = Math.max(w, 0.55 - q * 0.2); k = 2; }
+      }
+    }
+    const bub = perFrame(t, "naufragio-burbujas", () => Array.from({ length: 4 }, (_, b) => {
+      const rise = fract(t * 0.09 + b * 0.25);
+      return [sx + 0.55 * S + Math.sin(t * 1.4 + b) * 0.015, sy + 0.04 * S - rise * 0.9];
+    }));
+    for (const [bx, by] of bub) {
+      const dd = Math.hypot(u - bx, v - by);
+      if (dd < 0.014 && dd > 0.006) return [0.65, 0];
+    }
+    return [w, k];
+  },
+
+  // el recorrido completo, solo: cada parada se queda un rato y la siguiente sube desde abajo; al final vuelve a empezar
+  recorrido(u, v, t, cell, A = ASPECT) {
+    const T = t % (JOURNEY.length * JOURNEY_STAGE_S), i = Math.floor(T / JOURNEY_STAGE_S), at = T - i * JOURNEY_STAGE_S;
+    return journeyDraw(i, at / JOURNEY_STAGE_S, sclamp((at - (JOURNEY_STAGE_S - JOURNEY_WIPE_S)) / JOURNEY_WIPE_S), u, v, t, cell, A);
+  },
+});
+
 // Dibujo de una escena. Rápido por dos cosas: los caracteres no se escriben con fillText cada vez, se copian de un
 // atlas ya dibujado (cada carácter en cada color y en 10 niveles de opacidad), y solo se tocan las celdas que
 // cambiaron desde el cuadro anterior (el agua cambia; la arena, la rama o una telaraña casi nunca).
@@ -500,6 +864,10 @@ const SCENES = {
 // escena. Por eso: celdas más grandes en pantallas grandes (no más de ~9 000), hasta 8 cuadros por segundo y un tope de
 // uso: si un cuadro tardó X ms, el siguiente espera lo necesario para no pasar del 15 % de un núcleo (en un
 // equipo lento se mueve más despacio, nunca lo pone lento)
+// el worker, junto a este archivo (la app lo sirve en js/; la pantalla de arranque de escritorio, en shared/js/)
+// (en línea, como en la portada de la documentación, no tiene archivo: la portada dibuja sin worker)
+const SCENE_WORKER = typeof document !== "undefined" && document.currentScript?.src
+  ? new URL("scene-worker.js", document.currentScript.src).href : "js/scene-worker.js";
 const SCENE_CW = 6, SCENE_FPS = 8, SCENE_MAX_CELLS = 9000, SCENE_SHARE = 0.15;
 const sceneCell = (W, H) => {
   const cw = Math.max(SCENE_CW, Math.round(Math.sqrt((W * H) / (SCENE_MAX_CELLS * 1.5))));
@@ -599,7 +967,7 @@ function mountScene(box, name) {
   const mono = "JetBrains Mono";
   if (typeof Worker !== "undefined" && c.transferControlToOffscreen) {
     const off = c.transferControlToOffscreen();
-    const w = new Worker("js/scene-worker.js");
+    const w = new Worker(SCENE_WORKER);
     w.postMessage({ type: "init", canvas: off, name, ...size(), ...pal, still: reduceMotion.matches }, [off]);
     const ro = new ResizeObserver(() => { const s = size(); if (s.W) w.postMessage({ type: "resize", ...s }); });
     ro.observe(c);

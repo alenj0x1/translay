@@ -174,3 +174,36 @@ function starSvg(look = agentLook(), color = null, cls = "") {
     "M72 52l1 2.6 2.6 1-2.6 1L72 59l-1-2.4-2.6-1 2.6-1z"]) svg.append(svgEl("path", { class: "st-spark", d, fill: c }));
   return svg;
 }
+
+// el creador (Ajustes › Agente y el asistente de primer uso de la app de escritorio, desktop/ui/wizard.js): la
+// estrella grande pasa sola por sus gestos (en reposo, pensando y respondiendo; sin selector, elegido 2026-11-14)
+const STAR_STATES = ["", "think", "talk"];
+// cambia la estrella grande: la actual sale por un lado (al azar: derecha, izquierda, arriba o abajo) y la nueva
+// entra por el opuesto con un rebote, como cuando el agente se asoma en el chat. La nueva entra recién cuando la otra
+// salió: nunca se cruzan. Si se cambia algo seguido, las que están saliendo terminan de irse y solo entra la última.
+const STAR_EXITS = [[1, 0], [-1, 0], [0, -1], [0, 1]];
+function starSwap(stage, svg) {
+  const [dx, dy] = STAR_EXITS[Math.floor(Math.random() * STAR_EXITS.length)];
+  const away = (k) => `translate(${dx * k}%, ${dy * k}%) rotate(${dx * k / 10}deg)`;
+  const leave = [...stage.querySelectorAll(".agent-star:not(.leaving)")];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for (const o of leave) {
+    o.classList.add("leaving");
+    if (reduce) { o.remove(); continue; }
+    o.animate([{ transform: "none", opacity: 1 }, { transform: away(140), opacity: 1 }],
+      { duration: 240, easing: "cubic-bezier(.5, 0, .9, .4)", fill: "forwards" });
+    setTimeout(() => o.remove(), 260);  // (no onfinish: Ajustes puede mover el escenario y cancelar la animación)
+  }
+  stage.append(svg);
+  if (reduce || !leave.length) return;
+  svg.animate([{ transform: away(-140) }, { transform: away(-140), offset: .3 }, { transform: "translate(0, 0)" }],
+    { duration: 680, easing: "cubic-bezier(.3, 1.35, .55, 1)", fill: "backwards" });
+}
+// la muestra de una opción, todas a la misma escala (la estrella entera, un poco de cerca); en ojos, boca y mejillas,
+// sin el accesorio, que puede tapar la cara (unos lentes)
+const STAR_FACE = new Set(["eyes", "mouth", "cheeks"]);
+function starThumb(look, part) {
+  const svg = starSvg(STAR_FACE.has(part) ? { ...look, acc: "ninguno" } : look);
+  svg.setAttribute("viewBox", "4 1 72 70");
+  return svg;
+}

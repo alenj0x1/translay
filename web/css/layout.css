@@ -186,6 +186,10 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   .bar .vault-wrap { flex: none; min-width: 0; }
   .bar .vault-btn { min-width: 0; padding: 0 6px; }
   .bar .vault-btn .btn-text, .bar .vault-btn .chev { display: none; }
+  /* el logo y los botones un poco más chicos: todos caben en la primera fila */
+  .bar { column-gap: 4px; }
+  .bar .wordmark svg { height: 22px; }
+  .bar > :not(.brand):not(.search) .btn, .bar > .btn, .bar #import-btn, .bar #prefs-btn, .bar #view { width: 34px; min-width: 34px; height: 34px; padding: 0; }
 }
 
 /* paneles del encabezado: se abren debajo de él, con aire (no encima del borde) */
@@ -196,7 +200,8 @@ body:not(.view-library):not(.view-prefs):not(.view-queue) .library .libside { he
   .bar .popover { position: absolute; top: calc(100% + var(--s2)); left: 12px; right: 12px; width: auto !important; max-height: 70vh; overflow-y: auto; }
 }
 
-@media (max-width: 1100px) { .bar .vault-btn { max-width: 160px; } }
+/* solo en ventanas medianas: en el celular el botón mide lo que deja su lugar (max-width: 100 %), con el nombre recortado */
+@media (min-width: 761px) and (max-width: 1100px) { .bar .vault-btn { max-width: 160px; } }
 /* celular: «Grabar» queda en el panel Agregar (el encabezado no alcanza) y las filas del panel sin su detalle */
 @media (max-width: 520px) {
   .bar #rec-btn { display: none; }
@@ -231,6 +236,7 @@ body:not(.view-library) #scene-layer { opacity: .7; }
 body:is(.view-library, .view-prefs, .view-queue) .bar::after {
   content: ""; position: absolute; top: 100%; left: var(--side-w); width: var(--r-lg); height: var(--r-lg); pointer-events: none;
   background: radial-gradient(circle at 100% 100%, transparent calc(var(--r-lg) - .5px), var(--surface) var(--r-lg));
+  transition: left .2s var(--ease);  /* acompaña a la barra lateral mientras se abre o se cierra: la esquina nunca se despega */
 }
 body.side-mini:is(.view-library, .view-prefs, .view-queue) .bar::after { left: var(--side-w-min); }
 body.resizing .bar::after { transition: none; }

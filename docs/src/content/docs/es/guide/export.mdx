@@ -6,12 +6,13 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../../components/Captura.astro";
 
-![Cuadro de exportar con video traducido, audio, originales, subtítulos y transcripción](../../../../assets/capturas/exportar.webp)
+<Captura name="exportar" alt="Cuadro de exportar de un video de NASA Science, con sus tarjetas Video, Audio, Subtítulos y Texto y el video doblado elegido" />
 
 ## Qué se puede exportar
 
-El cuadro de exportar tiene arriba la miniatura y el título de lo que se exporta y debajo tres tarjetas, **Video**, **Audio** y **Texto**, cada una con sus opciones adentro; una tarjeta se enciende sola cuando tiene alguna elegida. El botón dice cuántos archivos salen («Exportar 3 archivos»). Marcas cualquier combinación de:
+El cuadro de exportar tiene arriba la miniatura y el título de lo que se exporta y debajo una fila por tipo, **Video**, **Audio**, **Subtítulos** y **Texto**: su nombre con el formato que produce, sus opciones y, a la derecha, la calidad o el formato cuando hay algo elegido; una fila toma un toque del color de énfasis cuando tiene alguna elegida. El botón dice cuántos archivos salen («Exportar 3 archivos»). Marcas cualquier combinación de:
 
 | Opción | Formato | Contenido |
 |---|---|---|

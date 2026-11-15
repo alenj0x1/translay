@@ -1,0 +1,53 @@
+/* Bienvenida de primer uso (web/js/welcome.js): los pasos arriba como pestañas, las opciones a la izquierda y, a la
+   derecha, la pieza real que cambian (el logo, el banner de la biblioteca, la escena de fondo, el panel del agente) */
+.dlg.onboard { width: min(960px, calc(100vw - 32px)); }
+.onboard > form { gap: var(--s5); justify-self: stretch; min-width: 0; }
+
+/* pestañas: el grupo sin fondo y la elegida con el gris de lo activo */
+.wl-tabs { background: none; padding: 0; }
+.wl-tabs .seg.on, .wl-tabs .seg.on:hover { background: var(--surface-2); }
+
+/* el mismo alto en todos los pasos: el diálogo no cambia de tamaño al avanzar */
+.wl-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--s6); height: min(560px, 68vh); }
+.wl-body > * { min-height: 0; }
+.wl-opts { overflow: auto; }
+/* el creador de la estrella necesita todo el ancho para sus carruseles; nombre y color en una fila arriba */
+.wl-body[data-step="agente"] { grid-template-columns: minmax(0, 1fr); }
+.wl-body[data-step="agente"] .wl-opts { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--s3) var(--s6); }
+.wl-body[data-step="agente"] .wl-row:has(.star-maker) { grid-column: 1 / -1; }
+.wl-body[data-step="agente"] .star-maker { grid-template-columns: minmax(0, 320px) 220px; justify-content: start; column-gap: var(--s8); }
+.wl-opts { display: grid; gap: var(--s5); align-content: start; min-width: 0; }
+.wl-row { display: grid; gap: var(--s2); min-width: 0; }
+.wl-row > .label { justify-self: start; text-align: left; color: var(--fg-muted); font: 600 var(--fs-sm)/1.3 var(--font); }
+
+.wl-stage { position: relative; min-width: 0; overflow: hidden; border-radius: var(--r-lg); background: var(--bg); }
+.wl-hello { display: grid; place-items: center; }
+.wl-scene .scene { display: block; width: 100%; }
+
+/* la biblioteca: su banner (el mismo del diálogo de bibliotecas), sin pegarse a los bordes del diálogo */
+.wl-stage:has(.wl-banner) { background: none; align-self: start; }
+.wl-banner.vpreview { height: 220px; margin: 0; border-radius: var(--r-lg); }
+.wl-colors .vcolor { background: linear-gradient(135deg, var(--vc) 50%, color-mix(in srgb, var(--vc) 45%, #fff) 50%); }
+.wl-icons .vicon { background: var(--surface-2); color: var(--fg-muted); }
+.wl-icons .vicon.on { background: var(--sel-accent, var(--sel)); color: var(--fg); }
+
+.onboard .dlg-actions .spacer { flex: 1; }
+
+/* los fondos en dos columnas: la lista entera a la vista, sin desplazarse */
+.wl-scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* angosto: una columna, la vista previa arriba y más baja */
+@media (max-width: 760px) {
+  /* pestañas y botones fijos; solo el paso se desplaza */
+  .onboard > form { grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 48px); }
+  .wl-body, .wl-body[data-step="agente"] { grid-template-columns: minmax(0, 1fr); height: auto; gap: var(--s4); overflow: auto; align-content: start; }
+  .wl-opts { overflow: visible; }
+  .wl-body > .wl-stage { order: -1; }
+  .wl-hello, .wl-scene { height: 160px; }
+  .wl-banner.vpreview { height: 150px; }
+  .wl-body[data-step="agente"] .wl-opts, .wl-body[data-step="agente"] .star-maker { grid-template-columns: minmax(0, 1fr); }
+  /* los pasos en una sola fila: solo el ícono, salvo el actual */
+  .wl-tabs { flex-wrap: nowrap; }
+  .wl-tabs .seg { padding-inline: var(--s3); }
+  .wl-tabs .seg:not(.on) { font-size: 0; gap: 0; }
+}

@@ -1145,7 +1145,7 @@ vEn.addEventListener("seeking", () => {
 vEn.addEventListener("ratechange", () => {
   vEs.playbackRate = vEn.playbackRate;
   stopDub();  // la frase en curso se retoma a la nueva velocidad
-  setBtn($("#c-speed"), fmtRate(vEn.playbackRate));
+  rollRate(vEn.playbackRate);
 });
 vEn.addEventListener("timeupdate", () => {
   if (!vEn.paused && Math.abs(vEs.currentTime - vEn.currentTime) > 0.2) vEs.currentTime = vEn.currentTime;
@@ -1287,7 +1287,7 @@ setInterval(() => {
 function setMode(dub) {
   dub = dub && state.translates;
   state.dubMode = dub;
-  for (const b of $("#c-lang").querySelectorAll("button")) b.classList.toggle("on", (b.dataset.v === "es") === dub);
+  renderLangPick();
   if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
   if (!dub) stopDub();
 }
@@ -1297,19 +1297,50 @@ function applyLang(lang, translates) {
   state.lang = lang || "";
   state.translates = translates ?? translatesV({ lang });
   const code = state.lang ? state.lang.toUpperCase() : t("Original");
-  const orig = $("#c-lang button[data-v='en']");
-  orig.textContent = state.lang ? code : t("Orig");
-  orig.title = state.lang ? t("Escuchar el original ({lang})", { lang: langName(state.lang) }) : t("Escuchar el original");
   $("#pane-en .tag").textContent = state.lang ? t("{code} · original", { code }) : t("Original");
   document.body.classList.toggle("native", !state.translates);
   setMode(state.translates && prefs.audio !== "original");
   // dividida mostraría el mismo video dos veces: siempre ampliada (sin cambiar la preferencia)
   setLayout(!state.translates || prefs.layout !== "dividida", false);
 }
-$("#c-lang").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (b) setMode(b.dataset.v === "es");
-});
+// el idioma que se escucha: el original o cualquiera de los de destino. Uno en el que el video todavía no está se
+// elige igual (pasa a ser «Traducir a») y se procesa ahí mismo: la traducción y la voz llegan mientras se mira
+const PICK_LANGS = ["es", "en", "pt"];
+const capLang = (code) => { const n = langName(code); return n.charAt(0).toUpperCase() + n.slice(1); };
+function renderLangPick() {
+  const name = $("#c-lang-name");
+  if (!name) return;
+  name.textContent = state.dubMode ? capLang(TARGET) : (state.lang ? capLang(state.lang) : t("Original"));
+}
+function openLangPick() {
+  const menu = $("#c-lang-menu"), btn = $("#c-lang-btn");
+  // en la misma barra, uno al lado del otro: el que aún no está se marca tenue y lo dice al pasar el mouse
+  const item = (label, note, on, act) => el("button", { type: "button", role: "option", class: (on ? "on" : "") + (note && note !== t("Original") ? " later" : ""),
+    "aria-selected": String(on), title: note || null, on: { click: () => { closeLangPick(); act(); } } }, label,
+    // el que todavía hay que procesar lleva su marca: así se sabe antes de elegirlo
+    note && note !== t("Original") ? el("span", { class: "c-lang-todo", "aria-hidden": "true" }, icon("reload")) : null);
+  const items = [item(state.lang ? capLang(state.lang) : t("Original"), t("Original"), !state.dubMode, () => setMode(false))];
+  for (const code of PICK_LANGS) {
+    if (code === state.lang) continue;
+    const current = code === TARGET && state.translates;
+    items.push(item(capLang(code), current ? "" : t("Se prepara al elegirlo"), current && state.dubMode, () => {
+      if (current) { setMode(true); return; }
+      // otro idioma: el servidor vuelve a abrir el video en él y lo que falte se traduce y dobla (case "target")
+      setPref("target_lang", code);
+      toast(t("Preparando el video en {lang}", { lang: langName(code) }), "ok");
+    }));
+  }
+  menu.replaceChildren(...items);
+  menu.hidden = false;
+  btn.setAttribute("aria-expanded", "true");
+}
+function closeLangPick() {
+  $("#c-lang-menu").hidden = true;
+  $("#c-lang-btn").setAttribute("aria-expanded", "false");
+}
+$("#c-lang-btn").addEventListener("click", () => ($("#c-lang-menu").hidden ? openLangPick() : closeLangPick()));
+document.addEventListener("pointerdown", (e) => { if (!$("#c-lang-menu").hidden && !$("#c-lang").contains(e.target)) closeLangPick(); }, true);
+$("#c-lang-menu").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); closeLangPick(); $("#c-lang-btn").focus(); } });
 setMode(state.dubMode);
 
 /* ------------------------------------------------------------ render */
@@ -1748,7 +1779,7 @@ function renderTimeline() {
 function renderHead() {
   const d = vEn.duration;
   const t = vEn.currentTime;
-  $("#c-time").textContent = `${fmt(t)} / ${d && isFinite(d) ? fmt(d) : "0:00"}`;
+  $("#c-time").replaceChildren(fmt(t), el("small", { text: ` / ${d && isFinite(d) ? fmt(d) : "0:00"}` }));
   if (!d || !isFinite(d)) return;
   const pct = `${Math.min(100, (t / d) * 100)}%`;
   $("#t-play").style.width = pct;
@@ -1883,6 +1914,7 @@ function applyPrefs(m) {
   prefsSigSeen = JSON.stringify([m.schema?.length, m.sections, m.lang]);
   if (!same) renderPrefs();
   if (typeof renderLibrary === "function") renderLibrary();
+  if (typeof maybeWelcome === "function") maybeWelcome();  // la primera vez: la bienvenida (web/js/welcome.js)
 }
 let prefsSigSeen = "";
 let langSwitching = false;
@@ -1892,6 +1924,7 @@ function rerenderForLang() {
   const call = (name, ...a) => { try { if (typeof window[name] === "function") window[name](...a); } catch (e) { console.warn(name, e); } };
   for (const f of ["renderVaultBtn", "renderSideVault", "renderLibrary", "renderTranscript", "renderSummary", "renderAgent",
     "renderQueuePanel", "renderPower", "applySubs", "renderPeople", "renderUpNext", "agentTabLabel"]) call(f);
+  if ($("#welcome-dlg")?.open) call("renderWelcome");
   if (typeof renderActive === "function") renderActive(true);
   document.title = state.videoName ? `${state.videoName} · Translay` : "Translay";
 }
@@ -2030,23 +2063,6 @@ function accentRow(p) {
       on: { click: () => { setPref(p.key, value); renderPrefs(); } } }, value ? splitSwatch() : icon("theme"))));
 }
 
-// muestra de un color partida en diagonal: arriba a la izquierda como se ve en claro (pastel), abajo a la derecha como
-// en oscuro; el corte, una línea ondulada. El cuadro por fuera queda igual.
-function splitSwatch() {
-  const n = 28, amp = 1.6, waves = 2.5;
-  const pts = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n, off = Math.sin(t * Math.PI * 2 * waves) * amp;  // a lo largo de la diagonal, de arriba a la derecha
-    pts.push(`${(30 * (1 - t) + off * 0.7071).toFixed(2)} ${(30 * t + off * 0.7071).toFixed(2)}`);
-  }
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 30 30");
-  svg.setAttribute("class", "swatch-split");
-  svg.setAttribute("aria-hidden", "true");
-  svg.innerHTML = `<rect class="dk" width="30" height="30"/><path class="lt" d="M0 0 L30 0 L${pts.join(" L")} L0 30 Z"/>`;
-  return svg;
-}
-
 // texto libre (el nombre y el tono del agente): se guarda al dejar de escribir
 function textRow(p) {
   const multi = !!p.multiline;
@@ -2066,7 +2082,7 @@ const HOME_PREVIEW_W = 1120;
 // (la misma luz y el mismo destacado de web/js/home.js, con lo que sigues viendo)
 function homeBgRow(p) {
   const cur = homeBgMode();
-  const ICON = { translay: "mic", mar: "globe", atardecer: "theme", medusas: "spark", "arañas": "atom", "arañas y perro": "paw", imagen: "upload" };
+  const ICON = { translay: "mic", recorrido: "arrow", luna: "moon", tierra: "globe", nubes: "sun", mar: "globe", arrecife: "flask", ballena: "music", atardecer: "theme", medusas: "spark", abismo: "eye", naufragio: "drive", "arañas": "atom", "arañas y perro": "paw", imagen: "upload" };
   const list = el("div", { class: "opt-list" }, ...p.options.map(([value, text]) => el("button", { type: "button",
     class: "code-theme" + (cur === value ? " on" : ""), "aria-pressed": String(cur === value), on: { click: () => {
       if (value === "imagen" && !prefs.home_bg_rev) { pickHomeBg(); return; }  // sin imagen aún: primero elegirla
@@ -2180,39 +2196,8 @@ function agentModelFile(cat) {
 // el creador del agente (web/js/star.js): la estrella grande con sus estados y, al lado, cada parte con su muestra
 // la estrella grande del creador es siempre el mismo elemento: Ajustes se redibuja al guardar (y otra vez cuando el
 // servidor confirma), y así la transición de una estrella a otra sigue sin cortarse
-const STAR_STATES = ["", "think", "talk"];
+// (los estados, el cambio de una estrella a otra y las muestras de cada parte están en web/js/star.js)
 const starStage = { el: null, key: null, state: "", timer: null };
-// cambia la estrella grande: la actual sale por un lado (al azar: derecha, izquierda, arriba o abajo) y la nueva
-// entra por el opuesto con un rebote, como cuando el agente se asoma en el chat. La nueva entra recién cuando la otra
-// salió: nunca se cruzan. Si se cambia algo seguido, las que están saliendo terminan de irse y solo entra la última.
-const STAR_EXITS = [[1, 0], [-1, 0], [0, -1], [0, 1]];
-function starSwap(stage, svg) {
-  const [dx, dy] = STAR_EXITS[Math.floor(Math.random() * STAR_EXITS.length)];
-  const away = (k) => `translate(${dx * k}%, ${dy * k}%) rotate(${dx * k / 10}deg)`;
-  const leave = [...stage.querySelectorAll(".agent-star:not(.leaving)")];
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  for (const o of leave) {
-    o.classList.add("leaving");
-    if (reduce) { o.remove(); continue; }
-    o.animate([{ transform: "none", opacity: 1 }, { transform: away(140), opacity: 1 }],
-      { duration: 240, easing: "cubic-bezier(.5, 0, .9, .4)", fill: "forwards" });
-    setTimeout(() => o.remove(), 260);  // (no onfinish: Ajustes puede mover el escenario y cancelar la animación)
-  }
-  stage.append(svg);
-  if (reduce || !leave.length) return;
-  svg.animate([{ transform: away(-140) }, { transform: away(-140), offset: .3 }, { transform: "translate(0, 0)" }],
-    { duration: 680, easing: "cubic-bezier(.3, 1.35, .55, 1)", fill: "backwards" });
-}
-// la muestra de una opción: la estrella entera para la forma y el accesorio; para ojos, boca y mejillas, de cerca
-// (a ese tamaño no se distinguían)
-// todas a la misma escala (la estrella entera, un poco de cerca); en ojos, boca y mejillas, sin el accesorio, que
-// puede tapar la cara (unos lentes)
-const STAR_FACE = new Set(["eyes", "mouth", "cheeks"]);
-function starThumb(look, part) {
-  const svg = starSvg(STAR_FACE.has(part) ? { ...look, acc: "ninguno" } : look);
-  svg.setAttribute("viewBox", "4 1 72 70");
-  return svg;
-}
 function avatarRow(p) {
   const look = agentLook();
   const key = () => JSON.stringify(agentLook()) + (prefs.agent_color || themeStarColor());
@@ -2630,6 +2615,12 @@ function trackTime(e) {
   const r = $("#track").getBoundingClientRect();
   return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (vEn.duration || 0);
 }
+// la rueda del mouse sobre la barra adelanta o retrocede 5 s por paso
+$("#track").addEventListener("wheel", (e) => {
+  if (!vEn.duration) return;
+  e.preventDefault();
+  vEn.currentTime = Math.max(0, Math.min(vEn.duration - 0.1, vEn.currentTime + (e.deltaY < 0 ? 5 : -5)));
+}, { passive: false });
 $("#track").addEventListener("pointerdown", (e) => {
   if (!vEn.duration) return;
   const track = $("#track");
@@ -2664,6 +2655,12 @@ function setVolume(v, muted = player.muted) {
 }
 $("#c-vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value), false));
 $("#c-mute").addEventListener("click", () => setVolume(player.volume || 1, !player.muted));
+// la rueda del mouse sobre el volumen lo sube o lo baja de a 5 %
+$(".ctrl .vol").addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const v = Math.round(Math.max(0, Math.min(1, (player.muted ? 0 : player.volume) + (e.deltaY < 0 ? 0.05 : -0.05))) * 100) / 100;
+  setVolume(v, false);
+}, { passive: false });
 
 // velocidad: cada clic pasa a la siguiente; Shift + < / > también
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -2672,12 +2669,34 @@ function setRate(r) {
   vEn.playbackRate = r;
   try { localStorage.setItem("vt-rate", String(r)); } catch (e) { /* sin almacenamiento */ }
 }
+// el número gira como una rueda: el nuevo entra desde abajo si sube y desde arriba si baja
+let shownRate = null;
+function rollRate(r) {
+  const odo = $("#c-speed .odo");
+  if (shownRate === r) return;
+  const dir = shownRate == null ? 0 : r > shownRate ? 1 : -1;
+  shownRate = r;
+  const now = el("span", { text: fmtRate(r) });
+  const old = odo.querySelector("span:not(.out)");
+  if (!dir || !old || matchMedia("(prefers-reduced-motion: reduce)").matches) { odo.replaceChildren(now); return; }
+  now.style.transform = `translateY(${dir * 100}%)`;
+  old.classList.add("out");
+  odo.append(now);
+  requestAnimationFrame(() => { old.style.transform = `translateY(${-dir * 100}%)`; now.style.transform = "translateY(0)"; });
+  setTimeout(() => old.remove(), 340);
+}
 $("#c-speed").addEventListener("click", () => {
   const i = RATES.indexOf(vEn.playbackRate);
   setRate(RATES[(i + 1) % RATES.length]);
 });
+// la rueda del mouse sobre la velocidad la sube o la baja (sin dar la vuelta)
+$("#c-speed").addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const i = Math.max(0, RATES.indexOf(vEn.playbackRate));
+  setRate(RATES[Math.max(0, Math.min(RATES.length - 1, i + (e.deltaY < 0 ? 1 : -1)))]);
+}, { passive: false });
 try { const r = parseFloat(localStorage.getItem("vt-rate")); if (RATES.includes(r)) vEn.defaultPlaybackRate = vEn.playbackRate = r; } catch (e) { /* nada */ }
-setBtn($("#c-speed"), fmtRate(vEn.playbackRate));
+rollRate(vEn.playbackRate);
 
 function toggleFull() {
   if (document.fullscreenElement) document.exitFullscreen();

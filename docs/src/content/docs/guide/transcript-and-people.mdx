@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import Captura from "../../../components/Captura.astro";
 
 The panel beside the video has up to four tabs: «Transcripción» (Transcript), «Resumen» (Summary), «Siguientes» (Up next) and «Personas» (People). «Resumen» appears once the video has a transcript; the last two, only when they have something to show. You hide it with the «Transcripción» button in the video bar or with the button next to the logo.
 
@@ -29,13 +30,15 @@ The second tab is the video's agent, with the name you give it (Settings › Age
 
 It runs on your computer, without internet: the first question downloads its engine and model (the answer shows the progress), and from then on it answers in seconds. In **Ajustes › Agente** (Settings › Agent) you choose its name, avatar and color, write in **Estilo de respuesta** (Response style) how it should answer, in your own words (tone, length, who it talks to) and, if you want, choose its model and the **Dispositivo** (Device) it runs on (**Automático**, **Tarjeta gráfica**, **Integrada** or **Procesador**: Automatic, Graphics card, Integrated or Processor). The model list is grouped by compatibility with your computer (**Recomendado**, **Compatibles**, **Lentos en este equipo**, **Necesitan más memoria**), and each model says how well it answered in the lab (Excelente, Muy buena, Buena, Básica, or «Poco confiable» if it made up answers to trick questions) and its size or «descargado». Under the list, the model that will be used says «Descargado» or has a **Descargar** button with the progress on it, so the first question doesn't wait; agent models are deleted in [Storage](../storage/#models). The brush button in the agent's bar opens the same name, avatar, color and tone without leaving the video, and the changes show at once in the conversation; its answers and their moments take the agent's color. A sample video beside the options, there and in Settings (a summary with chapters, terms and resources, and a few questions), shows how it will look while you change them. The conversation is saved with the video; right click on a message copies it, asks again or clears the conversation. How it works: [Agent](../../how-it-works/agent/).
 
+<Captura name="agente" alt="The agent's tab beside a NASA Science video: the star awake, the card with the video's summary and question suggestions below" />
+
 ## Summary
 
 The summary is the first card of the agent's tab: **Generar el resumen** (Generate the summary), among the agent's suggestions, makes it. It is written with what is said and what appears on screen: an overview of the video, **Ideas clave** (Key ideas), **Capítulos** (Chapters) with their points and the minute of each, **Conceptos clave** (Key terms) and **Recursos del video** (Video resources: the links, commands and code shown in the video). A click on a chapter or a point jumps to that moment, and the point being watched is highlighted like the transcript's sentence. Its question suggestions become the agent's, so they work even while the agent is off.
 
 By default it is made on its own when each video is processed; with Settings › Agente › **Resumir** › **Manualmente** (Manually) it is made when you ask for it, once the transcription is complete (it appears as soon as it finishes, without leaving the video). The button shows how it goes («Resumiendo 40 %», Summarizing) and **Cancelar** (Cancel) stops it. The first time, the agent's model is downloaded (the button shows its progress).
 
-The summary is in Spanish whatever the video's language, is saved with the video and is seen from every tab. Its context menu (right click) has **Copiar el resumen** (Copy), **Exportar el resumen** (Export, as TXT) and **Regenerar el resumen** (Regenerate, for example with another model).
+The summary is in the app's language (Settings › Uso › **Idioma**) whatever the video's language, is saved with the video and is seen from every tab. Its context menu (right click) has **Copiar el resumen** (Copy), **Exportar el resumen** (Export, as TXT) and **Regenerar el resumen** (Regenerate, for example with another model).
 
 It is made on your computer, with the agent's model (Settings › Agente › **Modelo**). While it summarizes it has the GPU to itself: if the rest of Translay's models don't fit beside it, they are set aside and come back when it's done, so processing that's running waits a moment. How it works: [Agent › The full summary](../../how-it-works/agent/#the-full-summary).
 
@@ -58,7 +61,7 @@ In each row you can:
 - **«Escuchar»** (Listen) the reference voice being used. The same button pauses it.
 - **«Guardar»** (Save) the person in the library, with their name and voice. If one with the same name is already saved, the button says «Actualizar voz» (Update voice).
 
-![People tab with Narración and Astronauta, each with their own voice](../../../assets/capturas/personas.webp)
+<Captura name="personas" alt="People tab of an interview from the ISS: four people, each with their own voice, number of sentences, Guardar (Save) and Escuchar (Listen)" />
 
 ## Saved people
 

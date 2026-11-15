@@ -58,12 +58,16 @@ SCHEMA = [
     # el fondo del inicio (web/js/home.js › homeLight): una escena ASCII con los colores del tema (web/js/scenes.js)
     # o una imagen propia
     {"key": "home_bg", "section": "apariencia", "label": "Fondo", "type": "choice", "default": "translay",
-     "options": [["translay", "Translay"], ["mar", "Fondo marino"], ["atardecer", "Atardecer"], ["medusas", "Medusas"], ["arañas", "Arañas"], ["arañas y perro", "Arañas, Shade y Manchita"],
+     "options": [["translay", "Translay"], ["recorrido", "Recorrido"], ["luna", "Luna"], ["tierra", "Tierra"], ["nubes", "Nubes"],
+                 ["atardecer", "Atardecer"], ["mar", "Fondo marino"], ["arrecife", "Arrecife"], ["ballena", "Ballena"], ["medusas", "Medusas"],
+                 ["abismo", "Abismo"], ["naufragio", "Naufragio"], ["arañas", "Arañas"], ["arañas y perro", "Arañas, Shade y Manchita"],
                  ["imagen", "Imagen propia"]]},
     # la escena de fondo (web/js/scenes.js) se detiene sola para dejarle el equipo a lo que importa
     {"key": "bg_pause_video", "section": "apariencia", "label": "Pausar al reproducir un video", "type": "bool", "default": True},
     {"key": "bg_pause_blur", "section": "apariencia", "label": "Pausar con la ventana en segundo plano", "type": "bool", "default": True},
     {"key": "home_bg_rev", "section": "_inicio", "label": "Imagen del inicio", "type": "text", "default": "", "max": 20},
+    # la bienvenida de primer uso (web/js/welcome.js) ya se vio o se omitió: no vuelve a abrirse
+    {"key": "welcomed", "section": "_inicio", "label": "Bienvenida", "type": "bool", "default": False},
     {"key": "accent_lib", "section": "apariencia", "label": "Color de cada biblioteca", "type": "bool", "default": False},
     # colores del código que aparece en los videos (web/js/codetheme.js): la transcripción y el agente
     {"key": "code_theme", "section": "apariencia", "label": "Colores del código", "type": "choice", "default": "vscode-dark",
