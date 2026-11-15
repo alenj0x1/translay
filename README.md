@@ -1,7 +1,7 @@
 <h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/translay-logo-oscuro.svg">
-    <img src="assets/translay-logo.svg" alt="Translay" height="48">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/translay-logo-oscuro.png">
+    <img src="assets/translay-logo.png" alt="Translay" height="48">
   </picture>
 </h1>
 
@@ -10,7 +10,7 @@ English | [Español](README.es.md)
 Translate and dub videos between English, Spanish and Portuguese, **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in your language: subtitles, an aligned transcript with the original and the translation, and a cloned voice synced to the picture. Or only transcribe it, in any language. Nothing leaves your machine except the YouTube downloads.
 
 [![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
-[![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/)
+[![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-7d5ba6)](https://alenj0x1.github.io/translay/)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f9e6a)](LICENSE)
 
@@ -171,7 +171,7 @@ The details (VAD, streaming local agreement, anti-hallucination rules, voice ref
 
 | | |
 |---|---|
-| ![Home page of a library](docs/src/assets/capturas/inicio.webp) | ![Several libraries, each with its own banner](docs/src/assets/capturas/bibliotecas.webp) |
+| ![Home page of a library](docs/src/assets/capturas/inicio.webp) | ![The Libraries screen: the open library featured with its character pattern and the others as cards](docs/src/assets/capturas/bibliotecas.webp) |
 | ![A YouTube channel's collection](docs/src/assets/capturas/coleccion.webp) | ![Split view: original and translated](docs/src/assets/capturas/dividido.webp) |
 | ![The video's people with their voice](docs/src/assets/capturas/personas.webp) | ![Queue with states and downloads](docs/src/assets/capturas/cola.webp) |
 | ![Adding several links](docs/src/assets/capturas/importar.webp) | ![Exporting video, audio and subtitles](docs/src/assets/capturas/exportar.webp) |

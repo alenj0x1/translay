@@ -11,7 +11,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Translay",
-      description: "Translate and dub videos from English to Spanish with each speaker's voice, on your own computer.",
+      description: "Translate and dub videos in English, Spanish and Portuguese with each speaker's voice, on your own computer.",
       logo: { src: "./src/assets/mark.svg", alt: "" },
       favicon: "/favicon.svg",
       defaultLocale: "root",

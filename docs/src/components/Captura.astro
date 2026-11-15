@@ -1,0 +1,15 @@
+---
+// Una captura de la app en los dos modos (src/assets/capturas/<nombre>.webp y <nombre>-claro.webp): la página muestra
+// la que corresponde a su tema, claro u oscuro. Si falta la versión clara, la oscura sirve para los dos.
+//   <Captura name="reproductor" alt="…" />
+import { Image } from "astro:assets";
+
+interface Props { name: string; alt: string; width?: number }
+const { name, alt, width } = Astro.props;
+const shots = import.meta.glob<{ default: ImageMetadata }>("../assets/capturas/*.webp", { eager: true });
+const dark = shots[`../assets/capturas/${name}.webp`]?.default;
+const light = shots[`../assets/capturas/${name}-claro.webp`]?.default;
+if (!dark) throw new Error(`Captura: no existe src/assets/capturas/${name}.webp`);
+---
+<Image class:list={["captura", { "captura-oscura": !!light }]} src={dark} alt={alt} width={width} />
+{light && <Image class="captura captura-clara" src={light} alt={alt} width={width} />}

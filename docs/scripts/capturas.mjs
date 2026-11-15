@@ -19,6 +19,8 @@ async function page(width = 1440, height = 900, vault = "Principal") {
   await p.goto(URL, { waitUntil: "load" });
   await p.waitForFunction(() => typeof lib !== "undefined" && lib.loaded, null, { timeout: 20000 });
   await p.evaluate((name) => { const v = vaults.list.find((x) => x.name === name); if (v && v.id !== vaults.current) openVault(v.id); }, vault);
+  // el color de énfasis de fábrica (violeta), el que ve quien recién instala: nunca botones negros o blancos en las capturas
+  await p.evaluate(() => { if (prefs.accent_color !== "#7d5ba6") setPref("accent_color", "#7d5ba6"); });
   await sleep(2500);
   await p.addStyleTag({ content: "*{caret-color:transparent!important} .toast,.toasts{display:none!important}" });
   return p;
@@ -38,8 +40,15 @@ async function player(p, text, at) {
   await sleep(300);
 }
 
+// en claro, el inicio destaca un video luminoso (uno oscuro no combina con el modo claro): se mira un rato y se vuelve
+async function lightHero(p) {
+  if (mode !== "light") return;
+  await player(p, "Two Sides", 40);
+  await p.evaluate(() => applyRoute("#/")); await sleep(1500);
+  await p.evaluate(() => document.querySelector("#mini-close")?.click()); await sleep(1200);  // sin la miniatura flotante
+}
 const shots = {
-  async inicio() { const p = await page(); await p.mouse.move(5, 890); return p; },
+  async inicio() { const p = await page(); await lightHero(p); await p.mouse.move(5, 890); return p; },
   async reproductor() { const p = await page(); await player(p, "Power of Light", 31); return p; },
   async dividido() {
     const p = await page(); await player(p, "Power of Light", 47);
@@ -69,13 +78,28 @@ const shots = {
   async busqueda() {
     const p = await page(); await p.fill("#lib-q", "luz"); await sleep(2500); return p;
   },
+  // la pantalla Bibliotecas (web/js/vaults.js › openVaultScreen)
   async bibliotecas() {
-    const p = await page();
-    await p.evaluate(() => (document.querySelector(".vault-btn") || document.querySelector("[aria-label^='Biblioteca']")).click()); await sleep(1200); return p;
+    const p = await page(); await p.evaluate(() => openVaultScreen()); await sleep(2500); await p.mouse.move(5, 890); return p;
   },
-  async preferencias() { const p = await page(); await p.evaluate(() => applyRoute("#/preferencias/apariencia")); await sleep(2000); return p; },
+  // el agente en el reproductor: su estrella, la tarjeta del resumen y las sugerencias (web/js/agentui.js)
+  async agente() {
+    const p = await page(); await player(p, "Power of Light", 31);
+    await p.evaluate(() => { if (document.body.classList.contains("side-off")) setSide(true); $('#side-tabs [data-tab="summary"]').click(); });
+    await sleep(3000);
+    // despierto (no dormido con sus «z») y desde arriba: la estrella y la tarjeta del resumen
+    await p.evaluate(() => { agentMoodFixed = ""; state.agent.stick = false; renderAgent(); $("#ag-scroll").scrollTop = 0; });
+    await sleep(2500); await p.mouse.move(700, 450); return p;
+  },
+  // texto en pantalla traducido, con la barrita «Copiar · Preguntar» de un texto bajo el mouse (web/js/screentext.js)
+  async texto() {
+    const p = await page(1440, 900, "Espacio"); await player(p, "Hot Atmosphere", 38);
+    const box = await p.locator(".screen .st-item").first().boundingBox();
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height - 4); await sleep(900); return p;
+  },
+  async preferencias() { const p = await page(); await p.evaluate(() => applyRoute("#/preferencias/audio")); await sleep(2000); return p; },
   async acceso() { const p = await page(); await p.evaluate(() => applyRoute("#/preferencias/acceso")); await sleep(2000); return p; },
-  async "movil-inicio"() { const p = await page(390, 844); return p; },
+  async "movil-inicio"() { const p = await page(390, 844); await lightHero(p); return p; },
 };
 
 for (const [name, fn] of Object.entries(shots)) {

@@ -2,44 +2,47 @@
    Una sola fuente, oscuro «grafito» (no negro puro), claro como alternativa,
    superficies separadas por tono, sin sombras ni bordes marcados. */
 
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("../assets/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url("../assets/fonts/jetbrains-mono-latin-500-normal.woff2") format("woff2"); }
+
 :root {
   --sl-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --sl-font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --sl-font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
   --sl-text-h1: 2rem;
   --sl-text-h2: 1.5rem;
   --sl-text-h3: 1.2rem;
   --sl-line-height: 1.65;
   --sl-content-width: 46rem;
 
-  /* acento: el color de la biblioteca Principal */
-  --sl-color-accent-low: #3a2219;
-  --sl-color-accent: #e4572e;
-  --sl-color-accent-high: #f6b9a4;
+  /* acento: el violeta de Translay (el color de énfasis por defecto de la app) */
+  --sl-color-accent-low: #2a2135;
+  --sl-color-accent: #9677b8;
+  --sl-color-accent-high: #d3c2ea;
 
-  /* oscuro «grafito» */
-  --sl-color-white: #f2f3f4;
-  --sl-color-gray-1: #e6e7e9;
-  --sl-color-gray-2: #c3c6cb;
-  --sl-color-gray-3: #9a9ea6;
-  --sl-color-gray-4: #62666d;
-  --sl-color-gray-5: #2e3035;
-  --sl-color-gray-6: #1c1d21;
-  --sl-color-black: #18191c;
-  --sl-color-bg-nav: #18191c;
-  --sl-color-bg-sidebar: #18191c;
-  --sl-color-hairline-light: rgba(255, 255, 255, .07);
+  /* oscuro neutro, sin tinte azulado (web/css/tokens.css) */
+  --sl-color-white: #e8e8e8;
+  --sl-color-gray-1: #dcdcdc;
+  --sl-color-gray-2: #bdbdbd;
+  --sl-color-gray-3: #9a9a9a;
+  --sl-color-gray-4: #636363;
+  --sl-color-gray-5: #272727;
+  --sl-color-gray-6: #1f1f1f;
+  --sl-color-black: #161616;
+  --sl-color-bg-nav: #181818;
+  --sl-color-bg-sidebar: #181818;
+  --sl-color-hairline-light: rgba(255, 255, 255, .06);
   --sl-color-hairline: rgba(255, 255, 255, .07);
   --sl-color-hairline-shade: rgba(255, 255, 255, .05);
 
-  --t-surface: #1c1d21;
-  --t-surface-2: #25272b;
+  --t-surface: #181818;
+  --t-surface-2: #1f1f1f;
   --t-radius: 14px;
 }
 
 :root[data-theme="light"] {
-  --sl-color-accent-low: #fbe1d8;
-  --sl-color-accent: #c4441f;
-  --sl-color-accent-high: #6e2410;
+  --sl-color-accent-low: #ece4f6;
+  --sl-color-accent: #6b4e93;
+  --sl-color-accent-high: #3d2a57;
 
   --sl-color-white: #17181b;
   --sl-color-gray-1: #2a2c31;
@@ -56,7 +59,7 @@
   --sl-color-hairline: rgba(17, 18, 22, .08);
   --sl-color-hairline-shade: rgba(17, 18, 22, .1);
 
-  --t-surface: #f3f4f6;
+  --t-surface: #f8f8f9;
   --t-surface-2: #eef0f3;
 }
 
@@ -102,7 +105,7 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 .sl-markdown-content tr:nth-child(2n) { background: transparent; }
 
 /* avisos (aside): el fondo y la línea fina de las tarjetas; solo el título y su ícono llevan color */
-.starlight-aside { border: 1px solid var(--sl-color-gray-5); border-radius: var(--t-radius); background: var(--sl-color-gray-6); color: var(--sl-color-gray-2); }
+.starlight-aside { border: 0; border-radius: var(--t-radius); background: var(--t-surface-2); color: var(--sl-color-gray-2); }
 .starlight-aside a { color: var(--sl-color-white); }
 
 /* tarjetas del inicio: superficie, sin borde ni sombra */
@@ -111,12 +114,12 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 
 /* botones del hero: el principal no encandila */
 .sl-link-button { border-radius: 999px; font-weight: 700; }
-.sl-link-button.primary { background: var(--sl-color-white); border-color: var(--sl-color-white); color: var(--sl-color-black); }
-.sl-link-button.primary:hover { background: var(--sl-color-gray-2); border-color: var(--sl-color-gray-2); }
+.sl-link-button.primary { background: var(--sl-color-accent); border-color: var(--sl-color-accent); color: #fff; }
+.sl-link-button.primary:hover { background: var(--sl-color-accent-high); border-color: var(--sl-color-accent-high); color: var(--sl-color-black); }
 
 /* barra lateral: lo activo se marca con tono, no con color */
 .sidebar-content a[aria-current="page"] {
-  background: var(--t-surface-2);
+  background: var(--sl-color-accent-low);
   color: var(--sl-color-white);
   font-weight: 700;
 }
@@ -133,8 +136,9 @@ h1#_top { font-weight: 800; letter-spacing: -.02em; }
 /* el nombre del sitio con el color del texto, como en la app */
 .site-title { color: var(--sl-color-white); font-weight: 800; letter-spacing: -.01em; }
 
-/* la marca de la app (cuadro de color con el reproductor) junto al nombre */
-.site-title img { width: 28px; height: 28px; }
+/* el logo de la app: la onda de voz en violeta y «translay» en minúsculas (Plus Jakarta 800) */
+.site-title { gap: 10px; font-size: 1.35rem; letter-spacing: -.04em; text-transform: lowercase; }
+.site-title img { width: 30px; height: 26px; }
 
 /* capturas: esquinas de la app, sin borde ni sombra */
 .sl-markdown-content img { border-radius: 14px; }
@@ -168,8 +172,8 @@ button.sl-menu-button:has(~ :popover-open) { background-color: var(--sl-color-gr
 
 /* Diagramas (components/Diagram.astro): estilo draw.io, grupos punteados, cajas neutras y flechas grises. */
 :root {
-  --dd-card: #1c1d21;
-  --dd-line: #2e3035;
+  --dd-card: #1f1f1f;
+  --dd-line: #2c2c2c;
   --dd-group: #6f737b;
   --dd-ink: #c9cbcf;
   --dd-muted: #9a9ea6;
@@ -215,3 +219,18 @@ site-search dialog::backdrop { -webkit-backdrop-filter: none !important; backdro
 #starlight__search .pagefind-ui__search-input:focus { box-shadow: none !important; outline: none !important; }
 site-search dialog:focus, site-search dialog:focus-visible { outline: none !important; }
 site-search .dialog-frame { scrollbar-width: none; }
+
+/* bloques de código: más oscuros que la página, sin contorno (como en la app) */
+.sl-markdown-content .expressive-code { --ec-brdCol: transparent; }
+:root[data-theme="dark"] .sl-markdown-content .expressive-code pre { background: #121212; }
+.sl-markdown-content .expressive-code .frame { box-shadow: none; }
+/* el texto seleccionado toma el color de Translay */
+::selection { background: color-mix(in srgb, #7d5ba6 40%, transparent); }
+
+/* capturas en los dos modos (components/Captura.astro): cada tema muestra la suya */
+:root[data-theme="light"] .captura-oscura, :root:not([data-theme="light"]) .captura-clara { display: none; }
+
+/* anterior / siguiente: sin borde y con el título al tamaño del texto (no tan grande) */
+:root .pagination-links a { border: 0; background: var(--t-surface-2); box-shadow: none; }
+:root .pagination-links a:hover { background: var(--sl-color-gray-5); }
+:root .pagination-links .link-title { font-size: 1rem; font-weight: 600; }

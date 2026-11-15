@@ -1,7 +1,7 @@
 <h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/translay-logo-oscuro.svg">
-    <img src="assets/translay-logo.svg" alt="Translay" height="48">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/translay-logo-oscuro.png">
+    <img src="assets/translay-logo.png" alt="Translay" height="48">
   </picture>
 </h1>
 
@@ -10,7 +10,7 @@
 Traduce y dobla videos entre inglés, español y portugués, **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en tu idioma: subtítulos, transcripción alineada con el original y la traducción, y voz clonada sincronizada con la imagen. O solo transcríbelo, en cualquier idioma. Nada sale de tu equipo salvo las descargas de YouTube.
 
 [![Versión](https://img.shields.io/github/v/release/alenj0x1/translay?label=versi%C3%B3n)](https://github.com/alenj0x1/translay/releases/latest)
-[![Documentación](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-e4572e)](https://alenj0x1.github.io/translay/es/)
+[![Documentación](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-7d5ba6)](https://alenj0x1.github.io/translay/es/)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-2f9e6a)](LICENSE)
 
@@ -171,7 +171,7 @@ El detalle (VAD, acuerdo local del streaming, reglas contra alucinaciones, refer
 
 | | |
 |---|---|
-| ![Portada de una biblioteca](docs/src/assets/capturas/inicio.webp) | ![Varias bibliotecas, cada una con su banner](docs/src/assets/capturas/bibliotecas.webp) |
+| ![Portada de una biblioteca](docs/src/assets/capturas/inicio.webp) | ![La pantalla de Bibliotecas: la abierta destacada con su patrón de caracteres y las demás en tarjetas](docs/src/assets/capturas/bibliotecas.webp) |
 | ![Colección de un canal de YouTube](docs/src/assets/capturas/coleccion.webp) | ![Vista dividida: original y traducido](docs/src/assets/capturas/dividido.webp) |
 | ![Personas del video con su voz](docs/src/assets/capturas/personas.webp) | ![Cola con estados y descargas](docs/src/assets/capturas/cola.webp) |
 | ![Agregar varios enlaces](docs/src/assets/capturas/importar.webp) | ![Exportar video, audio y subtítulos](docs/src/assets/capturas/exportar.webp) |
