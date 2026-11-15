@@ -84,15 +84,67 @@ async fn reinstall(app: AppHandle, voice: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// Confirms the library folder (first launch) and starts the server.
+/// Confirms the library folder (first launch) and starts the server. `hold`: the first-run wizard is still open,
+/// so the window stays on it when the server is ready (until `open_app`).
 #[tauri::command]
-async fn start(app: AppHandle, state: State<'_, AppState>, server: State<'_, Server>, data_dir: Option<String>) -> Result<(), String> {
+async fn start(app: AppHandle, state: State<'_, AppState>, server: State<'_, Server>, data_dir: Option<String>, hold: Option<bool>) -> Result<(), String> {
     if let Some(dir) = data_dir {
         let mut settings = state.settings.lock().unwrap();
         settings.data_dir = Some(dir.into());
         settings.save(&state.paths)?;
     }
+    server.hold(hold.unwrap_or(false));
     server.start(&app, &state.paths, &state.settings())
+}
+
+/// The first-run wizard finished: Translay opens now, or as soon as the server is ready.
+#[tauri::command]
+fn open_app(app: AppHandle, server: State<'_, Server>) {
+    server.release(&app);
+}
+
+/// «Ver la bienvenida» (Ajustes › App de escritorio): the window goes back to the bundled page, which opens the
+/// first-run wizard over what is already installed. The server keeps running; when the wizard ends, `open_app`
+/// brings Translay back and its page applies what was changed (`take_welcome`).
+#[tauri::command]
+fn show_welcome(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let mut url = server::setup_url();
+        url.set_query(Some("welcome"));
+        let _ = window.navigate(url);
+    }
+}
+
+/// The first-run wizard saves what was chosen so far (also if the window closes halfway). Only plain data, at most
+/// 8 KB; Translay's page reads it once (`take_welcome`).
+#[tauri::command]
+fn set_welcome(state: State<'_, AppState>, choices: Value) -> Result<(), String> {
+    if !choices.is_object() || choices.to_string().len() > 8192 {
+        return Err("Elecciones no válidas".into());
+    }
+    let mut settings = state.settings.lock().unwrap();
+    settings.welcome = Some(choices);
+    settings.save(&state.paths)
+}
+
+/// Translay's page, on its first load: what the first-run wizard chose (applied there through its own
+/// preferences), then forgotten so it is applied only once.
+#[tauri::command]
+fn take_welcome(state: State<'_, AppState>) -> Result<Value, String> {
+    let mut settings = state.settings.lock().unwrap();
+    let Some(choices) = settings.welcome.take() else { return Ok(Value::Null) };
+    settings.save(&state.paths)?;
+    Ok(choices)
+}
+
+/// This computer's address on the local network (the wizard's «Desde el celular» step shows it). A UDP socket
+/// "connected" to a public address only picks the route: nothing is sent.
+#[tauri::command]
+fn lan_ip() -> Option<String> {
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("192.0.2.1:80").ok()?;
+    let ip = socket.local_addr().ok()?.ip();
+    (!ip.is_loopback() && !ip.is_unspecified()).then(|| ip.to_string())
 }
 
 /// Lets the user pick another folder; returns it (or None if cancelled). Nothing is saved until `start`.
@@ -215,18 +267,39 @@ fn set_theme(app: AppHandle, state: State<'_, AppState>, theme: String) -> Resul
     Ok(())
 }
 
-/// Window background before the page paints (web/css/tokens.css: --bg).
-fn theme_background(theme: &str) -> tauri::window::Color {
-    if theme == "light" { tauri::window::Color(0xf8, 0xf8, 0xf9, 0xff) } else { tauri::window::Color(0x18, 0x19, 0x1c, 0xff) }
+/// Translay's page reports its accent color, background scene and language (Ajustes › Apariencia and Idioma),
+/// so the startup screen of the next launch uses them. Unknown values are ignored, not stored.
+#[tauri::command]
+fn set_look(state: State<'_, AppState>, accent: String, scene: String, lang: String) -> Result<(), String> {
+    let accent_ok = accent == "none" || (accent.len() == 7 && accent.starts_with('#') && accent[1..].chars().all(|c| c.is_ascii_hexdigit()));
+    // scene names are words in Spanish («arañas y perro»): letters, spaces and dashes
+    let scene_ok = !scene.is_empty() && scene.chars().count() <= 32 && scene.chars().all(|c| c.is_alphanumeric() || c == ' ' || c == '_' || c == '-');
+    if !accent_ok || !scene_ok || !["es", "en", "pt"].contains(&lang.as_str()) {
+        return Err("Apariencia desconocida".into());
+    }
+    let mut settings = state.settings.lock().unwrap();
+    let next = (Some(accent), Some(scene), Some(lang));
+    if (settings.accent.clone(), settings.scene.clone(), settings.lang.clone()) != next {
+        (settings.accent, settings.scene, settings.lang) = next;
+        settings.save(&state.paths)?;
+    }
+    Ok(())
 }
 
-/// The main window, created here (not in tauri.conf.json) so it opens with the saved theme: the setup page
-/// reads `window.__TRANSLAY_THEME__` before its first paint.
-fn create_window(app: &tauri::App, theme: Option<&str>) -> tauri::Result<()> {
-    let script = match theme {
-        Some(t) => format!("window.__TRANSLAY_THEME__ = {};", serde_json::to_string(t).unwrap()),
-        None => String::new(),
-    };
+/// Window background before the page paints (web/css/tokens.css: --bg).
+fn theme_background(theme: &str) -> tauri::window::Color {
+    if theme == "light" { tauri::window::Color(0xf8, 0xf8, 0xf9, 0xff) } else { tauri::window::Color(0x16, 0x16, 0x16, 0xff) }
+}
+
+/// The main window, created here (not in tauri.conf.json) so it opens with the saved look: the setup page
+/// reads `window.__TRANSLAY_THEME__` and `window.__TRANSLAY_LOOK__` (accent, scene, language) before its first paint.
+fn create_window(app: &tauri::App, settings: &Settings) -> tauri::Result<()> {
+    let theme = settings.theme.as_deref();
+    let look = serde_json::json!({ "accent": settings.accent, "scene": settings.scene, "lang": settings.lang });
+    let mut script = format!("window.__TRANSLAY_LOOK__ = {look};");
+    if let Some(t) = theme {
+        script += &format!("window.__TRANSLAY_THEME__ = {};", serde_json::to_string(t).unwrap());
+    }
     let mut builder = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
         .title("Translay")
         .inner_size(1320.0, 840.0)
@@ -235,9 +308,7 @@ fn create_window(app: &tauri::App, theme: Option<&str>) -> tauri::Result<()> {
         .shadow(false)
         .center()
         .background_color(theme_background(theme.unwrap_or("dark")));
-    if !script.is_empty() {
-        builder = builder.initialization_script(&script);
-    }
+    builder = builder.initialization_script(&script);
     builder.build()?;
     Ok(())
 }
@@ -353,7 +424,7 @@ pub fn run() {
             let paths = Paths::resolve(app)?;
             let settings = Settings::load(&paths);
             let tray = settings.close_to_tray;
-            create_window(app, settings.theme.as_deref())?;
+            create_window(app, &settings)?;
             app.manage(AppState { paths, settings: Mutex::new(settings), quitting: AtomicBool::new(false), in_tray: AtomicBool::new(false) });
             sync_tray(app.handle(), tray)?;
             Ok(())
@@ -376,7 +447,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             status, install, profiles, prepare, reinstall, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
-            close_window, quit_app, quit_if_in_tray, server_tail, set_theme, snap_layouts,
+            close_window, quit_app, quit_if_in_tray, server_tail, set_theme, set_look, snap_layouts,
+            open_app, set_welcome, take_welcome, show_welcome, lan_ip,
             updates::open_download, updates::set_auto_update
         ])
         .build(tauri::generate_context!())

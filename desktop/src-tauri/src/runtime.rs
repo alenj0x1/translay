@@ -111,6 +111,15 @@ pub struct Settings {
     /// Last theme Translay showed ("light" or "dark"): the setup and loading screens open with it.
     #[serde(default)]
     pub theme: Option<String>,
+    /// Translay's look on its last launch, reported by its page (`set_look`): the accent color ("#rrggbb" or
+    /// "none"), the background scene and the interface language. The startup screen paints with them, so it
+    /// looks like the app the person set up instead of a default.
+    #[serde(default)]
+    pub accent: Option<String>,
+    #[serde(default)]
+    pub scene: Option<String>,
+    #[serde(default)]
+    pub lang: Option<String>,
     /// Look for updates by itself (Ajustes › App de escritorio); None = yes.
     #[serde(default)]
     pub check_updates: Option<bool>,
@@ -118,6 +127,10 @@ pub struct Settings {
     /// chosen at setup: whenever the GPU can run it.
     #[serde(default)]
     pub voice: Option<bool>,
+    /// What the first-run wizard chose (ui/wizard.js: language, use, library, look, agent, YouTube, network):
+    /// Translay's page applies it on its first load (`take_welcome`) and it is cleared.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub welcome: Option<Value>,
 }
 
 impl Settings {

@@ -66,6 +66,23 @@ function initDesktop() {
   syncTheme();
   new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
+  // el color de énfasis, el fondo y el idioma: la pantalla de arranque de la próxima vez se pinta con ellos
+  let lookSent = "", lookTimer = 0;
+  const syncLook = () => {
+    clearTimeout(lookTimer);
+    lookTimer = setTimeout(() => {
+      let accent = "none";
+      try { accent = localStorage.getItem("vt-accent") || "#7d5ba6"; } catch (e) { /* sin almacenamiento */ }
+      const look = { accent: /^#[0-9a-f]{6}$/i.test(accent) ? accent.toLowerCase() : "none",
+        scene: typeof homeBgMode === "function" ? homeBgMode() : "translay", lang: I18N.lang || "es" };
+      const key = JSON.stringify(look);
+      if (key !== lookSent) { lookSent = key; desktopCall("set_look", look); }
+    }, 400);
+  };
+  syncLook();
+  new MutationObserver(syncLook).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "lang"] });
+  new MutationObserver(syncLook).observe(document.body, { childList: true });
+
   const syncMax = async () => {
     desktop.maximized = await desktopWindow().isMaximized();
     document.documentElement.classList.toggle("maximized", desktop.maximized);
@@ -238,6 +255,8 @@ function desktopPrefsBlocks() {
       row(t("Biblioteca Principal"), info.data_dir || "",
         btn(t("Abrir carpeta"), { icon: "folder", onClick: () => desktopCall("open_folder", { which: "data" }) }),
         btn(t("Cambiar…"), { icon: "pencil", onClick: () => desktopCall("change_data_dir") })),
+      row(t("Bienvenida"), t("Los pasos del primer uso, para cambiar todo de una vez."),
+        btn(t("Ver la bienvenida"), { icon: "spark", onClick: () => desktopCall("show_welcome").catch(() => {}) })),
       row(t("Registros"), t("Registro del servidor, útil para reportar problemas."),
         btn(t("Abrir carpeta"), { icon: "folder", onClick: () => desktopCall("open_folder", { which: "logs" }) })),
     );
@@ -260,4 +279,58 @@ function desktopVersion() {
 }
 
 // después de los demás scripts: usa $ y setPref de app.js
+/* ------------------------------------------------------------ primer uso */
+// El asistente de primer uso de la ventana (desktop/ui/wizard.js) ya preguntó todo mientras se instalaba Translay:
+// lo elegido llega una sola vez (take_welcome) y se guarda con las mismas preferencias de Ajustes; la biblioteca
+// principal toma su nombre, color, avatar y patrón. YouTube y el acceso desde otros equipos necesitan el servidor:
+// se hacen aquí. La bienvenida de la página (web/js/welcome.js) queda para el navegador (sin instalador).
+// welcome.js › maybeWelcome llama a esto con los ajustes y la biblioteca cargados.
+const WELCOME_PREFS = ["app_mode", "target_lang", "transcribe_lang", "theme_mode", "accent_color", "home_bg",
+  "agent_name", "agent_color", "agent_avatar", "language"];  // el idioma al final: cambia toda la página
+let desktopWelcomed = false;
+async function desktopWelcome() {
+  if (desktopWelcomed) return;
+  desktopWelcomed = true;
+  let w = null;
+  try { w = await desktopCall("take_welcome"); } catch (e) { /* de antes del asistente */ }
+  if (w && typeof w === "object") applyDesktopWelcome(w);
+  if (!prefs.welcomed) setPref("welcomed", true);
+}
+
+function applyDesktopWelcome(w) {
+  const chosen = w.prefs && typeof w.prefs === "object" ? w.prefs : {};
+  for (const key of WELCOME_PREFS) {
+    const spec = prefsSchema.find((p) => p.key === key);
+    const value = chosen[key];
+    if (!spec || value === undefined || value === prefs[key]) continue;
+    if (spec.options ? !spec.options.some(([o]) => o === value) : typeof value !== "string") continue;  // el servidor lo vuelve a validar
+    setPref(key, value);
+  }
+  applyTheme();
+  const d = w.library;
+  const main = vaults.list.find((v) => v.main) || vaults.list[0];
+  if (d && main) {
+    const name = String(d.name || "").trim().slice(0, 60) || main.name;
+    const color = VAULT_COLORS.includes(d.color) ? d.color : main.color;
+    const ic = VAULT_ICONS.some(([k]) => k === d.icon) ? d.icon : main.icon;
+    const pattern = /^[a-z0-9]{0,12}$/.test(d.pattern || "") ? d.pattern || "" : main.pattern || "";
+    if (name !== main.name || color !== main.color || ic !== main.icon || pattern !== (main.pattern || "")) {
+      send({ type: "vault_update", id: main.id, name, color, icon: ic, pattern });
+    }
+  }
+  if (w.network === true) send({ type: "admin_network", on: true });
+  // YouTube: Ajustes en su cuenta y la ventana del navegador para iniciar sesión (cuando llega cuál hay)
+  if (w.youtube === true) {
+    openPrefs("biblioteca");
+    let tries = 0;
+    const go = () => {
+      if (canConnectYouTube(ytAcc.status)) {
+        if (!ytAcc.status.connected) connectYouTube();
+        $("#yt-account")?.scrollIntoView({ block: "center" });
+      } else if (++tries < 30) setTimeout(go, 500);
+    };
+    setTimeout(go, 600);
+  }
+}
+
 if (DESKTOP) document.addEventListener("DOMContentLoaded", initDesktop);

@@ -25,7 +25,11 @@ cpSync(join(root, "..", "run.py"), join(stage, "run.py"));
 const shared = join(root, "ui", "shared");
 rmSync(shared, { recursive: true, force: true });
 for (const file of ["css/fonts.css", "css/tokens.css", "css/base.css", "css/components/button.css",
-  "css/components/controls.css", "css/components/desktop.css", "js/ui.js", "fonts"]) {
+  "css/components/controls.css", "css/components/desktop.css", "js/ui.js", "fonts",
+  // the logo and the background scenes (startup screen), and the interface catalogues (web/i18n)
+  "js/brand.js", "js/scenes.js", "js/scene-worker.js", "i18n",
+  // the first-run wizard (ui/wizard.js): the library's look, the agent's star and its creator's carousels
+  "js/vaultlook.js", "js/star.js", "css/components/star.css", "css/components/carousel.css", "css/views/vaults.css"]) {
   cpSync(join(web, file), join(shared, file), { recursive: true });
 }
 const { tools } = JSON.parse(readFileSync(join(root, "tools.json"), "utf8"));

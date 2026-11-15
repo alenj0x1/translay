@@ -2,7 +2,8 @@
 //! - It runs inside a Windows job object that kills the whole tree (voice worker, ffmpeg, yt-dlp…) when the
 //!   app quits or crashes.
 //! - Its output feeds the loading screen ("Preparando large-v3-turbo…", model downloads) and `logs/server.log`.
-//! - When it prints "Listo: http://…" the window opens that page, with IPC allowed only for that exact origin.
+//! - When it prints "Listo: http://…" the window opens that page, with IPC allowed only for that exact origin
+//!   (on the first launch, once the first-run wizard is finished: `hold` / `release`).
 //! - "Reiniciar ahora" (Ajustes › Rendimiento) restarts the server from inside: the new process stays in
 //!   the job and inherits the output pipe, so the output only ends when every server process is gone.
 
@@ -10,7 +11,7 @@ use crate::runtime::{Paths, Settings};
 use serde_json::json;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
@@ -82,6 +83,8 @@ pub struct Server {
     generation: AtomicU64,
     url: Mutex<Option<String>>,
     tail: Mutex<Vec<String>>,
+    /// The first-run wizard is still open: when the server is ready the window stays on it until `release`.
+    hold: AtomicBool,
 }
 
 /// First free port from 8765 (Translay's usual one) so the page keeps its saved state between launches.
@@ -105,6 +108,19 @@ impl Server {
 
     pub fn tail(&self) -> Vec<String> {
         self.tail.lock().unwrap().clone()
+    }
+
+    /// Keeps the window on the setup page when the server gets ready (the first-run wizard is open).
+    pub fn hold(&self, on: bool) {
+        self.hold.store(on, Ordering::SeqCst);
+    }
+
+    /// The wizard finished: opens Translay now if the server is ready, otherwise as soon as it is.
+    pub fn release(&self, app: &AppHandle) {
+        self.hold.store(false, Ordering::SeqCst);
+        if let Some(url) = self.url() {
+            navigate(app, &url);
+        }
     }
 
     pub fn stop(&self) {
@@ -182,7 +198,10 @@ impl Server {
             let url = url.trim().to_string();
             if self.url().is_none() {
                 *self.url.lock().unwrap() = Some(url.clone());
-                open_page(app, &url);
+                allow_page(app, &url);
+                if !self.hold.load(Ordering::SeqCst) {
+                    navigate(app, &url);
+                }
             }
             return;
         }
@@ -190,8 +209,9 @@ impl Server {
     }
 }
 
-/// Lets the Translay page (exact origin) use the window controls and the desktop commands, then opens it.
-fn open_page(app: &AppHandle, url: &str) {
+/// Lets the Translay page (exact origin) use the window controls and the desktop commands, and tells the setup
+/// page it is ready (the first-run wizard waits for it).
+fn allow_page(app: &AppHandle, url: &str) {
     use tauri::ipc::CapabilityBuilder;
     let origin = url.trim_end_matches('/');
     let capability = CapabilityBuilder::new(format!("server-{}", origin.rsplit(':').next().unwrap_or("0")))
@@ -211,11 +231,18 @@ fn open_page(app: &AppHandle, url: &str) {
         .permission("allow-set-close-to-tray")
         .permission("allow-close-window")
         .permission("allow-set-theme")
+        .permission("allow-set-look")
         .permission("allow-quit-if-in-tray")
         .permission("allow-open-download")
-        .permission("allow-set-auto-update");
+        .permission("allow-set-auto-update")
+        .permission("allow-take-welcome")
+        .permission("allow-show-welcome");
     let _ = app.add_capability(capability);
     let _ = app.emit("server", json!({ "state": "ready", "url": url }));
+}
+
+/// Opens Translay's page in the window.
+fn navigate(app: &AppHandle, url: &str) {
     if let (Some(window), Ok(parsed)) = (app.get_webview_window("main"), url.parse()) {
         let _ = window.navigate(parsed);
     }

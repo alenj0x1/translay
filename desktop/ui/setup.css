@@ -4,18 +4,38 @@ body { display: grid; grid-template-rows: var(--head-h) minmax(0, 1fr); user-sel
 
 .bar {
   display: flex; align-items: center; gap: var(--s2); height: var(--head-h); padding: 0 var(--s5) 0 var(--s5);
-  background: var(--surface); box-shadow: 0 1px 0 var(--line);
+  background: var(--surface);
 }
-.brand { display: inline-flex; align-items: center; gap: 10px; font: 800 20px/1 var(--font); letter-spacing: -.02em; }
-.mark { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: #e4572e; color: #fff; }
-.mark svg { display: block; width: 18px; height: 18px; }
-.mark.big { width: 56px; height: 56px; border-radius: 18px; }
-.mark.big svg { width: 30px; height: 30px; }
+.brand { display: inline-flex; align-items: center; padding-left: 2px; }
+body.starting .bar .brand { visibility: hidden; }  /* the startup strip shows the logo */
 .spacer { flex: 1; align-self: stretch; }
 
-.stage { display: grid; place-items: center; padding: var(--s8) var(--s6); overflow: auto; }
-.panel { width: min(560px, 100%); display: grid; gap: var(--s6); }
-.panel.center { justify-items: center; text-align: center; gap: var(--s4); }
+/* the logo (web/js/brand.js): the voice wave in the accent color and «translay» in the text color */
+.wordmark { display: inline-flex; align-items: center; min-height: 32px; font: 800 22px/1 var(--font); letter-spacing: -1px; }
+.wordmark svg { display: block; overflow: visible; stroke: none; }
+.wordmark .word { fill: var(--fg); }
+.wordmark .wave { fill: var(--accent); }
+[data-theme="dark"] .wordmark .wave { fill: color-mix(in oklab, var(--accent) 85%, #fff); }
+
+/* Translay's background scene above, the screen's content in the dock below (startup: a strip) */
+.stage { display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.scene-box { position: relative; overflow: hidden; pointer-events: none; opacity: .8; }
+.scene-box .scene { display: block; width: 100%; }
+.dock { display: grid; justify-items: center; max-height: 72vh; overflow: auto; padding: var(--s6); background: var(--surface); }
+.panel { width: min(600px, 100%); display: grid; gap: var(--s5); }
+
+.panel.strip { width: min(1040px, 100%); grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s8); padding: var(--s2) 0; }
+.strip-main { display: grid; gap: var(--s3); }
+.strip-line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); min-height: 1.4em; }
+.strip-line strong { font: 700 var(--fs-md)/1.3 var(--font); }
+.strip-line .pct { color: var(--fg-muted); font: 500 var(--fs-sm)/1 var(--font); font-variant-numeric: tabular-nums; }
+.strip .bar-track { width: 100%; }
+.strip .bar-track i { background: var(--accent); }
+.tip { display: flex; align-items: center; gap: var(--s2); margin: 0; min-height: 1.5em; color: var(--fg-muted); font-size: var(--fs-sm); transition: opacity .25s var(--ease); }
+.tip [data-ic] { flex: none; display: grid; color: var(--accent); }
+.tip [data-ic] svg { display: block; width: 16px; height: 16px; }
+.tip #tip.out { opacity: 0; }
+#tip { transition: opacity .25s var(--ease); }
 h1 { font: 800 var(--fs-2xl)/var(--lh-tight) var(--font); letter-spacing: -.02em; }
 .lead { margin: 0; color: var(--fg-muted); }
 .note { margin: 0; min-height: 1.5em; color: var(--fg-muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
@@ -23,9 +43,9 @@ h1 { font: 800 var(--fs-2xl)/var(--lh-tight) var(--font); letter-spacing: -.02em
 .rows { display: grid; gap: 2px; border-radius: var(--r-lg); overflow: hidden; }
 .row {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s4);
-  padding: var(--s4) var(--s5); background: var(--surface);
+  padding: var(--s4) var(--s5); background: var(--row-bg);
 }
-.row-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg-muted); }
+.row-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .row-ic svg { display: block; width: 18px; height: 18px; }
 .row-text strong { display: block; font: 700 var(--fs-md)/1.3 var(--font); }
 .row-text p { margin: 2px 0 0; color: var(--fg-muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
@@ -42,16 +62,21 @@ h1 { font: 800 var(--fs-2xl)/var(--lh-tight) var(--font); letter-spacing: -.02em
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 
 .log {
-  margin: 0; max-height: 260px; overflow: auto; padding: var(--s4); border-radius: var(--r-md); background: var(--surface);
+  margin: 0; max-height: 260px; overflow: auto; padding: var(--s4); border-radius: var(--r-md); background: var(--row-bg);
   color: var(--fg-muted); font: 500 var(--fs-xs)/1.6 var(--font); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text;
 }
 
 /* the profile to install: one row each, the chosen one marked by tone and its radio */
 .row.pick { width: 100%; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; grid-template-columns: auto minmax(0, 1fr); }
 .row.pick:hover { background: var(--surface-2); }
-.row.pick.on { background: var(--surface-2); }
+.row.pick.on { background: color-mix(in srgb, var(--accent) 35%, var(--row-bg)); }
 .row.pick:disabled { opacity: .4; cursor: default; }
 .row.pick strong { display: flex; align-items: center; gap: var(--s2); }
 .row.pick .facts { color: var(--fg-faint); }
 .radio { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
 .row.pick.on .radio { box-shadow: inset 0 0 0 5px var(--accent); }
+
+/* rows and the log: darker than the dock in dark, white on a light dock in light */
+:root { --row-bg: var(--bg); }
+[data-theme="light"] { --row-bg: var(--surface); }
+[data-theme="light"] .dock { background: var(--bg); }

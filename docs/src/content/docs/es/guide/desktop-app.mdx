@@ -16,7 +16,17 @@ La app de escritorio es la misma interfaz de Translay dentro de su propia ventan
 - En Windows 11, dejar el mouse sobre maximizar o mantenerlo presionado abre los diseños de ajuste, para elegir dónde va la ventana, como en cualquier ventana (Windows 10 no los tiene).
 - Cuando hay una versión nueva aparece ahí un ícono más, que abre la sección de actualizaciones.
 - Translay se abre una sola vez: si lo abres de nuevo desde el menú Inicio, vuelve la ventana que ya estaba abierta.
-- Al abrir se ve **Abriendo Translay** mientras se cargan los modelos, con el tema que usaste la última vez.
+- Al abrir, la pantalla de arranque muestra tu escena de fondo (la elegida en Ajustes › Apariencia; la primera vez, la escena «Translay») y, debajo, el logo, lo que se está cargando en palabras (revisar el equipo, descargar un modelo con su porcentaje, cargar el reconocimiento de voz, cargar el traductor) y un consejo sobre la app que va cambiando. Se abre con el tema, el color de énfasis y el idioma que usaste la última vez; las pantallas de preparación de la primera vez se ven igual.
+- La ventana, la barra de tareas, el menú Inicio y el instalador usan el ícono de Translay: la onda de voz en violeta sobre un cuadro oscuro.
+
+## Primera vez: el asistente
+
+La primera vez, después de elegir el perfil, un asistente prepara Translay mientras se bajan el motor de voz y los modelos (los pasos están en [Instalación](../../getting-started/install/#pasos)): idioma, cómo lo usarás, tu biblioteca, apariencia, el agente, YouTube, el acceso desde el celular y unas demostraciones de lo que hace Translay. Su franja de abajo sigue mostrando la descarga.
+
+- Cada elección se guarda al hacerla, en los ajustes propios de la app (`desktop.json`): cerrar la ventana a mitad de camino no pierde nada.
+- Al terminar el asistente, la ventana espera a que el servidor esté listo (o muestra mientras tanto la franja de arranque con consejos) y abre Translay. En esa primera carga, Translay aplica lo elegido con sus propias preferencias, cambia el nombre y el color de la biblioteca Principal, abre el inicio de sesión de YouTube si lo pediste y activa el acceso desde otros equipos si lo permitiste. Después olvida esas elecciones: se aplican una sola vez.
+- La bienvenida que Translay muestra en el navegador (con `run.py` o Docker) nunca aparece en la app: el asistente ya lo preguntó todo.
+- **Ver la bienvenida** (Ajustes › App de escritorio) abre el asistente otra vez sobre lo que ya está instalado, sin descargar nada; al terminar, Translay vuelve con solo lo que cambiaste ahí.
 
 ## Ajustes › App de escritorio
 

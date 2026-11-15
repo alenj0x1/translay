@@ -2,8 +2,8 @@
 // all of them (capabilities/default.json) and Translay's page only the ones it uses (server.rs).
 const COMMANDS: &[&str] = &[
     "status", "install", "profiles", "prepare", "reinstall", "start", "pick_folder", "desktop_info", "change_data_dir", "open_folder", "set_close_to_tray",
-    "close_window", "quit_app", "quit_if_in_tray", "server_tail", "set_theme",
-    "open_download", "set_auto_update",
+    "close_window", "quit_app", "quit_if_in_tray", "server_tail", "set_theme", "set_look",
+    "open_download", "set_auto_update", "open_app", "set_welcome", "take_welcome", "show_welcome", "lan_ip",
 ];
 
 fn main() {

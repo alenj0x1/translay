@@ -24,6 +24,9 @@
     "allow-quit-app",
     "allow-server-tail",
     "allow-open-folder",
-    "allow-set-theme"
+    "allow-set-theme",
+    "allow-open-app",
+    "allow-set-welcome",
+    "allow-lan-ip"
   ]
 }

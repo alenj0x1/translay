@@ -16,7 +16,17 @@ The desktop app is the same Translay interface inside its own window: everything
 - On Windows 11, resting the mouse on maximize or holding it down opens the snap layouts, to choose where the window goes, as in any window (Windows 10 doesn't have them).
 - When a new version is available, an extra icon appears there; it opens the updates section.
 - Translay opens only once: if you open it again from the Start menu, the window that was already open comes back.
-- On launch you see **Abriendo Translay** (Opening Translay) while the models load, with the theme you used last time.
+- On launch, the startup screen shows your background scene (the one chosen in Settings › Apariencia; the «Translay» scene the first time) and, below it, the logo, what is loading in words (checking the computer, downloading a model with its percentage, loading speech recognition, loading the translator) and a rotating tip about the app. It opens with the theme, accent color and language you used last time; the setup screens of the first launch look the same.
+- The window, the taskbar, the Start menu and the installer use the Translay icon: the voice wave in violet on a dark square.
+
+## First launch: the wizard
+
+On the first launch, after you choose the profile, a wizard sets up Translay while the voice engine and the models download (the steps are in [Installation](../../getting-started/install/#steps)): language, how you'll use it, your library, appearance, the agent, YouTube, access from your phone and a few demos of what Translay does. Its bottom strip keeps showing the download.
+
+- Each choice is saved as you make it, in the app's own settings (`desktop.json`), so closing the window halfway loses nothing.
+- When the wizard ends, the window waits until the server is ready (or shows the startup strip with tips meanwhile) and opens Translay. On that first load, Translay applies what you chose with its own preferences, renames and recolors the Main library, opens the YouTube sign-in if you asked for it and turns on access from other devices if you allowed it. Then it forgets those choices: they are applied only once.
+- The welcome dialog that Translay shows in the browser (with `run.py` or Docker) never appears in the app: the wizard already asked all of it.
+- **Ver la bienvenida** (Settings › App de escritorio) opens the wizard again over what is installed, without downloading anything; when it ends, Translay comes back with only what you changed there applied.
 
 ## Settings › App de escritorio
 
