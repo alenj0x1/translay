@@ -152,7 +152,9 @@ listen("setup", ({ payload: p }) => {
   if (p.percent == null || p.state === "error") return;
   const b = $(working.btn);
   b.style.setProperty("--p", `${p.percent}%`);
-  setBtn(b, `${t(working.verb)} ${p.percent} %`, "download");
+  // downloaded, now unpacking: say so instead of a percent that stands still
+  const finishing = p.state === "finishing";
+  setBtn(b, finishing ? t("Terminando de instalar") : `${t(working.verb)} ${p.percent} %`, "download");
   if (p.step && p.total_bytes) {
     const label = p.step === "models" && p.label ? ` · ${p.label}` : "";
     $(working.note).textContent = `${STEP_TEXT()[p.step]}${label} · ${t("{a} de {b} GB", { a: gb(p.done_bytes), b: gb(p.total_bytes) })}`;
@@ -161,7 +163,7 @@ listen("setup", ({ payload: p }) => {
   if (wizardOpen() || wizardEnded) {
     const what = STEP_TEXT()[p.step] || t("Preparando");
     const size = p.total_bytes ? ` · ${t("{a} de {b} GB", { a: gb(p.done_bytes), b: gb(p.total_bytes) })}` : "";
-    progressSay(`${what}${size}`, p.percent);
+    progressSay(finishing ? `${what} · ${t("Terminando de instalar")}` : `${what}${size}`, finishing ? null : p.percent);
   }
 });
 

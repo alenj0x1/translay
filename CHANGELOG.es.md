@@ -77,6 +77,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Corregido
 
+- App de escritorio: cuando la descarga ya terminó y se están desempacando los paquetes, la instalación dice «Terminando de instalar» con una barra de espera en vez de quedarse quieta en 97 %.
 - Bibliotecas: «Nueva biblioteca» y «Editar» se abren encima de la pantalla de Bibliotecas en vez de cerrarla antes (sin parpadeo), y «Cancelar» vuelve a ella.
 - La esquina redondeada donde se juntan el encabezado y la barra lateral acompaña a la barra mientras se abre o se cierra, en vez de adelantarse.
 - Encabezado en el celular: el botón de la biblioteca ya no queda debajo del de agregar, y en pantallas muy angostas (320 px) todos los botones quedan en la primera fila.

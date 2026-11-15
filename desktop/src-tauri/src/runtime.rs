@@ -408,7 +408,9 @@ async fn uv(paths: &Paths, args: &[&str], log: &Path, ctx: &Progress<'_>) -> Res
             status = child.wait() => break status.map_err(|e| e.to_string())?,
             _ = tokio::time::sleep(Duration::from_millis(1000)) => {
                 let grown = measure(cache.clone()).await.saturating_sub(start).max(written(&child));
-                ctx.emit((grown as f64 / ctx.bytes as f64).min(0.97), "running");
+                // all downloaded: uv is unpacking and installing, with no bytes left to count ("finishing")
+                let fraction = grown as f64 / ctx.bytes as f64;
+                ctx.emit(fraction.min(0.97), if fraction >= 0.97 { "finishing" } else { "running" });
             }
         }
     };

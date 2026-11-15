@@ -77,6 +77,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Fixed
 
+- Desktop app: when the download is done and the packages are being unpacked, the install says «Terminando de instalar» with a waiting bar instead of standing still at 97 %.
 - Libraries: «Nueva biblioteca» and «Editar» open on top of the Libraries screen instead of closing it first (no flash), and «Cancelar» goes back to it.
 - The rounded corner where the header meets the sidebar follows the sidebar while it opens or closes, instead of jumping ahead of it.
 - Header on phones: the library button no longer sits under the add button, and on very narrow screens (320 px) every button stays in the first row.
