@@ -10,11 +10,11 @@ English | [Español](README.es.md)
 Translate and dub videos between English, Spanish and Portuguese, **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in your language: subtitles, an aligned transcript with the original and the translation, and a cloned voice synced to the picture. Or only transcribe it, in any language. Nothing leaves your machine except the YouTube downloads.
 
 [![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
-[![Documentation](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-7d5ba6)](https://alenj0x1.github.io/translay/)
+[![Documentation](https://img.shields.io/badge/docs-translay.alenj.dev-7d5ba6)](https://translay.alenj.dev/)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f9e6a)](LICENSE)
 
-**[Download for Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentation](https://alenj0x1.github.io/translay/) · [Changelog](CHANGELOG.md)
+**[Download for Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentation](https://translay.alenj.dev/) · [Changelog](CHANGELOG.md)
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/capturas/reproductor-claro.webp">
@@ -99,7 +99,7 @@ From the player, a card, an entire collection or a selection. On your computer i
 
 ## Performance: what hardware you need
 
-Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvidia-smi`), VRAM, RAM and CPU, and picks the most complete **profile** that can be watched live. Everything is shown and changed in **Ajustes › Rendimiento** (Settings › Performance). On machines with unified memory, such as NVIDIA DGX Spark, GPU memory is the system RAM ([details](https://alenj0x1.github.io/translay/how-it-works/gpu-and-idle/#unified-memory-dgx-spark)).
+Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvidia-smi`), VRAM, RAM and CPU, and picks the most complete **profile** that can be watched live. Everything is shown and changed in **Ajustes › Rendimiento** (Settings › Performance). On machines with unified memory, such as NVIDIA DGX Spark, GPU memory is the system RAM ([details](https://translay.alenj.dev/how-it-works/gpu-and-idle/#unified-memory-dgx-spark)).
 
 ### Profiles
 
@@ -165,7 +165,7 @@ Recognition, translation and voice take turns on the GPU in order of arrival (ad
 - **Interface** in HTML, CSS and JavaScript with no framework (`web/`): the browser sends the audio that is playing and instantly receives sentences, translations and voices; the server queue processes the rest.
 - **Data** in JSON and WAV in each library's folder, written atomically with a backup copy.
 
-The details (VAD, streaming local agreement, anti-hallucination rules, voice references, duration, loudness, re-dubbing) are in [Pipeline](https://alenj0x1.github.io/translay/how-it-works/pipeline/) and [Voice and cloning](https://alenj0x1.github.io/translay/how-it-works/voice/).
+The details (VAD, streaming local agreement, anti-hallucination rules, voice references, duration, loudness, re-dubbing) are in [Pipeline](https://translay.alenj.dev/how-it-works/pipeline/) and [Voice and cloning](https://translay.alenj.dev/how-it-works/voice/).
 
 ## Screenshots
 
@@ -186,7 +186,7 @@ Screenshots from a test instance with public-domain videos from NASA and NOAA.
 1. Download `Translay_<version>_x64-setup.exe` from the [latest release](https://github.com/alenj0x1/translay/releases/latest) and open it.
 2. Open **Translay**, choose where to store your library and click **Instalar** (Install).
 
-The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens; the Portuguese translator, about 0.8 GB, is downloaded the first time a Portuguese video is translated). Details: [Installation](https://alenj0x1.github.io/translay/getting-started/install/).
+The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens; the Portuguese translator, about 0.8 GB, is downloaded the first time a Portuguese video is translated). Details: [Installation](https://translay.alenj.dev/getting-started/install/).
 
 | | |
 |---|---|
@@ -203,7 +203,7 @@ cp .env.example .env          # y cambia TRANSLAY_OWNER_PASSWORD
 docker compose up -d --build
 ```
 
-Open http://localhost:8765. The first time it downloads the models (~6 GB). Details: [Docker](https://alenj0x1.github.io/translay/getting-started/docker/).
+Open http://localhost:8765. The first time it downloads the models (~6 GB). Details: [Docker](https://translay.alenj.dev/getting-started/docker/).
 
 ### From source (Windows or Linux)
 
@@ -217,22 +217,22 @@ uv pip install -p .venvs/omnivoice/Scripts/python.exe --torch-backend=cu128 omni
 python run.py
 ```
 
-On Linux, the engine's Python is at `.venvs/omnivoice/bin/python`. It opens http://127.0.0.1:8765. Options: `python run.py --help` ([Command line](https://alenj0x1.github.io/translay/reference/cli/)). Details: [From source](https://alenj0x1.github.io/translay/getting-started/from-source/) and [Your first video](https://alenj0x1.github.io/translay/getting-started/first-video/).
+On Linux, the engine's Python is at `.venvs/omnivoice/bin/python`. It opens http://127.0.0.1:8765. Options: `python run.py --help` ([Command line](https://translay.alenj.dev/reference/cli/)). Details: [From source](https://translay.alenj.dev/getting-started/from-source/) and [Your first video](https://translay.alenj.dev/getting-started/first-video/).
 
 ## Access, API and webhooks
 
 - **Owner and guests**: from the same machine you are the owner without a password; from other machines on the network you sign in with the owner's password. Each library can be private, password-protected or public, with view or import permission, and has its own `/b/<library>` link.
-- **REST API** at `/api/v1` with read or write keys, for one library or all: libraries, videos, search, queue, import and export. See [API](https://alenj0x1.github.io/translay/integrations/api/).
-- **Webhooks** signed with HMAC-SHA256, with retries, filtered by library and event (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). See [Webhooks](https://alenj0x1.github.io/translay/integrations/webhooks/).
-- **Security**: passwords hashed with scrypt and hashed tokens; the WebSocket and anything that changes state require the `Origin` to be the app itself; protection against *DNS rebinding*; a new token on every sign-in and a maximum of 10 failed attempts every 10 minutes; library files are never served as pages. See [Access](https://alenj0x1.github.io/translay/integrations/access/).
+- **REST API** at `/api/v1` with read or write keys, for one library or all: libraries, videos, search, queue, import and export. See [API](https://translay.alenj.dev/integrations/api/).
+- **Webhooks** signed with HMAC-SHA256, with retries, filtered by library and event (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). See [Webhooks](https://translay.alenj.dev/integrations/webhooks/).
+- **Security**: passwords hashed with scrypt and hashed tokens; the WebSocket and anything that changes state require the `Origin` to be the app itself; protection against *DNS rebinding*; a new token on every sign-in and a maximum of 10 failed attempts every 10 minutes; library files are never served as pages. See [Access](https://translay.alenj.dev/integrations/access/).
 
 ## Your data
 
-Everything stays on your machine: the data folder (`data/` from source, or the one you chose in the app; queue, preferences, YouTube session, list of libraries) and each library's folder (`library.json`, transcripts, downloads, voices, people, glossary and its trash). None of it goes into git. See [Data on disk](https://alenj0x1.github.io/translay/how-it-works/data/).
+Everything stays on your machine: the data folder (`data/` from source, or the one you chose in the app; queue, preferences, YouTube session, list of libraries) and each library's folder (`library.json`, transcripts, downloads, voices, people, glossary and its trash). None of it goes into git. See [Data on disk](https://translay.alenj.dev/how-it-works/data/).
 
 ## Documentation
 
-All of how it works (usage guide, desktop app, performance, architecture, pipeline, GPU, data, API, webhooks and development) is at **https://alenj0x1.github.io/translay/** (also in Spanish), a Starlight site that lives in [`docs/`](docs/) and is published automatically on every change. To view it locally:
+All of how it works (usage guide, desktop app, performance, architecture, pipeline, GPU, data, API, webhooks and development) is at **https://translay.alenj.dev/** (also in Spanish), a Starlight site that lives in [`docs/`](docs/) and is published automatically on every change. To view it locally:
 
 ```sh
 cd docs
@@ -252,8 +252,8 @@ npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js
 
 - Commits use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) in English, with a body that details every change: `feat(queue): prioritize from the card`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Every change updates its documentation page (in English and Spanish) and "Unreleased" / «Sin publicar» in both changelogs.
-- Versions with `python scripts/release.py X.Y.Z` ([Releases](https://alenj0x1.github.io/translay/development/releases/)).
-- Measurement: `tools/eval_pipeline.py` (recognition and who speaks), `tools/eval_translation.py`, `tools/eval_tts.py` and the hardware labs in `tools/lab/` (`TRANSLAY_EMULATE` emulates a smaller machine). See [Testing and evaluation](https://alenj0x1.github.io/translay/development/testing/).
+- Versions with `python scripts/release.py X.Y.Z` ([Releases](https://translay.alenj.dev/development/releases/)).
+- Measurement: `tools/eval_pipeline.py` (recognition and who speaks), `tools/eval_translation.py`, `tools/eval_tts.py` and the hardware labs in `tools/lab/` (`TRANSLAY_EMULATE` emulates a smaller machine). See [Testing and evaluation](https://translay.alenj.dev/development/testing/).
 
 ## Structure
 

@@ -10,11 +10,11 @@
 Traduce y dobla videos entre inglés, español y portugués, **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en tu idioma: subtítulos, transcripción alineada con el original y la traducción, y voz clonada sincronizada con la imagen. O solo transcríbelo, en cualquier idioma. Nada sale de tu equipo salvo las descargas de YouTube.
 
 [![Versión](https://img.shields.io/github/v/release/alenj0x1/translay?label=versi%C3%B3n)](https://github.com/alenj0x1/translay/releases/latest)
-[![Documentación](https://img.shields.io/badge/docs-alenj0x1.github.io%2Ftranslay-7d5ba6)](https://alenj0x1.github.io/translay/es/)
+[![Documentación](https://img.shields.io/badge/docs-translay.alenj.dev-7d5ba6)](https://translay.alenj.dev/es/)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-2a2d32)](https://github.com/alenj0x1/translay/releases/latest)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-2f9e6a)](LICENSE)
 
-**[Descargar para Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentación](https://alenj0x1.github.io/translay/es/) · [Cambios](CHANGELOG.es.md)
+**[Descargar para Windows](https://github.com/alenj0x1/translay/releases/latest)** · [Documentación](https://translay.alenj.dev/es/) · [Cambios](CHANGELOG.es.md)
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/capturas/reproductor-claro.webp">
@@ -99,7 +99,7 @@ Desde el reproductor, una tarjeta, una colección entera o una selección. En tu
 
 ## Rendimiento: qué equipo necesitas
 
-Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Ajustes › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://alenj0x1.github.io/translay/es/how-it-works/gpu-and-idle/#memoria-unificada-dgx-spark)).
+Translay se adapta al equipo. Al arrancar detecta la GPU NVIDIA (con `nvidia-smi`), la VRAM, la RAM y la CPU, y elige el **perfil** más completo que se puede ver en vivo. Todo se ve y se cambia en **Ajustes › Rendimiento**. En equipos con memoria unificada, como NVIDIA DGX Spark, la memoria de la GPU es la RAM del sistema ([detalle](https://translay.alenj.dev/es/how-it-works/gpu-and-idle/#memoria-unificada-dgx-spark)).
 
 ### Perfiles
 
@@ -165,7 +165,7 @@ audio 16 kHz → detección de voz → Whisper en streaming (detecta el idioma) 
 - **Interfaz** en HTML, CSS y JavaScript sin framework (`web/`): el navegador manda el audio que suena y recibe frases, traducciones y voces al instante; la cola del servidor procesa lo demás.
 - **Datos** en JSON y WAV en la carpeta de cada biblioteca, escritos de forma atómica con copia de respaldo.
 
-El detalle (VAD, acuerdo local del streaming, reglas contra alucinaciones, referencias de voz, duración, sonoridad, re-doblaje) está en [Pipeline](https://alenj0x1.github.io/translay/es/how-it-works/pipeline/) y [Voz y clonación](https://alenj0x1.github.io/translay/es/how-it-works/voice/).
+El detalle (VAD, acuerdo local del streaming, reglas contra alucinaciones, referencias de voz, duración, sonoridad, re-doblaje) está en [Pipeline](https://translay.alenj.dev/es/how-it-works/pipeline/) y [Voz y clonación](https://translay.alenj.dev/es/how-it-works/voice/).
 
 ## Capturas
 
@@ -186,7 +186,7 @@ Capturas de una instancia de prueba con videos de dominio público de la NASA y 
 1. Descarga `Translay_<versión>_x64-setup.exe` de la [última versión](https://github.com/alenj0x1/translay/releases/latest) y ábrelo.
 2. Abre **Translay**, elige dónde guardar tu biblioteca y pulsa **Instalar**.
 
-La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre; el traductor del portugués, unos 0,8 GB, se descarga la primera vez que se traduce un video en portugués). Detalle: [Instalación](https://alenj0x1.github.io/translay/es/getting-started/install/).
+La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre; el traductor del portugués, unos 0,8 GB, se descarga la primera vez que se traduce un video en portugués). Detalle: [Instalación](https://translay.alenj.dev/es/getting-started/install/).
 
 | | |
 |---|---|
@@ -203,7 +203,7 @@ cp .env.example .env          # y cambia TRANSLAY_OWNER_PASSWORD
 docker compose up -d --build
 ```
 
-Abre http://localhost:8765. La primera vez descarga los modelos (~6 GB). Detalle: [Docker](https://alenj0x1.github.io/translay/es/getting-started/docker/).
+Abre http://localhost:8765. La primera vez descarga los modelos (~6 GB). Detalle: [Docker](https://translay.alenj.dev/es/getting-started/docker/).
 
 ### Desde el código (Windows o Linux)
 
@@ -217,22 +217,22 @@ uv pip install -p .venvs/omnivoice/Scripts/python.exe --torch-backend=cu128 omni
 python run.py
 ```
 
-En Linux, el Python del motor está en `.venvs/omnivoice/bin/python`. Se abre http://127.0.0.1:8765. Opciones: `python run.py --help` ([Línea de comandos](https://alenj0x1.github.io/translay/es/reference/cli/)). Detalle: [Desde el código](https://alenj0x1.github.io/translay/es/getting-started/from-source/) y [Tu primer video](https://alenj0x1.github.io/translay/es/getting-started/first-video/).
+En Linux, el Python del motor está en `.venvs/omnivoice/bin/python`. Se abre http://127.0.0.1:8765. Opciones: `python run.py --help` ([Línea de comandos](https://translay.alenj.dev/es/reference/cli/)). Detalle: [Desde el código](https://translay.alenj.dev/es/getting-started/from-source/) y [Tu primer video](https://translay.alenj.dev/es/getting-started/first-video/).
 
 ## Acceso, API y webhooks
 
 - **Dueño e invitados**: desde el mismo equipo eres el dueño sin contraseña; desde otros equipos de la red se entra con la contraseña del dueño. Cada biblioteca puede ser privada, con contraseña o pública, con permiso de ver o de importar, y tiene su enlace `/b/<biblioteca>`.
-- **API REST** en `/api/v1` con claves de lectura o escritura, para una biblioteca o todas: bibliotecas, videos, búsqueda, cola, importar y exportar. Ver [API](https://alenj0x1.github.io/translay/es/integrations/api/).
-- **Webhooks** firmados con HMAC-SHA256, con reintentos, filtrados por biblioteca y evento (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). Ver [Webhooks](https://alenj0x1.github.io/translay/es/integrations/webhooks/).
-- **Seguridad**: contraseñas con scrypt y tokens con hash; el WebSocket y lo que cambia algo exigen que el `Origin` sea la propia app; protección contra *DNS rebinding*; token nuevo en cada inicio de sesión y máximo de 10 intentos fallidos cada 10 minutos; los archivos de las bibliotecas nunca se sirven como páginas. Ver [Acceso](https://alenj0x1.github.io/translay/es/integrations/access/).
+- **API REST** en `/api/v1` con claves de lectura o escritura, para una biblioteca o todas: bibliotecas, videos, búsqueda, cola, importar y exportar. Ver [API](https://translay.alenj.dev/es/integrations/api/).
+- **Webhooks** firmados con HMAC-SHA256, con reintentos, filtrados por biblioteca y evento (`video.procesado`, `exportacion.lista`, `cola.terminada`, `youtube.bloqueo`…). Ver [Webhooks](https://translay.alenj.dev/es/integrations/webhooks/).
+- **Seguridad**: contraseñas con scrypt y tokens con hash; el WebSocket y lo que cambia algo exigen que el `Origin` sea la propia app; protección contra *DNS rebinding*; token nuevo en cada inicio de sesión y máximo de 10 intentos fallidos cada 10 minutos; los archivos de las bibliotecas nunca se sirven como páginas. Ver [Acceso](https://translay.alenj.dev/es/integrations/access/).
 
 ## Tus datos
 
-Todo queda en tu equipo: la carpeta de datos (`data/` desde el código, la que elegiste en la app; cola, preferencias, sesión de YouTube, lista de bibliotecas) y la carpeta de cada biblioteca (`library.json`, transcripciones, descargas, voces, personas, glosario y su papelera). Nada de eso entra en git. Ver [Datos en disco](https://alenj0x1.github.io/translay/es/how-it-works/data/).
+Todo queda en tu equipo: la carpeta de datos (`data/` desde el código, la que elegiste en la app; cola, preferencias, sesión de YouTube, lista de bibliotecas) y la carpeta de cada biblioteca (`library.json`, transcripciones, descargas, voces, personas, glosario y su papelera). Nada de eso entra en git. Ver [Datos en disco](https://translay.alenj.dev/es/how-it-works/data/).
 
 ## Documentación
 
-Todo el funcionamiento (guía de uso, app de escritorio, rendimiento, arquitectura, pipeline, GPU, datos, API, webhooks y desarrollo) está en **https://alenj0x1.github.io/translay/es/** (también en inglés), un sitio Starlight que vive en [`docs/`](docs/) y se publica solo en cada cambio. Para verlo en local:
+Todo el funcionamiento (guía de uso, app de escritorio, rendimiento, arquitectura, pipeline, GPU, datos, API, webhooks y desarrollo) está en **https://translay.alenj.dev/es/** (también en inglés), un sitio Starlight que vive en [`docs/`](docs/) y se publica solo en cada cambio. Para verlo en local:
 
 ```sh
 cd docs
@@ -252,8 +252,8 @@ npm --prefix desktop ci && npm --prefix desktop run build   # instalador (Node.j
 
 - Commits con [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) en inglés, con un cuerpo que detalla cada cambio: `feat(queue): prioritize from the card`. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 - Cada cambio actualiza su página de la documentación (en inglés y español) y «Sin publicar» / «Unreleased» en los dos changelogs.
-- Versiones con `python scripts/release.py X.Y.Z` ([Versiones](https://alenj0x1.github.io/translay/es/development/releases/)).
-- Medición: `tools/eval_pipeline.py` (reconocimiento y quién habla), `tools/eval_translation.py`, `tools/eval_tts.py` y los labs de hardware de `tools/lab/` (`TRANSLAY_EMULATE` emula un equipo menor). Ver [Pruebas y evaluación](https://alenj0x1.github.io/translay/es/development/testing/).
+- Versiones con `python scripts/release.py X.Y.Z` ([Versiones](https://translay.alenj.dev/es/development/releases/)).
+- Medición: `tools/eval_pipeline.py` (reconocimiento y quién habla), `tools/eval_translation.py`, `tools/eval_tts.py` y los labs de hardware de `tools/lab/` (`TRANSLAY_EMULATE` emula un equipo menor). Ver [Pruebas y evaluación](https://translay.alenj.dev/es/development/testing/).
 
 ## Estructura
 

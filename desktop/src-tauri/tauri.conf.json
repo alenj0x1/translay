@@ -21,7 +21,7 @@
       "nsis"
     ],
     "publisher": "alenj0x1",
-    "homepage": "https://alenj0x1.github.io/translay/",
+    "homepage": "https://translay.alenj.dev/",
     "shortDescription": "Traduce y dobla videos",
     "resources": {
       "../.stage/translay/": "translay/",

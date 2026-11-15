@@ -36,8 +36,8 @@ jobs:
       - run: npm ci
       - name: Compilar
         env:
-          SITE: https://${{ github.repository_owner }}.github.io
-          BASE: /${{ github.event.repository.name }}
+          SITE: https://translay.alenj.dev
+          BASE: /
         run: npm run build
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'

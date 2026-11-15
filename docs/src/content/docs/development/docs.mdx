@@ -81,6 +81,6 @@ The screenshots in `src/assets/capturas/` (docs, README and home page) always sh
 
 ## Publish
 
-`.github/workflows/docs.yml` builds the site with Node 24 and publishes it to [GitHub Pages](https://alenj0x1.github.io/translay/) on every push to `main` that touches `docs/`, `vt/` or the changelogs (it can also be launched by hand from the Actions tab). Every page has an "Edit page" link that opens its file on GitHub.
+`.github/workflows/docs.yml` builds the site with Node 24 and publishes it to [GitHub Pages](https://translay.alenj.dev/) on every push to `main` that touches `docs/`, `vt/` or the changelogs (it can also be launched by hand from the Actions tab). It is served on its own domain, `translay.alenj.dev`: `docs/public/CNAME` names it, the workflow builds with that address at the root (`SITE`, `BASE: /`) and the domain's DNS has a `CNAME` record pointing to `alenj0x1.github.io`. Every page has an "Edit page" link that opens its file on GitHub.
 
 In a fork, enable Pages under Settings → Pages → Source: **GitHub Actions**; the address is built from the username and the repository name.

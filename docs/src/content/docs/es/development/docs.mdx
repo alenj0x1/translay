@@ -81,6 +81,6 @@ Las capturas de `src/assets/capturas/` (documentación, README y portada) siempr
 
 ## Publicar
 
-`.github/workflows/docs.yml` compila el sitio con Node 24 y lo publica en [GitHub Pages](https://alenj0x1.github.io/translay/) en cada push a `main` que toque `docs/`, `vt/` o los changelogs (también se lanza a mano desde la pestaña Actions). Cada página tiene «Editar página», que abre su archivo en GitHub.
+`.github/workflows/docs.yml` compila el sitio con Node 24 y lo publica en [GitHub Pages](https://translay.alenj.dev/) en cada push a `main` que toque `docs/`, `vt/` o los changelogs (también se lanza a mano desde la pestaña Actions). Se sirve en su propio dominio, `translay.alenj.dev`: `docs/public/CNAME` lo nombra, el flujo compila con esa dirección en la raíz (`SITE`, `BASE: /`) y el DNS del dominio tiene un registro `CNAME` que apunta a `alenj0x1.github.io`. Cada página tiene «Editar página», que abre su archivo en GitHub.
 
 En un fork, activa Pages en Settings → Pages → Source: **GitHub Actions**; la dirección se arma sola con el usuario y el nombre del repositorio.
