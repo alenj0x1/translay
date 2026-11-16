@@ -9,6 +9,8 @@ import { Aside } from "@astrojs/starlight/components";
 
 The agent answers questions about the open video: what is said, what is written on screen (code, commands, links), in which minute something happens and what is left from where you are. It runs on your computer, without internet, with a small language model. How to use it: [Transcript › Agent](../../guide/transcript-and-people/#agent).
 
+Asking it is for whoever can import in the video's library (it uses the GPU): a "Solo ver" guest reads the summary but doesn't see the chat ([Access](../../integrations/access/#who-can-do-what)).
+
 ## Engine
 
 `vt/llm.py` runs [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`, MIT) with the release pinned and its SHA-256 verified, downloaded by Translay the first time without administrator rights. It listens only on `127.0.0.1`.

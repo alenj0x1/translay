@@ -50,6 +50,8 @@ body.side-mini .bar .brand { width: auto; }
 .bar .status[data-base="1"]:not([data-state="off"]) { display: none; }
 .import-wrap, .queue-wrap { position: relative; flex: none; }
 body:not(.can-import) .import-wrap, body:not(.can-import) #rec-btn { display: none; }
+/* el agente usa la GPU: preguntarle es de quien puede importar (el invitado que solo ve lee el resumen) */
+body:not(.can-import) #ag-form, body:not(.can-import) #ag-suggest { display: none !important; }
 
 /* ------------------------------------------------------------ barra lateral */
 .libside, .prefs-nav, .qnav {

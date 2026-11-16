@@ -1467,6 +1467,7 @@
  "{total} de memoria unificada · {free} libres": "{total} of unified memory · {free} free",
  "{total} de VRAM · {free} libres": "{total} of VRAM · {free} free",
  "{what} copiado": "{what} copied",
+ "{agent} responde a quien puede importar en esta biblioteca. Inicia sesión para preguntarle.": "{agent} answers whoever can import in this library. Sign in to ask it.",
  "«{name}» no tiene enlaces de YouTube ni de Dropbox.": "“{name}” has no YouTube or Dropbox links.",
  "«{name}» va {state} en este equipo: procesa a {speed}× el tiempo real, insuficiente para ver en vivo. Prueba con «{best}».": "“{name}” is running {state} on this computer: it processes at {speed}× real time, not enough to watch live. Try “{best}”.",
  "«{name}» vaciada": "“{name}” emptied",

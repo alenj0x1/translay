@@ -305,6 +305,7 @@ body.native .transcript .cell:first-child { display: none; }
 /* lo que el agente sabe hacer (antes de la primera pregunta): chips que preguntan o dejan la pregunta empezada */
 .ag-hello .ag-can { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .ag-hello .ag-can .ag-chip { height: var(--h-sm); }
+.ag-hello .ag-guest { max-width: 30ch; margin: 0 auto; font: 500 var(--fs-sm)/1.55 var(--font); color: var(--fg-muted); text-align: center; }
 
 /* hora y copiar de cada mensaje: aparecen al pasar el mouse */
 .ag-tools { display: inline-flex; align-items: center; gap: var(--s1); margin-left: auto; opacity: 0; transition: opacity .15s; }

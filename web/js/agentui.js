@@ -102,12 +102,14 @@ function agentBarNodes(v) {
   const on = v.power === "encendido";
   const label = v.busy ? v.statusText : on ? (v.model ? t("Encendido · {model}", { model: v.model }) : t("Encendido")) : t("Apagado");
   const dot = el("i", { class: "ag-dot " + (v.busy ? "busy" : on ? "on" : "off") });
-  const b = el("button", { type: "button", class: "btn xs ghost ag-power", disabled: v.busy || v.canPower === false || null,
+  // quien no puede encenderlo (el invitado que solo ve) no ve el botón; en las vistas previas se muestra
+  const b = v.canPower === false ? null : el("button", { type: "button", class: "btn xs ghost ag-power", disabled: v.busy || null,
     title: on ? t("Apagar y liberar memoria") : t("Encender y preparar el video"),
     on: v.onPower ? { click: () => v.onPower(!on) } : {} }, icon("power"), on ? t("Apagar") : t("Encender"));
   const custom = v.custom ? el("button", { type: "button", class: "btn xs ghost icon ag-custom", title: t("Personalizar el agente"),
     "aria-label": t("Personalizar el agente"), on: v.onCustom ? { click: v.onCustom } : {} }, icon("brush")) : null;
-  return [agentAvatar(v.mood ?? (v.busy ? "think" : "")), el("span", { class: "ag-name", text: agentName() }), el("span", { class: "ag-status" }, dot, label), b, custom];
+  return [agentAvatar(v.mood ?? (v.busy ? "think" : "")), el("span", { class: "ag-name", text: agentName() }), el("span", { class: "ag-status" }, dot, label), b, custom]
+    .filter(Boolean);  // sin botones: nada (replaceChildren escribía «null»)
 }
 
 function renderAgentBar() {
@@ -349,7 +351,11 @@ function fillAgentIntro(box, mood = agentMood()) {
 // la conversación (con lo que puede hacer si aún no hay preguntas)
 function fillAgentMessages(ol, messages, pending) {
   const frag = document.createDocumentFragment();
-  if (!messages.length && !pending) {
+  if (!messages.length && !pending && ol.id === "ag-msgs" && !canImport()) {
+    // el agente usa la GPU: preguntarle es de quien puede importar (el servidor se lo niega al invitado que solo ve)
+    frag.append(el("li", { class: "ag-hello" }, el("p", { class: "ag-guest",
+      text: t("{agent} responde a quien puede importar en esta biblioteca. Inicia sesión para preguntarle.", { agent: agentName() }) })));
+  } else if (!messages.length && !pending) {
     frag.append(el("li", { class: "ag-hello" }, el("div", { class: "ag-can" }, ...AGENT_CAN.map(([ic, label, q, open]) =>
       el("button", { type: "button", class: "ag-chip", title: q, on: { click: () => agentCan(q, open) } }, icon(ic), label)))));
   }
@@ -733,7 +739,7 @@ function agentMsgMenu(li) {
   if (!m) return null;
   return [
     { label: t("Copiar"), icon: "copy", onClick: () => copyText(m.content, t("Texto copiado")) },
-    m.role === "user" && { label: t("Preguntar de nuevo"), icon: "reload", onClick: () => agentAsk(m.content) },
+    m.role === "user" && canImport() && { label: t("Preguntar de nuevo"), icon: "reload", onClick: () => agentAsk(m.content) },
     "sep",
     { label: t("Borrar la conversación"), icon: "trash", onClick: () => send({ type: "agent_clear", video: state.videoId }) },
     isOwner() && { label: t("Personalizar el agente…"), icon: "brush", onClick: openAgentDlg },  // la misma ventana del pincel

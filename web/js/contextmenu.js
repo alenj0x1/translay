@@ -190,7 +190,7 @@ function elementMenu(li) {
     { label: t("Ir a este momento"), icon: "play", kbd: fmt(e.start), onClick: () => { vEn.currentTime = e.start; } },
     "sep",
     { label: t("Copiar {what}", { what: (ELEMENT_LABEL[e.kind] || t("Texto")).toLowerCase() }), icon: "copy", onClick: () => copyText(e.text, ELEMENT_LABEL[e.kind] || "Texto") },
-    { label: t("Preguntar a Lumi"), icon: "agent", onClick: () => askAgentAbout(e) },
+    canImport() && { label: t("Preguntar a Lumi"), icon: "agent", onClick: () => askAgentAbout(e) },
     e.kind === "link" && { label: t("Abrir el enlace"), icon: "external", onClick: () => window.open(/^https?:/i.test(e.text) ? e.text : `https://${e.text}`, "_blank", "noopener") },
     { label: t("Copiar todos los elementos"), icon: "copy", onClick: () => copyText(elementsText(), t("Elementos copiados")) },
     { label: t("Copiar todo para un agente"), icon: "agent", onClick: () => copyForAgent(state.videoId, true) },
@@ -203,7 +203,7 @@ function screenHitMenu(it) {
   return [
     { label: t("Copiar {what}", { what: label.toLowerCase() }), icon: "copy", onClick: () => copyText(hitText(it), label) },
     it.kind === "link" && { label: t("Abrir el enlace"), icon: "external", onClick: () => window.open(/^https?:/i.test(it.text) ? it.text : `https://${it.text}`, "_blank", "noopener") },
-    { label: t("Preguntar a Lumi"), icon: "agent", onClick: () => askAgentAbout(it) },
+    canImport() && { label: t("Preguntar a Lumi"), icon: "agent", onClick: () => askAgentAbout(it) },
     "sep",
     ...playerMenu(),
   ];
@@ -280,7 +280,7 @@ function trackMenu(x) {
   if (!d || !r.width) return null;
   const at = Math.max(0, Math.min(d, ((x - r.left) / r.width) * d));
   return [
-    { label: t("Preguntar a {agent} sobre {time}", { agent: agentName(), time: fmt(at) }), icon: "agent", onClick: () => agentMention(at) },
+    canImport() && { label: t("Preguntar a {agent} sobre {time}", { agent: agentName(), time: fmt(at) }), icon: "agent", onClick: () => agentMention(at) },
     { label: t("Ir a {time}", { time: fmt(at) }), icon: "play", onClick: () => { vEn.currentTime = at; } },
     { label: t("Copiar el momento"), icon: "copy", onClick: () => copyText(fmt(at), "Momento") },
   ];

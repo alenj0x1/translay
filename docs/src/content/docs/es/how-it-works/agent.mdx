@@ -9,6 +9,8 @@ import { Aside } from "@astrojs/starlight/components";
 
 El agente responde preguntas sobre el video abierto: lo que se dice, lo que está escrito en pantalla (código, comandos, enlaces), en qué minuto pasa algo y qué te falta desde donde vas. Corre en tu equipo, sin internet, con un modelo de lenguaje pequeño. Cómo se usa: [Transcripción › Agente](../../guide/transcript-and-people/#agente).
 
+Preguntarle es de quien puede importar en la biblioteca del video (usa la GPU): un invitado «Solo ver» lee el resumen pero no ve el chat ([Acceso](../../integrations/access/#quién-puede-qué)).
+
 ## Motor
 
 `vt/llm.py` corre [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`, MIT) con la versión fija y su SHA-256 verificado, que Translay baja la primera vez sin pedir permisos de administrador. Escucha solo en `127.0.0.1`.

@@ -212,8 +212,7 @@ function hitBar(it) {
     act(t("Copiar {what}", { what: label.toLowerCase() }), icon("copy"), t("Copiar"), () => copyText(hitText(it), label)),
     ...(it.kind === "link" ? [sep(), act(t("Abrir el enlace"), icon("external"), t("Abrir"),
       () => window.open(/^https?:/i.test(it.text) ? it.text : `https://${it.text}`, "_blank", "noopener"))] : []),
-    sep(),
-    act(t("Preguntarle al agente sobre esto"), star, t("Preguntar"), () => askAgentAbout(it)));
+    ...(canImport() ? [sep(), act(t("Preguntarle al agente sobre esto"), star, t("Preguntar"), () => askAgentAbout(it))] : []));
 }
 
 function renderHits() {
