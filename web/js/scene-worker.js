@@ -2,7 +2,7 @@
 // Translay: dibuja la escena de fondo fuera del hilo de la interfaz (OffscreenCanvas), así navegar no se siente.
 // Recibe de web/js/scenes.js › mountScene: init {canvas, name, W, H, d, colors, fade, still} · resize {W, H, d} ·
 // palette {colors, fade} · pause {paused}. Las escenas y el dibujo son los mismos de scenes.js.
-importScripts("scenes.js");
+importScripts("scenes.js" + self.location.search);  // con el ?v= del worker: un proxy con caché no da el viejo
 
 let r = null, paused = false, still = false, t0 = 0, timer = 0;
 // lo que llega mientras se carga la letra (el tamaño final, colores nuevos) se aplica al terminar, no se pierde
