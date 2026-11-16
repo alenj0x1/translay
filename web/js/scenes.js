@@ -867,7 +867,8 @@ Object.assign(SCENES, {
 // el worker, junto a este archivo (la app lo sirve en js/; la pantalla de arranque de escritorio, en shared/js/)
 // (en línea, como en la portada de la documentación, no tiene archivo: la portada dibuja sin worker)
 const SCENE_WORKER = typeof document !== "undefined" && document.currentScript?.src
-  ? new URL("scene-worker.js", document.currentScript.src).href : "js/scene-worker.js";
+  ? new URL("scene-worker.js" + new URL(document.currentScript.src).search, document.currentScript.src).href  // con su ?v=
+  : "js/scene-worker.js";
 const SCENE_CW = 6, SCENE_FPS = 8, SCENE_MAX_CELLS = 9000, SCENE_SHARE = 0.15;
 const sceneCell = (W, H) => {
   const cw = Math.max(SCENE_CW, Math.round(Math.sqrt((W * H) / (SCENE_MAX_CELLS * 1.5))));

@@ -161,6 +161,8 @@ python run.py --allow-origin https://translay.midominio.com
 TRANSLAY_ORIGINS=https://translay.midominio.com python run.py
 ```
 
+La app responde todo con `Cache-Control: no-store`, pero algunos proxies guardan igual los `.js` y `.css` (por ejemplo «Cache Assets» de Nginx Proxy Manager). Para que una actualización llegue a todos al instante, la página pide sus estilos y scripts con `?v=` y una huella de los archivos de la interfaz y del idioma: cuando alguno cambia, cambia la dirección y el proxy trae la nueva.
+
 ## Recomendaciones de seguridad
 
 - **En la red local todo viaja por HTTP, sin cifrar.** Contraseñas, la cookie de sesión y las claves de API se pueden leer desde la misma red. Úsalo en redes de confianza, no en el wifi de un café.

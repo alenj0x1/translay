@@ -505,7 +505,8 @@ def main():
                        {"/thumb/yt/": get_thumb, "/chan/": get_channel_art,"/v/": get_vault_file, "/people/": get_main_people, "/b/": get_app_page,
                         "/i18n.js": get_i18n},
                        {"/api/v1": api.route, "/api/auth/": api.auth_route}, make_guard(auth, vaults),
-                       origin_ok=lambda h: same_origin(h, origins), app_files=(DATA / "cache" / "i18n",))
+                       origin_ok=lambda h: same_origin(h, origins), app_files=(DATA / "cache" / "i18n",),
+                       page_extra=lambda: prefs.ui_lang)
     admin.server = server
     url = f"http://{a.host}:{a.port}"
     print(f"Listo: {url}", flush=True)

@@ -9,6 +9,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import re
 import struct
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -27,6 +28,26 @@ _MIME = {
     ".mp4": "video/mp4", ".webm": "video/webm", ".mkv": "video/x-matroska",
     ".mov": "video/quicktime", ".mp3": "audio/mpeg", ".wav": "audio/wav", ".woff2": "font/woff2",
 }
+
+
+# la página pide sus estilos y scripts con ?v=<huella>: un proxy que guarda los .js/.css en caché (p. ej. un
+# Nginx Proxy Manager con «Cache Assets»), aunque la app diga no-store, igual entrega los nuevos al actualizar
+_ASSET = re.compile(r'((?:src|href)=")((?:js|css)/[^"?#]+\.(?:js|css)|i18n\.js)(")')
+
+
+def ui_version(root: Path, extra: str = "") -> str:
+    """Huella de la interfaz: cambia si cambia cualquiera de sus archivos (o `extra`, p. ej. el idioma)."""
+    h = hashlib.sha1(extra.encode())
+    for p in sorted(Path(root).rglob("*")):
+        if p.suffix in (".js", ".css", ".json", ".html") and p.is_file():
+            st = p.stat()
+            h.update(f"{p.relative_to(root)}:{st.st_mtime_ns}:{st.st_size}".encode())
+    return h.hexdigest()[:10]
+
+
+def versioned_page(html: str, v: str) -> str:
+    """index.html con ?v=<v> en cada css/…, js/… e i18n.js."""
+    return _ASSET.sub(lambda m: f"{m[1]}{m[2]}?v={v}{m[3]}", html)
 
 
 class WebSocket:
@@ -138,7 +159,7 @@ class Request:
 class AppServer:
     def __init__(self, routes: dict[str, Path], ws_routes: dict, put_routes: dict | None = None,
                  get_routes: dict | None = None, http_routes: dict | None = None, guard=None,
-                 origin_ok=None, app_files=()):
+                 origin_ok=None, app_files=(), page_extra=None):
         """routes: prefijo URL → carpeta. ws_routes: ruta → async fn(ws).
         get_routes: prefijo → async fn(resto_de_ruta) → archivo a servir (o None: 404).
         put_routes: prefijo → async fn(resto_de_ruta, query, headers, cuerpo) → (código, texto);
@@ -148,6 +169,7 @@ class AppServer:
         origin_ok: fn(cabeceras) → bool: si el pedido viene de la propia app (vt/auth.py same_origin).
         app_files: carpetas fuera de la interfaz cuyo contenido también es de la app (los catálogos de idioma
         generados, vt/i18n.py): se sirven con su tipo, no como descarga.
+        page_extra: fn() → texto que también cambia la huella de la página (el idioma: i18n.js depende de él).
         Se exige al WebSocket y a todo lo que no sea GET/HEAD, salvo con clave de API."""
         self.routes = sorted(routes.items(), key=lambda kv: -len(kv[0]))
         self._app_root = routes["/"].resolve() if "/" in routes else None  # la interfaz: lo único que es página
@@ -158,6 +180,7 @@ class AppServer:
         self.http_routes = http_routes or {}
         self.guard = guard
         self.origin_ok = origin_ok or (lambda h: True)
+        self.page_extra = page_extra or (lambda: "")
 
     async def serve(self, host: str, port: int):
         server = await asyncio.start_server(self._handle, host, port)
@@ -267,6 +290,11 @@ class AppServer:
         f = await self.get_routes[prefix](path[len(prefix):]) if prefix else self._resolve(path)
         if f is None:
             return await self._simple(writer, 404, "Not Found")
+        if self._app_root is not None and f.resolve() == self._app_root / "index.html":
+            # la página: con la huella en cada estilo y script (ver _ASSET)
+            html = versioned_page(f.read_text(encoding="utf-8"), ui_version(self._app_root, self.page_extra()))
+            return await self._respond(writer, 200, html, {"Content-Type": "text/html; charset=utf-8",
+                                                           "X-Content-Type-Options": "nosniff"})
         size = f.stat().st_size
         start, end, status = 0, size - 1, "200 OK"
         if rng and rng.startswith("bytes="):
