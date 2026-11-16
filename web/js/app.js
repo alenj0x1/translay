@@ -98,7 +98,7 @@ function onMessage(m) {
       if (typeof vaults !== "undefined" && vaults.current) send({ type: "vault_open", id: vaults.current });
       if (state.videoId) send({ type: "open", id: state.videoId, name: state.videoName });
       // la sesión nueva no sabe qué se está viendo: la cola vuelve a darle prioridad
-      if (state.videoId && state.serverSide && (currentView() === "player" || lib.mini)) send({ type: "watch", video: state.videoId, t: vEn.currentTime || 0 });
+      if (state.videoId && state.serverSide && canImport() && (currentView() === "player" || lib.mini)) send({ type: "watch", video: state.videoId, t: vEn.currentTime || 0 });
       send({ type: "library" });
       send({ type: "glossary_get" });
       break;
@@ -502,7 +502,8 @@ function loadVideo(src, id, name, audioSrc, opts = {}) {
   renderTimeline();
   renderCaptions();
   send({ type: "open", id, name });
-  if (state.serverSide) send({ type: "watch", video: id, t: opts.position || 0 });
+  // priorizar en la cola es de quien puede importar: a un invitado que solo ve, el servidor se lo niega
+  if (state.serverSide && canImport()) send({ type: "watch", video: id, t: opts.position || 0 });
   // Ajustes → Video: empieza solo, en cuanto esté listo para reproducirse sin cortes
   state.forcePlay = false;
   state.autoWait = prefs.autoplay !== false;

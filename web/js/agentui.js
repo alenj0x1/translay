@@ -504,7 +504,8 @@ function fillSuggestions(box, list, onPick) {
 
 function renderSuggestions() {
   const a = state.agent;
-  const list = a.pending ? [] : (a.suggestions || []).filter((s) => !(s.action === "summary" && (state.summary || state.summaryJob)));
+  // «Resumir» solo a quien puede pedirlo (al invitado que solo ve, el servidor se lo niega)
+  const list = a.pending ? [] : (a.suggestions || []).filter((s) => !(s.action === "summary" && (state.summary || state.summaryJob || !canImport())));
   fillSuggestions($("#ag-suggest"), list, (s) => (s.action === "summary" ? requestSummary() : agentAsk(s.q)));
 }
 

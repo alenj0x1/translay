@@ -57,6 +57,8 @@
 <!-- inicio de sesión: dueño desde otro equipo, o una biblioteca con contraseña (vt/auth.py) -->
 <section class="login" id="login" hidden>
   <div class="login-box">
+    <!-- de vuelta a la app (solo con acceso a algo): arriba, fuera del formulario -->
+    <button class="btn xs ghost login-back" id="login-back" type="button" data-icon="back" hidden>Volver</button>
     <div class="brand"><span class="wordmark" data-size="44">translay</span></div>
     <h2 id="login-title">Iniciar sesión</h2>
     <p class="login-sub" id="login-sub"></p>
@@ -67,7 +69,6 @@
     <p class="login-err" id="login-err"></p>
     <div class="acts">
       <button class="btn xs ghost" id="login-owner" type="button" data-icon="user" hidden>Iniciar sesión como propietario</button>
-      <button class="btn xs ghost" id="login-back" type="button" data-icon="x" hidden>Volver</button>
     </div>
     <div class="login-public" id="login-public"></div>
   </div>

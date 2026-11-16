@@ -34,7 +34,7 @@ function setView(view) {
   if (view === "player") lib.mini = false;
   document.body.classList.toggle("mini", !!lib.mini && view !== "player");
   // de vuelta al video: la cola vuelve a darle prioridad desde donde quedó
-  if (view === "player" && before !== "player" && state.videoId && state.serverSide) {
+  if (view === "player" && before !== "player" && state.videoId && state.serverSide && canImport()) {
     send({ type: "watch", video: state.videoId, t: vEn.currentTime || 0 });
   }
   if (view === "library") {

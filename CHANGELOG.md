@@ -6,8 +6,13 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ## Unreleased
 
+### Changed
+
+- Sign-in: **Volver** (Back) moved to the top left of the card, with an arrow, instead of sitting between the password and the public libraries.
+
 ### Fixed
 
+- Guests who can only view no longer get «No tienes permiso para esta acción en esta biblioteca» every time they open a video: the player only asks the queue to prioritize the open video (`watch`) when the library allows importing, and the agent's «Resumir» suggestion is hidden from them.
 - Agent on Linux and in Docker: the summary, the short descriptions and the questions no longer fail trying to download the Windows `llama-server`. The Docker image builds `llama-server` with CUDA from the same llama.cpp version, and outside Windows Translay uses the one in `TRANSLAY_LLAMA_SERVER` or in the `PATH` (`LLAMA_CUDA_IMAGE` and `LLAMA_CUDA_ARCHITECTURES` build it for a single GPU, e.g. GB10).
 
 ## 1.14.0 · 2026-11-14

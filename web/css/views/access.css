@@ -15,8 +15,12 @@ body:not(.can-import) .welcome small { display: none !important; }
 .login { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: var(--s4); background: var(--bg); }
 .login[hidden] { display: none; }
 body.locked > :not(.login):not(script):not(dialog):not(.toast) { visibility: hidden; }
-.login-box { display: grid; gap: var(--s4); width: min(420px, 100%); padding: var(--s8) var(--s7); border-radius: var(--r-lg); background: var(--surface); }
+.login-box { position: relative; display: grid; gap: var(--s4); width: min(420px, 100%); padding: var(--s8) var(--s7); border-radius: var(--r-lg); background: var(--surface); }
 .login-box h2 { margin-top: var(--s2); font: 800 var(--fs-2xl)/1.15 var(--font); overflow-wrap: anywhere; }
+.login-back { position: absolute; top: var(--s5); left: var(--s5); }
+.login-box:has(> .login-back:not([hidden])) { padding-top: calc(var(--s8) + var(--s7)); }
+.login-back[hidden] { display: none; }
+.login-box > .acts:not(:has(> :not([hidden]))) { display: none; }
 .login-sub { margin: calc(-1 * var(--s2)) 0 0; font: 500 var(--fs-md)/1.5 var(--font); color: var(--fg-muted); }
 .login-form { margin: 0; }
 .login-form[hidden] { display: none; }
