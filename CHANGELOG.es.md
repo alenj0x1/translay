@@ -4,6 +4,12 @@ Todos los cambios importantes de Translay. El formato sigue [Keep a Changelog](h
 
 Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.md). Los cambios que esperan la próxima versión van en **Sin publicar**, arriba (esa sección solo existe mientras haya alguno y la documentación no la muestra); `scripts/release.py` la convierte en la versión nueva.
 
+## Sin publicar
+
+### Corregido
+
+- Agente en Linux y en Docker: el resumen, las descripciones cortas y las preguntas ya no fallan al intentar bajar el `llama-server` de Windows. La imagen de Docker compila `llama-server` con CUDA de la misma versión de llama.cpp, y fuera de Windows Translay usa el de `TRANSLAY_LLAMA_SERVER` o el del `PATH` (`LLAMA_CUDA_IMAGE` y `LLAMA_CUDA_ARCHITECTURES` lo compilan para una sola GPU, p. ej. GB10).
+
 ## 1.14.0 · 2026-11-14
 
 ### Agregado

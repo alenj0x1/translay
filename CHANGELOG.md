@@ -4,6 +4,12 @@ All notable changes to Translay. The format follows [Keep a Changelog](https://k
 
 The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/translay/blob/main/CHANGELOG.es.md). Changes waiting for the next version sit under **Unreleased** at the top (this section only exists while there are some, and the docs site doesn't show it); `scripts/release.py` turns it into the new version.
 
+## Unreleased
+
+### Fixed
+
+- Agent on Linux and in Docker: the summary, the short descriptions and the questions no longer fail trying to download the Windows `llama-server`. The Docker image builds `llama-server` with CUDA from the same llama.cpp version, and outside Windows Translay uses the one in `TRANSLAY_LLAMA_SERVER` or in the `PATH` (`LLAMA_CUDA_IMAGE` and `LLAMA_CUDA_ARCHITECTURES` build it for a single GPU, e.g. GB10).
+
 ## 1.14.0 · 2026-11-14
 
 ### Added

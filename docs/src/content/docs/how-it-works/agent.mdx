@@ -18,6 +18,8 @@ The agent answers questions about the open video: what is said, what is written 
 | Vulkan (38 MB) | NVIDIA cards and integrated graphics (Intel UHD/Iris/Arc, AMD Radeon) |
 | CPU (25 MB) | Any computer |
 
+Those builds are for Windows. On Linux and in [Docker](../../getting-started/docker/) the agent uses a `llama-server` that is already installed: the one in `TRANSLAY_LLAMA_SERVER` (the Docker image sets it to its own, built with CUDA) or the one in the `PATH`. The same binary runs on the GPU or, with no layers on it, on the processor.
+
 The plan depends on the computer (`vt/agentsvc.py`): the graphics card if it has free memory (while a video is being dubbed it may not), the integrated graphics if there is one, or the processor, with a model sized to the RAM. **Ajustes › Agente** (Settings › Agent) can fix the model or the **Dispositivo** (Device: **Automático**, **Tarjeta gráfica**, **Integrada** or **Procesador**; Automatic, Graphics card, Integrated or Processor).
 
 The model stays loaded while you use it: the second question about the same video reuses what was already read and answers in tenths of a second. After 5 minutes without questions it goes to sleep and leaves the memory; the tab's **Apagar** (Turn off) button unloads it at once and **Encender** (Turn on) loads it and reads the video ahead of time. Question suggestions come from the summary, so they work while it is off: clicking one turns it on and answers. If Translay is closed abruptly, Windows closes the model server too (it is tied to the app with a Job Object).

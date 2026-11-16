@@ -7,7 +7,7 @@ sidebar:
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-The image includes everything: CUDA 12.8 and cuDNN 9, the server (Python 3.12), the OmniVoice voice engine in its own environment (Python 3.11 + torch), ffmpeg and Node.
+The image includes everything: CUDA 12.8 and cuDNN 9, the server (Python 3.12), the OmniVoice voice engine in its own environment (Python 3.11 + torch), `llama-server` built with CUDA for the [agent](../../how-it-works/agent/), ffmpeg and Node.
 
 ## Requirements
 
@@ -48,6 +48,16 @@ The first time, it downloads the models (~6 GB) into the `modelos` volume; the c
 
 ```sh
 docker compose logs -f
+```
+
+## The agent in the container
+
+The `llama-server` releases Translay downloads are for Windows, so the image builds its own from the same llama.cpp version (`LLAMA_RELEASE`) with CUDA and points `TRANSLAY_LLAMA_SERVER` at it: the agent, the summary and the short descriptions run on the GPU. By default it is built for the architectures ggml chooses; for a single GPU you can build only its own, which is faster to compile. For example, NVIDIA GB10 (DGX Spark), which needs CUDA 12.9 or newer:
+
+```sh
+docker build -t translay \
+  --build-arg LLAMA_CUDA_IMAGE=nvidia/cuda:12.9.1-devel-ubuntu24.04 \
+  --build-arg LLAMA_CUDA_ARCHITECTURES=121a-real .
 ```
 
 ## Why the password is needed

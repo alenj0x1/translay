@@ -18,6 +18,8 @@ El agente responde preguntas sobre el video abierto: lo que se dice, lo que est�
 | Vulkan (38 MB) | Tarjetas NVIDIA y gráficas integradas (Intel UHD/Iris/Arc, AMD Radeon) |
 | CPU (25 MB) | Cualquier equipo |
 
+Esos builds son de Windows. En Linux y en [Docker](../../getting-started/docker/) el agente usa un `llama-server` ya instalado: el de `TRANSLAY_LLAMA_SERVER` (la imagen de Docker la apunta al suyo, compilado con CUDA) o el del `PATH`. El mismo binario corre en la GPU o, sin capas en ella, en el procesador.
+
 El plan depende del equipo (`vt/agentsvc.py`): la tarjeta gráfica si tiene memoria libre (mientras se dobla un video puede no tenerla), la gráfica integrada si hay una, o el procesador, con un modelo según la RAM. En **Ajustes › Agente** se puede fijar el modelo o el **Dispositivo** (**Automático**, **Tarjeta gráfica**, **Integrada** o **Procesador**).
 
 El modelo queda cargado mientras lo usas: la segunda pregunta sobre el mismo video reutiliza lo ya leído y responde en décimas de segundo. Tras 5 minutos sin preguntas entra en reposo y deja la memoria; el botón **Apagar** de la pestaña lo saca al momento y **Encender** lo carga y lee el video de antemano. Las sugerencias de preguntas salen del resumen, así funcionan aunque esté apagado: al tocar una, se enciende y responde. Si Translay se cierra de golpe, Windows cierra también el servidor del modelo (queda atado a la app con un Job Object).

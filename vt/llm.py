@@ -6,11 +6,13 @@ Un solo motor para todos los equipos: llama.cpp (MIT) con
   cuda     NVIDIA con CUDA 12.4 (más grande: el laboratorio dice si vale la pena frente a Vulkan)
 Cada build se baja de las releases oficiales con la versión fija, se verifica su SHA-256 y se descomprime
 en <datos>/runtime/llama/<versión>/<build>/. No pide permisos de administrador.
+Esos builds son de Windows. En Linux (y en la imagen de Docker) se usa un llama-server ya instalado:
+TRANSLAY_LLAMA_SERVER (la ruta al binario; la imagen trae uno compilado con CUDA) o el del PATH.
 
 Los modelos (GGUF) salen de Hugging Face con la revisión fija (MODELS). El servidor escucha solo en
 127.0.0.1, en un puerto libre, y se cierra con la app (o al quedar sin uso).
 
-  ensure(build, root)            el llama-server.exe de ese build (lo baja si falta)
+  ensure(build, root)            el llama-server de ese build (lo baja si falta, o el ya instalado)
   model_file(key)                el GGUF del modelo (lo baja si falta)
   Server(...).start() / chat()   levantar el modelo y conversar (con streaming y tiempos)
   devices(exe)                   las GPU que ve un build (para elegir integrada o dedicada)
@@ -108,8 +110,27 @@ def _download(url: str, dest: Path, size: int, sha: str, progress=None):
     tmp.replace(dest)
 
 
+def installed() -> Path | None:
+    """Un llama-server ya instalado: TRANSLAY_LLAMA_SERVER o, fuera de Windows, el del PATH.
+    Sirve para cualquier build (el mismo binario corre en la GPU con -ngl o en la CPU sin capas)."""
+    fixed = os.environ.get("TRANSLAY_LLAMA_SERVER", "").strip()
+    if fixed:
+        return Path(fixed)
+    if sys.platform != "win32":
+        found = shutil.which("llama-server")
+        return Path(found) if found else None
+    return None
+
+
 def ensure(build: str, root: Path, progress=None) -> Path:
-    """El llama-server.exe de ese build, listo para usar (se baja y verifica la primera vez)."""
+    """El llama-server de ese build, listo para usar: el ya instalado (installed()) o, en Windows, el
+    llama-server.exe oficial (se baja y verifica la primera vez)."""
+    own = installed()
+    if own:
+        return own
+    if sys.platform != "win32":
+        raise RuntimeError("no hay llama-server: instala llama.cpp o define TRANSLAY_LLAMA_SERVER "
+                           "(las releases que baja Translay son solo para Windows)")
     d = build_dir(root, build)
     exe = d / "llama-server.exe"
     if exe.exists():
