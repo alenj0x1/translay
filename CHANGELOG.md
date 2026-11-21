@@ -8,6 +8,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Added
 
+- Player: the progress line shows the video's chapters (from its summary) as stretches with a small gap between them; hovering shows the chapter's name over the time, the current chapter appears next to the time, and a summary that arrives while watching adds them without reloading.
 - Screen recording: «Silenciar las otras apps al grabar una ventana» (Settings › Add and download, off by default) mutes every other application while a window is recorded on Windows 10, where a window brings the whole computer's sound, and gives them their sound back when the recording stops or its tab closes.
 
 ### Changed

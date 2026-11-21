@@ -261,13 +261,41 @@ function renderTimeline() {
   const tl = $("#tl-es");
   paintRanges(tl, state.segments.filter((s) => s.translation).map((s) => [s.start, s.end]), d);
   if (d && isFinite(d)) tl.append(Object.assign(document.createElement("i"), { className: "head" }));
+  paintChapters(d);
   renderHead();
+}
+
+// capítulos del resumen (vt/digest.py): la línea de avance se parte en tramos con un hueco
+// entre ellos; con menos de dos capítulos (o sin resumen) la línea queda entera
+function videoChapters(d = vEn.duration) {
+  if (!d || !isFinite(d)) return [];
+  const chs = (state.summary?.chapters || []).filter((c) => c.title && c.t >= 0 && c.t < d - 1).sort((a, b) => a.t - b.t);
+  return chs.length >= 2 ? chs : [];
+}
+function chapterAt(sec, chs = videoChapters()) {
+  let now = chs[0] || null;
+  for (const c of chs) if (c.t <= sec) now = c;
+  return now;
+}
+function paintChapters(d) {
+  // una sola máscara para el fondo, lo procesado y el avance: huecos de 2 px en cada inicio de capítulo
+  const track = $("#track");
+  const cuts = videoChapters(d).slice(1).map((c) => (c.t / d) * 100);
+  if (!cuts.length) { track.style.removeProperty("--ch-mask"); track.classList.remove("chapters"); return; }
+  const stops = ["#000 0"];
+  for (const p of cuts) stops.push(`#000 calc(${p}% - 1px)`, `transparent calc(${p}% - 1px)`, `transparent calc(${p}% + 1px)`, `#000 calc(${p}% + 1px)`);
+  track.style.setProperty("--ch-mask", `linear-gradient(to right, ${stops.join(", ")})`);
+  track.classList.add("chapters");
 }
 
 function renderHead() {
   const d = vEn.duration;
   const t = vEn.currentTime;
+  const ch = chapterAt(t, videoChapters(d));
   $("#c-time").replaceChildren(fmt(t), el("small", { text: ` / ${d && isFinite(d) ? fmt(d) : "0:00"}` }));
+  const chip = $("#c-chap");  // el capítulo que se está viendo, junto al tiempo
+  chip.hidden = !ch;
+  if (ch && chip.textContent !== ch.title) { chip.textContent = ch.title; chip.title = ch.title; }
   if (!d || !isFinite(d)) return;
   const pct = `${Math.min(100, (t / d) * 100)}%`;
   $("#t-play").style.width = pct;

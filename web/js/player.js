@@ -50,11 +50,15 @@ $("#track").addEventListener("pointermove", (e) => {
   const r = $("#track").getBoundingClientRect();
   // cerca de una marca de comentario: se muestra su texto (y un clic salta ahí)
   const near = [...$("#t-notes").children].find((i) => Math.abs(i.getBoundingClientRect().left + 3 - e.clientX) < 7);
-  tip.textContent = near ? `${fmt(+near.dataset.t)} · ${near.dataset.text.slice(0, 80)}${near.dataset.text.length > 80 ? "…" : ""}`
-    : fmt(trackTime(e));
+  // si no, el minuto y, con capítulos, el nombre del capítulo encima
+  const at = trackTime(e);
+  const ch = near ? null : chapterAt(at);
+  if (near) tip.textContent = `${fmt(+near.dataset.t)} · ${near.dataset.text.slice(0, 80)}${near.dataset.text.length > 80 ? "…" : ""}`;
+  else tip.replaceChildren(...(ch ? [el("span", { class: "t-ch", text: ch.title })] : []), fmt(at));
   tip.classList.toggle("note", !!near);
-  tip.style.left = `${Math.max(18, Math.min(r.width - 18, e.clientX - r.left))}px`;
   tip.hidden = false;
+  const half = Math.min(r.width / 2, tip.offsetWidth / 2);  // un nombre largo tampoco se sale por los extremos
+  tip.style.left = `${Math.max(half, Math.min(r.width - half, e.clientX - r.left))}px`;
 });
 $("#track").addEventListener("pointerleave", () => { $("#t-tip").hidden = true; });
 
