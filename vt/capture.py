@@ -15,7 +15,15 @@ Repetirlo (la red se cortó mientras convertía) espera la misma conversión o
 responde que ya está.
 
 <biblioteca>/library/captures/<id>.webm.part   lo recibido
-<biblioteca>/library/captures/<id>.json        {"next": n, "bytes": b, "done": archivo}
+<biblioteca>/library/captures/<id>.json        {"next": n, "bytes": b, "at": hora, "opts": {...}, "done": archivo}
+
+Nada depende de que la página vuelva: cada parte trae las opciones de la grabación (calidad,
+cuadros, zona, tamaños, título, biblioteca) y, si dejan de llegar partes por IDLE_S sin
+«terminar» (se cerró el navegador o la app de escritorio, se apagó el equipo, la página
+volvió por otra dirección y no ve lo que guardó), el servidor arma el video con lo recibido
+y lo agrega a la biblioteca solo (sweep). Lo recibido se guarda KEEP_S más: si la página
+vuelve con partes que faltaban, se suman y el video se vuelve a armar completo.
+tools/lab/capture.py mide cada forma de corte.
 
 Si lo que se graba cambia de tamaño a mitad (se pasa de compartir un celular a una
 pantalla), `sizes` trae los tamaños que tuvo: el video final usa un lienzo que entra a
@@ -33,6 +41,7 @@ import asyncio
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
 from . import i18n
@@ -46,6 +55,9 @@ QUALITY = {"alta": (1080, 4000), "media": (720, 2000), "ligera": (480, 900), "au
 AUDIO_KBPS = {"audio": 96}  # el resto: 128
 # ffmpeg con la mitad del equipo: la app sigue respondiendo mientras comprime
 THREADS = max(1, (os.cpu_count() or 2) // 2)
+IDLE_S = 60          # sin partes nuevas ni «terminar» por este tiempo: el servidor la termina solo
+KEEP_S = 24 * 3600   # lo recibido de una grabación que terminó el servidor (por si la página vuelve)
+OPT_KEYS = ("q", "fps", "crop", "sizes", "title", "lib")
 
 
 def parse_crop(s: str) -> tuple[int, int, int, int] | None:
@@ -170,7 +182,8 @@ class Captures:
     def _state(self, meta: Path) -> dict:
         return read_json(meta, None) or {"next": 0, "bytes": 0}
 
-    async def part(self, cid: str, seq: int, body, lib: str | None) -> tuple[int, str]:
+    async def part(self, cid: str, seq: int, body, lib: str | None, query: dict | None = None) -> tuple[int, str]:
+        """query: las opciones de la grabación (OPT_KEYS), para poder terminarla sin la página."""
         data = b""
         async for c in body:
             data += c
@@ -179,12 +192,16 @@ class Captures:
         async with self._locks.setdefault(cid, asyncio.Lock()):
             _, part, meta = self._paths(cid, lib)
             st = self._state(meta)
-            if st.get("done"):
+            # terminada por la página: no se suma nada; por el servidor: lo que llega se suma y se vuelve a armar
+            if st.get("done") and not (st.get("auto") and part.exists()):
                 return 200, f"next={st['next']}"
             if seq != st["next"]:
                 return (200 if seq < st["next"] else 409), f"next={st['next']}"
             await asyncio.to_thread(self._append, part, st["bytes"], data)
-            st = {"next": seq + 1, "bytes": st["bytes"] + len(data)}
+            opts = {k: str(v)[:400] for k, v in (query or {}).items() if k in OPT_KEYS} or st.get("opts") or {}
+            st = {**st, "next": seq + 1, "bytes": st["bytes"] + len(data), "at": time.time(), "opts": opts}
+            if st.get("done"):
+                st["grew"] = True
             await asyncio.to_thread(write_json, meta, st)
             return 200, f"next={st['next']}"
 
@@ -203,7 +220,10 @@ class Captures:
         async with self._locks.setdefault(cid, asyncio.Lock()):
             d, part, meta = self._paths(cid, lib)
             st = self._state(meta)
-            if st.get("done"):
+            if st.get("done") and not st.get("grew"):
+                if st.get("auto"):  # la página confirma lo que el servidor ya armó: lo recibido sobra
+                    part.unlink(missing_ok=True)
+                    await asyncio.to_thread(write_json, meta, {k: v for k, v in st.items() if k != "auto"})
                 return 200, st["done"]
             if st["next"] < parts:
                 return 409, f"next={st['next']}"
@@ -218,7 +238,8 @@ class Captures:
             if task.done():
                 self._finishing.pop(cid, None)
 
-    async def _convert(self, d: Path, part: Path, meta: Path, st: dict, cid: str, opts: dict, register) -> tuple[int, str]:
+    async def _convert(self, d: Path, part: Path, meta: Path, st: dict, cid: str, opts: dict, register,
+                       auto: bool = False) -> tuple[int, str]:
         lib_dir = d.parent
         out = lib_dir / f"{cid}.{out_ext(opts['quality'])}"
         tmp = out.with_name(out.name + ".tmp")
@@ -243,6 +264,64 @@ class Captures:
             except (OSError, subprocess.SubprocessError):
                 thumb = None
         register(out, thumb, dur)
-        await asyncio.to_thread(write_json, meta, {**st, "done": out.name})
-        part.unlink(missing_ok=True)  # lo recibido ya es el video final
+        base = {k: v for k, v in st.items() if k not in ("grew", "auto")}
+        await asyncio.to_thread(write_json, meta, {**base, "done": out.name, **({"auto": True} if auto else {})})
+        if not auto:
+            part.unlink(missing_ok=True)  # lo recibido ya es el video final
         return 200, out.name
+
+    async def sweep(self, folders, register_for, now: float | None = None) -> list[str]:
+        """Termina las grabaciones abandonadas (sin partes por IDLE_S) y borra lo recibido de las que el
+        servidor terminó hace más de KEEP_S. folders: las carpetas library/ de cada biblioteca;
+        register_for(id, lib, título, calidad) da la función que la agrega a la biblioteca."""
+        now = now or time.time()
+        finished = []
+        for lib_dir in folders:
+            d = Path(lib_dir) / "captures"
+            if not d.is_dir():
+                continue
+            for meta in d.glob("cap_*.json"):
+                cid = meta.stem
+                if not ID_RE.fullmatch(cid) or cid in self._finishing:
+                    continue
+                part = d / f"{cid}.webm.part"
+                st = self._state(meta)
+                age = now - (st.get("at") or meta.stat().st_mtime)
+                if st.get("done") and not st.get("grew"):
+                    if st.get("auto") and age > KEEP_S:
+                        part.unlink(missing_ok=True)
+                        write_json(meta, {k: v for k, v in st.items() if k != "auto"})
+                    continue
+                if age < IDLE_S or not part.exists():
+                    continue
+                if not st.get("bytes"):  # nunca llegó nada: no hay video que armar
+                    if age > KEEP_S:
+                        meta.unlink(missing_ok=True)
+                        part.unlink(missing_ok=True)
+                    continue
+                q = st.get("opts") or {}
+                opts = parse_opts(q)
+                lib = q.get("lib") or None
+                async with self._locks.setdefault(cid, asyncio.Lock()):
+                    if self._state(meta) != st:
+                        continue  # llegó una parte o la página la terminó mientras tanto
+                    task = self._finishing[cid] = asyncio.create_task(self._convert(
+                        d, part, meta, st, cid, opts, register_for(cid, lib, q.get("title") or "", opts["quality"]), auto=True))
+                try:
+                    code, _ = await asyncio.shield(task)
+                finally:
+                    self._finishing.pop(cid, None)
+                if code == 200:
+                    finished.append(cid)
+                    print(f"[captura] {cid}: terminada por el servidor con {st.get('next', 0)} partes", flush=True)
+        return finished
+
+    async def watch(self, folders_of, register_for, every: float = 15):
+        """sweep() cada `every` segundos mientras corre el servidor (lo que quedó de antes de un cierre se
+        termina apenas pasa IDLE_S desde su última parte)."""
+        while True:
+            try:
+                await self.sweep(folders_of(), register_for)
+            except Exception as e:  # noqa: BLE001  una grabación rota no frena a las demás ni al servidor
+                print(f"[captura] revisión: {e}", flush=True)
+            await asyncio.sleep(every)

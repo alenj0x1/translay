@@ -219,6 +219,15 @@ python tools/lab/langs_asr.py --langs en pt es --models large-v3-turbo:float16 s
 python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
 ```
 
+### Screen recording lab
+
+`tools/lab/capture.py` checks that no screen recording is lost. It records for real with Chrome (no window, its own profile) a tab with a moving picture and a tone, against a Translay server of its own (temporary data folder, CPU, no voice), and causes each way a recording can be cut: stopped with the button, the recorded tab closed and then the browser, the recorded tab closed and then stopped, Translay closed and reopened, the browser killed and reopened, the server restarted halfway, Translay reopened at another address (`127.0.0.1` instead of `localhost`), nobody coming back, and audio only. It measures what the person sees: the video in the library with its file, and how long it lasts compared with what was recorded. Raw data goes to `data/labs/capture/`.
+
+```powershell
+python tools/lab/capture.py
+python tools/lab/capture.py --only normal,nunca_vuelve --rounds 2
+```
+
 <Aside>
 `samples/`, `data/` and `.venvs/` are not in git: the test videos are generated with `make_dialogue.py` or `make_sample.ps1`, and the engine environments are installed separately (see [Installation](../../getting-started/install/)).
 </Aside>

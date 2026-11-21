@@ -9,6 +9,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 ### Cambiado
 
 - Inicio de sesión: **Volver** pasa arriba a la izquierda de la tarjeta, con una flecha, en vez de quedar entre la contraseña y las bibliotecas públicas.
+- Grabar pantalla: en Windows 11, una ventana grabada trae solo el sonido de su aplicación, no el de todo el equipo (Windows 10 no puede separarlo, así que allí sigue como antes y el cuadro lo avisa).
 
 ### Corregido
 
@@ -16,6 +17,11 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 - Agente: un invitado «Solo ver» ya no ve el chat, las sugerencias, **Encender** ni «Preguntar a Lumi», que el servidor le niega; la pestaña del agente explica que preguntarle es de quien puede importar. La barra del agente ya no muestra un «null» suelto a quien no es el dueño.
 - Los invitados que solo pueden ver ya no reciben «No tienes permiso para esta acción en esta biblioteca» cada vez que abren un video: el reproductor solo le pide a la cola priorizar el video abierto (`watch`) cuando la biblioteca permite importar, y la sugerencia «Resumir» del agente no se les muestra.
 - Agente en Linux y en Docker: el resumen, las descripciones cortas y las preguntas ya no fallan al intentar bajar el `llama-server` de Windows. La imagen de Docker compila `llama-server` con CUDA de la misma versión de llama.cpp, y fuera de Windows Translay usa el de `TRANSLAY_LLAMA_SERVER` o el del `PATH` (`LLAMA_CUDA_IMAGE` y `LLAMA_CUDA_ARCHITECTURES` lo compilan para una sola GPU, p. ej. GB10).
+
+### Arreglado
+
+- Grabar pantalla: una grabación ya no se pierde cuando su página no vuelve. Cada segundo lleva las opciones de la grabación y, si el servidor no recibe nada durante un minuto (se cerró la pestaña o la ventana que se grababa y después el navegador, se cerró la app, o se abrió Translay en otra dirección), arma lo que tiene y lo agrega a la biblioteca; si la página vuelve con los segundos que faltaban, el video se completa.
+- App de escritorio: cerrar la ventana mientras se graba detiene y guarda la grabación antes, y Translay ya no se cierra desde la bandeja en medio de una grabación o de su subida.
 
 ## 1.14.0 · 2026-11-14
 

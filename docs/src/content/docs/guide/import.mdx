@@ -83,9 +83,9 @@ The separator can be a comma, semicolon or tab. The links found open in the seve
 
 «Grabar pantalla» (Record screen), in the «Agregar» panel (or «Capturar» when the button shows it), records a browser tab, a window or the whole screen and adds it to the library like any other video. It needs a computer browser (Chrome or Edge) and the page opened on this computer or over `https`. After you pick a window or a tab, Translay stays in front instead of hiding behind it.
 
-Only a tab brings just its own sound. A window or the whole screen brings the sound of the whole computer, a call or notifications included, and the dialog says so before you record.
+A tab brings just its own sound. On Windows 11 a window also brings only the sound of its application. On Windows 10 a window and the whole screen bring the sound of the whole computer, a call or notifications included, and the dialog says so before you record: Windows 10 can't separate one application's sound (that arrived with Windows build 20348).
 
-1. The browser asks what to share. To have something to translate, the source must carry sound: a tab, or the whole screen with «Compartir audio» (Share audio) turned on. A single window usually has no sound on Windows; if so, the dialog says so and «Elegir otra» (Choose another) opens the picker again.
+1. The browser asks what to share. To have something to translate, the source must carry sound: a tab, a window with «Compartir audio» (Share audio) turned on, or the whole screen with it. If the source has no sound, the dialog says so and «Elegir otra» (Choose another) opens the picker again.
 2. In the preview, moving the cursor highlights the boxes it finds: where the picture keeps moving (a video, even one that only takes up part of a page) and boxes with straight edges (windows, panels, players). A click picks the highlighted box, the mouse wheel jumps to the box that contains it, and dragging marks a zone by hand. «Toda la imagen» (Whole picture) goes back to recording everything.
 3. Choose the quality; under it you see the size of the final file and the most it will weigh per minute and per hour:
 
@@ -104,10 +104,14 @@ When it stops, the server puts the file together (cropped to the zone and compre
 
 If what you record changes shape halfway (you switch from sharing a phone to a desktop screen, or a phone rotates), the video adapts: the final file uses a frame that fits both, at the quality's height and the width of the widest, and each part fits inside without stretching, with black bands where there is room left. The chosen zone is dropped in that case, since it belonged to the other source.
 
-If the source stops sending picture (a minimized window, a locked or disconnected phone), the bar says «Lo que se graba no envía imagen» (What is recorded sends no picture). If it disappears or the browser stops sharing it, the recording ends and is saved on its own, with a notice.
+If the source stops sending picture (a minimized window, a locked or disconnected phone), the bar says «Lo que se graba no envía imagen» (What is recorded sends no picture). If the browser stops sharing it, the recording ends and is saved on its own, with a notice. When a recorded tab or window is closed, Chrome doesn't always say so: the recording keeps going until you press «Detener» or close Translay, and what was recorded is kept either way.
+
+In the desktop app, closing the window while recording stops the recording and saves it first, and Translay doesn't quit from the tray while a recording is going on or still uploading.
 
 <Aside title="Nothing is lost if the connection drops">
 Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión, se guarda en este equipo», No connection, saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed (it doesn't count as being offline: whatever it misses, the queue completes with the final file). If the server rejects the recording, it says why instead of retrying forever. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
+
+It doesn't depend on that page coming back, either: every second carries the recording's options, so if the server receives nothing new for a minute (the browser or the app was closed, or Translay was opened at another address, which can't see what the browser kept), it puts together what it has and adds it to the library on its own. If the page comes back later with the seconds that were missing, they are added and the video is put together again, complete.
 </Aside>
 
 ## Add to a collection

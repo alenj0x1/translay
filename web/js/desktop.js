@@ -50,7 +50,11 @@ function initDesktop() {
   bar.append(updateBtn, themeBtn, el("div", { class: "win-controls" },
     winBtn("win-min", t("Minimizar"), "minimize", () => desktopWindow().minimize()),
     maxBtn,
-    winBtn("win-close", t("Cerrar"), "x", () => desktopCall("close_window"))));
+    // una grabación en curso se detiene y se guarda antes (capture.js)
+    winBtn("win-close", t("Cerrar"), "x", async () => {
+      if (typeof capSettle === "function") await capSettle();
+      desktopCall("close_window");
+    })));
   // actualización, prefs-btn y theme-btn van juntos, justo antes de los controles de la ventana
   bar.insertBefore(prefsBtn, themeBtn);
   bar.insertBefore(updateBtn, prefsBtn);
@@ -215,8 +219,9 @@ function updateRows(row) {
 }
 
 // ¿Queda algo por hacer? Trabajos en cola o procesándose (de todas las bibliotecas, sin pausa),
-// descargas abiertas o exportaciones en curso.
+// descargas abiertas, exportaciones en curso o una grabación de pantalla (en curso o subiéndose).
 function desktopBusy() {
+  if (typeof capBusy === "function" && capBusy()) return true;
   const q = lib.queue || { jobs: [] };
   // con la cola detenida igual se procesa el video que se está viendo; lo detenido a mano no cuenta
   const pending = q.jobs.some((j) => j.state === "procesando" || j.dl)

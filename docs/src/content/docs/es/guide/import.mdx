@@ -83,9 +83,9 @@ El separador puede ser coma, punto y coma o tabulación. Los enlaces encontrados
 
 «Grabar pantalla», en el panel «Agregar» (o «Capturar» cuando el botón lo muestra), graba una pestaña del navegador, una ventana o toda la pantalla y la agrega a la biblioteca como cualquier video. Necesita un navegador de computadora (Chrome o Edge) y la página abierta en este equipo o por `https`. Al elegir una ventana o una pestaña, Translay sigue al frente en vez de quedar detrás.
 
-Solo una pestaña trae únicamente su propio sonido. Una ventana o la pantalla completa traen el sonido de todo el equipo, incluidas una llamada o las notificaciones, y el cuadro lo avisa antes de grabar.
+Una pestaña trae solo su propio sonido. En Windows 11, una ventana también trae solo el sonido de su aplicación. En Windows 10, una ventana y la pantalla completa traen el sonido de todo el equipo, incluidas una llamada o las notificaciones, y el cuadro lo avisa antes de grabar: Windows 10 no puede separar el sonido de una aplicación (eso llegó con la compilación 20348 de Windows).
 
-1. El navegador pregunta qué compartir. Para tener algo que traducir, la fuente debe traer sonido: una pestaña, o la pantalla completa con «Compartir audio» activado. Una ventana sola normalmente no trae sonido en Windows; en ese caso el cuadro lo dice y «Elegir otra» vuelve a abrir el selector.
+1. El navegador pregunta qué compartir. Para tener algo que traducir, la fuente debe traer sonido: una pestaña, una ventana con «Compartir audio» activado, o la pantalla completa con esa opción. Si la fuente no trae sonido, el cuadro lo dice y «Elegir otra» vuelve a abrir el selector.
 2. En la vista previa, al mover el cursor se resaltan los recuadros que encuentra: donde la imagen se mueve sin parar (un video, aunque ocupe solo parte de una página) y las cajas de bordes rectos (ventanas, paneles, reproductores). Un clic elige el recuadro resaltado, la rueda del mouse pasa al recuadro que lo contiene y arrastrar marca una zona a mano. «Toda la imagen» vuelve a grabar todo.
 3. Elige la calidad; debajo se ve el tamaño del archivo final y cuánto pesará como máximo por minuto y por hora:
 
@@ -104,10 +104,14 @@ Al detenerla, el servidor arma el archivo (recortado a la zona y comprimido a H.
 
 Si lo que grabas cambia de forma a mitad (pasas de compartir un celular a la pantalla del escritorio, o el celular gira), el video se adapta: el archivo final usa un cuadro que entra a los dos, con el alto de la calidad y el ancho del más ancho, y cada parte cabe adentro sin deformarse, con franjas negras donde sobra espacio. La zona elegida se descarta en ese caso, porque era de la otra fuente.
 
-Si la fuente deja de enviar imagen (una ventana minimizada, un celular bloqueado o desconectado), la barra dice «Lo que se graba no envía imagen». Si desaparece o el navegador deja de compartirla, la grabación termina y se guarda sola, con un aviso.
+Si la fuente deja de enviar imagen (una ventana minimizada, un celular bloqueado o desconectado), la barra dice «Lo que se graba no envía imagen». Si el navegador deja de compartirla, la grabación termina y se guarda sola, con un aviso. Cuando se cierra la pestaña o la ventana que se graba, Chrome no siempre lo avisa: la grabación sigue hasta que presionas «Detener» o cierras Translay, y lo grabado se guarda igual.
+
+En la app de escritorio, cerrar la ventana mientras se graba detiene la grabación y la guarda antes, y Translay no se cierra solo desde la bandeja mientras haya una grabación en curso o subiéndose.
 
 <Aside title="Nada se pierde si se corta la conexión">
 Cada segundo de grabación se guarda en el navegador antes de subirse y se borra solo cuando el servidor lo confirma. Sin conexión se sigue grabando («Sin conexión, se guarda en este equipo») y la subida se retoma al volver; la transcripción en vivo se reconecta sola y reenvía lo que no había confirmado (eso no cuenta como estar sin conexión: lo que no alcance, lo completa la cola con el archivo final). Si el servidor rechaza la grabación, lo dice en vez de reintentar sin fin. Si cierras la pestaña o se apaga el equipo, la próxima vez que abras Translay termina de subir lo grabado y lo arma.
+
+Tampoco depende de que esa página vuelva: cada segundo lleva las opciones de la grabación, así que si el servidor no recibe nada nuevo durante un minuto (se cerró el navegador o la app, o se abrió Translay en otra dirección, que no ve lo que guardó el navegador), arma lo que tiene y lo agrega a la biblioteca solo. Si después la página vuelve con los segundos que faltaban, se suman y el video se vuelve a armar completo.
 </Aside>
 
 ## Agregar dentro de una colección

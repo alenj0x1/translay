@@ -272,6 +272,15 @@ const capDlg = $("#cap-dlg"), capPrev = $("#cap-preview"), capBoxes = $("#cap-bo
 const capWork = document.createElement("canvas");
 
 const canCapture = () => !!navigator.mediaDevices?.getDisplayMedia && window.isSecureContext;
+
+// Audio de una sola ventana: Chromium lo graba con la captura por proceso de Windows, que existe desde la
+// compilación 20348 (Windows 11; platformVersion 13 o más). Allí se pide `windowAudio: "window"` y una
+// ventana trae solo el sonido de su aplicación; en Windows 10 el sistema no lo permite y se pide lo de
+// siempre (el audio del equipo), para no quedarse sin sonido.
+let capWinAudio = false;
+navigator.userAgentData?.getHighEntropyValues?.(["platformVersion"]).then((d) => {
+  capWinAudio = navigator.userAgentData.platform === "Windows" && parseInt(d.platformVersion, 10) >= 13;
+}).catch(() => {});
 $("#cap-btn").hidden = $("#rec-btn").hidden = !canCapture();
 
 async function pickSource() {
@@ -284,6 +293,7 @@ async function pickSource() {
       video: { frameRate: { ideal: 30, max: 30 } },
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       systemAudio: "include", selfBrowserSurface: "exclude", surfaceSwitching: "include", monitorTypeSurfaces: "include",
+      ...(capWinAudio ? { windowAudio: "window" } : {}),
       ...(controller ? { controller } : {}),
     });
     try { controller?.setFocusBehavior("no-focus-change"); } catch { /* la pantalla completa no cambia el foco */ }
@@ -334,12 +344,12 @@ function capCropPx() {
 function capRender() {
   const hasAudio = !!capUI.stream?.getAudioTracks().length;
   const hasVideo = !!capUI.stream?.getVideoTracks().length;
-  // una ventana o la pantalla traen el sonido de todo el equipo (una llamada, notificaciones…); solo una
-  // pestaña trae únicamente el suyo
+  // la pantalla (y una ventana en Windows 10) traen el sonido de todo el equipo (una llamada,
+  // notificaciones…); una pestaña, y una ventana en Windows 11, traen solo el suyo
   const surface = capUI.stream?.getVideoTracks()[0]?.getSettings?.().displaySurface;
   $("#cap-warn").textContent = !hasAudio
     ? t("Esta fuente no tiene audio y no se puede transcribir. Comparte una pestaña o la pantalla completa con «Compartir audio» activado.")
-    : surface && surface !== "browser"
+    : surface && surface !== "browser" && !(surface === "window" && capWinAudio)
       ? (DESKTOP ? t("Se graba todo el audio del equipo, incluidas llamadas y notificaciones.")
         : t("Se graba todo el audio del equipo, incluidas llamadas y notificaciones. Para grabar solo un video, comparte su pestaña."))
       : "";
@@ -576,6 +586,21 @@ function stopRecording() {
   if (capRec.rec && capRec.rec.state !== "inactive") capRec.rec.stop();
 }
 
+// ¿Se graba o queda algo por subir? La app de escritorio no se cierra sola mientras tanto (desktop.js)
+function capBusy() {
+  return !!capRec.rec || [...capUp.values()].some((u) => u.state !== "error");
+}
+
+// Antes de cerrar la app de escritorio: se detiene la grabación y se espera (hasta `ms`) a que lo grabado
+// quede guardado y subido. Lo que no alcance a subir lo termina el servidor o la próxima apertura.
+async function capSettle(ms = 6000) {
+  if (!capBusy()) return;
+  stopRecording();
+  const t0 = Date.now();
+  const pending = () => capRec.rec || [...capUp.values()].some((u) => u.state === "subiendo" && u.next < u.record.parts);
+  while (pending() && Date.now() - t0 < ms) await new Promise((r) => setTimeout(r, 200));
+}
+
 // La fuente cambió de tamaño (otra pantalla, un celular que gira): se anota para armar el video final
 function capTrackSize() {
   const r = capRec.record, s = capRec.track?.getSettings?.();
@@ -608,7 +633,7 @@ async function capUpload(record) {
       while (u.next < record.parts) {
         const part = await capPartGet(record.id, u.next);
         if (!part) { u.next++; continue; }  // ya confirmada antes de recargar
-        const r = await fetch(`/api/capture/${record.id}/${u.next}?lib=${encodeURIComponent(record.lib)}`, { method: "PUT", body: part.blob });
+        const r = await fetch(`/api/capture/${record.id}/${u.next}?${capQs(record)}`, { method: "PUT", body: part.blob });
         const body = await r.text();
         const next = Number((body.match(/next=(\d+)/) || [])[1]);
         // el servidor rechaza la parte (no es la red): reintentar no lo arregla
@@ -651,14 +676,19 @@ async function capUpload(record) {
   }
 }
 
+// Las opciones de la grabación van con cada parte: si la página no vuelve (se cerró el navegador o la app,
+// o se abre Translay por otra dirección), el servidor la termina solo con ellas (vt/capture.py, sweep).
+// Otra forma de fuente a mitad de la grabación: la zona elegida ya no corresponde (el servidor arma un lienzo).
+function capQs(record, extra = {}) {
+  const sizes = record.sizes || [];
+  return new URLSearchParams({ q: record.q, fps: record.fps, crop: sizes.length > 1 ? "" : record.crop,
+    sizes: sizes.join(","), title: record.title, lib: record.lib, ...extra });
+}
+
 async function capFinish(record, u) {
   u.state = "armando";
   capBar();
-  // otra forma de fuente a mitad de la grabación: la zona elegida ya no corresponde (el servidor arma un lienzo)
-  const sizes = record.sizes || [];
-  const qs = new URLSearchParams({ parts: record.parts, q: record.q, fps: record.fps, crop: sizes.length > 1 ? "" : record.crop,
-    sizes: sizes.join(","), title: record.title, lib: record.lib });
-  const r = await fetch(`/api/capture/${record.id}/end?${qs}`, { method: "PUT" });
+  const r = await fetch(`/api/capture/${record.id}/end?${capQs(record, { parts: record.parts })}`, { method: "PUT" });
   const text = await r.text();
   if (r.status === 409) { u.next = Number((text.match(/next=(\d+)/) || [])[1]) || 0; throw new Error("faltan partes"); }
   if (!r.ok) {

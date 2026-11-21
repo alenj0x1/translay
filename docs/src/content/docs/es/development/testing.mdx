@@ -219,6 +219,15 @@ python tools/lab/langs_asr.py --langs en pt es --models large-v3-turbo:float16 s
 python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
 ```
 
+### Lab de grabación de pantalla
+
+`tools/lab/capture.py` comprueba que ninguna grabación de pantalla se pierda. Graba de verdad con Chrome (sin ventana, con su propio perfil) una pestaña con imagen en movimiento y un tono, contra un servidor de Translay propio (carpeta de datos temporal, CPU, sin voz), y provoca cada forma de cortar una grabación: detenerla con el botón, cerrar la pestaña grabada y después el navegador, cerrar la pestaña grabada y después detenerla, cerrar Translay y volver a abrirlo, matar el navegador y volver a abrirlo, reiniciar el servidor a mitad, volver a abrir Translay en otra dirección (`127.0.0.1` en vez de `localhost`), que nadie vuelva y solo audio. Mide lo que ve la persona: el video en la biblioteca con su archivo, y cuánto dura frente a lo que se grabó. Los datos crudos van a `data/labs/capture/`.
+
+```powershell
+python tools/lab/capture.py
+python tools/lab/capture.py --only normal,nunca_vuelve --rounds 2
+```
+
 <Aside>
 `samples/`, `data/` y `.venvs/` no van a git: los videos de prueba se generan con `make_dialogue.py` o `make_sample.ps1`, y los entornos de los motores se instalan aparte (ver [Instalación](../../getting-started/install/)).
 </Aside>

@@ -190,21 +190,30 @@ def main():
         if seq != "end":
             if not seq.isdigit():
                 return 400, "parte invalida"
-            return await captures.part(cid, int(seq), body, lib)
+            return await captures.part(cid, int(seq), body, lib, query)
         async for _ in body:
             pass
         opts = capture.parse_opts(query)
-        title = (query.get("title") or "Grabación de pantalla")[:200]
+        parts = int(query.get("parts", "0") or 0)
+        return await captures.finish(cid, parts, opts, lib, capture_register(cid, lib, query.get("title"), opts["quality"]))
+
+    def capture_register(cid, lib, title, quality, auto=False):
+        """La función que agrega la grabación terminada a su biblioteca. auto: la terminó el servidor (la
+        página no volvió), así que también la pone en la cola como haría la página y avisa a las pestañas."""
+        title = (title or "Grabación de pantalla")[:200]
 
         def register(out, thumb, duration):
             v = vaults.get(lib) or vaults.main
             v.library.register(cid, title=title, duration=duration, source="file", media=f"/media/lib/{out.name}",
                                thumb=f"/media/lib/{thumb.name}" if thumb else "")
-            if opts["quality"] == "audio":
+            if quality == "audio":
                 v.library.set_field(cid, audio=f"/media/lib/{out.name}", audio_only=True)
-
-        parts = int(query.get("parts", "0") or 0)
-        return await captures.finish(cid, parts, opts, lib, register)
+            if auto:
+                own = v.meta.get("prefs") or {}  # «Al agregar» propio de la biblioteca, o el general
+                if own.get("import_mode", prefs.values.get("import_mode")) != "descargar":
+                    processor.add_many([cid])
+                notify({"type": "library_changed"})
+        return register
 
     async def put_thumb(rest, query, headers, body):
         vid = rest.strip("/")
@@ -518,6 +527,10 @@ def main():
             if admin.network:  # «Acceso desde otros equipos» (Ajustes → Acceso y API)
                 await admin.set_network(True)
                 print("En la red: " + ", ".join(f"http://{ip}:{a.port}" for ip in admin.lan_ips()), flush=True)
+            # grabaciones cuya página no volvió: se terminan solas (vt/capture.py)
+            sweeper = asyncio.create_task(captures.watch(  # noqa: F841  vive lo que vive el servidor
+                lambda: [v.root / "library" for v in vaults.all()],
+                lambda cid, lib, title, quality: capture_register(cid, lib, title, quality, auto=True)))
             await server.serve(a.host, a.port)
 
         asyncio.run(run_all())

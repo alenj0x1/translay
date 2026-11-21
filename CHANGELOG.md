@@ -9,6 +9,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 ### Changed
 
 - Sign-in: **Volver** (Back) moved to the top left of the card, with an arrow, instead of sitting between the password and the public libraries.
+- Screen recording: on Windows 11 a recorded window brings only the sound of its application, not the whole computer's (Windows 10 can't separate it, so there it stays as before and the dialog says so).
 
 ### Fixed
 
@@ -16,6 +17,8 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - Agent: a "Solo ver" guest no longer sees the chat, the suggestions, **Encender** or «Preguntar a Lumi», which the server refuses to them; the agent tab explains that asking it is for whoever can import. The agent's bar no longer shows a stray «null» to whoever isn't the owner.
 - Guests who can only view no longer get «No tienes permiso para esta acción en esta biblioteca» every time they open a video: the player only asks the queue to prioritize the open video (`watch`) when the library allows importing, and the agent's «Resumir» suggestion is hidden from them.
 - Agent on Linux and in Docker: the summary, the short descriptions and the questions no longer fail trying to download the Windows `llama-server`. The Docker image builds `llama-server` with CUDA from the same llama.cpp version, and outside Windows Translay uses the one in `TRANSLAY_LLAMA_SERVER` or in the `PATH` (`LLAMA_CUDA_IMAGE` and `LLAMA_CUDA_ARCHITECTURES` build it for a single GPU, e.g. GB10).
+- Screen recording: a recording is no longer lost when its page never comes back. Each second carries the recording's options, and if the server receives nothing for a minute (the recorded tab or window was closed and then the browser, the app was closed, or Translay was opened at another address) it puts together what it has and adds it to the library; if the page comes back with the missing seconds, the video is completed.
+- Desktop app: closing the window while recording stops and saves the recording first, and Translay no longer quits from the tray in the middle of a recording or its upload.
 
 ## 1.14.0 · 2026-11-14
 
