@@ -21,7 +21,7 @@ def test_path_fuera_de_windows(monkeypatch, tmp_path):
     monkeypatch.delenv("TRANSLAY_LLAMA_SERVER", raising=False)
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(llm.shutil, "which", lambda name: "/usr/local/bin/llama-server" if name == "llama-server" else None)
-    assert str(llm.installed()) == "/usr/local/bin/llama-server"
+    assert llm.installed().as_posix() == "/usr/local/bin/llama-server"  # en Windows, Path usa barras invertidas
 
 
 def test_sin_binario_fuera_de_windows_no_baja_el_de_windows(monkeypatch, tmp_path):
