@@ -198,3 +198,18 @@ def test_page_confirms_what_the_server_already_built():
         assert run(caps.finish(CID, 1, parse_opts(q), None, lambda *a: got.append(a))) == (200, f"{CID}.m4a")
         assert len(got) == 1
         assert not (root / "captures" / f"{CID}.webm.part").exists()
+
+
+def test_mute_others_needs_a_known_window():
+    """Sin una ventana reconocible no se silencia nada, y restaurar sin nada guardado no toca el sonido."""
+    from vt import appmute
+    from vt.prefs import SCHEMA
+
+    assert appmute.window_exe("screen:0:0") == "" and appmute.window_exe("") == ""
+    assert appmute.window_exe("window:0:0") == ""  # una ventana que ya no existe
+    with tempfile.TemporaryDirectory() as tmp:
+        am = appmute.AppMute(Path(tmp) / "muted.json")
+        assert am.mute_others("screen:0:0", object()) == {"error": "no_window" if appmute.AVAILABLE else "unsupported"}
+        assert am.restore() == 0
+        assert am.restore(owner=object()) == 0  # otra pestaña no restaura lo que pidió una
+    assert next(p for p in SCHEMA if p["key"] == "rec_mute_others")["default"] is False

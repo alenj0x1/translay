@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import __version__, capture
 from .capture import Captures
+from .appmute import AppMute
 from .asr import WhisperASR
 from .httpws import AppServer
 from .session import Session
@@ -459,6 +460,10 @@ def main():
     from .storage import Storage
 
     storage = Storage(DATA, vaults, processor, exporter, models_in_use)
+    # «Silenciar las otras apps al grabar una ventana» (vt/appmute.py); lo que quedó silenciado si Translay
+    # se cerró de golpe en medio de una grabación recupera el sonido al arrancar
+    appmute = AppMute(DATA / "cache" / "muted.json")
+    threading.Thread(target=appmute.restore, daemon=True).start()
     storage.sweep_tmp()
     if prefs.values.get("models_prune"):  # se pidió al cambiar de perfil: lo que el nuevo no usa, fuera
         print(f"[modelos] se liberaron {round(storage.free('unused_models') / 1e9, 1)} GB de modelos que no se usan", flush=True)
@@ -497,7 +502,7 @@ def main():
         loop_ref["loop"] = asyncio.get_running_loop()
         session = Session(ws, asr, gpu, store, translator, info, dubber, tts_exec, youtube, library, res,
                           processor, prefs, notify, exporter, vaults=vaults, access=auth.access(ws.request),
-                          admin=admin, perf=perf, storage=storage)
+                          admin=admin, perf=perf, storage=storage, appmute=appmute)
         sessions.add(session)
         try:
             await session.run()

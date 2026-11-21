@@ -6,6 +6,10 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ## Unreleased
 
+### Added
+
+- Screen recording: «Silenciar las otras apps al grabar una ventana» (Settings › Add and download, off by default) mutes every other application while a window is recorded on Windows 10, where a window brings the whole computer's sound, and gives them their sound back when the recording stops or its tab closes.
+
 ### Changed
 
 - Sign-in: **Volver** (Back) moved to the top left of the card, with an arrow, instead of sitting between the password and the public libraries.

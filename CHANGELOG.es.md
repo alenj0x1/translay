@@ -6,6 +6,10 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ## Sin publicar
 
+### Agregado
+
+- Grabar pantalla: «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar, apagada por defecto) silencia las demás aplicaciones mientras se graba una ventana en Windows 10, donde una ventana trae el sonido de todo el equipo, y les devuelve el sonido al terminar la grabación o si se cierra su pestaña.
+
 ### Cambiado
 
 - Inicio de sesión: **Volver** pasa arriba a la izquierda de la tarjeta, con una flecha, en vez de quedar entre la contraseña y las bibliotecas públicas.

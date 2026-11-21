@@ -557,6 +557,7 @@ async function startRecording(stream, crop) {
     stopRecording();
   };
   rec.onstop = async () => {
+    if (capRec.muted) { capRec.muted = false; send({ type: "rec_mute", on: false }); }
     capStopStream(stream);
     capRec.track = null;
     clearInterval(capRec.tick);
@@ -577,9 +578,22 @@ async function startRecording(stream, crop) {
   track?.addEventListener("unmute", () => { capRec.mutedAt = 0; capBar(); });
   stream.getAudioTracks()[0]?.addEventListener("ended", () => { if (audioOnly) stopRecording(); });
   rec.start(CAP_PART_MS);
+  capMuteOthers(stream);
   liveStart(id, title, record.lib, stream);
   capRec.tick = setInterval(capBar, 500);
   capBar();
+}
+
+// «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar): en Windows 10 una
+// ventana trae el sonido de todo el equipo; el servidor (vt/appmute.py) silencia las demás aplicaciones
+// mientras dura la grabación y les devuelve el sonido al detenerla o si esta pestaña se cierra.
+// En Windows 11 la ventana ya trae solo el suyo (capWinAudio) y no hace falta.
+function capMuteOthers(stream) {
+  const track = stream.getVideoTracks()[0];
+  if (!prefs.rec_mute_others || capWinAudio || !stream.getAudioTracks().length) return;
+  if (track?.getSettings?.().displaySurface !== "window" || !(state.access?.local && state.access?.owner)) return;
+  capRec.muted = true;
+  send({ type: "rec_mute", on: true, label: track.label });
 }
 
 function stopRecording() {

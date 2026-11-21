@@ -68,7 +68,7 @@ from .vaults import VAULT_PREFS, RoutedStore
 OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "yt_disconnect", "queue_pause", "queue_resume", "queue_clear",
               "queue_unblock", "queue_remove", "queue_hold", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
-              "comment_add", "comment_edit", "comment_delete",
+              "comment_add", "comment_edit", "comment_delete", "rec_mute",
               "export_pick_folder", "export_reveal"}
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch",
                "summarize", "summary_cancel", "agent_ask", "agent_continue", "agent_stop", "agent_clear", "agent_power",
@@ -83,8 +83,9 @@ class Session:
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
                  youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
-                 vaults=None, access: Access | None = None, admin=None, perf=None, storage=None):
+                 vaults=None, access: Access | None = None, admin=None, perf=None, storage=None, appmute=None):
         self.ws = ws
+        self.appmute = appmute  # silenciar las otras apps mientras esta pestaña graba una ventana (vt/appmute.py)
         self.perf = perf  # equipo, perfil y límites (vt/perf.py)
         self.storage = storage  # cuánto ocupa cada cosa y qué se puede liberar (vt/storage.py)
         self.gpu = gpu
@@ -356,9 +357,13 @@ class Session:
                         asyncio.create_task(self._storage(m))
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
+                    elif m.get("type") == "rec_mute" and self.appmute:
+                        asyncio.create_task(self._rec_mute(m))
                     else:
                         self.q.put_nowait((m.get("type"), m))
         finally:
+            if self.appmute:  # la pestaña que grababa se cerró o se cortó: las otras apps recuperan el sonido
+                await asyncio.to_thread(self.appmute.restore, self)
             self.q.put_nowait(("close", None))
             await worker
             if self._backfill:
@@ -1410,6 +1415,18 @@ class Session:
         return msg
 
     # ------------------------------------------------------- administración
+    async def _rec_mute(self, m: dict):
+        """{"type":"rec_mute","on":true,"label":<etiqueta de la pista>} al empezar a grabar una ventana con
+        «Silenciar las otras apps al grabar una ventana»; on=false al terminar. Solo el dueño en este equipo:
+        toca el sonido de sus aplicaciones."""
+        if not self.access.local:
+            return await self.ws.send_json({"type": "rec_mute", "error": "remote"})
+        if m.get("on"):
+            out = await asyncio.to_thread(self.appmute.mute_others, str(m.get("label", ""))[:200], self)
+        else:
+            out = {"restored": await asyncio.to_thread(self.appmute.restore, self)}
+        await self.ws.send_json({"type": "rec_mute", **out})
+
     async def _admin(self, m: dict):
         """Acceso, claves de API, webhooks y red: Ajustes → Acceso y API (solo el dueño)."""
         a, t = self.admin, m["type"]

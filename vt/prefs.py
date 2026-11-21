@@ -107,6 +107,9 @@ SCHEMA = [
                 + [["ninguno", "Ningún otro"]]},
     {"key": "download_order", "section": "biblioteca", "label": "Orden de las descargas", "type": "choice",
      "default": "orden", "options": [["orden", "En el orden de la cola"], ["aleatorio", "Aleatorio"]]},
+    # vt/appmute.py: en Windows 10 una ventana graba el sonido de todo el equipo
+    {"key": "rec_mute_others", "section": "biblioteca", "label": "Silenciar las otras apps al grabar una ventana",
+     "type": "bool", "default": False},
     {"key": "notify", "section": "biblioteca", "label": "Notificaciones del navegador", "type": "bool", "default": False},
     {"key": "lib_channels", "section": "biblioteca", "label": "Canales en la barra lateral", "type": "bool",
      "default": True},
@@ -175,6 +178,8 @@ DETAILS = {
     "import_mode": ("Al agregar", "Traducir y doblar todo, o solo descargarlo (para verlo o exportar el original)."),
     "download_what": ("Al agregar", "Descargar solo el audio es más rápido y ocupa menos espacio. El video se puede descargar después."),
     "download_order": ("Descargas", "En modo aleatorio se descarga de toda la cola en orden variado. Los videos priorizados siempre van primero."),
+    "rec_mute_others": ("Grabar pantalla", "En Windows 10 una ventana graba el sonido de todo el equipo. Esto silencia las demás "
+                        "aplicaciones mientras grabas y les devuelve el sonido al terminar. En Windows 11 no hace falta."),
     "notify": ("Notificaciones y vista", "Notificación del sistema al terminar una descarga, un video o una exportación."),
     "lib_channels": ("Notificaciones y vista", "Mostrar los canales de YouTube en la barra lateral de la biblioteca."),
     "agent_name": ("Apariencia", "Nombre que se muestra en la pestaña del video y en las respuestas."),

@@ -136,6 +136,10 @@ function onMessage(m) {
     case "denied":
       toast(t("No tienes permiso para esta acción en esta biblioteca"), "warn");
       break;
+    case "rec_mute":  // «Silenciar las otras apps al grabar una ventana» (capture.js)
+      if (m.error === "no_window") toast(t("No se reconoció la ventana. Las otras apps siguen con sonido."), "warn");
+      else if (m.muted) toast(t("Las otras apps quedan en silencio hasta que termines de grabar"), "ok");
+      break;
     case "vault_folder":
       vaultFolder(m);
       break;
