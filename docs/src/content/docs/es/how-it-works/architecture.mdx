@@ -82,7 +82,9 @@ La interfaz no usa framework ni compilación: `web/index.html` carga los CSS y l
 |---|---|
 | `app.py` | Punto de entrada: argumentos, carga de modelos, rutas HTTP y arranque. |
 | `httpws.py` | Servidor HTTP estático (con `Range`) y WebSocket RFC 6455 sobre `asyncio`, sin dependencias. |
-| `session.py` | Una sesión por pestaña: protocolo WebSocket, permisos, procesamiento en vivo y cola de voz de la pestaña. |
+| `session.py` | Una sesión por pestaña: protocolo WebSocket y permisos. Sus métodos se reparten por área en `session_dub.py` (procesamiento en vivo y cola de voz de la pestaña), `session_import.py`, `session_agent.py`, `session_library.py` y `session_admin.py`. |
+| `dialogs.py` | Cuadros del sistema en este equipo: elegir carpeta, dónde guardar, mostrar un archivo en su carpeta. |
+| `appmute.py` | Silencia las otras apps mientras se graba una ventana y las restaura (Core Audio de Windows por ctypes). |
 | `processor.py` | Cola del servidor: procesa videos guardados y descarga los de YouTube. Estado en `data/queue.json`. |
 | `vad.py` | Detector de voz por energía con piso de ruido adaptativo. |
 | `langs.py` | Registro de idiomas: códigos y nombres de cada idioma para Whisper, NLLB, Opus-MT, FFmpeg y la interfaz. |

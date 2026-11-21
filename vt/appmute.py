@@ -23,7 +23,7 @@ import os
 import re
 import sys
 import threading
-from ctypes import POINTER, byref, c_float, c_int, c_uint, c_void_p, wintypes
+from ctypes import POINTER, byref, c_int, c_uint, c_void_p, wintypes
 from pathlib import Path
 
 from .jsonio import read_json, write_json

@@ -28,7 +28,14 @@ The interface is HTML, CSS and JavaScript with no framework or build step. The s
     - ui.js components: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js custom menus and dropdown lists
     - theme.js light or dark mode
-    - app.js connection, player, transcript, voice, preferences
+    - app.js connection, video loading, transcript rendering, idle and tabs; the other files below share its global scope and load right after it
+    - dubaudio.js audio to the server, audio processed ahead, when to play, sync between videos, the dubbed voice and the language picker
+    - comments.js per-sentence comments, confirm and prompt dialogs, closing the video and the timeline with what is processed
+    - prefs.js Settings: home with its blocks, each page with its options (`setPref`, `applyPrefs`, `openPrefs`)
+    - player.js player controls, subtitles (button, C key, right click) and «Copiar para un agente»
+    - people.js the people of each video (name and voice) and the library's glossary
+    - importlinks.js several links at once and .csv lists
+    - ytsession.js the YouTube session for downloads (account, browser cookies or a file)
     - patterns.js dot fields and collection icons
     - i18n.js `t()`, language names and formats of the app's language
     - star.js the agent as a character (the star)
@@ -204,7 +211,7 @@ Settings have a single source: `SCHEMA` in `vt/prefs.py`. The Ajustes screen and
 
 3. If it must be stored per library and not globally, add the key to `VAULT_PREFS` in `vt/vaults.py`: it is saved in the open library's `vault.json`.
 
-4. Read it in the view with `prefs.sub_size`. If it changes something global (a class on `body`, a volume), apply it in `applyPrefs` in `app.js`, which runs every time the preferences arrive. If the view needs it before connecting, add its default value to the initial `prefs` object in `app.js`.
+4. Read it in the view with `prefs.sub_size`. If it changes something global (a class on `body`, a volume), apply it in `applyPrefs` in `prefs.js`, which runs every time the preferences arrive. If the view needs it before connecting, add its default value to the initial `prefs` object in `app.js`.
 
 </Steps>
 

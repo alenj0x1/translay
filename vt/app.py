@@ -533,7 +533,7 @@ def main():
                 await admin.set_network(True)
                 print("En la red: " + ", ".join(f"http://{ip}:{a.port}" for ip in admin.lan_ips()), flush=True)
             # grabaciones cuya página no volvió: se terminan solas (vt/capture.py)
-            sweeper = asyncio.create_task(captures.watch(  # noqa: F841  vive lo que vive el servidor
+            captures.task = asyncio.create_task(captures.watch(  # guardada: asyncio no retiene sus tareas
                 lambda: [v.root / "library" for v in vaults.all()],
                 lambda cid, lib, title, quality: capture_register(cid, lib, title, quality, auto=True)))
             await server.serve(a.host, a.port)

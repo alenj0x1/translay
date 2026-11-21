@@ -82,7 +82,9 @@ The interface uses no framework or build step: `web/index.html` loads the CSS an
 |---|---|
 | `app.py` | Entry point: arguments, model loading, HTTP routes and startup. |
 | `httpws.py` | Static HTTP server (with `Range`) and RFC 6455 WebSocket over `asyncio`, dependency-free. |
-| `session.py` | One session per tab: WebSocket protocol, permissions, live processing and the tab's voice queue. |
+| `session.py` | One session per tab: WebSocket protocol and permissions. Its methods are split by area into `session_dub.py` (live processing and the tab's voice queue), `session_import.py`, `session_agent.py`, `session_library.py` and `session_admin.py`. |
+| `dialogs.py` | System dialogs on this computer: pick a folder, where to save, show a file in its folder. |
+| `appmute.py` | Mutes the other apps while a window is recorded and restores them (Windows Core Audio through ctypes). |
 | `processor.py` | Server queue: processes saved videos and downloads YouTube ones. State in `data/queue.json`. |
 | `vad.py` | Energy-based voice detector with an adaptive noise floor. |
 | `langs.py` | Language registry: codes and names of each language for Whisper, NLLB, Opus-MT, FFmpeg and the interface. |

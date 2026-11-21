@@ -12,7 +12,9 @@ import { Aside, FileTree } from "@astrojs/starlight/components";
 - vt/ the server: one module per responsibility (details in [Architecture](../../how-it-works/architecture/#vt-modules))
   - app.py entry point: arguments, model loading and HTTP routes
   - httpws.py own HTTP and WebSocket server on asyncio
-  - session.py one session per tab: WebSocket protocol and permissions
+  - session.py one session per tab: WebSocket protocol and permissions; its parts live in session_dub.py (live text, translation and voice queue), session_import.py (adding videos), session_agent.py, session_library.py and session_admin.py
+  - dialogs.py system dialogs to pick a folder or where to save, and showing a file in its folder
+  - appmute.py mutes the other apps while a window is recorded (Windows audio sessions)
   - processor.py processing queue and downloads
   - vad.py energy-based voice detector
   - langs.py language registry (what changes from one language to another, as data)

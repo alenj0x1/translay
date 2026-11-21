@@ -28,7 +28,14 @@ La interfaz es HTML, CSS y JavaScript sin framework ni compilación. El servidor
     - ui.js componentes: `el`, `icon`, `btn`, `setBtn`, `hydrateIcons`, `meter`
     - menu.js menús propios y listas desplegables
     - theme.js modo claro u oscuro
-    - app.js conexión, reproductor, transcripción, voz, preferencias
+    - app.js conexión, carga del video, transcripción, reposo y pestañas; los archivos de abajo comparten su ámbito global y se cargan justo después
+    - dubaudio.js audio hacia el servidor, audio procesado por delante, cuándo reproducir, sincronía entre videos, la voz doblada y el selector de idioma
+    - comments.js comentarios por frase, cuadros para confirmar o escribir, cerrar el video y la barra de tiempo con lo procesado
+    - prefs.js Ajustes: el inicio con sus bloques, cada página con sus opciones (`setPref`, `applyPrefs`, `openPrefs`)
+    - player.js controles del reproductor, subtítulos (botón, tecla C, clic derecho) y «Copiar para un agente»
+    - people.js las personas de cada video (nombre y voz) y el glosario de la biblioteca
+    - importlinks.js varios enlaces a la vez y listas .csv
+    - ytsession.js la sesión de YouTube para descargar (cuenta, cookies del navegador o un archivo)
     - patterns.js campos de puntos e íconos de colecciones
     - i18n.js `t()`, nombres de idiomas y formatos del idioma de la app
     - star.js el agente como personaje (la estrella)
@@ -204,7 +211,7 @@ Las preferencias tienen un solo origen: `SCHEMA` en `vt/prefs.py`. La pantalla d
 
 3. Si debe guardarse por biblioteca y no en general, agrega la clave a `VAULT_PREFS` en `vt/vaults.py`: se guarda en `vault.json` de la biblioteca abierta.
 
-4. Léela en la vista con `prefs.sub_size`. Si cambia algo global (una clase en `body`, un volumen), aplícala en `applyPrefs` de `app.js`, que corre cada vez que llegan las preferencias. Si la vista la necesita antes de conectarse, agrega su valor por defecto al objeto `prefs` inicial de `app.js`.
+4. Léela en la vista con `prefs.sub_size`. Si cambia algo global (una clase en `body`, un volumen), aplícala en `applyPrefs` de `prefs.js`, que corre cada vez que llegan las preferencias. Si la vista la necesita antes de conectarse, agrega su valor por defecto al objeto `prefs` inicial de `app.js`.
 
 </Steps>
 
