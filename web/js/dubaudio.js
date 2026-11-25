@@ -250,7 +250,11 @@ setInterval(() => {
     : readiness.ok ? need * 0.6 : need);
   readiness.ok = ok;
   // esperar lo listo: arrancar (reproducción automática) o reanudar (pausa por falta de voz)
-  const waitPref = prefs.wait_ready !== false;
+  // esperar solo tiene sentido si la voz va a llegar: a un invitado que solo ve, el servidor no le procesa nada
+  // (ni la cola ni el audio en vivo), así que esperarla lo dejaba en pausa para siempre. Escucha el original
+  // donde falta voz y la doblada donde ya está.
+  const canWait = canImport();
+  const waitPref = prefs.wait_ready !== false && canWait;
   if (state.autoWait && vEn.paused && (ok || (!waitPref && vEn.readyState >= 3))) {
     state.autoWait = false;
     vEn.play().catch(() => {});
@@ -264,6 +268,7 @@ setInterval(() => {
   // al salir del reposo, los modelos tardan en cargar (la voz, hasta ~20 s): se dice
   const readyPct = Math.min(99, Math.round(lead / need * 100));
   box.querySelector("span").textContent = ok ? t("Listo para reproducir")
+    : !canWait ? t("Esta parte aún no tiene voz doblada")
     : state.power === "cargando" ? t("Cargando modelos")
     : state.autoWait ? t("Se reanuda al estar listo {pct} %", { pct: readyPct }) : t("Preparando {pct} %", { pct: readyPct });
   box.querySelector("em").style.width = `${Math.min(100, lead / need * 100)}%`;

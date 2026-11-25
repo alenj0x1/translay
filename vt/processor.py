@@ -31,6 +31,7 @@ import numpy as np
 
 from . import events, i18n
 from .streaming import Segment, StreamingTranscriber, speech_samples, vote_language
+from . import diag
 
 SR = 16000
 CHUNK_S = 3.0
@@ -522,9 +523,8 @@ class Processor:
                         if not any(j["state"] in ("en cola", "procesando") for j in self.data["jobs"]):
                             events.emit("cola.terminada")
             except Exception as e:
-                import traceback
-
-                traceback.print_exc()
+                
+                diag.exception("cola.video")
                 job.update(state="error", error=str(e)[:200])
                 self._vid_event("video.error", job["id"], error=job["error"])
             with self._cond:

@@ -57,6 +57,7 @@ import numpy as np
 
 from . import events, i18n, langs
 from .audiofx import read_wav, resample
+from . import diag
 
 SR = 48000
 # conversiones a la vez (ffmpeg usa un núcleo por audio); deja la mitad del equipo libre
@@ -361,9 +362,8 @@ class Exporter:
             try:
                 self._run(job)
             except Exception as e:
-                import traceback
-
-                traceback.print_exc()
+                
+                diag.exception("exportar")
                 shutil.rmtree(self._work_dir(job), ignore_errors=True)  # lo a medias no sirve
                 self._set(job, state="error", error=reason(e))
                 events.emit("exportacion.error", self._job_vault(job), job=job["id"], name=job["name"], error=job["error"])
@@ -394,9 +394,7 @@ class Exporter:
         def skip(vid, v, e):
             if not many:
                 raise e
-            import traceback
-
-            traceback.print_exc()
+            diag.exception("exportar.trabajo")
             job["skipped"].append((v.get("title") or vid, reason(e)))  # el resto del lote sigue
             with lock:
                 frac[vid] = 1.0

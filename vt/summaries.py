@@ -16,6 +16,7 @@ import threading
 import time
 
 from . import events, hardware, i18n, modelset, summarize
+from . import diag
 
 
 def reason(e: Exception) -> str:
@@ -107,9 +108,8 @@ class Summaries:
             try:
                 self._run(vid, job)
             except Exception as e:  # noqa: BLE001
-                import traceback
-
-                traceback.print_exc()
+                
+                diag.exception("resumen")
                 job.update(state="error", error=reason(e))
                 self._send(vid)
                 events.emit("resumen.error", self._vault(vid), video=vid, error=job["error"])

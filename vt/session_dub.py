@@ -4,11 +4,11 @@ la traducción en vivo, rehacer lo traducido con otro glosario y doblar primero 
 Parte de Session (vt/session.py): sus métodos usan el estado de la sesión (self)."""
 
 import asyncio
-import traceback
 from functools import partial
 from . import i18n, langs
 from .store import Transcript
 from .streaming import Detected
+from . import diag
 
 
 class DubMixin:
@@ -126,7 +126,7 @@ class DubMixin:
                 info = await loop.run_in_executor(self.tts_exec, self.res.run, ("tts",), self.dubber.synthesize, tr, seg,
                                                   seg.get("orig_db"))
             except Exception:  # una frase fallida no detiene el doblaje
-                traceback.print_exc()
+                diag.exception("sesion.voz")
                 continue
             if not info:
                 continue

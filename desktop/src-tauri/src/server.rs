@@ -146,6 +146,8 @@ impl Server {
             .arg(paths.code.join("run.py"))
             .args(["--no-browser", "--port", &port.to_string(), "--data-dir"])
             .arg(&data)
+            // the server's error log (vt/diag.py) lives next to server.log, so the diagnostics report has both
+            .env("TRANSLAY_LOG_DIR", paths.logs())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         let mut child = cmd.spawn().map_err(|e| format!("No se pudo iniciar el servidor de Translay: {e}"))?;

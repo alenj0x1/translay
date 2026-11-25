@@ -56,6 +56,9 @@ def main():
     a = p.parse_args()
     DATA = Path(a.data_dir).expanduser().resolve() if a.data_dir else ROOT / "data"
     DATA.mkdir(parents=True, exist_ok=True)
+    from . import diag
+
+    diag.setup(DATA)  # registro de errores (vt/diag.py): app.log, que leen las pruebas e2e y el informe
 
     # equipo, límites y perfil de rendimiento (vt/hardware.py, vt/limits.py, vt/profiles.py)
     from . import hardware, profiles
@@ -529,6 +532,7 @@ def main():
     try:
         async def run_all():
             loop_ref["loop"] = asyncio.get_running_loop()
+            diag.hook_loop(loop_ref["loop"])
             if admin.network:  # «Acceso desde otros equipos» (Ajustes → Acceso y API)
                 await admin.set_network(True)
                 print("En la red: " + ", ".join(f"http://{ip}:{a.port}" for ip in admin.lan_ips()), flush=True)

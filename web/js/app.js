@@ -81,9 +81,26 @@ function translatesV(v) {
 }
 
 function send(obj) {
+  // sin permiso no se pide (access.js › mayRequest); que la interfaz lo intente es un error suyo y queda registrado
+  if (typeof mayRequest === "function" && !mayRequest(obj)) return clientError("permiso", `${obj.type} sin permiso`);
   try { OPTIMISTIC[obj.type]?.(obj); } catch (e) { console.error(e); }
   if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify(obj));
 }
+
+// Errores de la interfaz al registro del servidor (vt/diag.py › app.log): JavaScript sin atrapar, promesas
+// rechazadas y acciones intentadas sin permiso. Cada uno una vez; las pruebas e2e fallan si aparece uno.
+const clientErrors = new Set();
+function clientError(kind, message) {
+  const key = `${kind}|${message}`;
+  if (clientErrors.has(key) || clientErrors.size > 50) return;
+  clientErrors.add(key);
+  console.warn(`[${kind}] ${message}`);
+  if (state.ws?.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify({ type: "client_error", kind, message: String(message).slice(0, 400) }));
+}
+window.addEventListener("error", (e) => {
+  if (e.message) clientError("js", `${e.message} @ ${(e.filename || "").split("/").pop().split("?")[0]}:${e.lineno}`);
+});
+window.addEventListener("unhandledrejection", (e) => clientError("promesa", e.reason?.message || String(e.reason)));
 
 function onMessage(m) {
   switch (m.type) {
@@ -132,6 +149,9 @@ function onMessage(m) {
       break;
     case "webhooks_log":
       hooksLog(m);
+      break;
+    case "diag_report":  // Ajustes › Rendimiento › «Guardar informe» (prefs.js)
+      diagReportDone(m);
       break;
     case "denied":
       toast(t("No tienes permiso para esta acción en esta biblioteca"), "warn");

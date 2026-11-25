@@ -17,6 +17,18 @@ function can(kind) {
   const p = a.perms[vaults.current];
   return p === "importar" || p === "escritura";
 }
+// ¿Se puede pedir este mensaje al servidor? La misma regla que vt/session.py › _allowed, con las listas que manda
+// el servidor (owner_only, import_only): lo que no se puede ni se manda, así nadie ve «No tienes permiso…» por algo
+// que no pidió. Lo de importar se mide en la biblioteca abierta (el servidor mira la del video; es la misma).
+function mayRequest(obj) {
+  const a = state.access, t = obj?.type || "";
+  if (a.owner || !a.owner_only) return true;  // dueño, o aún sin las listas (el servidor decide)
+  if (a.owner_only.includes(t) || (a.owner_prefixes || []).some((p) => t.startsWith(p)) || t === "server_restart"
+    || (t.startsWith("vault_") && t !== "vault_open")) return false;
+  if (t === "vault_open") return !!a.perms[obj.id];
+  if (a.import_only.includes(t)) return can("import");
+  return true;
+}
 function applyCan() {
   document.body.classList.toggle("guest", !state.access.owner);
   document.body.classList.toggle("can-import", can("import"));

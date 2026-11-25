@@ -81,6 +81,33 @@ const YT_ACCOUNT = $("#yt-account");
 // Ajustes como en una app: las secciones a la izquierda (una página cada una) y,
 // en la página, las opciones agrupadas con su descripción. Los bloques propios
 // (bibliotecas, glosario, sesión de YouTube, acceso) van como un grupo más.
+// Ajustes › Rendimiento › Diagnóstico: un archivo con la versión, el sistema y los últimos errores (vt/diag.py) para
+// enviarlo si algo falla. En este equipo va a Descargas y se muestra en el Explorador; desde otro, se descarga.
+const DIAG_STATUS = el("p", { class: "set-desc diag-status", hidden: true });
+const DIAG_BTN = btn(t("Guardar informe"), { icon: "download", variant: "ghost", onClick: () => {
+  DIAG_BTN.disabled = true;
+  setBtn(DIAG_BTN, t("Guardando…"));
+  send({ type: "diag_report" });
+} });
+const DIAG_BLOCK = el("div", { class: "set-rows" }, el("div", { class: "set-row" },
+  el("div", { class: "set-text" }, el("strong", { text: t("Informe de diagnóstico") }),
+    el("p", { text: t("La versión, el sistema y los últimos errores en un archivo de texto. Nada se envía solo: lo adjuntas tú si algo falla.") }),
+    DIAG_STATUS),
+  el("div", { class: "set-ctl" }, DIAG_BTN)));
+function diagReportDone(m) {
+  DIAG_BTN.disabled = false;
+  setBtn(DIAG_BTN, t("Guardar informe"));
+  DIAG_STATUS.hidden = false;
+  if (m.path) {
+    DIAG_STATUS.textContent = t("Guardado en Descargas: {name}", { name: m.name });
+    return;
+  }
+  const a = el("a", { href: URL.createObjectURL(new Blob([m.text || ""], { type: "text/plain" })), download: m.name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  DIAG_STATUS.textContent = t("Descargado: {name}", { name: m.name });
+}
+
 const PREF_BLOCKS = {
   escritorio: () => desktopPrefsBlocks(),
   bibliotecas: () => [[VAULTS_BLOCK, t("Tus bibliotecas"), t("Abre, edita, cambia el acceso o elimina una biblioteca. Pueden estar en otra carpeta o disco.")]],
@@ -92,7 +119,7 @@ const PREF_BLOCKS = {
     renderPerf();
     return [[PERF_HW, t("Tu equipo"), ""], [PERF_PROFILE, t("Perfil"), t("Modelos que usa Translay. Los tiempos y el estado se basan en mediciones reales en equipos similares al tuyo.")],
       [PERF_LIMITS, t("Límites"), t("Recursos del equipo que puede usar Translay. Los límites de RAM y CPU se aplican de inmediato.")],
-      [PERF_ALERTS, t("Avisos"), ""]];
+      [PERF_ALERTS, t("Avisos"), ""], [DIAG_BLOCK, t("Diagnóstico"), ""]];
   },
   almacenamiento: () => {
     storageScan();

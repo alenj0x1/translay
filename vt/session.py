@@ -49,12 +49,13 @@ espera a la síntesis.
 
 import asyncio
 import json
+import os
 import struct
 import time
-import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from pathlib import Path
 from functools import partial
 
 from .store import _SAFE_ID as _SAFE_VID, Store, Transcript
@@ -66,7 +67,8 @@ OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "
               "queue_unblock", "queue_remove", "queue_hold", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete", "rec_mute",
-              "export_pick_folder", "export_reveal"}
+              "export_pick_folder", "export_reveal", "diag_report"}
+OWNER_PREFIXES = ("admin_", "trash_", "perf_", "storage_")
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch",
                "summarize", "summary_cancel", "agent_ask", "agent_continue", "agent_stop", "agent_clear", "agent_power",
                "agent_dictate", "agent_model_download"}
@@ -77,6 +79,8 @@ from .session_import import ImportMixin
 from .session_agent import AgentMixin
 from .session_library import LibraryMixin
 from .session_admin import AdminMixin
+from . import diag
+from .dialogs import downloads, reveal
 
 
 class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
@@ -189,6 +193,9 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                 "asked": asked.id if asked else None, "asked_name": asked.name if asked else "",
                 "asked_mode": acc.get("mode", "privada") if asked else "",
                 "owner_set": bool(self.admin and self.admin.auth.owner_set),
+                # qué pide permiso: la página no manda lo que no puede (así un invitado no ve avisos de permiso)
+                "owner_only": sorted(OWNER_ONLY), "import_only": sorted(IMPORT_ONLY),
+                "owner_prefixes": list(OWNER_PREFIXES),
                 "public": [{"id": v.id, "name": v.name, "color": v.meta.get("color"), "icon": v.meta.get("icon")}
                            for v in self.vaults.all() if (v.meta.get("access") or {}).get("mode") == "publica"]}
 
@@ -197,7 +204,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
         a = self.access
         if a.owner:
             return True
-        if t in OWNER_ONLY or t.startswith(("admin_", "trash_", "perf_", "storage_")) or t == "server_restart" or \
+        if t in OWNER_ONLY or t.startswith(OWNER_PREFIXES) or t == "server_restart" or \
                 (t.startswith("vault_") and t != "vault_open"):
             return False
         if t == "vault_open":
@@ -255,6 +262,10 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                 else:
                     m = json.loads(msg)
                     if not self._allowed(str(m.get("type", "")), m):
+                        # la interfaz no debería pedirlo (lo filtra con owner_only/import_only): es un error
+                        who = "dueño" if self.access.owner else "invitado"
+                        if self._page_note():
+                            diag.error(f"permiso.{str(m.get('type'))[:40]}", f"rechazado ({who}, biblioteca {self.vault.id})")
                         await self.ws.send_json({"type": "denied", "what": m.get("type")})
                         continue
                     if m.get("type", "").startswith("admin_"):
@@ -357,6 +368,10 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                         asyncio.create_task(self._storage(m))
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
+                    elif m.get("type") == "client_error":
+                        self._client_error(m)
+                    elif m.get("type") == "diag_report":
+                        asyncio.create_task(self._diag_report())
                     elif m.get("type") == "rec_mute" and self.appmute:
                         asyncio.create_task(self._rec_mute(m))
                     else:
@@ -423,7 +438,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                 try:
                     await self._run(self.st.step)
                 except Exception:  # una falla no debe detener la sesión
-                    traceback.print_exc()
+                    diag.exception("sesion.trabajo")
                     await self.ws.send_json({"type": "stats", "infer_ms": 0, "buffer_s": 0})
 
     async def _finish(self, keep_context: bool = False, abort: bool = False):
@@ -554,6 +569,46 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
         return msg
 
     # ------------------------------------------------------- administración
+    def _client_error(self, m: dict):
+        """Un error de la interfaz (JavaScript o una acción que intentó sin permiso) va al registro. Acotado:
+        hasta 50 por conexión, textos cortos (cualquiera puede mandarlo, también un invitado)."""
+        if not self._page_note():
+            return
+        kind = "".join(ch for ch in str(m.get("kind", "js"))[:30] if ch.isalnum() or ch in "._-") or "js"
+        diag.error(f"interfaz.{kind}", str(m.get("message", ""))[:400])
+
+    def _page_note(self) -> bool:
+        """¿Se anota lo que manda esta conexión (errores de la página, rechazos)? Hasta 20 por minuto; el registro
+        además tiene un tope para todas juntas (vt/diag.py)."""
+        now = time.time()
+        win = getattr(self, "_notes", None)
+        if not win or now - win[0] > 60:
+            self._notes = win = [now, 0]
+        win[1] += 1
+        return win[1] <= 20
+
+    async def _diag_report(self):
+        """Ajustes › Rendimiento › «Guardar informe»: el informe de diagnóstico (vt/diag.py). En este equipo se
+        guarda en Descargas y se muestra en el Explorador; desde otro equipo vuelve el texto para descargarlo."""
+        info = {"Perfil": (self.info or {}).get("profile", ""), "Dispositivo": (self.info or {}).get("device", ""),
+                "Voz": (self.info or {}).get("voice", ""), "Bibliotecas": len(self.vaults.all()),
+                "Registro": str(diag.path() or "")}
+        text = await asyncio.to_thread(diag.report, info)
+        name = time.strftime("Translay-informe-%Y%m%d-%H%M%S.txt")
+        if self.access.local:
+            # TRANSLAY_REPORT_DIR: otra carpeta y sin abrir el Explorador (las pruebas e2e no tocan Descargas)
+            folder = Path(os.environ.get("TRANSLAY_REPORT_DIR") or downloads())
+            try:
+                folder.mkdir(parents=True, exist_ok=True)
+                out = folder / name
+                await asyncio.to_thread(out.write_text, text, "utf-8")
+                if not os.environ.get("TRANSLAY_REPORT_DIR"):
+                    reveal(out)
+                return await self.ws.send_json({"type": "diag_report", "path": str(out), "name": name})
+            except OSError as e:  # Descargas protegida o sin espacio: se descarga desde la página
+                diag.error("informe", f"no se pudo guardar en Descargas: {e}")
+        await self.ws.send_json({"type": "diag_report", "name": name, "text": text})
+
     async def _rec_mute(self, m: dict):
         """{"type":"rec_mute","on":true,"label":<etiqueta de la pista>} al empezar a grabar una ventana con
         «Silenciar las otras apps al grabar una ventana»; on=false al terminar. Solo el dueño en este equipo:

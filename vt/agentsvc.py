@@ -25,6 +25,7 @@ import time
 from pathlib import Path
 
 from . import agent, hardware, i18n, llm
+from . import diag
 
 IDLE_S = 300
 DESCRIBE_MODEL = "qwen3.5-0.8b"  # la descripción corta: el más chico basta (~0,5 GB, unos segundos)
@@ -226,9 +227,8 @@ class AgentService:
                     else:
                         self._answer(vid, q, pos, qid, cont)
             except Exception as e:  # noqa: BLE001
-                import traceback
-
-                traceback.print_exc()
+                
+                diag.exception("agente.resumen")
                 self.notify({"type": "bg", "video": vid, "msg": {"type": "agent_error", "id": qid, "error": reason(e)}})
                 self._set(vid, state="listo", pct=0, detail="")
 
@@ -456,9 +456,7 @@ class AgentService:
             try:
                 self._describe(vid)
             except Exception:  # noqa: BLE001 (sin descripción no pasa nada: se intenta al volver a abrirlo)
-                import traceback
-
-                traceback.print_exc()
+                diag.exception("agente.descripcion")
             finally:
                 self._describing.discard(vid)
 

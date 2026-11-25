@@ -9,6 +9,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 ### Added
 
 - Screen recording: «Silenciar las otras apps al grabar una ventana» (Settings › Add and download, off by default) mutes every other application while a window is recorded on Windows 10, where a window brings the whole computer's sound, and gives them their sound back when the recording stops or its tab closes.
+- Settings › Performance › **Guardar informe** (Save report) writes a diagnostics report (version, Windows build, profile and the last lines of the logs) to Downloads, or downloads it from another computer; every error now leaves one line in `app.log`, with time and context.
 
 ### Changed
 
@@ -23,6 +24,9 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - Agent on Linux and in Docker: the summary, the short descriptions and the questions no longer fail trying to download the Windows `llama-server`. The Docker image builds `llama-server` with CUDA from the same llama.cpp version, and outside Windows Translay uses the one in `TRANSLAY_LLAMA_SERVER` or in the `PATH` (`LLAMA_CUDA_IMAGE` and `LLAMA_CUDA_ARCHITECTURES` build it for a single GPU, e.g. GB10).
 - Screen recording: a recording is no longer lost when its page never comes back. Each second carries the recording's options, and if the server receives nothing for a minute (the recorded tab or window was closed and then the browser, the app was closed, or Translay was opened at another address) it puts together what it has and adds it to the library; if the page comes back with the missing seconds, the video is completed.
 - Desktop app: closing the window while recording stops and saves the recording first, and Translay no longer quits from the tray in the middle of a recording or its upload.
+- Guests: a «Solo ver» guest no longer gets «No tienes permiso para esta acción en esta biblioteca» when opening a video (the page asked to register it in the library). The page now only asks the server for what the viewer may do.
+- Guests: a video that isn't fully dubbed no longer stays paused for a «Solo ver» guest at «Se reanuda al estar listo 0 %». Nothing is processed for them, so they hear the original where the voice is missing and the bar says so.
+- The page shows Translay's icon in the browser tab (it asked for `/favicon.ico` and got an error).
 
 ## 1.14.0 · 2026-11-14
 

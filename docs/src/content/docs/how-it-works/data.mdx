@@ -23,6 +23,7 @@ JSON files are written atomically: first a `.tmp` next to it, then the original 
 
 - data/
   - prefs.json general preferences (`vt/prefs.py`)
+  - logs/app.log one line per error, with time and context (`vt/diag.py`); the e2e tests read it and **Guardar informe** includes it. The desktop app keeps it in its own `logs/` folder, next to `server.log`
   - models.json when each model was last used, for Settings › Storage (`vt/modelusage.py`)
   - queue.json processing queue: jobs, state, pause (`vt/processor.py`)
   - auth.json owner password (scrypt), sessions (SHA-256 of the token), API keys (SHA-256) and network access (`vt/auth.py`)

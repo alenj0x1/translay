@@ -1281,7 +1281,8 @@ function libOnOpen({ id, name, file, fromLibrary, position, keepContext }) {
     lib.onMeta = null;
     if (state.videoId !== id) return;
     if (position) vEn.currentTime = position;
-    send({ type: "lib_register", id, title: name, duration: vEn.duration,
+    // anotarlo en la biblioteca (duración, origen) es de quien puede importar; un invitado que solo ve, solo lo mira
+    if (canImport()) send({ type: "lib_register", id, title: name, duration: vEn.duration,
       source: file ? "file" : id.startsWith("yt_") ? "youtube" : id.startsWith("lk_") ? "link" : "file" });
     if (file) {
       if (!lib.videos[id]?.media) {

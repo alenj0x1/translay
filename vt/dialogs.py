@@ -50,8 +50,28 @@ def _dialog_available() -> bool:
     return _has_dialogs[0]
 
 
+def downloads() -> Path:
+    """La carpeta Descargas de verdad (puede estar movida a otro disco o a OneDrive)."""
+    import sys
+
+    if sys.platform == "win32":
+        import ctypes
+        import uuid
+        from ctypes import wintypes
+
+        guid = uuid.UUID("{374DE290-123F-4565-9164-39C4925E467B}")  # FOLDERID_Downloads
+        buf = (ctypes.c_byte * 16).from_buffer_copy(guid.bytes_le)
+        out = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(buf), 0, None, ctypes.byref(out)) == 0:
+            try:
+                return Path(out.value)
+            finally:
+                ctypes.windll.ole32.CoTaskMemFree(ctypes.cast(out, wintypes.LPVOID))
+    return Path.home() / "Downloads"
+
+
 def _start_dir(initial: str = "") -> str:
-    d = Path(initial) if initial else Path.home() / "Downloads"
+    d = Path(initial) if initial else downloads()
     return str(d) if d.is_dir() else str(Path.home())
 
 

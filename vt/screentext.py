@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 from . import events, textkind
+from . import diag
 
 STEP_S = 0.5            # un cuadro cada medio segundo
 MIN_CONF = 0.75         # renglón que se acepta
@@ -483,9 +484,8 @@ class ScreenText:
             try:
                 self._run(vid, job)
             except Exception:  # noqa: BLE001 — un video que falla no frena a los demás
-                import traceback
-
-                traceback.print_exc()
+                
+                diag.exception("texto_en_pantalla")
             finally:
                 with self._cond:
                     self.jobs.pop(vid, None)

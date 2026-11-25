@@ -23,6 +23,7 @@ Los JSON se escriben de forma atómica: primero un `.tmp` al lado y después se 
 
 - data/
   - prefs.json preferencias generales (`vt/prefs.py`)
+  - logs/app.log una línea por error, con hora y contexto (`vt/diag.py`); lo leen las pruebas e2e y lo incluye **Guardar informe**. La app de escritorio lo guarda en su propia carpeta `logs/`, junto a `server.log`
   - models.json cuándo se usó por última vez cada modelo, para Ajustes › Almacenamiento (`vt/modelusage.py`)
   - queue.json cola de procesamiento: trabajos, estado, pausa (`vt/processor.py`)
   - auth.json contraseña de propietario (scrypt), sesiones (SHA-256 del token), claves de API (SHA-256) y acceso en red (`vt/auth.py`)

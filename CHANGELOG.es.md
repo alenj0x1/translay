@@ -9,6 +9,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 ### Agregado
 
 - Grabar pantalla: «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar, apagada por defecto) silencia las demás aplicaciones mientras se graba una ventana en Windows 10, donde una ventana trae el sonido de todo el equipo, y les devuelve el sonido al terminar la grabación o si se cierra su pestaña.
+- Ajustes › Rendimiento › **Guardar informe** escribe un informe de diagnóstico (versión, compilación de Windows, perfil y las últimas líneas de los registros) en Descargas, o lo descarga desde otro equipo; cada error deja ahora una línea en `app.log`, con hora y contexto.
 
 ### Cambiado
 
@@ -26,6 +27,9 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 - Grabar pantalla: una grabación ya no se pierde cuando su página no vuelve. Cada segundo lleva las opciones de la grabación y, si el servidor no recibe nada durante un minuto (se cerró la pestaña o la ventana que se grababa y después el navegador, se cerró la app, o se abrió Translay en otra dirección), arma lo que tiene y lo agrega a la biblioteca; si la página vuelve con los segundos que faltaban, el video se completa.
 - App de escritorio: cerrar la ventana mientras se graba detiene y guarda la grabación antes, y Translay ya no se cierra desde la bandeja en medio de una grabación o de su subida.
+- Invitados: un invitado «Solo ver» ya no recibe «No tienes permiso para esta acción en esta biblioteca» al abrir un video (la página pedía anotarlo en la biblioteca). La página ahora solo le pide al servidor lo que esa persona puede hacer.
+- Invitados: un video que no está doblado entero ya no queda en pausa para un invitado «Solo ver» en «Se reanuda al estar listo 0 %». Como no se le procesa nada, escucha el original donde falta la voz y la barra lo dice.
+- La página muestra el ícono de Translay en la pestaña del navegador (pedía `/favicon.ico` y recibía un error).
 
 ## 1.14.0 · 2026-11-14
 
