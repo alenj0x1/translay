@@ -7,7 +7,7 @@
 
 English | [Español](README.es.md)
 
-Translate and dub videos between English, Spanish and Portuguese, **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in your language: subtitles, an aligned transcript with the original and the translation, and a cloned voice synced to the picture. Or only transcribe it, in any language. Nothing leaves your machine except the YouTube downloads.
+Translate and dub videos between English, Spanish and Portuguese, and from Italian, **in each person's own voice**, on your own machine and with your own GPU. Paste a YouTube link (or open a file) and watch it in your language: subtitles, an aligned transcript with the original and the translation, and a cloned voice synced to the picture. Or only transcribe it, in any language. Nothing leaves your machine except the YouTube downloads.
 
 [![Version](https://img.shields.io/github/v/release/alenj0x1/translay?label=version)](https://github.com/alenj0x1/translay/releases/latest)
 [![Documentation](https://img.shields.io/badge/docs-translay.alenj.dev-7d5ba6)](https://translay.alenj.dev/)
@@ -38,8 +38,8 @@ Translate and dub videos between English, Spanish and Portuguese, **in each pers
 
 - **Two modes** (Ajustes › Uso, Settings › Use): **Traducir y doblar** (Translate and dub), or **Transcribir y resumir** (Transcribe and summarize) to record or upload classes and meetings and use their transcript and summaries, with nothing about translation or voice (those models aren't loaded either).
 - **Recognition** with Whisper large-v3-turbo in streaming mode: the video is processed while you watch, starting from your playback position, and if you skip ahead, processing skips with you.
-- **Languages**: English, Portuguese and Spanish, **detected automatically** from the first seconds of speech. Any video can be **only transcribed**, in its own language, and a preference decides which language is only transcribed when detected (Spanish by default). One **language** choice sets the interface, the translation and the voice, the agent and the summaries (the system's by default), and «Translate a» can set the translation apart.
-- **Translation** with a translator per language pair, chosen in the lab: Opus-MT big for English → Spanish, itc-itc for Portuguese ↔ Spanish (as good as MADLAD-3B and ten times faster), tc-big for English → Portuguese and tc-bible for Spanish and Portuguese → English, MADLAD-400 3B (Apache-2.0) for the rest. Each video keeps its translation and voice per language. Custom layers for **Latin American Spanish**: it splits sentences, rewrites idioms before translating («call it a day», «pisou na bola») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
+- **Languages**: English, Portuguese, Italian and Spanish, **detected automatically** from the first seconds of speech. Any video can be **only transcribed**, in its own language, and a preference decides which language is only transcribed when detected (Spanish by default). One **language** choice sets the interface, the translation and the voice, the agent and the summaries (the system's by default), and «Translate a» can set the translation apart.
+- **Translation** with a translator per language pair, chosen in the lab: Opus-MT big for English → Spanish, itc-itc for Portuguese ↔ Spanish (as good as MADLAD-3B and ten times faster) and Italian → Spanish and Portuguese, tc-big for English → Portuguese and tc-bible for Spanish, Portuguese and Italian → English, MADLAD-400 3B (Apache-2.0) for the rest. Each video keeps its translation and voice per language. Custom layers for **Latin American Spanish**: it splits sentences, rewrites idioms before translating («call it a day», «pisou na bola») and fixes Peninsular Spanish («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
 - **Who is speaking**: custom diarization (WeSpeaker voiceprint in ONNX + online clustering). 97.6% of sentences assigned to the right person across 12 test videos with 2 to 4 people, with and without noise.
 - **Dubbing in each person's voice**: OmniVoice clones their voice from their best sentences (up to 8 s, cleaned with DeepFilterNet if noisy). Each sentence fits its slot (duration requested from the engine with WSOLA as a fallback, without changing pitch) and plays at the same volume as the original.
 - **In sync**: median offset of 0.08 s between voice and picture.
@@ -111,7 +111,7 @@ Translay adapts to your machine. On startup it detects the NVIDIA GPU (with `nvi
 | **Solo subtítulos** (Subtitles only) | large-v3-turbo int8 | opus-big | No voice | ~1.9 GB | ~3.5 GB | 2 GB GPU |
 | **Subtítulos ligeros** (Light subtitles) | small int8, beam 3 | opus-base int8 | No voice | ~0.6 GB | ~2.2 GB | No GPU |
 
-The translator shown is the one for English; Portuguese uses Opus-MT itc-itc in every profile and only one translator is on the GPU at a time. The light profiles (Whisper `small`) lose more accuracy in Portuguese than in English.
+The translator shown is the one for English; Portuguese and Italian use Opus-MT itc-itc in every profile and only one translator is on the GPU at a time. The light profiles (Whisper `small`) lose more accuracy in Portuguese than in English.
 
 The cloned voice needs a GPU: on the CPU it runs at 0.01× to 0.04× (unusable). Without a GPU, Translay produces subtitles and transcripts.
 
@@ -186,7 +186,7 @@ Screenshots from a test instance with public-domain videos from NASA and NOAA.
 1. Download `Translay_<version>_x64-setup.exe` from the [latest release](https://github.com/alenj0x1/translay/releases/latest) and open it.
 2. Open **Translay**, choose where to store your library and click **Instalar** (Install).
 
-The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens; the Portuguese translator, about 0.8 GB, is downloaded the first time a Portuguese video is translated). Details: [Installation](https://translay.alenj.dev/getting-started/install/).
+The app ships with Python, ffmpeg, Node.js and uv, and installs the rest by itself (about 7.5 GB, plus 6 GB of models the first time it opens; the Portuguese and Italian translator, about 0.8 GB, is downloaded the first time a Portuguese or Italian video is translated). Details: [Installation](https://translay.alenj.dev/getting-started/install/).
 
 | | |
 |---|---|
@@ -270,7 +270,7 @@ npm --prefix desktop ci && npm --prefix desktop run build   # installer (Node.js
 
 ## Credits
 
-Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) (the Portuguese model, [OPUS-MT itc-itc](https://github.com/Helsinki-NLP/Tatoeba-Challenge) by Helsinki-NLP, is CC-BY-4.0), NLLB-200, [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).
+Translay uses third-party models and tools as its engines, each under its own license: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and Whisper, [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) (the Portuguese and Italian model, [OPUS-MT itc-itc](https://github.com/Helsinki-NLP/Tatoeba-Challenge) by Helsinki-NLP, is CC-BY-4.0), NLLB-200, [OmniVoice](https://github.com/k2-fsa/OmniVoice), [WeSpeaker](https://github.com/wenet-e2e/wespeaker), [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). The installer includes [uv](https://github.com/astral-sh/uv) (MIT or Apache-2.0), Python from [python-build-standalone](https://github.com/astral-sh/python-build-standalone) (PSF), [FFmpeg](https://ffmpeg.org/) (build by [Gyan Doshi](https://www.gyan.dev/ffmpeg/builds/), GPL-3.0) and [Node.js](https://nodejs.org/) (MIT), with their licenses in the installation's `tools` folder. The app uses [Tauri](https://tauri.app/) and the [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) font (SIL OFL 1.1).
 
 ## License
 

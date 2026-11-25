@@ -8,6 +8,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Agregado
 
+- Videos en italiano: se detectan, transcriben, traducen al español y al portugués con Opus-MT itc-itc y al inglés con roa-eng (los modelos que ya usa el portugués, así que no hay nada nuevo que descargar) y se doblan; con las abreviaturas del italiano y los créditos de subtítulos que Whisper inventa sobre silencio («Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS»).
 - Grabar pantalla: «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar, apagada por defecto) silencia las demás aplicaciones mientras se graba una ventana en Windows 10, donde una ventana trae el sonido de todo el equipo, y les devuelve el sonido al terminar la grabación o si se cierra su pestaña.
 
 ### Cambiado

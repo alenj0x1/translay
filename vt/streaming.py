@@ -45,6 +45,15 @@ NO_END = {
         "sua", "nosso", "nossa", "é", "são", "foi", "era", "ser", "está", "estão", "vai", "vou",
         "tem", "não", "muito", "como", "chamado", "chamada", "usar", "usando", "visitar",
     },
+    "it": {
+        "il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "di", "del", "dello", "della",
+        "dei", "degli", "delle", "a", "al", "allo", "alla", "ai", "agli", "alle", "da", "dal",
+        "dalla", "in", "nel", "nello", "nella", "nei", "negli", "nelle", "con", "su", "sul",
+        "sulla", "per", "tra", "fra", "e", "o", "ma", "che", "se", "mio", "mia", "tuo", "tua",
+        "suo", "sua", "nostro", "nostra", "è", "sono", "era", "essere", "sta", "stanno", "va",
+        "vado", "ha", "hanno", "non", "molto", "come", "chiamato", "chiamata", "usare", "usando",
+        "visitare",
+    },
     "es": {
         "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en", "a", "al",
         "para", "por", "con", "sin", "sobre", "entre", "hasta", "y", "o", "pero", "que", "si",
@@ -66,13 +75,18 @@ LOWER_AFTER_COMMA = {
         "isso", "isto", "aí", "porque", "se", "um", "uma", "no", "na", "em", "para", "pra", "com",
         "tipo", "né", "depois", "agora",
     },
+    "it": {
+        "e", "ma", "quindi", "allora", "il", "lo", "la", "i", "gli", "le", "che", "io", "tu", "lei",
+        "lui", "voi", "noi", "questo", "questa", "quello", "perché", "se", "un", "una", "in", "per",
+        "con", "poi", "adesso", "ora", "cioè", "tipo",
+    },
     "es": {
         "y", "pero", "entonces", "el", "la", "los", "las", "que", "yo", "usted", "ustedes", "él",
         "ella", "eso", "esto", "porque", "si", "un", "una", "en", "para", "con", "después", "ahora",
     },
 }
 # frases que Whisper inventa sobre silencio o ruido en los bordes del audio (normalizadas:
-# minúsculas, sin puntuación). Las de pt/es son las conocidas de sus datos de entrenamiento
+# minúsculas, sin puntuación). Las de pt/it/es son las conocidas de sus datos de entrenamiento
 # (créditos de subtítulos y cierres de video).
 HALLUCINATIONS = {
     "en": {
@@ -82,6 +96,11 @@ HALLUCINATIONS = {
     "pt": {
         "obrigado", "obrigada", "obrigado por assistir", "obrigada por assistir", "tchau",
         "legendas pela comunidade amaraorg", "inscrevase no canal", "até a próxima", "ok", "é",
+    },
+    "it": {
+        "grazie", "grazie a tutti", "grazie per la visione", "grazie per l'attenzione", "ciao",
+        "sottotitoli creati dalla comunità amaraorg", "sottotitoli a cura di qtss",
+        "sottotitoli e revisione a cura di qtss", "iscriviti al canale", "alla prossima", "ok",
     },
     "es": {
         "gracias", "muchas gracias", "gracias por ver", "gracias por ver el video", "adiós",

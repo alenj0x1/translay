@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 import Diagram from "../../../../components/Diagram.astro";
 import { languages } from "../../../../diagrams";
 
-Translay reconoce videos en inglés, portugués y español y los traduce y dobla a cualquiera de los tres: eliges el idioma una vez y vale para la interfaz, la traducción y la voz. Cualquier video también se puede solo transcribir, en su idioma.
+Translay reconoce videos en inglés, portugués, italiano y español y los traduce y dobla a inglés, español o portugués: eliges el idioma una vez y vale para la interfaz, la traducción y la voz. Cualquier video también se puede solo transcribir, en su idioma.
 
 <Diagram {...languages("es")} />
 
@@ -25,7 +25,7 @@ Translay reconoce videos en inglés, portugués y español y los traduce y dobla
 | `nllb` | Token de NLLB-200, con la escritura. | `por_Latn` |
 | `tts` | Nombre que esperan los motores de voz. | `Portuguese` |
 
-`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `es`); `TARGETS`, aquellos a los que se traduce y dobla y en los que se puede ver la interfaz (`es`, `en`, `pt`). `target()` es el elegido ahora. Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
+`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `it`, `es`); `TARGETS`, aquellos a los que se traduce y dobla y en los que se puede ver la interfaz (`es`, `en`, `pt`). El italiano solo es de origen: se traduce y dobla, pero no es destino ni idioma de la interfaz. `target()` es el elegido ahora. Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
 
 ## Un idioma para todo
 
@@ -43,7 +43,7 @@ Un video nuevo (enlace importado, archivo de tu equipo o grabación de pantalla)
 
 Un idioma detectado que Translay todavía no traduce solo se transcribe, en ese idioma. Un video de antes de los idiomas, sin `lang`, sigue en inglés. Un modelo `.en` elegido con `--model` no detecta: para él todo es inglés.
 
-Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y español: 100 % de aciertos con large-v3-turbo, también con murmullo en otros idiomas a 5 dB y ruido rosa a 5 dB, en unos 250 ms por detección en una RTX 4060. Whisper `small` acertó entre el 97,5 % y el 100 % con murmullo.
+Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y español: 100 % de aciertos con large-v3-turbo, también con murmullo en otros idiomas a 5 dB y ruido rosa a 5 dB, en unos 250 ms por detección en una RTX 4060. Whisper `small` acertó entre el 97,5 % y el 100 % con murmullo. En italiano, con audios limpios de FLEURS: 100 % con large-v3-turbo (330 ms, confianza 0,999) y con `small`.
 
 ## Traducir o solo transcribir
 
@@ -72,6 +72,9 @@ Al elegir otro idioma, lo que ya estaba hecho vuelve y lo que falta se traduce y
 | Inglés → portugués | Opus-MT tc-big en-pt (`opus-big-en-pt`) | 71,6 | 117 ms | MADLAD 70,5, NLLB 68,2 |
 | Español → inglés | Opus-MT tc-bible roa-eng (`opus-roa-en`) | 59,9 | 218 ms | MADLAD 60,8, NLLB 59,8 (61,2 con las reglas de texto) |
 | Portugués → inglés | Opus-MT tc-bible roa-eng | 72,4 | 127 ms | MADLAD 72,2, NLLB 72,2 |
+| Italiano → español | Opus-MT itc-itc | 52,4 | 208 ms | MADLAD 53,4 a 2039 ms |
+| Italiano → portugués | Opus-MT itc-itc | 57,5 | 195 ms | |
+| Italiano → inglés | Opus-MT tc-bible roa-eng | 61,6 | 164 ms | |
 
 Cualquier otro par, o un modelo que no lo soporte, va a `FALLBACK`: MADLAD-400 3B. Reemplazó a NLLB-200, cuya licencia es CC-BY-NC, con Apache-2.0, y empata o gana a NLLB en los pares medidos.
 
@@ -117,12 +120,16 @@ Palabras mal reconocidas por Whisper con `tools/lab/langs_asr.py` (FLEURS dev, 1
 | large-v3-turbo `int8`, murmullo a 5 dB | 17,0 % | 11,1 % | 7,9 % |
 | small, murmullo a 5 dB | 28,8 % | 24,1 % | 17,6 % |
 
+Italiano (FLEURS `it_it`, el mismo lab, 120 audios limpios): large-v3-turbo `float16` 3,5 %, small `int8_float16` 9,2 %.
+
+Italiano → español, test, 344 frases: Opus-MT itc-itc 52,4 a 208 ms por frase y 36 frases/s en lotes (~0,7 GB), MADLAD-400 3B 53,4 a 2039 ms y 4,1 frases/s (~3,5 GB). MADLAD gana por un punto y es diez veces más lento, así que el italiano usa el itc-itc que ya descarga el portugués; al portugués (345 frases) itc-itc saca 57,5, y roa-eng al inglés (346), 61,6. Como referencia, el leaderboard de Opus-MT da a estos modelos 52,2, 58,2 y 62,4 en FLORES-200 devtest.
+
 ## Reglas de texto
 
 Las reglas que dependen del idioma van por su código; un idioma sin las suyas solo recibe lo que no depende del idioma (puntuación y pausas).
 
-- **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»).
-- **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando.
+- **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.», «Sig.», «Dott.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»). En italiano, «costa un occhio della testa» → «costa moltissimo» (itc-itc lo pasaba a «un ojo de la cabeza»).
+- **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando.
 
 ## Idioma de la interfaz
 

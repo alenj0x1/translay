@@ -49,6 +49,22 @@ def test_portuguese_text_rules():
     assert polish("Hoy os voy a enseñar el vídeo") == "Hoy les voy a enseñar el video"
 
 
+def test_italian():
+    assert langs.is_source("it") and langs.name("it") == "italiano" and langs.name("it", "en") == "Italian"
+    assert route("it") == "opus-itc" and route("it", tgt="pt") == "opus-itc" and route("it", tgt="en") == "opus-roa-en"
+    assert route("it", "base") == "opus-itc"
+    assert split_sentences("Il Sig. Rossi è arrivato. Il Dott. Bianchi no.", "it") == [
+        "Il Sig. Rossi è arrivato.", "Il Dott. Bianchi no."]
+    assert preedit("Costa un occhio della testa, ma ne vale la pena.", "it") == "Costa moltissimo, ma ne vale la pena."
+    assert split_sentences("È arrivato. È andato via.", "it") == ["È arrivato.", "È andato via."]
+    # créditos de subtítulos que Whisper inventa sobre silencio, normalizados como en el streaming
+    from vt.streaming import HALLUCINATIONS, _norm
+    for said in ("Sottotitoli creati dalla comunità Amara.org", "Sottotitoli a cura di QTSS",
+                 "Sottotitoli e revisione a cura di QTSS"):
+        words = [Word(i, i + 1, " " + w) for i, w in enumerate(said.split())]
+        assert " ".join(_norm(w) for w in words) in HALLUCINATIONS["it"]
+
+
 class LangASR:
     """Detecta `lang` y transcribe una palabra por segundo de voz."""
 

@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 import Diagram from "../../../components/Diagram.astro";
 import { languages } from "../../../diagrams";
 
-Translay recognizes videos in English, Portuguese and Spanish and translates and dubs them into any of the three: you choose the language once and it applies to the interface, the translation and the voice. Any video can also be only transcribed, in its own language.
+Translay recognizes videos in English, Portuguese, Italian and Spanish and translates and dubs them into English, Spanish or Portuguese: you choose the language once and it applies to the interface, the translation and the voice. Any video can also be only transcribed, in its own language.
 
 <Diagram {...languages("en")} />
 
@@ -25,7 +25,7 @@ Translay recognizes videos in English, Portuguese and Spanish and translates and
 | `nllb` | NLLB-200 token, script included. | `por_Latn` |
 | `tts` | Name the voice engines expect. | `Portuguese` |
 
-`SOURCES` are the languages that can be recognized and chosen by hand (`en`, `pt`, `es`); `TARGETS` are the ones it translates and dubs into, and the interface can be shown in (`es`, `en`, `pt`). `target()` is the one chosen now. A video is translated when its language isn't the target, is in the registry and the person didn't choose to only transcribe it.
+`SOURCES` are the languages that can be recognized and chosen by hand (`en`, `pt`, `it`, `es`); `TARGETS` are the ones it translates and dubs into, and the interface can be shown in (`es`, `en`, `pt`). Italian is only a source: it is translated and dubbed, but it isn't a target or an interface language. `target()` is the one chosen now. A video is translated when its language isn't the target, is in the registry and the person didn't choose to only transcribe it.
 
 ## One language for everything
 
@@ -43,7 +43,7 @@ A new video (imported link, local file or screen recording) has no language: Whi
 
 A detected language that Translay can't translate yet is only transcribed, in that language. A video from before there were languages, without `lang`, stays in English. A `.en` model passed with `--model` doesn't detect: everything is English to it.
 
-Measured with `tools/lab/langs_asr.py` on FLEURS clips in English, Portuguese and Spanish: 100 % correct with large-v3-turbo, also with chatter in other languages at 5 dB and pink noise at 5 dB, in about 250 ms per detection on an RTX 4060. Whisper `small` got 97.5–100 % with chatter.
+Measured with `tools/lab/langs_asr.py` on FLEURS clips in English, Portuguese and Spanish: 100 % correct with large-v3-turbo, also with chatter in other languages at 5 dB and pink noise at 5 dB, in about 250 ms per detection on an RTX 4060. Whisper `small` got 97.5–100 % with chatter. Italian, on clean FLEURS clips: 100 % with large-v3-turbo (330 ms, confidence 0.999) and with `small`.
 
 ## Translate or only transcribe
 
@@ -72,6 +72,9 @@ When you choose another language, what was already done for it comes back and wh
 | English → Portuguese | Opus-MT tc-big en-pt (`opus-big-en-pt`) | 71.6 | 117 ms | MADLAD 70.5, NLLB 68.2 |
 | Spanish → English | Opus-MT tc-bible roa-eng (`opus-roa-en`) | 59.9 | 218 ms | MADLAD 60.8, NLLB 59.8 (61.2 with the text rules) |
 | Portuguese → English | Opus-MT tc-bible roa-eng | 72.4 | 127 ms | MADLAD 72.2, NLLB 72.2 |
+| Italian → Spanish | Opus-MT itc-itc | 52.4 | 208 ms | MADLAD 53.4 at 2039 ms |
+| Italian → Portuguese | Opus-MT itc-itc | 57.5 | 195 ms | |
+| Italian → English | Opus-MT tc-bible roa-eng | 61.6 | 164 ms | |
 
 Any other pair, or a model that doesn't support the pair, goes to `FALLBACK`: MADLAD-400 3B. It replaced NLLB-200, whose license is CC-BY-NC, with Apache-2.0, and it ties or beats it on the pairs measured.
 
@@ -117,12 +120,16 @@ Whisper's word error rate with `tools/lab/langs_asr.py` (FLEURS dev, 120 clips p
 | large-v3-turbo `int8`, chatter at 5 dB | 17.0 % | 11.1 % | 7.9 % |
 | small, chatter at 5 dB | 28.8 % | 24.1 % | 17.6 % |
 
+Italian (FLEURS `it_it`, same lab, 120 clean clips): large-v3-turbo `float16` 3.5 %, small `int8_float16` 9.2 %.
+
+Italian → Spanish, test, 344 sentences: Opus-MT itc-itc 52.4 at 208 ms per sentence and 36 sentences/s in batches (~0.7 GB), MADLAD-400 3B 53.4 at 2039 ms and 4.1 sentences/s (~3.5 GB). MADLAD is one point better and ten times slower, so Italian uses the itc-itc that Portuguese already downloads; into Portuguese (345 sentences) itc-itc gets 57.5, and roa-eng into English (346) 61.6. As a reference, the Opus-MT leaderboard gives these models 52.2, 58.2 and 62.4 on FLORES-200 devtest.
+
 ## Text rules
 
 Rules that depend on the language are keyed by its code; a language without its own only gets what doesn't depend on the language (punctuation and pauses).
 
-- **Before translating** (`vt/textproc.py`): abbreviations that don't end a sentence ("Mr.", "Sra.") and idioms rewritten to their meaning. In Portuguese, idioms that the translator would render literally ("pisou na bola" → "errou", "custou os olhos da cara" → "custou muito caro", "moleza" → "muito fácil", "fica ligado" → "fique atento", "fala, galera" → "olá, pessoal") and colloquial forms that Whisper writes as they are spoken ("pra" → "para", "tá" → "está", "bora" → "vamos", "tô", "cê", "né").
-- **Live recognition** (`vt/streaming.py`): words a sentence rarely ends with, words written in lowercase after a comma, and the phrases Whisper makes up on silence in each language ("Legendas pela comunidade Amara.org", "Obrigado por assistir", "Subtítulos realizados por la comunidad de Amara.org", "Gracias por ver el video"). Before, there were only English rules; Spanish videos also benefit.
+- **Before translating** (`vt/textproc.py`): abbreviations that don't end a sentence ("Mr.", "Sra.", "Sig.", "Dott.") and idioms rewritten to their meaning. In Portuguese, idioms that the translator would render literally ("pisou na bola" → "errou", "custou os olhos da cara" → "custou muito caro", "moleza" → "muito fácil", "fica ligado" → "fique atento", "fala, galera" → "olá, pessoal") and colloquial forms that Whisper writes as they are spoken ("pra" → "para", "tá" → "está", "bora" → "vamos", "tô", "cê", "né"). In Italian, "costa un occhio della testa" → "costa moltissimo" (itc-itc rendered it «un ojo de la cabeza»).
+- **Live recognition** (`vt/streaming.py`): words a sentence rarely ends with, words written in lowercase after a comma, and the phrases Whisper makes up on silence in each language ("Legendas pela comunidade Amara.org", "Obrigado por assistir", "Sottotitoli creati dalla comunità Amara.org", "Sottotitoli a cura di QTSS", "Subtítulos realizados por la comunidad de Amara.org", "Gracias por ver el video"). Before, there were only English rules; Spanish videos also benefit.
 
 ## Language of the interface
 

@@ -8,6 +8,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 
 ### Added
 
+- Italian videos: detected, transcribed, translated into Spanish and Portuguese with Opus-MT itc-itc and into English with roa-eng (the models Portuguese already uses, so nothing new to download) and dubbed; with Italian abbreviations and the subtitle credits Whisper makes up on silence («Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS»).
 - Screen recording: «Silenciar las otras apps al grabar una ventana» (Settings › Add and download, off by default) mutes every other application while a window is recorded on Windows 10, where a window brings the whole computer's sound, and gives them their sound back when the recording stops or its tab closes.
 
 ### Changed

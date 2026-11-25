@@ -29,20 +29,21 @@ LANGS: dict[str, Lang] = {
     "en": Lang("en", "inglés", "eng", "eng_Latn", "English"),
     "es": Lang("es", "español", "spa", "spa_Latn", "Spanish"),
     "pt": Lang("pt", "portugués", "por", "por_Latn", "Portuguese"),
+    "it": Lang("it", "italiano", "ita", "ita_Latn", "Italian"),
 }
-SOURCES = ("en", "pt", "es")
+SOURCES = ("en", "pt", "it", "es")
 TARGETS = ("es", "en", "pt")
 DEFAULT_TARGET = "es"  # el de antes de los idiomas: lo guardado sin idioma de destino está en español
 DEFAULT_SOURCE = "en"  # idioma de un video cuando no se sabe (datos de antes de los idiomas)
 
 # nombre de cada idioma en cada idioma de interfaz: NAMES[interfaz][idioma]
 NAMES = {
-    "es": {"en": "inglés", "es": "español", "pt": "portugués"},
-    "en": {"en": "English", "es": "Spanish", "pt": "Portuguese"},
-    "pt": {"en": "inglês", "es": "espanhol", "pt": "português"},
+    "es": {"en": "inglés", "es": "español", "pt": "portugués", "it": "italiano"},
+    "en": {"en": "English", "es": "Spanish", "pt": "Portuguese", "it": "Italian"},
+    "pt": {"en": "inglês", "es": "espanhol", "pt": "português", "it": "italiano"},
 }
 # cómo se llama cada idioma a sí mismo (para elegirlo sin entender el actual)
-NATIVE = {"es": "Español", "en": "English", "pt": "Português"}
+NATIVE = {"es": "Español", "en": "English", "pt": "Português", "it": "Italiano"}
 
 # cómo se le pide a un modelo de lenguaje que responda en cada idioma (los prompts están en inglés)
 PROMPT = {"es": "Latin American Spanish", "en": "English", "pt": "Brazilian Portuguese"}

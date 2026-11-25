@@ -14,9 +14,9 @@ function t(text, vars) {
 
 // el nombre de un idioma en el de la app («inglés», "English", «inglês»)
 const LANG_NAMES = {
-  es: { en: "inglés", es: "español", pt: "portugués" },
-  en: { en: "English", es: "Spanish", pt: "Portuguese" },
-  pt: { en: "inglês", es: "espanhol", pt: "português" },
+  es: { en: "inglés", es: "español", pt: "portugués", it: "italiano" },
+  en: { en: "English", es: "Spanish", pt: "Portuguese", it: "Italian" },
+  pt: { en: "inglês", es: "espanhol", pt: "português", it: "italiano" },
 };
 function langName(code) {
   return (LANG_NAMES[I18N.lang] || LANG_NAMES.es)[code] || (code ? code.toUpperCase() : t("el original"));
