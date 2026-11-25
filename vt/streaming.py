@@ -128,6 +128,17 @@ HALLUCINATIONS = {
 }
 
 
+# créditos de subtítulos que Whisper escribe con variantes (otro nombre, repetidos): por cómo empiezan
+CREDITS = {"ko": re.compile(r"^(한글\s*)?자막\s*(제공|by|제작)")}
+
+
+def _looped(key: str) -> bool:
+    """¿Termina en un mismo trozo de 2 a 4 palabras repetido tres veces? («자막 제공 및 자막 제공 및 자막 제공 및»):
+    el bucle típico de Whisper sobre música o ruido."""
+    t = key.split()
+    return any(len(t) >= 3 * n and t[-n:] == t[-2 * n:-n] == t[-3 * n:-2 * n] for n in (2, 3, 4))
+
+
 def speech_sample(audio: np.ndarray, seconds: float = 15.0, scan_s: float = 300.0) -> np.ndarray:
     """Los primeros `seconds` de voz de un audio (VAD de energía, en los primeros `scan_s`):
     para detectar el idioma sin que una intro musical o un silencio lo confundan."""
@@ -481,7 +492,9 @@ class StreamingTranscriber:
         text = _text(words)
         sep = "" if self.language in NO_SPACES else " "
         key = sep.join(_norm(w) for w in words)
-        if key in HALLUCINATIONS.get(self.language, ()) and float(np.mean([w.prob for w in words])) < 0.9:
+        credit = CREDITS.get(self.language)
+        if ((key in HALLUCINATIONS.get(self.language, ()) or (credit and credit.match(key)) or _looped(key))
+                and float(np.mean([w.prob for w in words])) < 0.9):
             return []
         if text[:1].islower() and (not self.context or _SENT_END.search(self.context)):
             text = text[0].upper() + text[1:]

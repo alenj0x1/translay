@@ -33,6 +33,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - Guests: a video that isn't fully dubbed no longer stays paused for a «Solo ver» guest at «Se reanuda al estar listo 0 %». Nothing is processed for them, so they hear the original where the voice is missing and the bar says so.
 - The page shows Translay's icon in the browser tab (it asked for `/favicon.ico` and got an error).
 - Screen recording: a recording no longer fills the disk. The server stops taking it with 1 GB left free (or at 24 GB per recording); the rest waits on this device under **Sin espacio en el disco** and is uploaded once there is room.
+- Korean videos: subtitle credits Whisper writes over music with other wording («한글자막 제공 및 자막 제공 및…») and, in any language, sentences that end in the same few words repeated three times are no longer shown or dubbed (only with low confidence, like the other made-up phrases).
 - Desktop app: the window only opens the address of the server it started (loopback and the port it chose), read from the server's own output, never from its errors.
 
 ## 1.14.0 · 2026-11-14

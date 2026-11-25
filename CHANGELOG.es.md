@@ -36,6 +36,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 - Invitados: un video que no está doblado entero ya no queda en pausa para un invitado «Solo ver» en «Se reanuda al estar listo 0 %». Como no se le procesa nada, escucha el original donde falta la voz y la barra lo dice.
 - La página muestra el ícono de Translay en la pestaña del navegador (pedía `/favicon.ico` y recibía un error).
 - Grabación de pantalla: una grabación ya no llena el disco. El servidor deja de recibirla cuando quedaría 1 GB libre (o a los 24 GB por grabación); lo demás espera en este equipo con **Sin espacio en el disco** y se sube cuando hay lugar.
+- Videos en coreano: los créditos de subtítulos que Whisper escribe sobre la música con otras palabras («한글자막 제공 및 자막 제공 및…») y, en cualquier idioma, las frases que terminan con las mismas palabras repetidas tres veces ya no se muestran ni se doblan (solo con confianza baja, como las demás frases inventadas).
 - App de escritorio: la ventana solo abre la dirección del servidor que lanzó (la de este equipo y el puerto que eligió), leída de la salida del servidor, nunca de sus errores.
 
 ## 1.14.0 · 2026-11-14

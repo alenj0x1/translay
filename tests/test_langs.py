@@ -170,6 +170,12 @@ def test_japanese_and_korean_hallucinations_are_dropped():
     assert emitted("ja", ja, 0.95) == ["ご視聴ありがとうございました。"]  # dicho con seguridad: se queda
     assert emitted("ko", [" 다음", " 영상에서", " 만나요."], 0.6) == []
     assert "시청해 주셔서 감사합니다" in HALLUCINATIONS["ko"] and "ご視聴ありがとうございました" in HALLUCINATIONS["ja"]
+    # créditos con variantes y bucles (escrito sobre la música de un video de TWICE)
+    loop = [" 한글자막", " 제공", " 및", " 자막", " 제공", " 및", " 자막", " 제공", " 및"]
+    assert emitted("ko", loop, 0.6) == []
+    assert emitted("ko", [" 한글자막", " 제공:", " 누군가"], 0.6) == []
+    assert emitted("en", [" I", " said", " no,", " no,", " no"], 0.6) != []  # una palabra repetida es habla
+    assert emitted("ko", [" 안녕하세요,", " 여러분들."], 0.6) != []
 
 
 def test_streaming_korean_and_english_pause_close_with_a_dot():
