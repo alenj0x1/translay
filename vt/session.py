@@ -429,6 +429,10 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditM
                     if ag and self.tr.data["id"] in vault.library.data["videos"] and \
                             self.processor.progress(self.tr.data["id"])["asr"] >= 0.98:
                         ag.describe(self.tr.data["id"])
+                    # el fondo separado de un video doblado antes de que existiera (o cuyo fin no se vio): al abrirlo
+                    sep = getattr(self.processor, "separator", None) if self.access.owner else None
+                    if sep and self.tr.data["id"] in vault.library.data["videos"] and                             self.processor.progress(self.tr.data["id"])["dub"] >= 0.99:
+                        sep.request(self.tr.data["id"])
                     if self._backfill:
                         self._backfill.cancel()
                     self._backfill = asyncio.create_task(self._translate_stale(self.tr))

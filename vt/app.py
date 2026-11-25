@@ -444,6 +444,7 @@ def main():
         processor.agent.describe(vid)
         separator.request(vid)
     processor.on_done = on_done
+    processor.separator = separator  # también al abrir un video doblado antes de existir (vt/session.py)
     info["summary"] = {"recommended": summarize.recommend(hw, lim)}
     exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults, summaries=summaries)
 
