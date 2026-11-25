@@ -149,3 +149,13 @@ def test_page_mirrors_the_live_rule():
     """La página no pide la sesión en vivo si el servidor la rechazaría (web/js/access.js › mayRequest)."""
     js = (ROOT / "web" / "js" / "access.js").read_text(encoding="utf-8")
     assert 'if (t === "open" && obj.ephemeral) return !!(a.owner && a.local);' in js
+
+
+def test_live_session_never_takes_a_real_video_id():
+    s = _session()
+    s.q.put_nowait(("open", {"type": "open", "id": "yt_4N_C9BKwCQ0", "ephemeral": True}))
+    s.q.put_nowait(("close", None))
+    asyncio.run(s._worker())
+    assert s.tr.data["id"].startswith("live_")  # con el id de un video, lo que se pide apuntaría a él
+    tr, seg = s._edit_target({"video": s.tr.data["id"], "seg": 0})
+    assert tr is None and seg is None  # el editor de frases no actúa sobre los subtítulos en vivo

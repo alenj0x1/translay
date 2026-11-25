@@ -28,7 +28,7 @@ class EditMixin:
     def _edit_target(self, m: dict):
         """La transcripción abierta y la frase pedida, si son del video que esta pestaña tiene abierto."""
         tr = self.tr
-        if tr is None or str(m.get("video", "")) != tr.data["id"]:
+        if tr is None or tr.ephemeral or str(m.get("video", "")) != tr.data["id"]:  # en vivo no hay voz que editar
             return None, None
         try:
             sid = int(m.get("seg"))

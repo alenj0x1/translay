@@ -422,7 +422,10 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditM
                 elif kind == "open" and op[1].get("ephemeral"):
                     await self._finish()
                     vid = str(op[1].get("id", ""))
-                    self.tr = LiveTranscript(vid if _SAFE_VID.match(vid) else f"live_{int(time.time())}")
+                    # siempre «live_…»: con el id de un video real, lo que se pide sobre él (comentarios, glosario,
+                    # editor) apuntaría a ese video
+                    ok = vid.startswith("live_") and _SAFE_VID.match(vid)
+                    self.tr = LiveTranscript(vid if ok else f"live_{int(time.time())}")
                     self.st.language = ""  # se detecta con la primera voz
                     await self.ws.send_json({"type": "transcript", **self.tr.public(), "ephemeral": True})
                 elif kind == "open":
