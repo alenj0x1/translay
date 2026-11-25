@@ -35,6 +35,55 @@ OUT_SR = 24000
 DUCK = 0.14
 
 
+def produce(media: Path, voice: str, data: Path, translator: str = "opus-big", log=print, asr=None, mt=None, tts=None,
+            ref: str = "persona", ref_min_s: float = 2.5):
+    """El pipeline del servidor sobre un archivo: reconoce, traduce, identifica a cada persona y dobla cada
+    frase. Devuelve (filas [(segmento, frase guardada, info de la voz)], transcripción, audio a 16 kHz, redobladas).
+    ref="frase": cada frase de al menos ref_min_s segundos se clona con su propio audio original como referencia (lleva su
+    entonación); las más cortas, con la referencia de la persona.
+    tools/lab/dub_quality.py lo usa para medir el doblaje."""
+    asr = asr or WhisperASR()
+    asr.warmup()
+    mt = mt or load_translator(translator, tgt="es")
+    dub = Dubber(tts or TTSClient(voice), data)
+    store = Store(data / "transcripts")
+    vid = ("off_" + media.stem.replace(".", "_"))[:60].ljust(8, "_")
+    for f in (data / "transcripts").glob(f"{vid}.json"):
+        f.unlink()  # cada corrida empieza limpia
+    tr = store.open(vid, media.name)
+    tr.set_lang("en")  # en inglés (sin detectar el idioma)
+    audio16 = decode(media, 16000)
+    refs = data / "refs"
+
+    def own_ref(s, seg):
+        if ref != "frase" or s.audio is None or len(s.audio) < ref_min_s * 16000:
+            return None
+        refs.mkdir(parents=True, exist_ok=True)
+        f = refs / f"{seg['id']}.wav"
+        write_wav(f, s.audio, 16000)
+        return str(f), s.text
+
+    segs = stream(asr, audio16)
+    texts = mt.translate_many([s.text for s in segs])
+    rows, redo = [], set()
+    for s, es in zip(segs, texts):
+        seg, _ = tr.add_segment(s.start, s.end, s.text, es, mt.name)
+        seg["speaker"] = dub.identify(tr, seg, s.audio)
+        for fixed in dub.relabel(tr):  # persona corregida: se vuelve a doblar al final
+            redo.add(fixed["id"])
+        info = dub.synthesize(tr, seg, dub.loudness(s.audio), ref_override=own_ref(s, seg))
+        seg["dub"] = info
+        rows.append((s, seg, info))
+        log(f"[{s.start:6.1f}] P{seg['speaker']} ×{info['rate']:.2f} gpu {info['gpu']:4.1f}s  {es}")
+    for i, (s, seg, info) in enumerate(rows):
+        if seg["id"] in redo:
+            info = dub.synthesize(tr, seg, dub.loudness(s.audio), ref_override=own_ref(s, seg))
+            seg["dub"] = info
+            rows[i] = (s, seg, info)
+    tr.save()
+    return rows, tr, audio16, redo
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser()
@@ -45,40 +94,11 @@ def main():
     media = Path(a.media)
     data = Path(a.data)
 
-    asr = WhisperASR()
-    asr.warmup()
-    mt = load_translator("opus-big")
-    dub = Dubber(TTSClient(a.voice), data)
-    store = Store(data / "transcripts")
-    vid = ("off_" + media.stem.replace(".", "_"))[:60].ljust(8, "_")
-    for f in (data / "transcripts").glob(f"{vid}.json"):
-        f.unlink()  # cada corrida empieza limpia
-    tr = store.open(vid, media.name)
-    tr.set_lang("en")  # en inglés (sin detectar el idioma)
-
     t0 = time.perf_counter()
-    audio16 = decode(media, 16000)
-    segs = stream(asr, audio16)
-    asr_s = time.perf_counter() - t0
-    texts = mt.translate_many([s.text for s in segs])
-
-    rows, redo = [], set()
-    for s, es in zip(segs, texts):
-        seg, _ = tr.add_segment(s.start, s.end, s.text, es, mt.name)
-        seg["speaker"] = dub.identify(tr, seg, s.audio)
-        for fixed in dub.relabel(tr):  # persona corregida: se vuelve a doblar al final
-            redo.add(fixed["id"])
-        info = dub.synthesize(tr, seg, dub.loudness(s.audio))
-        seg["dub"] = info
-        rows.append((s, seg, info))
-        print(f"[{s.start:6.1f}] P{seg['speaker']} ×{info['rate']:.2f} gpu {info['gpu']:4.1f}s  {es}")
-    for i, (s, seg, info) in enumerate(rows):
-        if seg["id"] in redo:
-            rows[i] = (s, seg, dub.synthesize(tr, seg, dub.loudness(s.audio)))
+    rows, tr, audio16, redo = produce(media, a.voice, data)
+    segs = [s for s, _, _ in rows]
     labels = [seg["speaker"] for _, seg, _ in rows]
-    tr.save()
-    print(f"frases con persona corregida y redobladas: {len(redo)}")
-
+    print(f"frases con persona corregida y redobladas: {len(redo)} ({time.perf_counter() - t0:.0f}s)")
     # pista doblada: cada frase en su momento; si se pisan, la siguiente espera
     orig = decode(media, OUT_SR)
     track = orig * DUCK

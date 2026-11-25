@@ -111,7 +111,7 @@ def main():
 
     # Fase 0: frases y referencias (el traductor se libera antes de la voz)
     emb = SpeakerEmbedder()
-    mt = load_translator("opus-big")
+    mt = load_translator("opus-big", tgt="es")
     jobs = []  # (sample, idx, spk, en, es, orig_dur, ref)
     orig_emb, orig_f0 = {}, {}
     for s in a.samples:

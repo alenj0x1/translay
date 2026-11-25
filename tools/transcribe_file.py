@@ -56,7 +56,7 @@ def main():
     audio = decode(a.media)
     asr = WhisperASR(a.model, beam_size=a.beam)
     asr.warmup()
-    mt = load_translator(a.translator)
+    mt = load_translator(a.translator, tgt="es")
     mt.translate("Warm up.")
     st = StreamingTranscriber(asr)
     step = int(a.chunk * SR)
