@@ -8,6 +8,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 
 ### Agregado
 
+- Reproductor: la línea de avance muestra los capítulos del video (de su resumen) como tramos con un pequeño hueco entre ellos; al pasar el mouse se ve el nombre del capítulo sobre el tiempo, el capítulo actual aparece junto al tiempo y un resumen que llega mientras se mira los suma sin recargar.
 - Grabar pantalla: «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar, apagada por defecto) silencia las demás aplicaciones mientras se graba una ventana en Windows 10, donde una ventana trae el sonido de todo el equipo, y les devuelve el sonido al terminar la grabación o si se cierra su pestaña.
 - Ajustes › Rendimiento › **Guardar informe** escribe un informe de diagnóstico (versión, compilación de Windows, perfil y las últimas líneas de los registros) en Descargas, o lo descarga desde otro equipo; cada error deja ahora una línea en `app.log`, con hora y contexto.
 

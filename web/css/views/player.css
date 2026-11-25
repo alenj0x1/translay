@@ -117,6 +117,15 @@ body.layout-wide:not(.mini) #pane-en .ctrl {
   background: var(--raised); color: var(--fg); box-shadow: var(--menu-shadow); font: 600 var(--fs-xs)/1.2 var(--font); white-space: nowrap;
 }
 .t-tip.note { max-width: 260px; white-space: normal; text-align: left; line-height: 1.35; }
+/* capítulos: la línea se parte en tramos con un hueco de 2 px (máscara de comments.js) y al pasar
+   el mouse el nombre va sobre el minuto; el capítulo actual, junto al tiempo */
+.t-bar { position: absolute; inset: 0; pointer-events: none; }
+.track.chapters::before, .track.chapters .t-bar { -webkit-mask-image: var(--ch-mask); mask-image: var(--ch-mask); }
+.t-tip { text-align: center; }
+.t-tip .t-ch { display: block; max-width: 220px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; color: var(--fg-muted); font-weight: 500; }
+.c-chap { flex: 0 1 auto; min-width: 0; max-width: min(220px, 20cqi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--fg-muted); font: 500 var(--fs-xs)/1.2 var(--font); }
+.c-chap[hidden] { display: none; }
 
 .vol { flex: none; display: flex; align-items: center; gap: 4px; }
 #c-vol { -webkit-appearance: none; appearance: none; width: 76px; height: 4px; border-radius: var(--r-pill); background: var(--surface-3); outline: 0; cursor: pointer; }
@@ -164,6 +173,20 @@ body.layout-wide:not(.mini) #pane-en .ctrl {
   .track { order: -1; flex-basis: 100%; }
   .c-time { min-width: 0; margin-right: auto; }
 }
+/* con capítulos, la línea pasa antes a su propia fila (el nombre no le quita ancho) y el
+   capítulo se queda con el espacio que sobra junto al tiempo */
+@container (max-width: 860px) {
+  .ctrl:has(> .c-chap:not([hidden])) { flex-wrap: wrap; gap: var(--s2); }
+  .ctrl:has(> .c-chap:not([hidden])) .track { order: -1; flex-basis: 100%; }
+  .ctrl:has(> .c-chap:not([hidden])) .c-time { min-width: 0; margin-right: 0; }
+  .c-chap { flex: 1 1 0; max-width: none; }
+}
+/* en el celular la fila de botones va llena: el capítulo, en su línea bajo la barra */
+@container (max-width: 420px) {
+  .ctrl:has(> .c-chap:not([hidden])) { gap: 4px; }
+  .ctrl:has(> .c-chap:not([hidden])) .track { order: -2; }
+  .c-chap { order: -1; flex-basis: 100%; margin-top: -4px; padding-inline: 4px; }
+}
 @container (max-width: 420px) {  /* con CC, todo en una fila */
   #c-vol { display: none; }
   .ctrl { gap: 4px; padding-inline: 8px; }
@@ -198,7 +221,7 @@ body.mini .mini-acts { display: flex; gap: 6px; position: absolute; top: var(--s
 body.mini .mini-acts .ic { background: rgba(10, 11, 13, .7); color: #fff; }
 body.mini .ctrl { position: static; flex-wrap: nowrap; gap: var(--s2); padding: 6px var(--s2); border-radius: 0; }
 body.mini .ctrl .track { order: 0; flex-basis: auto; }
-body.mini .c-time, body.mini .c-lang, body.mini .vol, body.mini #c-full, body.mini #c-cc, body.mini .c-speed { display: none; }
+body.mini .c-time, body.mini .c-chap, body.mini .c-lang, body.mini .vol, body.mini #c-full, body.mini #c-cc, body.mini .c-speed { display: none; }
 body.mini .ctrl .ic { width: var(--h-xs); height: var(--h-xs); }
 
 @media (max-width: 760px) {

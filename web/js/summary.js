@@ -131,12 +131,14 @@ function summaryFromTranscript(m) {
   state.summary = m.summary || null;
   if ("summary_state" in m) state.summaryJob = m.summary_state || null;
   renderSummary();
+  renderTimeline();  // los capítulos en la línea de avance (web/js/comments.js)
 }
 function summaryUpdate(m) {
   if (m.type === "summary") {
     state.summary = m.summary;
     state.summaryJob = null;
     renderSummary();
+    renderTimeline();  // llegó mientras se ve: los capítulos aparecen en la línea sin recargar
     toast(t("Resumen listo"), "ok", $("#summary").hidden ? { label: t("Ver"), onClick: () => setSideTab("summary") } : undefined);
     return;
   }
