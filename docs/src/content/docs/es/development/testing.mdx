@@ -193,6 +193,25 @@ python tools/dub_file.py samples/podcast.mp4 --voice omnivoice
 
 La pista doblada pone cada frase en su momento sobre el original atenuado (amplitud × 0,14, el nivel «Bajo»); si una frase pisa a la siguiente, la siguiente espera. Por frase imprime persona, compresión aplicada, segundos de GPU y traducción. Al final: frases, personas, segundos de GPU de la voz y su RTF, cuántas frases se comprimieron y cuánto como máximo, el mayor desfase, y cuánto después del final de cada frase original estaría lista su voz en vivo (mediana y máximo, suponiendo 1,5 s de reconocimiento). Si existe la verdad de referencia, también la diarización.
 
+### Lab de calidad del doblaje
+
+`tools/lab/dub_quality.py` mide el doblaje sobre los mismos diálogos para poder comparar cada cambio. Corre el pipeline del servidor sobre cada muestra (`tools/dub_file.py` › `produce`: reconocimiento, traducción, quién habla, voz) y mezcla la pista como la exportación; esa parte lenta queda en `data/labs/dub_quality/<variante>/<muestra>/` y medir otra vez toma segundos. Por frase mide los errores de pronunciación (Whisper vuelve a transcribir el doblaje, tasa de error por letra), el parecido de la voz (WeSpeaker), la naturalidad (UTMOS22, si su modelo está en `data/labs/models/`), cuánto del contorno de tono y volumen del original pasa al doblaje, la sincronía (desfase, desborde, compresión) y, en la pista mezclada, cuánto de la voz original se sigue oyendo bajo el doblaje (`voz_orig`, dB bajo la voz doblada) y a qué nivel queda el fondo (`fondo`, dB frente al original). Las variantes que solo cambian la mezcla reusan exactamente las frases de `base`, así cambia una sola cosa.
+
+```powershell
+python tools/lab/dub_quality.py --variant base sep-cdx23
+python tools/lab/dub_quality.py --variant base ref-frase --samples podcast panel friends
+```
+
+`tools/lab/separate.py` separa el audio de un video en diálogo y fondo (música + efectos) en el entorno de voz. Medido en una RTX 4060 (2026-11-25):
+
+| Separación | Velocidad | Memoria de la GPU | Voz bajo el doblaje | Fondo en los tramos doblados |
+|---|---|---|---|---|
+| ninguna (original bajado, hoy) | — | — | −16 a −18 dB | −17 dB |
+| CDX23 (HT-Demucs entrenado en Divide and Remaster, MIT) | 0,08× tiempo real | 575 MB | −34 a −59 dB | −4 dB |
+| Bandit v2 (CC BY-SA 4.0) | 13× tiempo real | 7,5 GB | no medido (muy lento) | — |
+
+Clonar cada frase con su propio audio original como referencia (`ref-frase`, frases de 2,5 s o más) en vez de una referencia por persona, una vuelta sobre los seis diálogos (2026-11-25): la correlación de la entonación con el original pasa de 0,20 a 0,31 en promedio, la naturalidad de 3,65 a 3,70 y el parecido de la voz de 0,567 a 0,561. Falta una segunda vuelta antes de adoptarlo.
+
 ### Labs de hardware
 
 `tools/lab/` corre el pipeline de la cola **como si fuera otro equipo**, con límites reales en esta máquina (no estimaciones). De ahí salen los perfiles y las velocidades de [Rendimiento](../../guide/performance/).

@@ -193,6 +193,25 @@ python tools/dub_file.py samples/podcast.mp4 --voice omnivoice
 
 The dubbed track places each sentence at its moment over the attenuated original (amplitude × 0.14, the "Bajo" (Low) level); if a sentence overlaps the next one, the next one waits. For each sentence it prints person, compression applied, GPU seconds and translation. At the end: sentences, people, GPU seconds of the voice and its RTF, how many sentences were compressed and by how much at most, the largest offset, and how long after the end of each original sentence its voice would be ready live (median and maximum, assuming 1.5 s of recognition). If the ground truth exists, it also reports diarization.
 
+### Dubbing quality lab
+
+`tools/lab/dub_quality.py` scores the dub on the same dialogues so each change can be compared. It runs the server's pipeline on each sample (`tools/dub_file.py` › `produce`: recognition, translation, who speaks, voice) and mixes the track the way the export does; that slow part is kept in `data/labs/dub_quality/<variant>/<sample>/` and scoring again takes seconds. Per sentence it measures mispronunciations (Whisper transcribes the dub again, character error rate), voice similarity (WeSpeaker), naturalness (UTMOS22, if its model is in `data/labs/models/`), how much the intonation and loudness contours of the original carry into the dub, sync (offset, overflow, compression), and in the mixed track how much of the original voice is still heard under the dub (`voz_orig`, dB below the dubbed voice) and at what level the background stays (`fondo`, dB against the original). Variants that only change the mix reuse the exact sentences of `base`, so one thing changes at a time.
+
+```powershell
+python tools/lab/dub_quality.py --variant base sep-cdx23
+python tools/lab/dub_quality.py --variant base ref-frase --samples podcast panel friends
+```
+
+`tools/lab/separate.py` splits a video's audio into dialogue and background (music + effects) in the voice environment. Measured on an RTX 4060 (2026-11-25):
+
+| Separation | Speed | GPU memory | Voice under the dub | Background in dubbed parts |
+|---|---|---|---|---|
+| none (original turned down, today) | — | — | −16 to −18 dB | −17 dB |
+| CDX23 (HT-Demucs trained on Divide and Remaster, MIT) | 0.08× real time | 575 MB | −34 to −59 dB | −4 dB |
+| Bandit v2 (CC BY-SA 4.0) | 13× real time | 7.5 GB | not measured (too slow) | — |
+
+Cloning each sentence with its own original audio as the reference (`ref-frase`, sentences of 2.5 s or more) instead of one reference per person, one round on the six dialogues (2026-11-25): the intonation correlation with the original goes from 0.20 to 0.31 on average, naturalness from 3.65 to 3.70 and voice similarity from 0.567 to 0.561. A second round is pending before adopting it.
+
 ### Hardware labs
 
 `tools/lab/` runs the queue pipeline **as if it were another machine**, with real limits on this one (not estimates). The profiles and speeds in [Performance](../../guide/performance/) come from it.

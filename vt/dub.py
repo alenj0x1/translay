@@ -169,8 +169,11 @@ class Dubber:
         need = len(text) / 20.0
         return round(float(np.clip(max(base, need), 0.5, max(slot, 0.5))), 2)
 
-    def synthesize(self, tr, seg: dict, orig_db: float | None = None, slot: float | None = None) -> dict | None:
-        """Genera el audio de la frase en el idioma de destino. Devuelve la info para guardar."""
+    def synthesize(self, tr, seg: dict, orig_db: float | None = None, slot: float | None = None,
+                   ref_override: tuple[str, str] | None = None) -> dict | None:
+        """Genera el audio de la frase en el idioma de destino. Devuelve la info para guardar.
+        ref_override: (wav, texto) que reemplaza la referencia de la persona (p. ej. la misma frase original, para
+        llevar su entonación; tools/lab/dub_quality.py lo mide)."""
         text = seg.get("translation")
         if not text:
             return None
@@ -180,6 +183,8 @@ class Dubber:
         ref = None
         if isinstance(chosen, str) and chosen.startswith("p:"):  # una persona guardada en la biblioteca
             ref, ref_text = self._person(tr, chosen[2:])
+        if ref_override:
+            ref, ref_text = ref_override
         if ref is None:
             ref, ref_text = vv.ref_for(int(chosen) if chosen not in (None, "") and str(chosen).isdigit() else spk)
         slot = slot or self.slot(tr, seg)
