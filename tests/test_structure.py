@@ -43,4 +43,4 @@ def test_session_parts_do_not_shadow_each_other():
                 clash.append(f"{name}: {owners[name]} y {part.__name__}")
             owners[name] = part.__name__
     assert not clash, clash
-    assert {"DubMixin", "ImportMixin", "AgentMixin", "LibraryMixin", "AdminMixin"} <= {c.__name__ for c in Session.__mro__}
+    assert {"DubMixin", "ImportMixin", "AgentMixin", "LibraryMixin", "AdminMixin", "EditMixin"} <= {c.__name__ for c in Session.__mro__}

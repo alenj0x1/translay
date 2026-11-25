@@ -89,6 +89,13 @@ body.side-off .side { display: none; }
 .ceditor .area { background: var(--surface); min-height: 72px; }
 .ceditor .area { overflow: hidden; }
 .ceditor .cacts { display: flex; justify-content: flex-end; gap: 6px; }
+/* editor de frases (segedit.js): la traducción, sus tomas y las acciones, dentro de la fila */
+.seditor { display: grid; gap: var(--s2); margin-top: var(--s2); grid-column: 1 / -1; }
+.seditor .area { min-height: 64px; resize: vertical; }
+.seditor .cacts { display: flex; justify-content: flex-end; gap: 6px; }
+.stakes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stakes .take.on { background: var(--accent-soft); }
+.stakes-busy { font: 500 var(--fs-sm)/1.4 var(--font); color: var(--fg-muted); }
 
 /* ---------------------------------------------------------------- resumen */
 .summary { overflow-y: auto; min-height: 0; padding: 0 var(--s2) var(--s3); }

@@ -150,6 +150,9 @@ function onMessage(m) {
     case "webhooks_log":
       hooksLog(m);
       break;
+    case "takes":  // editor de frases: las tomas de una frase (segedit.js)
+      segEditTakes(m);
+      break;
     case "diag_report":  // Ajustes › Rendimiento › «Guardar informe» (prefs.js)
       diagReportDone(m);
       break;
@@ -866,11 +869,13 @@ function renderTranscript() {
         icon("comment"), String(n))
       : el("button", { type: "button", class: "cbtn", title: t("Comentar esta frase"), "aria-label": t("Comentar esta frase") }, icon("plus")));
     if (notes.length || editingHere) li.append(renderNotes(s.id, notes));
+    if (state.segEdit?.seg === s.id) li.append(segEditor(s));  // editor de frases (segedit.js)
     frag.appendChild(li);
   }
   while (g < gaps.length) frag.appendChild(gapItem(gaps[g++]));
   while (k < els.length) frag.appendChild(elementItem(els[k++]));
   const focused = document.activeElement?.closest?.(".ceditor") ? state.editing : null;
+  const segFocused = !!document.activeElement?.closest?.(".seditor");
   ol.replaceChildren(frag);
   if (!state.segments.length) ol.append(emptyState("comment", t("Aún no hay transcripción"),
     t("La transcripción aparece aquí a medida que se reconoce el audio."), "li"));
@@ -879,6 +884,7 @@ function renderTranscript() {
     ta?.focus();
     ta?.setSelectionRange(ta.value.length, ta.value.length);
   }
+  if (segFocused) focusSegEdit(false);  // al redibujar, el cuadro sigue donde estaba
   renderActive(true);
   if (typeof lib !== "undefined") updateSideTabs();  // aparece «Personas» cuando hay personas
 }

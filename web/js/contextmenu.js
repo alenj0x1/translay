@@ -174,6 +174,7 @@ function lineMenu(li) {
       onClick: () => copyText(`${ytUrl(lib.videos[state.videoId])}&t=${Math.floor(s.start)}s`, "Enlace") },
     { label: t("Copiar todo para un agente"), icon: "agent", onClick: () => copyForAgent(state.videoId, true) },
     "sep",
+    canEditSeg() && s.translation && { label: t("Editar traducción"), icon: "pencil", onClick: () => openSegEdit(s.id) },
     isOwner() && { label: t("Comentar"), icon: "comment", onClick: () => {
       state.editing = { seg: s.id, id: null, draft: "" };
       renderTranscript();

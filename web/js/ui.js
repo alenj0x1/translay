@@ -109,6 +109,8 @@ function icon(name, cls = "") {
   s.setAttribute("aria-hidden", "true");
   if (cls) s.setAttribute("class", cls);
   s.innerHTML = ICONS[name] || "";
+  // un nombre que no existe dejaba el botón sin ícono sin que nadie lo notara: queda en el registro (las pruebas e2e fallan)
+  if (name && !ICONS[name] && typeof clientError === "function") clientError("icono", `no existe el ícono «${name}»`);
   return s;
 }
 

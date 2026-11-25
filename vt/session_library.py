@@ -81,7 +81,8 @@ class LibraryMixin:
             if tr.transcribe_only:  # no pasa por el traductor
                 continue
             await loop.run_in_executor(None, self.translator.prepare, tr.lang)  # fuera del hilo de la GPU
-            todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed)]
+            # lo corregido a mano en el editor de frases no se pisa
+            todo = [s for s in tr.segments if gl.matches(s.get("text", ""), changed) and not s.get("manual")]
             if not todo:
                 continue
             tx = partial(self.translator.translate_many, glossary=gl, src=tr.lang)

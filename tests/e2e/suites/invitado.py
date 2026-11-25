@@ -24,6 +24,9 @@ def run(t):
     t.check("ve los 2 videos públicos", page.evaluate("Object.keys(lib.videos).sort().join()") == "e2epub00001,e2epub00002")
     plays(t, page, "e2epub00001", "solo ver")
     plays(t, page, "e2epub00002", "solo ver")
+    page.locator("#transcript li[data-id] > .cell").nth(1).dblclick()  # la traducción de la primera frase
+    page.wait_for_timeout(300)
+    t.check("un invitado no abre el editor de frases", page.locator("#transcript .seditor").count() == 0)
 
     # el servidor niega lo que no le toca aunque lo pida a mano (y lo deja en el registro)
     t.expect_error("permiso.prefs_set")

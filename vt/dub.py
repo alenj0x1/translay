@@ -170,10 +170,11 @@ class Dubber:
         return round(float(np.clip(max(base, need), 0.5, max(slot, 0.5))), 2)
 
     def synthesize(self, tr, seg: dict, orig_db: float | None = None, slot: float | None = None,
-                   ref_override: tuple[str, str] | None = None) -> dict | None:
+                   ref_override: tuple[str, str] | None = None, name_suffix: str = "") -> dict | None:
         """Genera el audio de la frase en el idioma de destino. Devuelve la info para guardar.
         ref_override: (wav, texto) que reemplaza la referencia de la persona (p. ej. la misma frase original, para
-        llevar su entonación; tools/lab/dub_quality.py lo mide)."""
+        llevar su entonación; tools/lab/dub_quality.py lo mide). name_suffix: otro archivo para la misma frase (las tomas
+        del editor de frases, «.t1», «.t2»…), sin pisar la voz que suena."""
         text = seg.get("translation")
         if not text:
             return None
@@ -202,7 +203,7 @@ class Dubber:
         y = fade(match_loudness(y, sr, level), sr)
         out = self._root(tr) / "audio" / tr.data["id"]
         out.mkdir(parents=True, exist_ok=True)
-        name = f"{seg['id']}.{tr.target}.wav"  # una por idioma de destino (las de otro idioma se guardan)
+        name = f"{seg['id']}.{tr.target}{name_suffix}.wav"  # una por idioma de destino (las de otro idioma se guardan)
         write_wav(out / name, y, sr)
         return {"file": f"{tr.data['id']}/{name}", "dur": round(len(y) / sr, 3), "rate": round(rate, 3),
                 "gpu": round(gpu, 2), "engine": self.tts.engine, "voice": seg.get("speaker")}

@@ -51,4 +51,21 @@ def run(t):
     t.wait(lambda: page.evaluate("state.audio.orig.gain.value") > 0.9 and page.evaluate("bgEl.paused"), 3,
            "en el original, el fondo calla y el original vuelve")
     page.evaluate("setMode(true); togglePlay()")
+
+    # editor de frases: doble clic real en la traducción, corregirla y guardar con Enter; queda al recargar
+    page.evaluate("playItem('e2emain0002'); vEn.pause()")
+    t.wait(lambda: page.evaluate("state.videoId === 'e2emain0002' && state.segments.length === 5"), 15, "otro video abierto")
+    page.evaluate("vEn.pause(); state.autoWait = false")
+    cell = page.locator("#transcript li[data-id] > .cell").nth(3)  # la traducción de la segunda frase
+    cell.dblclick()
+    t.wait(lambda: page.locator("#transcript .seditor textarea").count() == 1, 5, "el editor de la frase")
+    page.locator("#transcript .seditor textarea").fill("Hoy hacemos un pan casero en casa.")
+    page.locator("#transcript .seditor textarea").press("Enter")
+    t.wait(lambda: "Hoy hacemos un pan casero en casa." in page.evaluate("document.querySelector('#transcript').textContent")
+           and page.locator("#transcript .seditor").count() == 0, 5, "la traducción corregida en la transcripción")
+    page.reload()
+    t.wait(lambda: page.evaluate("typeof state !== 'undefined' && !!state.ws && state.ws.readyState === 1"), 20, "recargar")
+    page.evaluate("playItem('e2emain0002')")
+    t.wait(lambda: page.evaluate("state.videoId === 'e2emain0002' && state.segments.length === 5"), 15, "el video otra vez")
+    t.check("la corrección queda guardada", page.evaluate("state.segments[1].translation") == "Hoy hacemos un pan casero en casa.")
     t.no_permission_toast(page, "reproductor")

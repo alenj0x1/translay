@@ -203,10 +203,11 @@ class Transcript:
         return seg, removed
 
     def stale(self, tr_model: str) -> list[dict]:
-        """Frases sin traducir o traducidas con otro modelo (ninguna si solo se transcribe)."""
+        """Frases sin traducir o traducidas con otro modelo (ninguna si solo se transcribe). Las corregidas a mano en el
+        editor de frases (`manual`) nunca: su traducción es la de la persona."""
         if self.transcribe_only:
             return []
-        return [s for s in self.segments if s.get("tr_model") != tr_model]
+        return [s for s in self.segments if s.get("tr_model") != tr_model and not s.get("manual")]
 
     def set_translation(self, seg_id: int, translation: str | None, tr_model: str) -> bool:
         for s in self.segments:

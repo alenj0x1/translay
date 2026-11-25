@@ -67,7 +67,7 @@ OWNER_ONLY = {"prefs_set", "cookies_browsers", "cookies_import", "yt_connect", "
               "queue_unblock", "queue_remove", "queue_hold", "lib_delete", "lib_clear", "lib_remove", "glossary_set", "people_set",
               "people_save", "people_forget", "power_info", "coll_create", "coll_toggle", "coll_rename", "coll_delete", "lib_rename",
               "comment_add", "comment_edit", "comment_delete", "rec_mute",
-              "export_pick_folder", "export_reveal", "diag_report"}
+              "export_pick_folder", "export_reveal", "diag_report", "seg_edit", "seg_takes", "seg_take"}
 OWNER_PREFIXES = ("admin_", "trash_", "perf_", "storage_")
 IMPORT_ONLY = {"youtube", "playlist", "video_lang", "yt_batch", "lib_register", "queue_add", "queue_video", "watch",
                "summarize", "summary_cancel", "agent_ask", "agent_continue", "agent_stop", "agent_clear", "agent_power",
@@ -79,11 +79,12 @@ from .session_import import ImportMixin
 from .session_agent import AgentMixin
 from .session_library import LibraryMixin
 from .session_admin import AdminMixin
+from .session_edit import EditMixin
 from . import diag
 from .dialogs import downloads, reveal
 
 
-class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
+class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditMixin):
     def __init__(self, ws, asr, gpu: ThreadPoolExecutor, store: Store,
                  translator: Translator, info: dict, dubber=None, tts_exec: ThreadPoolExecutor | None = None,
                  youtube=None, library=None, res=None, processor=None, prefs=None, notify=None, exporter=None,
@@ -368,6 +369,8 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                         asyncio.create_task(self._storage(m))
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
+                    elif m.get("type") in ("seg_edit", "seg_takes", "seg_take"):  # editor de frases (vt/session_edit.py)
+                        asyncio.create_task(getattr(self, "_" + m["type"])(m))
                     elif m.get("type") == "client_error":
                         self._client_error(m)
                     elif m.get("type") == "diag_report":

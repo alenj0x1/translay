@@ -215,7 +215,7 @@ function renderActive(force) {
 
 $("#transcript").addEventListener("click", (e) => {
   const li = e.target.closest("li[data-start]");
-  if (!li || e.target.closest(".notes")) return;
+  if (!li || e.target.closest(".notes, .seditor")) return;
   if (e.target.closest(".cbtn")) {  // comentar esta frase
     state.editing = { seg: Number(li.dataset.id), id: null, draft: "" };
     renderTranscript();

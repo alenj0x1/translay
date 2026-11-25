@@ -392,3 +392,17 @@ def test_transcribe_only_app_mode(tmp_path):
         assert chosen.translates and not new.translates
     finally:
         store_mod.TRANSLATION = old
+
+
+def test_manual_translation_is_never_stale(tmp_path):
+    """Una frase corregida a mano en el editor de frases no se vuelve a traducir (ni por otro modelo ni por el glosario)."""
+    from vt.store import Store
+
+    tr = Store(tmp_path).open("abc12345", "a.mp4")
+    tr.set_lang("en")
+    a, _ = tr.add_segment(0.0, 1.0, "Hello.", "Hola.", "opus-big")
+    b, _ = tr.add_segment(1.0, 2.0, "Quiet.", "Tranquilo.", "opus-big")
+    tr.set_translation(b["id"], "Silencioso.", "manual")
+    b["manual"] = True
+    assert [s["id"] for s in tr.stale("opus-big")] == []
+    assert [s["id"] for s in tr.stale("madlad-3b")] == [a["id"]]
