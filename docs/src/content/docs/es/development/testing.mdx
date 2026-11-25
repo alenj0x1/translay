@@ -210,7 +210,7 @@ python tools/lab/dub_quality.py --variant base ref-frase --samples podcast panel
 | CDX23 (HT-Demucs entrenado en Divide and Remaster, MIT) | 0,08× tiempo real | 575 MB | −34 a −59 dB | −4 dB |
 | Bandit v2 (CC BY-SA 4.0) | 13× tiempo real | 7,5 GB | no medido (muy lento) | — |
 
-Clonar cada frase con su propio audio original como referencia (`ref-frase`, frases de 2,5 s o más) en vez de una referencia por persona, una vuelta sobre los seis diálogos (2026-11-25): la correlación de la entonación con el original pasa de 0,20 a 0,31 en promedio, la naturalidad de 3,65 a 3,70 y el parecido de la voz de 0,567 a 0,561. Falta una segunda vuelta antes de adoptarlo.
+Clonar cada frase con su propio audio original como referencia (`ref-frase`, frases de 2,5 s o más) en vez de una referencia por persona, sobre los seis diálogos (2026-11-25): en una primera vuelta la correlación de la entonación con el original pasó de 0,20 a 0,31 en promedio, pero una segunda dio de 0,18 a 0,20, con la naturalidad de 3,74 a 3,70 y el parecido de la voz de 0,563 a 0,550. La ganancia no se sostiene y la voz se parece un poco menos a la persona, así que Translay sigue con una referencia por persona; el modo queda en el lab.
 
 ### Labs de hardware
 
