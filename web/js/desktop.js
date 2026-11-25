@@ -10,6 +10,8 @@
 //   instalador en el navegador; la app no descarga ni ejecuta nada por su cuenta.
 // - En la bandeja (ventana cerrada con «Seguir en la bandeja»), cuando no queda trabajo en la cola (o está
 //   detenida), Translay se cierra del todo: no deja modelos ni procesos ocupando la GPU o la RAM.
+// - Subtítulos en vivo sobre cualquier ventana: un botón en la barra de título y una fila en «App de escritorio»
+//   abren o cierran la franja (setLiveSubs).
 // En el navegador nada de esto existe (DESKTOP es false).
 
 const DESKTOP = !!(window.__TAURI__ && window.__TAURI__.core);
@@ -47,7 +49,10 @@ function initDesktop() {
   const maxBtn = winBtn("win-max", t("Maximizar"), "maximize", () => desktopWindow().toggleMaximize());
   const updateBtn = el("button", { class: "btn ghost icon", id: "update-btn", type: "button", hidden: true,
     on: { click: () => openPrefs("escritorio") } }, icon("update"));
-  bar.append(updateBtn, themeBtn, el("div", { class: "win-controls" },
+  // subtítulos en vivo sobre cualquier ventana (live.js): encendidos, el botón queda marcado
+  const liveBtn = el("button", { class: "btn ghost icon", id: "live-btn", type: "button",
+    on: { click: () => setLiveSubs(!desktop.live) } }, icon("captions"));
+  bar.append(updateBtn, liveBtn, themeBtn, el("div", { class: "win-controls" },
     winBtn("win-min", t("Minimizar"), "minimize", () => desktopWindow().minimize()),
     maxBtn,
     // una grabación en curso se detiene y se guarda antes (capture.js)
@@ -55,9 +60,14 @@ function initDesktop() {
       if (typeof capSettle === "function") await capSettle();
       desktopCall("close_window");
     })));
-  // actualización, prefs-btn y theme-btn van juntos, justo antes de los controles de la ventana
+  // actualización, subtítulos en vivo, prefs-btn y theme-btn van juntos, justo antes de los controles de la ventana
   bar.insertBefore(prefsBtn, themeBtn);
-  bar.insertBefore(updateBtn, prefsBtn);
+  bar.insertBefore(liveBtn, prefsBtn);
+  bar.insertBefore(updateBtn, liveBtn);
+  renderLive();
+  desktopCall("live_state").then((on) => { desktop.live = !!on; renderLive(); }).catch(() => {});
+  // la franja también se cierra sola (el servidor se detuvo): el botón lo refleja
+  window.__TAURI__.event.listen("live", (e) => { desktop.live = !!e.payload?.on; renderLive(); });
 
   const syncTheme = () => {
     const dark = document.documentElement.dataset.theme === "dark";
@@ -129,6 +139,28 @@ function snapLayouts(maxBtn) {
   maxBtn.addEventListener("pointerup", cancel);
   // mantenerlo presionado abrió los diseños: ese clic no maximiza
   maxBtn.addEventListener("click", (e) => { if (held) { held = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
+
+/* ------------------------------------------------------------ subtítulos en vivo */
+// Una franja abajo de la pantalla, encima de cualquier ventana (llamadas, juegos, transmisiones), con la traducción
+// de lo que suena en el equipo (desktop/src-tauri/src/live.rs y web/live.html). Deja pasar los clics; se mueve con
+// la manija que aparece al pasar el mouse y recuerda dónde quedó. Se cierra con Translay.
+function setLiveSubs(on) {
+  desktopCall("live_set", { on })
+    .then((now) => { desktop.live = !!now; renderLive(); })
+    .catch((e) => { toast(t("No se pudieron abrir los subtítulos en vivo. {error}", { error: String(e) })); clientError("vivo", String(e)); });
+}
+
+function renderLive() {
+  const b = $("#live-btn");
+  if (b) {
+    b.classList.toggle("on", !!desktop.live);
+    const label = desktop.live ? t("Ocultar los subtítulos en vivo") : t("Subtítulos en vivo sobre cualquier ventana");
+    b.title = label;
+    b.setAttribute("aria-label", label);
+    b.setAttribute("aria-pressed", desktop.live ? "true" : "false");
+  }
+  desktop.renderLiveRow?.();
 }
 
 /* ------------------------------------------------------------ versiones nuevas */
@@ -222,6 +254,7 @@ function updateRows(row) {
 // descargas abiertas, exportaciones en curso o una grabación de pantalla (en curso o subiéndose).
 function desktopBusy() {
   if (typeof capBusy === "function" && capBusy()) return true;
+  if (desktop.live) return true;  // los subtítulos en vivo siguen a la vista
   const q = lib.queue || { jobs: [] };
   // con la cola detenida igual se procesa el video que se está viendo; lo detenido a mano no cuenta
   const pending = q.jobs.some((j) => j.state === "procesando" || j.dl)
@@ -252,7 +285,11 @@ function desktopPrefsBlocks() {
     const row = (title, desc, ...ctl) => el("div", { class: "set-row" },
       el("div", { class: "set-text" }, el("strong", { text: title }), desc ? el("p", { class: "desk-path", text: desc }) : null),
       el("div", { class: "set-ctl" }, ...ctl));
+    const liveSeg = (value, ic, text) => el("button", { type: "button", class: "seg" + (!!desktop.live === value ? " on" : ""),
+      on: { click: () => setLiveSubs(value) } }, icon(ic), text);
     box.replaceChildren(
+      row(t("Subtítulos en vivo"), t("La traducción de lo que suena en el equipo, abajo de la pantalla y encima de cualquier ventana. Los clics pasan a la ventana de atrás. Para moverla, arrastra la manija que aparece al pasar el mouse."),
+        el("div", { class: "segs" }, liveSeg(false, "x", t("Ocultos")), liveSeg(true, "captions", t("Visibles")))),
       row(t("Al cerrar la ventana"), info.close_to_tray
         ? t("Translay permanece en la bandeja mientras haya trabajos en la cola y se cierra al terminar. Si la cola está detenida o vacía, se cierra de inmediato.")
         : t("Translay se cierra por completo."),
@@ -273,6 +310,7 @@ function desktopPrefsBlocks() {
   const renderUpd = () => updBox.replaceChildren(...updateRows(updRow).filter(Boolean));
   // lo que cambia (búsqueda, descarga) se ve al instante mientras la página está abierta
   desktop.renderPrefs = () => { if (updBox.isConnected) renderUpd(); };
+  desktop.renderLiveRow = () => { if (box.isConnected) render(); };
   render();
   renderUpd();
   if (!desktop.info) desktopCall("desktop_info").then((info) => { desktop.info = info; render(); renderUpd(); });

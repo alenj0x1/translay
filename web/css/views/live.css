@@ -1,0 +1,42 @@
+/* Subtítulos en vivo (web/live.html): una franja grafito abajo de la pantalla, sobre cualquier ventana. La ventana
+   es transparente y deja pasar los clics; solo la manija de la izquierda (visible al pasar el mouse) toma el mouse
+   para moverla. Siempre oscura, en cualquier tema: va sobre videos, juegos y llamadas. */
+:root {
+  --live-bg: #161616;
+  --live-ring: rgba(255, 255, 255, .07);
+  --live-fg: #e8e8e8;
+  --live-prev: #9a9a9a;
+  --live-faint: #636363;
+  --live-size: 24px;
+  --live-lh: 1.36;
+  --grip-w: 22px;
+  --grip-gap: 6px;
+}
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+body { font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
+
+/* la franja va abajo y al centro; la manija, pegada a su izquierda (no cambia el ancho de la franja al aparecer) */
+#live { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; }
+#strip {
+  position: relative; box-sizing: border-box; max-width: calc(100vw - 2 * (var(--grip-w) + var(--grip-gap)));
+  padding: 10px 22px; border-radius: 14px; background: var(--live-bg); box-shadow: 0 0 0 1px var(--live-ring) inset;
+  transition: opacity .35s ease;
+}
+#lines { max-height: calc(2 * var(--live-size) * var(--live-lh)); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+#text { margin: 0; font-size: var(--live-size); line-height: var(--live-lh); font-weight: 600; color: var(--live-fg); text-align: center; text-wrap: balance; overflow-wrap: anywhere; }
+#prev { color: var(--live-prev); font-weight: 500; }
+#prev:not(:empty) + #now:not(:empty)::before { content: " "; }
+#live.waiting #text { color: var(--live-prev); font-weight: 500; }
+
+/* sin nada que mostrar un rato: la franja se va (vuelve al pasar el mouse, para poder moverla) */
+#live.idle:not(.hover) #strip { opacity: 0; }
+
+#grip {
+  position: absolute; bottom: 0; width: var(--grip-w); box-sizing: border-box; border-radius: 10px;
+  display: grid; place-items: center; background: var(--live-bg); box-shadow: 0 0 0 1px var(--live-ring) inset;
+  color: var(--live-faint); cursor: grab; opacity: 0; transition: opacity .2s ease, color .15s ease;
+}
+#grip svg { width: 10px; height: 16px; display: block; fill: currentColor; }
+#grip:hover { color: var(--live-prev); }
+#grip:active { cursor: grabbing; color: var(--live-fg); }
+#live.hover #grip { opacity: 1; }

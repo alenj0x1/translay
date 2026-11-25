@@ -176,6 +176,7 @@ impl Server {
                 return; // stopped on purpose (quit, data folder changed)
             }
             server.stop();
+            crate::live::close(&app);
             let _ = app.emit("server", json!({ "state": "error", "tail": server.tail() }));
             if let Some(window) = app.get_webview_window("main") {
                 if window.url().map(|u| u.host_str() != Some("tauri.localhost")).unwrap_or(true) {
@@ -247,9 +248,27 @@ fn allow_page(app: &AppHandle, url: &str) {
         .permission("allow-open-download")
         .permission("allow-set-auto-update")
         .permission("allow-take-welcome")
-        .permission("allow-show-welcome");
+        .permission("allow-show-welcome")
+        .permission("allow-live-set")
+        .permission("allow-live-state");
     let _ = app.add_capability(capability);
     let _ = app.emit("server", json!({ "state": "ready", "url": url }));
+}
+
+/// The live subtitles strip (live.rs) loads `live.html` from the same origin: it may only receive the audio,
+/// say where its grip is, show itself once painted and be dragged.
+pub fn allow_live(app: &AppHandle, url: &str) {
+    use tauri::ipc::CapabilityBuilder;
+    let origin = url.trim_end_matches('/');
+    let capability = CapabilityBuilder::new(format!("live-{}", origin.rsplit(':').next().unwrap_or("0")))
+        .remote(format!("{origin}/*"))
+        .window(crate::live::LABEL)
+        .permission("core:event:default")
+        .permission("core:window:allow-start-dragging")
+        .permission("allow-live-audio")
+        .permission("allow-live-grip")
+        .permission("allow-live-shown");
+    let _ = app.add_capability(capability);
 }
 
 /// Opens Translay's page in the window.

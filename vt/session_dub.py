@@ -18,7 +18,7 @@ class DubMixin:
         tr.set_detected(ev.lang, self._own_lang(), live=True, prob=ev.prob)  # si la cola ya lo había detectado, queda el suyo
         if self.tr is tr:
             self.st.language = tr.lang
-        if self.processor:
+        if self.processor and not tr.ephemeral:  # los subtítulos en vivo no están en la biblioteca
             self.processor.lang_changed(tr.data["id"], tr)
         if tr.translates:  # prepara el traductor de ese idioma y traduce lo que quede pendiente
             if self._backfill:

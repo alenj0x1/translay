@@ -44,6 +44,8 @@ def merge_ranges(ranges: list[list[float]], tol: float = 0.25) -> list[list[floa
 
 
 class Transcript:
+    ephemeral = False  # LiveTranscript: solo en memoria
+
     def __init__(self, path: Path, data: dict):
         self.path = path
         self.data = data
@@ -259,6 +261,31 @@ class Transcript:
             self.comments[key] = items
         else:
             self.comments.pop(key, None)
+
+
+class LiveTranscript(Transcript):
+    """Subtítulos en vivo sobre cualquier ventana (app de escritorio): lo que suena en el equipo se reconoce y
+    traduce, pero nada se guarda. No tiene archivo, no entra a ninguna biblioteca ni a la caché del Store, y solo
+    conserva las últimas frases (una sesión puede durar horas)."""
+
+    ephemeral = True
+    KEEP = 40
+
+    def __init__(self, vid: str):
+        super().__init__(None, {"id": vid, "name": "", "segments": [], "covered": [], "next_id": 0,
+                                "created": time.time(), "detect": True, "target": langs.target()})
+
+    def add_segment(self, start, end, text, translation, tr_model=None):
+        seg, removed = super().add_segment(start, end, text, translation, tr_model)
+        self.data["segments"] = self.data["segments"][-self.KEEP:]
+        return seg, removed
+
+    def add_covered(self, a: float, b: float):
+        super().add_covered(a, b)
+        self.data["covered"] = self.data["covered"][-self.KEEP:]
+
+    def save(self):
+        pass  # nunca se escribe en disco
 
 
 # ¿La app traduce? (Ajustes › Uso; vt/app.py lo conecta a la preferencia). Con «Transcribir y resumir»,

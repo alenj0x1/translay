@@ -15,6 +15,7 @@ La app de escritorio es la misma interfaz de Translay dentro de su propia ventan
 - A la derecha, **Ajustes** y el cambio entre claro y oscuro van como íconos, junto a minimizar, maximizar y cerrar. Con la ventana angosta, los botones pasan a solo íconos y la búsqueda se achica, así los de la ventana siempre se ven.
 - En Windows 11, dejar el mouse sobre maximizar o mantenerlo presionado abre los diseños de ajuste, para elegir dónde va la ventana, como en cualquier ventana (Windows 10 no los tiene).
 - Cuando hay una versión nueva aparece ahí un ícono más, que abre la sección de actualizaciones.
+- El ícono de subtítulos abre o cierra los [subtítulos en vivo sobre cualquier ventana](#subtítulos-en-vivo-sobre-cualquier-ventana); mientras se ven, el ícono queda marcado.
 - Translay se abre una sola vez: si lo abres de nuevo desde el menú Inicio, vuelve la ventana que ya estaba abierta.
 - Al abrir, la pantalla de arranque muestra tu escena de fondo (la elegida en Ajustes › Apariencia; la primera vez, la escena «Translay») y, debajo, el logo, lo que se está cargando en palabras (revisar el equipo, descargar un modelo con su porcentaje, cargar el reconocimiento de voz, cargar el traductor) y un consejo sobre la app que va cambiando. Se abre con el tema, el color de énfasis y el idioma que usaste la última vez; las pantallas de preparación de la primera vez se ven igual.
 - La ventana, la barra de tareas, el menú Inicio y el instalador usan el ícono de Translay: la onda de voz en violeta sobre un cuadro oscuro.
@@ -34,9 +35,24 @@ Esta página solo aparece en la app.
 
 | Opción | Qué hace |
 |---|---|
+| **Subtítulos en vivo** | **Visibles** abre la franja de subtítulos en vivo encima de todas las ventanas; **Ocultos** la cierra. Es lo mismo que el botón de la barra de título (ver [Subtítulos en vivo sobre cualquier ventana](#subtítulos-en-vivo-sobre-cualquier-ventana)). |
 | **Al cerrar la ventana** | **Salir** cierra Translay por completo. **Minimizar a la bandeja** oculta la ventana y deja Translay en la bandeja del sistema mientras la cola tenga trabajo: sigue descargando, traduciendo y exportando; cuando termina, Translay se cierra solo y libera todo. Si la cola está detenida o no hay nada en proceso, se cierra igual (la opción lo dice). Desde el ícono de la bandeja, **Abrir Translay** o **Salir**. |
 | **Biblioteca Principal** | La carpeta donde se guarda la biblioteca Principal. **Abrir carpeta** la abre en el Explorador; **Cambiar…** elige otra y Translay se reinicia con ella. Las demás bibliotecas pueden estar en cualquier carpeta (ver [Bibliotecas](../libraries/)). |
 | **Registros** | Abre la carpeta con `setup.log` (la instalación) y `server.log` (lo que escribe el servidor). Sirven para reportar un problema. |
+
+## Subtítulos en vivo sobre cualquier ventana
+
+El botón de subtítulos de la barra de título (o **Subtítulos en vivo** en Ajustes › App de escritorio) abre una franja abajo de la pantalla con la traducción en vivo de lo que suena en el equipo: una videollamada, un juego, una transmisión, un video en otra app. Muestra una o dos líneas sobre un cuadro oscuro redondeado: la frase que se está diciendo y, arriba y más tenue, la anterior. Traduce al idioma de **Traducir a** (Ajustes › Uso); lo que se dice en tu propio idioma solo se transcribe.
+
+- **No estorba.** La franja queda encima de todas las ventanas, nunca toma el teclado y deja pasar los clics a la ventana de atrás.
+- **Para moverla.** Al pasar el mouse por la franja aparece una manija a su izquierda: arrástrala para dejar la franja donde quieras, en cualquier pantalla. Translay recuerda dónde la dejaste. Solo la manija toma el mouse; el resto de la franja sigue dejando pasar los clics.
+- **No se guarda nada.** Lo que la franja reconoce y traduce nunca va a una biblioteca, a las transcripciones ni al historial: mientras está abierta, el servidor guarda solo las últimas frases en memoria.
+- **Qué escucha.** El sonido del dispositivo de salida predeterminado (parlantes o audífonos), como lo mezcla Windows, incluido el de Translay. Si cambias de dispositivo de salida, la franja lo sigue. Cuando nadie habla por unos segundos, la franja se desvanece hasta que vuelve a haber voz.
+- Se cierra con Translay, con el mismo botón o si el servidor se detiene. Mientras está abierta, Translay no se cierra solo desde la bandeja.
+
+<Aside>
+Los subtítulos en vivo usan el mismo reconocimiento y la misma traducción que una grabación en curso, en la GPU. Solo existen en la app de escritorio, para el dueño en este equipo (ver [Acceso](../../integrations/access/)).
+</Aside>
 
 ## Actualizaciones
 

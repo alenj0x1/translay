@@ -15,6 +15,7 @@ The desktop app is the same Translay interface inside its own window: everything
 - On the right, **Ajustes** (Settings) and the light/dark switch appear as icons, next to minimize, maximize and close. When the window is narrow, the buttons switch to icons and the search box shrinks, so the window buttons are always visible.
 - On Windows 11, resting the mouse on maximize or holding it down opens the snap layouts, to choose where the window goes, as in any window (Windows 10 doesn't have them).
 - When a new version is available, an extra icon appears there; it opens the updates section.
+- The subtitles icon opens or closes the [live subtitles over any window](#live-subtitles-over-any-window); while they are shown, the icon stays marked.
 - Translay opens only once: if you open it again from the Start menu, the window that was already open comes back.
 - On launch, the startup screen shows your background scene (the one chosen in Settings › Apariencia; the «Translay» scene the first time) and, below it, the logo, what is loading in words (checking the computer, downloading a model with its percentage, loading speech recognition, loading the translator) and a rotating tip about the app. It opens with the theme, accent color and language you used last time; the setup screens of the first launch look the same.
 - The window, the taskbar, the Start menu and the installer use the Translay icon: the voice wave in violet on a dark square.
@@ -34,9 +35,24 @@ This page only appears in the app.
 
 | Option | What it does |
 |---|---|
+| **Subtítulos en vivo** (Live subtitles) | **Visibles** (Shown) opens the live subtitles strip over every window; **Ocultos** (Hidden) closes it. The same as the title bar button (see [Live subtitles over any window](#live-subtitles-over-any-window)). |
 | **Al cerrar la ventana** (When closing the window) | **Salir** (Quit) closes Translay completely. **Minimizar a la bandeja** (Minimize to tray) hides the window and leaves Translay in the system tray while the queue has work: it keeps downloading, translating and exporting; when it finishes, Translay quits by itself and frees everything. If the queue is stopped or nothing is being processed, it quits anyway (the setting says so). From the tray icon, **Abrir Translay** (Open Translay) or **Salir**. |
 | **Biblioteca Principal** (Main library) | The folder where the Main library is stored. **Abrir carpeta** (Open folder) opens it in Explorer; **Cambiar…** (Change…) picks another and Translay restarts with it. Other libraries can be in any folder (see [Libraries](../libraries/)). |
 | **Registros** (Logs) | Opens the folder with `setup.log` (the installation) and `server.log` (what the server writes). Useful for reporting a problem. |
+
+## Live subtitles over any window
+
+The subtitles button in the title bar (or **Subtítulos en vivo** in Settings › App de escritorio) opens a strip at the bottom of the screen with the live translation of whatever the computer is playing: a video call, a game, a stream, a video in another app. It shows one or two lines on a dark rounded box: the sentence being said and, fainter above it, the previous one. It translates into the language of **Traducir a** (Translate to, Settings › Uso); what is spoken in your own language is only transcribed.
+
+- **It doesn't get in the way.** The strip stays above every window, never takes the keyboard and lets clicks through to the window behind it.
+- **Moving it.** Hover over the strip and a handle appears at its left edge: drag the handle to put the strip anywhere, on any screen. Translay remembers where you left it. Only the handle takes the mouse; the rest of the strip keeps letting clicks through.
+- **Nothing is saved.** What the strip recognizes and translates never goes to a library, the transcripts or the history: the server keeps only the last sentences in memory while it is open.
+- **What it hears.** The sound of the default output device (speakers or headphones), as Windows mixes it, including Translay's own sound. If you change the output device, the strip follows it. When nothing has been said for a few seconds, the strip fades out until there is speech again.
+- It closes with Translay, with the button again or when the server stops. While it is open, Translay doesn't quit by itself from the tray.
+
+<Aside>
+The live subtitles use the same recognition and translation as a recording in progress, on the GPU. They are available only in the desktop app, to the owner on this computer (see [Access](../../integrations/access/)).
+</Aside>
 
 ## Updates
 

@@ -31,6 +31,12 @@ Translay is three processes on the same computer: the Python server (`vt/`), the
 
 <Diagram {...desktop("en")} />
 
+**Live subtitles over any window** (`desktop/src-tauri/src/live.rs`, `web/live.html`, `web/js/live.js`): a second window, transparent, undecorated, always on top, out of the taskbar and never activated, that loads `live.html` from the server.
+
+- A Rust thread captures the default output device with WASAPI *loopback*, mixes it to mono and resamples it to 16 kHz `int16`; every 100 ms it sends the chunk to the page through a Tauri channel (raw bytes). When nothing plays, loopback sends no packets, so the thread fills the silence with zeros to keep the timeline continuous; a change of default device reopens the capture.
+- The page sends each chunk to `/ws` with its time (8-byte float64 + PCM), like the live transcription of a recording, but in an ephemeral session: `{"type":"open","ephemeral":true}` makes the server use an in-memory transcript (`vt/store.py` › `LiveTranscript`) that is never written, is not in any library and keeps only the last sentences; no voice, no people, no queue. Only the owner on this computer may open one (`vt/session.py` › `_allowed`; the page's `mayRequest` mirrors it).
+- The window ignores the mouse (`set_ignore_cursor_events`). A Rust watcher reads the cursor every 30 ms: over the strip it tells the page (which shows the handle), and only over the handle the window takes the mouse, so the page can drag it (`startDragging`); it saves the position once it stops moving and re-asserts *topmost* every 2 s without activating the window.
+
 ### Server
 
 `python run.py` calls `vt.app.main()`, which:
