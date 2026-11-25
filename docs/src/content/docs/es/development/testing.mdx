@@ -34,6 +34,33 @@ También corren sin pytest: `python tests/test_core.py` ejecuta todas e imprime 
 | `test_langs` (`tests/test_langs.py`) | Registro de idiomas y traductor de cada idioma; reglas de texto del portugués; el streaming detecta el idioma primero y espera a tener confianza suficiente; modos y detección (el idioma propio solo se transcribe, cambiar de modo no borra nada); las transcripciones de antes sin idioma siguen funcionando; `sub_en` pasa a `sub_orig`. |
 | `test_security` (`tests/test_security.py`) | El JSON guardado deja copia y se recupera si se daña; iniciar sesión siempre da un token nuevo; un id raro nunca apunta fuera de la biblioteca; el WebSocket rechaza marcos sin máscara, continuaciones sueltas, controles largos y códigos desconocidos. |
 
+## Pruebas de punta a punta
+
+```sh
+python tests/e2e/run.py
+```
+
+Recorren la app entera como la usa una persona (o un agente), con Chrome y sin ventana. Cada corrida arma datos de prueba nuevos (`tests/e2e/fixture.py`: una biblioteca Principal privada, una pública «Solo ver» y una pública «Ver e importar», con clips cortos generados con ffmpeg y transcripciones traducidas; un video de cada biblioteca está procesado solo a medias), arranca su propio servidor con esos datos (CPU, sin voz) y corre las suites:
+
+| Suite | Qué comprueba |
+|---|---|
+| `inicio` | El inicio y la biblioteca del dueño, y cambiar de biblioteca. |
+| `reproductor` | Abrir un video: transcripción traducida, reproducción, pausa, velocidad, subtítulos y la pestaña Personas (con un clic real). |
+| `invitado` | Un invitado «Solo ver» mira los dos videos públicos, también el procesado a medias, sin aviso de permiso y sin que el reproductor espere para siempre una voz que no puede pedir; el servidor sigue negando lo que no le toca aunque lo pida a mano (y lo registra); un video privado no se puede bajar; un invitado «Ver e importar» puede agregar; la biblioteca privada no muestra nada. |
+| `ajustes` | Cada página de Ajustes abre, las opciones nuevas están y **Guardar informe** escribe el informe de diagnóstico (se borra después). |
+| `celular` | A 390 px, en claro y oscuro: nada se sale de los costados en el inicio, el reproductor ni Ajustes. |
+
+Una suite también falla, sin pedirlo, por cualquier línea `ERROR` nueva en el registro de la app (`app.log`, ver [Datos](../../how-it-works/data/)), cualquier error de consola, cualquier pedido con respuesta 400 o más (visto por el protocolo de depuración de Chrome, así cuentan también los que el navegador hace por su cuenta) y cualquier aviso de permiso, salvo que la suite lo declare provocado a propósito. Una suite que falla se corre otra vez desde el principio y solo cuenta la segunda; el resumen dice el tiempo de cada suite y cuáles se repitieron, y los fallos dejan una captura en `tests/e2e/shots/`.
+
+```sh
+python tests/e2e/run.py --suite invitado,ajustes
+python tests/e2e/run.py --changed   # solo las suites que cubren lo cambiado desde la última pasada completa
+python tests/e2e/run.py --failed    # otra vez las que fallaron la última vez
+python tests/e2e/run.py --headed    # con ventana, para mirarla
+```
+
+`--changed` relaciona cada archivo cambiado con las suites que lo cubren (una tabla en `run.py`: documentación y labs no necesitan ninguna; código de prueba compartido o código de la app sin regla, todas). Una pasada completa sin cambios sin guardar queda anotada en `tests/e2e/.record.json`. Todo lo que crea una corrida (datos, servidor, navegador, archivos en Descargas) se borra al terminar, y lo que haya quedado de una corrida anterior se barre al empezar.
+
 ## Herramientas de medición
 
 Las herramientas de `tools/` usan el mismo código que el servidor (`vt/`), sin navegador. Se corren desde la raíz del repositorio con el Python del servidor, salvo `make_dialogue.py` (entorno de Kokoro) y `make_sample.ps1` (PowerShell). Leen el audio con PyAV; `dub_file.py`, `make_dialogue.py` y `make_sample.ps1` además escriben video con ffmpeg, que debe estar en el `PATH`.

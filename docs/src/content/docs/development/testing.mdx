@@ -34,6 +34,33 @@ They also run without pytest: `python tests/test_core.py` runs them all and prin
 | `test_langs` (`tests/test_langs.py`) | Language registry and translator per language; Portuguese text rules; streaming detects the language first and waits for enough confidence; modes and detection (the preferred language is only transcribed, switching mode deletes nothing); old transcripts without a language keep working; `sub_en` migrates to `sub_orig`. |
 | `test_security` (`tests/test_security.py`) | Saved JSON leaves a copy and recovers if damaged; signing in always gives a new token; an odd id never points outside the library; the WebSocket rejects unmasked frames, stray continuations, long control frames and unknown opcodes. |
 
+## End-to-end tests
+
+```sh
+python tests/e2e/run.py
+```
+
+They drive the whole app the way a person (or an agent) uses it, with Chrome and no window. Each run builds new test data (`tests/e2e/fixture.py`: a private Principal library, a public «Solo ver» one and a public «Ver e importar» one, with short clips made by ffmpeg and translated transcripts; one video per library is only half processed), starts its own server on that data (CPU, no voice) and runs the suites:
+
+| Suite | What it checks |
+|---|---|
+| `inicio` | The owner's home and library, and switching libraries. |
+| `reproductor` | Opening a video: translated transcript, playback, pause, speed, subtitles and the People tab (with a real click). |
+| `invitado` | A «Solo ver» guest watches both public videos, the half processed one included, with no permission notice and without the player waiting forever for a voice they can't request; the server still refuses what isn't theirs when asked by hand (and logs it); a private video can't be downloaded; a «Ver e importar» guest can add; the private library shows nothing. |
+| `ajustes` | Every Settings page opens, the new options are there, and **Guardar informe** writes the diagnostics report (deleted afterwards). |
+| `celular` | At 390 px, light and dark: nothing overflows sideways on the home, the player or Settings. |
+
+A suite also fails, without asking for it, on any new `ERROR` line in the app's log (`app.log`, see [Data](../../how-it-works/data/)), any console error, any request answered with 400 or more (seen through Chrome's DevTools protocol, so the ones the browser makes on its own count too) and any permission notice, unless the suite lists it as caused on purpose. A failing suite is run once more from the start and only the second run counts; the summary prints the time per suite and which were repeated, and failures leave a screenshot in `tests/e2e/shots/`.
+
+```sh
+python tests/e2e/run.py --suite invitado,ajustes
+python tests/e2e/run.py --changed   # only the suites covering what changed since the last full pass
+python tests/e2e/run.py --failed    # again the ones that failed last time
+python tests/e2e/run.py --headed    # with a window, to watch it
+```
+
+`--changed` maps each changed file to the suites that cover it (a table in `run.py`: docs and labs need none; shared test code or app code without a rule means every suite). A full pass with no uncommitted changes is recorded in `tests/e2e/.record.json`. Everything a run creates (data, server, browser, files in Downloads) is deleted when it ends, and leftovers of an earlier run are swept when it starts.
+
 ## Measurement tools
 
 The tools in `tools/` use the same code as the server (`vt/`), without a browser. Run them from the repository root with the server's Python, except `make_dialogue.py` (Kokoro environment) and `make_sample.ps1` (PowerShell). They read audio with PyAV; `dub_file.py`, `make_dialogue.py` and `make_sample.ps1` also write video with ffmpeg, which must be in the `PATH`.
