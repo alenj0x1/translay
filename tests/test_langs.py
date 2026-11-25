@@ -412,3 +412,13 @@ def test_manual_translation_is_never_stale(tmp_path):
     b["manual"] = True
     assert [s["id"] for s in tr.stale("opus-big")] == []
     assert [s["id"] for s in tr.stale("madlad-3b")] == [a["id"]]
+
+
+def test_korean_interjections_go_in_their_meaning():
+    """«파이팅» y «짠» llegan a MADLAD en su sentido (lo traduce «¡Lucha!» y «¡Azúcar!»); «짠» de «salado» queda."""
+    from vt.textproc import preedit
+
+    assert preedit("파이팅! 파이팅!", "ko") == "Let's go! Let's go!"
+    assert preedit("화이팅~", "ko") == "Let's go~"
+    assert preedit("짠! TTT 거의 1년 만인데.", "ko") == "Ta-da! TTT 거의 1년 만인데."
+    assert preedit("짠 음식은 싫어.", "ko") == "짠 음식은 싫어."

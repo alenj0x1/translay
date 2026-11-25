@@ -36,6 +36,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - The page shows Translay's icon in the browser tab (it asked for `/favicon.ico` and got an error).
 - Screen recording: a recording no longer fills the disk. The server stops taking it with 1 GB left free (or at 24 GB per recording); the rest waits on this device under **Sin espacio en el disco** and is uploaded once there is room.
 - Korean videos: subtitle credits Whisper writes over music with other wording («한글자막 제공 및 자막 제공 및…») and, in any language, sentences that end in the same few words repeated three times are no longer shown or dubbed (only with low confidence, like the other made-up phrases).
+- Korean videos: «파이팅» and «짠» are translated as «¡Vamos!» and «¡Ta-da!» (and their Portuguese and English equivalents) instead of «¡Lucha!» and «¡Azúcar!».
 - Startup: a busy NVIDIA driver (`nvidia-smi` slow or failing, as with the GPU at 100 %) no longer makes Translay run the whole session without GPU and without voice. It asks again twice before giving up, and if it does, `app.log` says why.
 - Desktop app: the window only opens the address of the server it started (loopback and the port it chose), read from the server's own output, never from its errors.
 

@@ -139,6 +139,14 @@ IDIOMS["it"] = [
     # Opus-MT lo traduce literal: «un ojo de la cabeza» (tools/lab/langs_mt.py)
     (r"(costa|costano|costato|costata|costati|costare|costava) un occhio della testa", r"\1 moltissimo"),
 ]
+IDIOMS["ko"] = [
+    # interjecciones del inglés escritas en coreano que MADLAD traduce por su sonido o su raíz («파이팅» → «¡Lucha!»,
+    # «짠» → «¡Azúcar!», y reescritas en coreano tampoco: «힘내자» → «¡Esfuérzate!»). En su sentido y en inglés,
+    # MADLAD las da bien en los tres destinos («¡Vamos!», «Vamos!», «Let's go!»); medido en un video de TWICE.
+    (r"[파화]이팅", "Let's go"),
+    (r"짜잔", "Ta-da"),
+    (r"짠(?=\s*[!~.]|\s*$)", "Ta-da"),  # solo como interjección («짠 음식», salado, queda)
+]
 # los bordes con letras Unicode: \b no siempre corta bien junto a una tilde ("tá", "né")
 _IDIOMS = {lang: [(re.compile(r"(?<!\w)" + p + r"(?!\w)", re.I), r) for p, r in rules]
            for lang, rules in IDIOMS.items()}
