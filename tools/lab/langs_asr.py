@@ -1,10 +1,12 @@
 """Recognition lab per language: how well each Whisper model transcribes and detects the spoken language.
 
-Data: FLEURS (Google, CC-BY-4.0), read sentences with their text (dev: en_us, pt_br, es_419) in
+Data: FLEURS (Google, CC-BY-4.0), read sentences with their text (dev: en_us, pt_br, it_it, ja_jp, ko_kr, es_419) in
 data/labs/languages/fleurs/<lang>/dev/*.wav and <lang>.dev.tsv (tools/lab/langs_data.py downloads them).
 
 Measures, per model (and precision):
   WER        misrecognized words (%; lower is better), with the language given
+  CER        misrecognized characters (%), without spaces or punctuation: the measure for Japanese,
+             which has no spaces (its "WER" would count whole sentences), and also reported for Korean
   detection  % of clips whose language is detected right, and ms per detection
   ×          seconds of audio per wall-clock second while transcribing
 
@@ -12,7 +14,7 @@ Measures, per model (and precision):
   pink:5     pink noise at 5 dB
   babble:10  6 voices in the other languages at 10 dB (the hardest case for detection)
 
-    python tools/lab/langs_asr.py --langs en pt it es --models large-v3-turbo:float16 small:int8_float16 -n 120
+    python tools/lab/langs_asr.py --langs en pt it ja ko es --models large-v3-turbo:float16 small:int8_float16 -n 120
     python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
 """
 
@@ -34,7 +36,7 @@ sys.path.insert(0, str(ROOT))
 from vt.asr import MODELS, WhisperASR  # noqa: E402
 
 DATA = ROOT / "data" / "labs" / "languages"
-FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "es": "es_419"}
+FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "ja": "ja_jp", "ko": "ko_kr", "es": "es_419"}
 
 
 def load(lang: str, n: int) -> list[tuple[np.ndarray, str]]:
@@ -67,6 +69,11 @@ def read_wav(path: Path) -> np.ndarray:
 
 def words(s: str) -> list[str]:
     return re.sub(r"[^\w\s']", " ", unicodedata.normalize("NFC", s.lower())).split()
+
+
+def chars(s: str) -> list[str]:
+    """Characters for CER: NFKC (full-width digits and letters as ASCII), lower case, no spaces or punctuation."""
+    return [c for c in unicodedata.normalize("NFKC", s.lower()) if c.isalnum()]
 
 
 def edits(a: list[str], b: list[str]) -> int:
@@ -111,7 +118,7 @@ def mix(data: dict, kind: str, snr: float, seed: int = 7) -> dict:
 def run(asr, label: str, data: dict) -> dict:
     res = {"model": label, "langs": {}}
     for lang, items in data.items():
-        errs = total = 0
+        errs = total = cerrs = ctotal = 0
         audio_s = clock = 0.0
         hits, det_ms, conf = 0, [], []
         for pcm, ref in items:
@@ -122,6 +129,9 @@ def run(asr, label: str, data: dict) -> dict:
             r = words(ref)
             errs += edits(r, words(got))
             total += len(r)
+            rc = chars(ref)
+            cerrs += edits(rc, chars(got))
+            ctotal += len(rc)
 
             t = time.perf_counter()
             code, prob = asr.detect(pcm)
@@ -129,17 +139,17 @@ def run(asr, label: str, data: dict) -> dict:
             hits += code == lang
             conf.append(prob)
         x = res["langs"][lang] = {
-            "wer": round(100 * errs / total, 2), "detect": round(100 * hits / len(items), 1),
+            "wer": round(100 * errs / total, 2), "cer": round(100 * cerrs / ctotal, 2), "detect": round(100 * hits / len(items), 1),
             "detect_ms": round(statistics.median(det_ms), 1), "detect_conf": round(statistics.median(conf), 3),
             "speed": round(audio_s / clock, 1), "n": len(items)}
-        print(f"  {label:<36} {lang}  WER {x['wer']:>5}%  detection {x['detect']:>5}% "
+        print(f"  {label:<36} {lang}  WER {x['wer']:>5}%  CER {x['cer']:>5}%  detection {x['detect']:>5}% "
               f"({x['detect_ms']} ms, conf. {x['detect_conf']})  {x['speed']}×", flush=True)
     return res
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--langs", nargs="+", default=["en", "pt", "it", "es"], choices=list(FLEURS))
+    ap.add_argument("--langs", nargs="+", default=["en", "pt", "it", "ja", "ko", "es"], choices=list(FLEURS))
     ap.add_argument("--models", nargs="+", default=["large-v3-turbo:float16"],
                     help=f"model:precision ({', '.join(MODELS)})")
     ap.add_argument("-n", type=int, default=120, help="clips per language")
@@ -164,9 +174,9 @@ def main():
     tag = "-".join(a.noise).replace(":", "") or "clean"
     (out / f"results-{tag}.json").write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
     md = ["# Recognition per language · FLEURS dev\n",
-          "| Model | Language | WER % | Detection % | Detection ms | Confidence | × real time |",
-          "|---|---|---|---|---|---|---|"]
-    md += [f"| {r['model']} | {lang} | {x['wer']} | {x['detect']} | {x['detect_ms']} | {x['detect_conf']} | {x['speed']} |"
+          "| Model | Language | WER % | CER % | Detection % | Detection ms | Confidence | × real time |",
+          "|---|---|---|---|---|---|---|---|"]
+    md += [f"| {r['model']} | {lang} | {x['wer']} | {x['cer']} | {x['detect']} | {x['detect_ms']} | {x['detect_conf']} | {x['speed']} |"
            for r in results for lang, x in r["langs"].items()]
     (out / f"results-{tag}.md").write_text("\n".join(md), encoding="utf-8")
     print(f"→ {out / f'results-{tag}.md'}")

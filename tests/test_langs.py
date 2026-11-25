@@ -13,7 +13,7 @@ from vt.asr import Word  # noqa: E402
 from vt.prefs import Prefs  # noqa: E402
 from vt.store import Store  # noqa: E402
 from vt.streaming import Detected, Segment, StreamingTranscriber  # noqa: E402
-from vt.textproc import polish, preedit, split_sentences  # noqa: E402
+from vt.textproc import match_shape, polish, preedit, split_sentences  # noqa: E402
 from vt.translate import FALLBACK, Translators, route, supports  # noqa: E402
 from vt.vad import SR  # noqa: E402
 
@@ -63,6 +63,121 @@ def test_italian():
                  "Sottotitoli e revisione a cura di QTSS"):
         words = [Word(i, i + 1, " " + w) for i, w in enumerate(said.split())]
         assert " ".join(_norm(w) for w in words) in HALLUCINATIONS["it"]
+
+
+def test_japanese_text_rules():
+    assert langs.is_source("ja") and langs.name("ja") == "japonés" and langs.name("ja", "en") == "Japanese"
+    # sin espacios ni mayúsculas: se corta tras 。！？, con la comilla de cierre, sin cortar una cita que sigue
+    assert split_sentences("こんにちは。今日はサーバーを設定します！準備はいいですか？はい", "ja") == [
+        "こんにちは。", "今日はサーバーを設定します！", "準備はいいですか？", "はい"]
+    assert split_sentences("彼は「すごい！」と言った。次に行きます。", "ja") == ["彼は「すごい！」と言った。", "次に行きます。"]
+    assert split_sentences("「本当？」「うん。」それでいい。", "ja") == ["「本当？」", "「うん。」", "それでいい。"]
+    assert split_sentences("バージョン3.5です。", "ja") == ["バージョン3.5です。"]
+    # la traducción conserva su punto cuando el original japonés termina en 。
+    assert match_shape("今日はサーバーを設定します。", "Hoy configuro el servidor.") == "Hoy configuro el servidor."
+    assert match_shape("「すごい！」", "¡Increíble!") == "¡Increíble!"
+    # un fragmento (sin 。) no lo lleva; uno que termina en 、 sigue con coma
+    assert match_shape("今日はサーバーを", "Hoy el servidor.") == "Hoy el servidor"
+    assert match_shape("まず、", "Primero.") == "Primero,"
+    # sin mayúsculas en el original: la de la traducción no se toca
+    assert match_shape("iPhoneは高いです。", "El iPhone es caro.") == "El iPhone es caro."
+
+
+def test_korean_text_rules():
+    assert langs.is_source("ko") and langs.name("ko") == "coreano" and langs.name("ko", "pt") == "coreano"
+    # el hangul no tiene mayúsculas: basta el punto y el espacio
+    assert split_sentences("안녕하세요. 오늘은 서버를 설정합니다! 준비됐나요? 네", "ko") == [
+        "안녕하세요.", "오늘은 서버를 설정합니다!", "준비됐나요?", "네"]
+    assert split_sentences("Mr. Kim이 왔어요. 버전 3.5예요.", "ko") == ["Mr. Kim이 왔어요.", "버전 3.5예요."]
+    assert match_shape("오늘은 서버를 설정합니다.", "hoy configuro el servidor.") == "hoy configuro el servidor."
+    assert match_shape("오늘은 서버를", "Hoy el servidor.") == "Hoy el servidor"
+
+
+def test_japanese_and_korean_routes_download_on_demand():
+    from vt import modelset
+    from vt.translate import MODELS
+    for src in ("ja", "ko"):
+        for tgt in ("es", "pt", "en"):
+            assert route(src, tgt=tgt) == "madlad-3b" and route(src, "base", tgt=tgt) == "madlad-3b"
+    # MADLAD (~3 GB) no se baja con el perfil, sino con el primer video en japonés o coreano
+    madlad = MODELS["madlad-3b"][1]
+    for profile in ("calidad", "ligero", "texto"):
+        assert madlad not in modelset.repos(profile) and modelset.on_demand(profile) == [madlad]
+
+
+def test_summary_counts_japanese_without_spaces():
+    from vt.summarize import words
+    assert words("one two three four five") == 7  # inglés: como antes
+    assert words("今日はサーバーを設定します。") == 14  # sin espacios: un token por carácter (y el 。), no «1 palabra»
+    assert words("오늘은 서버를 설정합니다") == 11
+
+
+def test_cased_languages_keep_their_rules():
+    """Las reglas de japonés y coreano no cambian las de inglés, español y portugués."""
+    assert split_sentences("Hello there. how are you? Fine.", "en") == ["Hello there. how are you?", "Fine."]
+    assert split_sentences("Hola. ¿Cómo están? Bien.", "es") == ["Hola.", "¿Cómo están?", "Bien."]
+    assert split_sentences("O Sr. Silva chegou. ele saiu.", "pt") == ["O Sr. Silva chegou. ele saiu."]
+    assert match_shape("the text will be", "El texto será.") == "el texto será"
+    assert match_shape("Hello.", "hola.") == "Hola."
+    assert match_shape("Finally, in a version,", "Finalmente, en una versión.") == "Finalmente, en una versión,"
+
+
+class ScriptASR:
+    """Devuelve las palabras de un guion (inicio, fin, texto) cuyo audio ya está en el búfer."""
+
+    def __init__(self, script):
+        self.script, self.st = script, None
+
+    def transcribe(self, audio, prompt=None, language=None):
+        t0 = self.st.t0
+        end = t0 + len(audio) / SR
+        return [Word(a - t0, b - t0, w, 0.99) for a, b, w in self.script if b <= end and a >= t0 - 0.01]
+
+
+def _segments(lang, script, speech_s):
+    asr = ScriptASR(script)
+    st = StreamingTranscriber(asr, language=lang)
+    asr.st = st
+    return [e.text for e in run(st, np.concatenate([tone(speech_s), np.zeros(int(1.5 * SR), np.float32)]))
+            if isinstance(e, Segment)]
+
+
+def test_streaming_japanese_pause_closes_with_its_period():
+    # faster-whisper parte el japonés en trozos de caracteres, sin espacios
+    pieces = ["今日", "は", "サーバー", "を", "設定", "します"]
+    script = [(0.2 + 0.3 * i, 0.45 + 0.3 * i, w) for i, w in enumerate(pieces)]
+    assert _segments("ja", script, 2.1) == ["今日はサーバーを設定します。"]  # 。, no «.»
+    done = script[:-1] + [(script[-1][0], script[-1][1], "します。")]
+    assert _segments("ja", done, 2.1) == ["今日はサーバーを設定します。"]  # ya cerrada: sin otro punto
+    # seis trozos y menos de 5 caracteres: no es una oración (como «3 palabras» en inglés)
+    short = [(0.2, 0.4, "は"), (0.4, 0.6, "い"), (0.6, 0.8, "、"), (0.8, 1.0, "そう")]
+    assert _segments("ja", short, 1.1) == ["はい、そう"]
+
+
+def test_japanese_and_korean_hallucinations_are_dropped():
+    """Lo que Whisper escribió sobre audio sin voz (tools/lab/langs_silence.py), con la clave como en
+    el streaming: el japonés llega en trozos y se une sin espacios."""
+    from vt.streaming import HALLUCINATIONS
+
+    def emitted(lang, pieces, prob):
+        st = StreamingTranscriber(None, language=lang)
+        st.feed(0.0, np.zeros(4 * SR, np.float32))
+        words = [Word(0.2 + 0.3 * i, 0.45 + 0.3 * i, w, prob) for i, w in enumerate(pieces)]
+        return [s.text for s in st._emit(words)]
+
+    ja = ["ご", "視聴", "ありがとう", "ございました", "。"]
+    assert emitted("ja", ja, 0.6) == []
+    assert emitted("ja", ja, 0.95) == ["ご視聴ありがとうございました。"]  # dicho con seguridad: se queda
+    assert emitted("ko", [" 다음", " 영상에서", " 만나요."], 0.6) == []
+    assert "시청해 주셔서 감사합니다" in HALLUCINATIONS["ko"] and "ご視聴ありがとうございました" in HALLUCINATIONS["ja"]
+
+
+def test_streaming_korean_and_english_pause_close_with_a_dot():
+    ko = [(0.2, 0.6, " 오늘은"), (0.7, 1.1, " 서버를"), (1.2, 1.7, " 설정합니다")]
+    assert _segments("ko", ko, 1.8) == ["오늘은 서버를 설정합니다."]
+    en = [(0.2, 0.6, " hello"), (0.7, 1.1, " my"), (1.2, 1.7, " friend")]
+    assert _segments("en", en, 1.8) == ["Hello my friend."]
+    assert _segments("en", en[:2], 1.2) == ["Hello my"]  # dos palabras: sin punto, como antes
 
 
 class LangASR:
@@ -164,9 +279,9 @@ def test_mode_and_detection(tmp_path):
     assert other.translates
 
     unknown = Store(tmp_path).open("yt_ddddddddddd")
-    unknown.set_detected("ja", own="es")  # un idioma que aún no se traduce: solo se transcribe
-    assert unknown.lang == "ja" and unknown.transcribe_only
-    assert not unknown.set_lang("ja")  # a mano solo se eligen los del registro
+    unknown.set_detected("zh", own="es")  # un idioma que aún no se traduce: solo se transcribe
+    assert unknown.lang == "zh" and unknown.transcribe_only
+    assert not unknown.set_lang("zh")  # a mano solo se eligen los del registro
 
 
 def test_legacy_transcripts_keep_working(tmp_path):
@@ -236,7 +351,9 @@ def test_routes_cover_every_pair():
                 assert (a, b) in ROUTES, (a, b)
                 for tier in ("big", "base"):
                     name = route(a, tier, b)
-                    assert name != FALLBACK and supports(name, a, b)
+                    # el de respaldo solo donde el lab lo eligió (japonés, coreano)
+                    assert name == ROUTES[(a, b)][tier] and supports(name, a, b)
+                    assert name != FALLBACK or a in langs.ON_DEMAND
 
 
 def test_detection_does_not_override_or_guess(tmp_path):

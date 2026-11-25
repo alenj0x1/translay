@@ -7,7 +7,7 @@
 
 [English](README.md) | Español
 
-Traduce y dobla videos entre inglés, español y portugués, y desde el italiano, **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en tu idioma: subtítulos, transcripción alineada con el original y la traducción, y voz clonada sincronizada con la imagen. O solo transcríbelo, en cualquier idioma. Nada sale de tu equipo salvo las descargas de YouTube.
+Traduce y dobla videos entre inglés, español y portugués, y desde el italiano, el japonés y el coreano, **con la voz de cada persona**, en tu propio equipo y con tu GPU. Pega un enlace de YouTube (o abre un archivo) y míralo en tu idioma: subtítulos, transcripción alineada con el original y la traducción, y voz clonada sincronizada con la imagen. O solo transcríbelo, en cualquier idioma. Nada sale de tu equipo salvo las descargas de YouTube.
 
 [![Versión](https://img.shields.io/github/v/release/alenj0x1/translay?label=versi%C3%B3n)](https://github.com/alenj0x1/translay/releases/latest)
 [![Documentación](https://img.shields.io/badge/docs-translay.alenj.dev-7d5ba6)](https://translay.alenj.dev/es/)
@@ -38,8 +38,8 @@ Traduce y dobla videos entre inglés, español y portugués, y desde el italiano
 
 - **Dos modos** (Ajustes › Uso): **Traducir y doblar**, o **Transcribir y resumir** para grabar o subir clases y reuniones y usar su transcripción y sus resúmenes, sin nada de traducción ni voz (tampoco se cargan esos modelos).
 - **Reconocimiento** con Whisper large-v3-turbo en streaming: el video se procesa mientras lo ves, desde tu punto de reproducción, y si saltas, el procesamiento salta contigo.
-- **Idiomas**: inglés, portugués, italiano y español, **detectados solos** con los primeros segundos de voz. Cualquier video se puede **solo transcribir**, en su idioma, y una preferencia decide qué idioma solo se transcribe al detectarlo (español, si no la cambias). Una sola elección de **idioma** define la interfaz, la traducción y la voz, el agente y los resúmenes (el del sistema, por defecto), y «Traducir a» puede separar la traducción.
-- **Traducción** con un traductor por par de idiomas, elegido en el laboratorio: Opus-MT big para inglés → español, itc-itc para portugués ↔ español (tan bueno como MADLAD-3B y diez veces más rápido) e italiano → español y portugués, tc-big para inglés → portugués y tc-bible para español, portugués e italiano → inglés, MADLAD-400 3B (Apache-2.0) para el resto. Cada video guarda su traducción y su voz por idioma. Capas propias para **español latinoamericano**: separa oraciones, reescribe modismos antes de traducir («call it a day», «pisou na bola») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
+- **Idiomas**: inglés, portugués, italiano, japonés, coreano y español, **detectados solos** con los primeros segundos de voz. Cualquier video se puede **solo transcribir**, en su idioma, y una preferencia decide qué idioma solo se transcribe al detectarlo (español, si no la cambias). Una sola elección de **idioma** define la interfaz, la traducción y la voz, el agente y los resúmenes (el del sistema, por defecto), y «Traducir a» puede separar la traducción.
+- **Traducción** con un traductor por par de idiomas, elegido en el laboratorio: Opus-MT big para inglés → español, itc-itc para portugués ↔ español (tan bueno como MADLAD-3B y diez veces más rápido) e italiano → español y portugués, tc-big para inglés → portugués y tc-bible para español, portugués e italiano → inglés, MADLAD-400 3B (Apache-2.0) para el japonés, el coreano y el resto. Cada video guarda su traducción y su voz por idioma. Capas propias para **español latinoamericano**: separa oraciones, reescribe modismos antes de traducir («call it a day», «pisou na bola») y corrige lo peninsular («vídeo» → «video», «ordenador» → «computadora», «vosotros» → «ustedes»).
 - **Quién habla**: diarización propia (huella de voz WeSpeaker en ONNX + agrupamiento en línea). 97,6 % de frases con la persona correcta en 12 videos de prueba con 2 a 4 personas, con y sin ruido.
 - **Doblaje con la voz de cada persona**: OmniVoice clona su voz a partir de sus mejores frases (hasta 8 s, limpiadas con DeepFilterNet si tienen ruido). Cada frase calza en su espacio (duración pedida al motor y WSOLA de respaldo, sin cambiar el tono) y suena al mismo volumen que el original.
 - **Sincronizada**: desfase mediano de 0,08 s entre la voz y la imagen.
@@ -186,7 +186,7 @@ Capturas de una instancia de prueba con videos de dominio público de la NASA y 
 1. Descarga `Translay_<versión>_x64-setup.exe` de la [última versión](https://github.com/alenj0x1/translay/releases/latest) y ábrelo.
 2. Abre **Translay**, elige dónde guardar tu biblioteca y pulsa **Instalar**.
 
-La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre; el traductor del portugués y el italiano, unos 0,8 GB, se descarga la primera vez que se traduce un video en portugués o italiano). Detalle: [Instalación](https://translay.alenj.dev/es/getting-started/install/).
+La app trae Python, ffmpeg, Node.js y uv, e instala sola el resto (unos 7,5 GB, más 6 GB de modelos la primera vez que abre; el traductor del portugués y el italiano, unos 0,8 GB, se descarga la primera vez que se traduce un video en portugués o italiano, y el del japonés y el coreano, MADLAD-400 3B, unos 3 GB, con el primer video en japonés o coreano). Detalle: [Instalación](https://translay.alenj.dev/es/getting-started/install/).
 
 | | |
 |---|---|

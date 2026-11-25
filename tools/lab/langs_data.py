@@ -4,7 +4,7 @@ The same sentences read in each language, with their text. Downloads each langua
 and the dev audio (for the recognition lab); what is already there is skipped. About 250 MB per language
 with audio.
 
-    python tools/lab/langs_data.py                    # en_us, pt_br, it_it, es_419
+    python tools/lab/langs_data.py                    # en_us, pt_br, it_it, ja_jp, ko_kr, es_419
     python tools/lab/langs_data.py --no-audio         # text only (translation lab)
 """
 
@@ -28,7 +28,7 @@ def fetch(url: str, dest: Path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--langs", nargs="+", default=["en_us", "pt_br", "it_it", "es_419"])
+    ap.add_argument("--langs", nargs="+", default=["en_us", "pt_br", "it_it", "ja_jp", "ko_kr", "es_419"])
     ap.add_argument("--no-audio", action="store_true")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)

@@ -30,20 +30,25 @@ LANGS: dict[str, Lang] = {
     "es": Lang("es", "español", "spa", "spa_Latn", "Spanish"),
     "pt": Lang("pt", "portugués", "por", "por_Latn", "Portuguese"),
     "it": Lang("it", "italiano", "ita", "ita_Latn", "Italian"),
+    "ja": Lang("ja", "japonés", "jpn", "jpn_Jpan", "Japanese"),
+    "ko": Lang("ko", "coreano", "kor", "kor_Hang", "Korean"),
 }
-SOURCES = ("en", "pt", "it", "es")
+SOURCES = ("en", "pt", "it", "ja", "ko", "es")
+# su traductor no se baja con el perfil (vt/modelset.py) sino con el primer video en ese idioma:
+# el japonés y el coreano usan MADLAD-400 3B (~3 GB), que nadie más necesita
+ON_DEMAND = ("ja", "ko")
 TARGETS = ("es", "en", "pt")
 DEFAULT_TARGET = "es"  # el de antes de los idiomas: lo guardado sin idioma de destino está en español
 DEFAULT_SOURCE = "en"  # idioma de un video cuando no se sabe (datos de antes de los idiomas)
 
 # nombre de cada idioma en cada idioma de interfaz: NAMES[interfaz][idioma]
 NAMES = {
-    "es": {"en": "inglés", "es": "español", "pt": "portugués", "it": "italiano"},
-    "en": {"en": "English", "es": "Spanish", "pt": "Portuguese", "it": "Italian"},
-    "pt": {"en": "inglês", "es": "espanhol", "pt": "português", "it": "italiano"},
+    "es": {"en": "inglés", "es": "español", "pt": "portugués", "it": "italiano", "ja": "japonés", "ko": "coreano"},
+    "en": {"en": "English", "es": "Spanish", "pt": "Portuguese", "it": "Italian", "ja": "Japanese", "ko": "Korean"},
+    "pt": {"en": "inglês", "es": "espanhol", "pt": "português", "it": "italiano", "ja": "japonês", "ko": "coreano"},
 }
 # cómo se llama cada idioma a sí mismo (para elegirlo sin entender el actual)
-NATIVE = {"es": "Español", "en": "English", "pt": "Português", "it": "Italiano"}
+NATIVE = {"es": "Español", "en": "English", "pt": "Português", "it": "Italiano", "ja": "日本語", "ko": "한국어"}
 
 # cómo se le pide a un modelo de lenguaje que responda en cada idioma (los prompts están en inglés)
 PROMPT = {"es": "Latin American Spanish", "en": "English", "pt": "Brazilian Portuguese"}

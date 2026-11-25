@@ -25,9 +25,9 @@ En equipos con **memoria unificada**, como NVIDIA DGX Spark, la GPU usa la RAM d
 | **Solo subtítulos** | large-v3-turbo, int8 | big | Sin voz | GPU de 2 GB |
 | **Subtítulos ligeros** | small, int8 | base | Sin voz | Sin GPU |
 
-El traductor es un nivel y cada idioma tiene su modelo en él: en inglés, `big` es Opus-MT tc-big y `base`, opus-base; el portugués y el italiano usan Opus-MT itc-itc en todos los perfiles (roa-eng hacia el inglés). Solo un traductor está en la GPU a la vez, así que la memoria de un perfil no crece con la cantidad de idiomas. Ver [Idiomas](../../how-it-works/languages/#un-traductor-por-par-de-idiomas).
+El traductor es un nivel y cada idioma tiene su modelo en él: en inglés, `big` es Opus-MT tc-big y `base`, opus-base; el portugués y el italiano usan Opus-MT itc-itc en todos los perfiles (roa-eng hacia el inglés); el japonés y el coreano, MADLAD-400 3B en todos los perfiles, que se descarga con el primer video en esos idiomas. Solo un traductor está en la GPU a la vez, así que la memoria de un perfil no crece con la cantidad de idiomas. Ver [Idiomas](../../how-it-works/languages/#un-traductor-por-par-de-idiomas).
 
-Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que pierde más precisión en portugués que en inglés: con voz limpia se equivoca en el 7,7 % de las palabras en portugués y el 6,3 % en inglés, contra 4,2 % y 5,2 % con large-v3-turbo; con conversación de fondo, 24 % y 29 % contra 11 % y 17 %. En italiano, 9,2 % contra 3,5 % con voz limpia.
+Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que pierde más precisión en portugués que en inglés: con voz limpia se equivoca en el 7,7 % de las palabras en portugués y el 6,3 % en inglés, contra 4,2 % y 5,2 % con large-v3-turbo; con conversación de fondo, 24 % y 29 % contra 11 % y 17 %. En italiano, 9,2 % contra 3,5 % con voz limpia. En japonés, 12,2 % de caracteres errados contra 3,6 %, y en coreano 7,3 % contra 4,7 % (21,4 % y 13,3 % de las palabras).
 
 **Automático** (lo que viene elegido) toma el perfil más completo que se puede ver en vivo en tu equipo. Cada tarjeta dice cómo va ese perfil aquí:
 

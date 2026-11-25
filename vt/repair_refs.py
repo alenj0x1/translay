@@ -24,7 +24,7 @@ from .speakers import MAX_CLIP_S, MAX_FALLBACK_S, SR
 
 ROOT = Path(__file__).resolve().parent.parent / "data"
 MAX_REF_S = 9.0
-_CLOSED = re.compile(r"[.?!…»\"')]$")
+_CLOSED = re.compile(r"[.?!…»\"')。！？」』]$")
 
 
 def looks_cut(text: str) -> bool:

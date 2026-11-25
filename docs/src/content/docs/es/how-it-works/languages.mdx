@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 import Diagram from "../../../../components/Diagram.astro";
 import { languages } from "../../../../diagrams";
 
-Translay reconoce videos en inglés, portugués, italiano y español y los traduce y dobla a inglés, español o portugués: eliges el idioma una vez y vale para la interfaz, la traducción y la voz. Cualquier video también se puede solo transcribir, en su idioma.
+Translay reconoce videos en inglés, portugués, italiano, japonés, coreano y español y los traduce y dobla a inglés, español o portugués: eliges el idioma una vez y vale para la interfaz, la traducción y la voz. Cualquier video también se puede solo transcribir, en su idioma.
 
 <Diagram {...languages("es")} />
 
@@ -25,7 +25,7 @@ Translay reconoce videos en inglés, portugués, italiano y español y los tradu
 | `nllb` | Token de NLLB-200, con la escritura. | `por_Latn` |
 | `tts` | Nombre que esperan los motores de voz. | `Portuguese` |
 
-`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `it`, `es`); `TARGETS`, aquellos a los que se traduce y dobla y en los que se puede ver la interfaz (`es`, `en`, `pt`). El italiano solo es de origen: se traduce y dobla, pero no es destino ni idioma de la interfaz. `target()` es el elegido ahora. Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
+`SOURCES` son los idiomas que se reconocen y se pueden elegir a mano (`en`, `pt`, `it`, `ja`, `ko`, `es`); `TARGETS`, aquellos a los que se traduce y dobla y en los que se puede ver la interfaz (`es`, `en`, `pt`). El italiano, el japonés y el coreano solo son de origen: se traducen y doblan, pero no son destino ni idioma de la interfaz. `target()` es el elegido ahora. Un video se traduce cuando su idioma no es el de destino, está en el registro y la persona no eligió solo transcribirlo.
 
 ## Un idioma para todo
 
@@ -43,7 +43,7 @@ Un video nuevo (enlace importado, archivo de tu equipo o grabación de pantalla)
 
 Un idioma detectado que Translay todavía no traduce solo se transcribe, en ese idioma. Un video de antes de los idiomas, sin `lang`, sigue en inglés. Un modelo `.en` elegido con `--model` no detecta: para él todo es inglés.
 
-Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y español: 100 % de aciertos con large-v3-turbo, también con murmullo en otros idiomas a 5 dB y ruido rosa a 5 dB, en unos 250 ms por detección en una RTX 4060. Whisper `small` acertó entre el 97,5 % y el 100 % con murmullo. En italiano, con audios limpios de FLEURS: 100 % con large-v3-turbo (330 ms, confianza 0,999) y con `small`.
+Medido con `tools/lab/langs_asr.py` en audios de FLEURS en inglés, portugués y español: 100 % de aciertos con large-v3-turbo, también con murmullo en otros idiomas a 5 dB y ruido rosa a 5 dB, en unos 250 ms por detección en una RTX 4060. Whisper `small` acertó entre el 97,5 % y el 100 % con murmullo. En italiano, con audios limpios de FLEURS: 100 % con large-v3-turbo (330 ms, confianza 0,999) y con `small`. En japonés y coreano, con audios limpios de FLEURS: 100 % con large-v3-turbo (219 ms, confianza 0,999) y con `small` (59 ms, 0,991 y 0,974). Con murmullo en los otros cinco idiomas a 5 dB o ruido rosa a 5 dB (60 audios por idioma), large-v3-turbo `int8_float16` sigue detectando el 100 % del japonés y el coreano, y `small` también (confianza 0,93–0,98); los caracteres errados suben a 6,3 % en japonés y 6,0 % en coreano con murmullo (20,6 % y 13,2 % con `small`).
 
 ## Traducir o solo transcribir
 
@@ -75,11 +75,18 @@ Al elegir otro idioma, lo que ya estaba hecho vuelve y lo que falta se traduce y
 | Italiano → español | Opus-MT itc-itc | 52,4 | 208 ms | MADLAD 53,4 a 2039 ms |
 | Italiano → portugués | Opus-MT itc-itc | 57,5 | 195 ms | |
 | Italiano → inglés | Opus-MT tc-bible roa-eng | 61,6 | 164 ms | |
+| Japonés → español | MADLAD-400 3B (`madlad-3b`) | 46,5 | 1160 ms | Opus-MT tc-bible mul-spa 38,5 a 119 ms, ja-es 35,0 |
+| Japonés → portugués | MADLAD-400 3B | 51,3 | 1155 ms | Opus-MT tc-bible mul-spa 42,2 |
+| Japonés → inglés | MADLAD-400 3B | 57,1 | 1087 ms | Opus-MT ja-en 47,5 a 82 ms, tc-bible mul-spa 45,7 |
+| Coreano → español | MADLAD-400 3B | 47,1 | 1050 ms | (ningún Opus-MT lo traduce: ver abajo) |
+| Coreano → portugués | MADLAD-400 3B | 52,4 | 1192 ms | |
+| Coreano → inglés | MADLAD-400 3B | 57,9 | 990 ms | Opus-MT tc-big ko-en 55,7 a 96 ms |
 
 Cualquier otro par, o un modelo que no lo soporte, va a `FALLBACK`: MADLAD-400 3B. Reemplazó a NLLB-200, cuya licencia es CC-BY-NC, con Apache-2.0, y empata o gana a NLLB en los pares medidos.
 
 - **Uno en la GPU.** Al pasar a otro idioma, el traductor anterior va a la RAM (vuelve en ~1 s), así la memoria medida en cada [perfil](../../guide/performance/) no crece con los idiomas.
 - **Descarga fuera del hilo de la GPU.** Un traductor que falta en disco se descarga sin frenar el reconocimiento ni la voz de otro video. En vivo, las frases quedan sin traducir y se completan cuando está listo.
+- **Japonés y coreano, al usarlos.** Su traductor, MADLAD-400 3B (unos 3 GB), no se descarga con el perfil (`ON_DEMAND` en `vt/langs.py`, `modelset.on_demand`) sino con el primer video en japonés o coreano; una vez descargado, cambiar de perfil no lo muestra como sin usar.
 - **`--translator`** fuerza un modelo para todos los idiomas que traduce; los demás siguen con su ruta.
 
 itc-itc y roa-eng son modelos multilingües de lenguas romances: necesitan la etiqueta del destino (`>>spa<<`, `>>por<<`, de `iso3`) al inicio de cada oración.
@@ -122,14 +129,27 @@ Palabras mal reconocidas por Whisper con `tools/lab/langs_asr.py` (FLEURS dev, 1
 
 Italiano (FLEURS `it_it`, el mismo lab, 120 audios limpios): large-v3-turbo `float16` 3,5 %, small `int8_float16` 9,2 %.
 
+El japonés no tiene espacios, así que su tasa de palabras mal reconocidas cuenta oraciones enteras (83 % con cualquier modelo): el lab también da la de caracteres (CER, sin espacios ni puntuación, con dígitos y letras de ancho normal). FLEURS `ja_jp` y `ko_kr`, 120 audios limpios:
+
+| Modelo | CER japonés | WER coreano | CER coreano |
+|---|---|---|---|
+| large-v3-turbo `float16` | 3,6 % | 13,3 % | 4,7 % |
+| small `int8_float16` | 12,2 % | 21,4 % | 7,3 % |
+
+Las palabras coreanas llevan pegadas sus partículas («서버를»), así que una sílaba errada es una palabra entera mal: su CER se acerca más a lo que se lee.
+
+Japonés y coreano, FLEURS test (320 y 269 frases) a los tres destinos: MADLAD-400 3B gana todos los pares, por 8 a 10 puntos sobre cada Opus-MT medido (japonés → español 46,5 contra 38,5 del multilingüe tc-bible mul-deu_eng_fra_por_spa y 35,0 de ja-es), salvo coreano → inglés, donde tc-big ko-en saca 55,7 contra 57,9 y es diez veces más rápido (96 ms contra 990 ms). Dos puntos es más que el punto en el que se prefiere el modelo rápido, y el coreano ya necesita MADLAD para el español y el portugués, así que también usa MADLAD. mul-deu_eng_fra_por_spa no traduce coreano: devuelve el texto en coreano, desordenado (chrF menor a 1); opus-mt-ko-es (2020) ya no se puede descargar de OPUS. MADLAD tarda ~1,1 s por frase (7–10 frases/s en lotes, ~3,5 GB de VRAM), como en italiano.
+
 Italiano → español, test, 344 frases: Opus-MT itc-itc 52,4 a 208 ms por frase y 36 frases/s en lotes (~0,7 GB), MADLAD-400 3B 53,4 a 2039 ms y 4,1 frases/s (~3,5 GB). MADLAD gana por un punto y es diez veces más lento, así que el italiano usa el itc-itc que ya descarga el portugués; al portugués (345 frases) itc-itc saca 57,5, y roa-eng al inglés (346), 61,6. Como referencia, el leaderboard de Opus-MT da a estos modelos 52,2, 58,2 y 62,4 en FLORES-200 devtest.
 
 ## Reglas de texto
 
 Las reglas que dependen del idioma van por su código; un idioma sin las suyas solo recibe lo que no depende del idioma (puntuación y pausas).
 
-- **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.», «Sig.», «Dott.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»). En italiano, «costa un occhio della testa» → «costa moltissimo» (itc-itc lo pasaba a «un ojo de la cabeza»).
-- **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando.
+- **Antes de traducir** (`vt/textproc.py`): abreviaturas que no cierran la oración («Mr.», «Sra.», «Sig.», «Dott.») y modismos reescritos a su sentido. En portugués, los modismos que el traductor pasaría literal («pisou na bola» → «errou», «custou os olhos da cara» → «custou muito caro», «moleza» → «muito fácil», «fica ligado» → «fique atento», «fala, galera» → «olá, pessoal») y las formas coloquiales que Whisper escribe como se dicen («pra» → «para», «tá» → «está», «bora» → «vamos», «tô», «cê», «né»). En italiano, «costa un occhio della testa» → «costa moltissimo» (itc-itc lo pasaba a «un ojo de la cabeza»). El japonés no tiene espacios ni mayúsculas: se corta tras 。！？ (y la comilla de cierre 」 que siga), no cuando la cita continúa («「すごい！」と言った»); el coreano no tiene mayúsculas, así que basta un punto y un espacio. La traducción conserva su punto final cuando el original termina en 。, un fragmento que termina en 、 conserva su coma y no se copian mayúsculas de una escritura que no las tiene.
+- **Reconocimiento en vivo** (`vt/streaming.py`): palabras con las que una oración casi nunca termina, palabras que van en minúscula después de una coma y las frases que Whisper inventa sobre silencio en cada idioma («Legendas pela comunidade Amara.org», «Obrigado por assistir», «Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS», «Subtítulos realizados por la comunidad de Amara.org», «Gracias por ver el video»). Antes solo había reglas del inglés; los videos en español también salen ganando. Whisper parte el japonés en trozos de pocos caracteres, así que una oración japonesa se une sin espacios, una pausa la cierra con 。 en vez de «.» y necesita 5 caracteres (en vez de 3 palabras) para contar como oración.
+
+Las frases del japonés y el coreano salen de `tools/lab/langs_silence.py`, que pasa 66 audios sin voz (silencio, ruido blanco, rosa y café, zumbido de la red eléctrica, acordes) con el idioma dado: large-v3-turbo escribió «ご視聴ありがとうございました» en 57 y «ありがとうございました» en 9; en coreano, «다음 영상에서 만나요» en 44, «감사합니다» en 14, «아멘», «시청해주셔서 감사합니다» y un crédito de subtítulos («한글자막 by 한효정»). `small` sumó «最後までご視聴ありがとうございました», «구독과 좋아요 부탁드려요» y «고맙습니다». Como las demás, se descartan solo si son la frase entera y su confianza es menor a 0,9.
 
 ## Idioma de la interfaz
 
@@ -154,8 +174,8 @@ Los motores de voz OmniVoice, Chatterbox y VoxCPM reciben el idioma de destino, 
 1. Agrega su entrada a `LANGS` en `vt/langs.py`, su código a `SOURCES` y, si también será destino e idioma de la interfaz, a `TARGETS`, con sus nombres en `NAMES`, `NATIVE` y `PROMPT`. Con eso ya se detecta, se elige en la interfaz y en la API, y se transcribe.
 2. Crea su catálogo de la interfaz, `web/i18n/<código>.json`, agrégalo a `LANGS` en `tools/i18n.py` y corre `python tools/i18n.py --fill` para ver los textos por traducir; `tests/test_i18n.py` falla hasta que esté completo. Agrega sus frases a `PHRASES` en `vt/agentintents.py`.
 3. Mide traductores para cada par con `tools/lab/langs_mt.py`, el reconocimiento y la detección con `tools/lab/langs_asr.py`, y el idioma del agente con `tools/lab/lang_adherence.py`.
-4. Si uno le gana a MADLAD, agrégalo a `MODELS` y su ruta a `ROUTES` en `vt/translate.py`; sin ruta, lo traduce MADLAD-400 3B. Si no está publicado para CTranslate2, agrega su publicación oficial a `PUBLISHED` en `vt/opusmt.py`.
-5. Opcional: sus reglas de texto en `ABBR` e `IDIOMS` (`vt/textproc.py`) y en `NO_END`, `LOWER_AFTER_COMMA` y `HALLUCINATIONS` (`vt/streaming.py`), comprobadas con las frases típicas del lab.
+4. Si uno le gana a MADLAD, agrégalo a `MODELS` y su ruta a `ROUTES` en `vt/translate.py`; sin ruta, lo traduce MADLAD-400 3B. Si no está publicado para CTranslate2, agrega su publicación oficial a `PUBLISHED` en `vt/opusmt.py`. Si su traductor es grande y solo lo necesita ese idioma (MADLAD para japonés y coreano), agrega el idioma a `ON_DEMAND`, así se descarga con el primer video y no con cada perfil.
+5. Opcional: sus reglas de texto en `ABBR` e `IDIOMS` (`vt/textproc.py`) y en `NO_END`, `LOWER_AFTER_COMMA` y `HALLUCINATIONS` (`vt/streaming.py`), comprobadas con las frases típicas del lab; las alucinaciones, medidas con `tools/lab/langs_silence.py`. Un idioma que se escribe sin espacios va además en `NO_SPACES` (y su punto en `PERIOD`), y su corte de oraciones en `_SPLIT` (`vt/textproc.py`).
 6. Agrega sus casos a `tests/test_langs.py`.
 
 </Steps>

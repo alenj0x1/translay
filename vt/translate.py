@@ -49,6 +49,14 @@ ROUTES = {
     ("it", "es"): {"big": "opus-itc", "base": "opus-itc"},
     ("it", "pt"): {"big": "opus-itc", "base": "opus-itc"},
     ("it", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
+    # japonés y coreano: MADLAD-400 3B gana por 8-10 chrF a todo Opus-MT medido (el multilingüe
+    # tc-bible mul-spa no traduce coreano: lo devuelve en coreano)
+    ("ja", "es"): {"big": "madlad-3b", "base": "madlad-3b"},
+    ("ja", "pt"): {"big": "madlad-3b", "base": "madlad-3b"},
+    ("ja", "en"): {"big": "madlad-3b", "base": "madlad-3b"},
+    ("ko", "es"): {"big": "madlad-3b", "base": "madlad-3b"},
+    ("ko", "pt"): {"big": "madlad-3b", "base": "madlad-3b"},
+    ("ko", "en"): {"big": "madlad-3b", "base": "madlad-3b"},
 }
 FALLBACK = "madlad-3b"  # Apache-2.0 (NLLB-200 es CC-BY-NC); empata o gana a NLLB en los pares medidos
 

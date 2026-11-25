@@ -112,8 +112,14 @@ def lines(segments: list[dict]) -> list[tuple[float, str]]:
     return out
 
 
+_CJK = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]")
+
+
 def words(text: str) -> int:
-    return round(len(text.split()) * 1.4)  # sin el tokenizador: ~1,4 tokens por palabra en inglés
+    # sin el tokenizador: ~1,4 tokens por palabra en inglés; el japonés no tiene espacios y cada
+    # kana, kanji o sílaba coreana cuenta como ~1 token
+    cjk = len(_CJK.findall(text))
+    return round(len(text.split()) * 1.4) if not cjk else round(len(_CJK.sub(" ", text).split()) * 1.4 + cjk)
 
 
 def chunks(ls: list[tuple[float, str]], limit: int = CHUNK_TOKENS, count=words) -> list[list[tuple[float, str]]]:

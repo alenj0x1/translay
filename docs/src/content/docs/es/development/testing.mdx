@@ -31,7 +31,7 @@ También corren sin pytest: `python tests/test_core.py` ejecuta todas e imprime 
 | `test_access_and_webhooks` | Propietario desde este equipo pero no por un túnel; bibliotecas privadas, públicas y con contraseña; cambiar la contraseña invalida las sesiones; claves de API de lectura; webhooks filtrados por biblioteca y evento, firmados con HMAC-SHA256. |
 | `test_hardware` (`tests/test_hardware.py`) | Forma de lo detectado (GPU, RAM, CPU), sin GPU, la lectura de `nvidia-smi`, y el equipo de un lab con `TRANSLAY_EMULATE` (VRAM, RAM, hilos, sin GPU). |
 | `test_trash` (`tests/test_trash.py`) | Vaciar y borrar videos los mueve a la papelera y restaurar devuelve videos, archivos y colecciones (con sus videos); una biblioteca eliminada vuelve con `open_folder`; se purga lo de más de 30 días y todo. |
-| `test_langs` (`tests/test_langs.py`) | Registro de idiomas y traductor de cada idioma; reglas de texto del portugués y el italiano; el streaming detecta el idioma primero y espera a tener confianza suficiente; modos y detección (el idioma propio solo se transcribe, cambiar de modo no borra nada); las transcripciones de antes sin idioma siguen funcionando; `sub_en` pasa a `sub_orig`. |
+| `test_langs` (`tests/test_langs.py`) | Registro de idiomas y traductor de cada idioma; reglas de texto del portugués, el italiano, el japonés y el coreano (corte de oraciones sin espacios ni mayúsculas, el 。 final conservado en la traducción, inglés, español y portugués sin cambios); las oraciones japonesas en vivo unidas sin espacios y cerradas con 。; las alucinaciones del japonés y el coreano; su traductor descargado al usarlo; el streaming detecta el idioma primero y espera a tener confianza suficiente; modos y detección (el idioma propio solo se transcribe, cambiar de modo no borra nada); las transcripciones de antes sin idioma siguen funcionando; `sub_en` pasa a `sub_orig`. |
 | `test_security` (`tests/test_security.py`) | El JSON guardado deja copia y se recupera si se daña; iniciar sesión siempre da un token nuevo; un id raro nunca apunta fuera de la biblioteca; el WebSocket rechaza marcos sin máscara, continuaciones sueltas, controles largos y códigos desconocidos. |
 
 ## Pruebas de punta a punta
@@ -257,12 +257,14 @@ Miden cada idioma con [FLEURS](https://huggingface.co/datasets/google/fleurs) (G
 | Herramienta | Qué mide |
 |---|---|
 | `langs_mt.py` | Traductores por par de idiomas: chrF contra la referencia (solo y con las reglas de texto de Translay), ms por frase de a una, frases por segundo en lotes de 24, VRAM, y frases típicas de video lado a lado para leerlas. |
-| `langs_asr.py` | Whisper por idioma: palabras mal reconocidas (WER), aciertos y latencia de la detección del idioma, y velocidad; `--noise babble:5 pink:5` mezcla murmullo en otros idiomas o ruido rosa a esa relación señal/ruido. |
+| `langs_asr.py` | Whisper por idioma: palabras mal reconocidas (WER) y caracteres mal reconocidos (CER, la medida del japonés, que no tiene espacios), aciertos y latencia de la detección del idioma, y velocidad; `--noise babble:5 pink:5` mezcla murmullo en otros idiomas o ruido rosa a esa relación señal/ruido. |
+| `langs_silence.py` | Lo que Whisper escribe sobre audios sin voz (silencio, ruido, zumbido de la red eléctrica, acordes) con el idioma dado, contado por frase con su confianza: las candidatas a `HALLUCINATIONS` (`vt/streaming.py`). |
 
 ```sh
 python tools/lab/langs_mt.py --pair pt-es --models opus-itc nllb-1.3b madlad-3b
-python tools/lab/langs_asr.py --langs en pt es --models large-v3-turbo:float16 small:int8_float16 -n 120
+python tools/lab/langs_asr.py --langs en pt it ja ko es --models large-v3-turbo:float16 small:int8_float16 -n 120
 python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
+python tools/lab/langs_silence.py --langs ja ko --models large-v3-turbo:float16 small:int8_float16
 ```
 
 ### Lab de grabación de pantalla

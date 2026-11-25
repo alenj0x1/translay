@@ -102,7 +102,7 @@ export const languages = (lang: Lang) => ({
   ],
   edges: [
     { from: "new", to: "detect", label: t(lang, "first seconds of speech", "primeros segundos de voz") },
-    { from: "detect", to: "mode", label: t(lang, "en · pt · it · es…", "en · pt · it · es…") },
+    { from: "detect", to: "mode", label: t(lang, "en · pt · it · ja · ko · es…", "en · pt · it · ja · ko · es…") },
     { from: "mode", to: "only", label: t(lang, "transcribe", "transcribir") },
     { from: "mode", to: "mt", label: t(lang, "translate", "traducir") },
     { from: "mt", to: "voice", label: t(lang, "target text", "texto traducido") },

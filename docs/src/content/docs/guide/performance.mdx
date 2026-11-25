@@ -25,9 +25,9 @@ On machines with **unified memory**, such as NVIDIA DGX Spark, the GPU uses syst
 | **Solo subtítulos** (Subtitles only) | large-v3-turbo, int8 | big | No voice | GPU with 2 GB |
 | **Subtítulos ligeros** (Light subtitles) | small, int8 | base | No voice | No GPU |
 
-The translator is a tier, and each language has its own model in it: in English, `big` is Opus-MT tc-big and `base` is opus-base; Portuguese and Italian use Opus-MT itc-itc in every profile (roa-eng into English). Only one translator is on the GPU at a time, so a profile's memory doesn't grow with the number of languages. See [Languages](../../how-it-works/languages/#a-translator-per-language-pair).
+The translator is a tier, and each language has its own model in it: in English, `big` is Opus-MT tc-big and `base` is opus-base; Portuguese and Italian use Opus-MT itc-itc in every profile (roa-eng into English); Japanese and Korean, MADLAD-400 3B in every profile, downloaded with the first video in those languages. Only one translator is on the GPU at a time, so a profile's memory doesn't grow with the number of languages. See [Languages](../../how-it-works/languages/#a-translator-per-language-pair).
 
-The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which loses more accuracy in Portuguese than in English: on clean speech it makes 7.7 % word errors in Portuguese and 6.3 % in English, against 4.2 % and 5.2 % with large-v3-turbo; with background chatter, 24 % and 29 % against 11 % and 17 %. In Italian, 9.2 % against 3.5 % on clean speech.
+The light profiles («Ligero» and «Subtítulos ligeros») use Whisper `small`, which loses more accuracy in Portuguese than in English: on clean speech it makes 7.7 % word errors in Portuguese and 6.3 % in English, against 4.2 % and 5.2 % with large-v3-turbo; with background chatter, 24 % and 29 % against 11 % and 17 %. In Italian, 9.2 % against 3.5 % on clean speech. In Japanese, 12.2 % of characters wrong against 3.6 %, and in Korean 7.3 % against 4.7 % (21.4 % and 13.3 % of words).
 
 **Automático** (Automatic; the default) picks the most complete profile that can be watched live on your machine. Each card says how that profile performs here:
 

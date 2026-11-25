@@ -21,9 +21,17 @@ import numpy as np
 from .asr import Word
 from .vad import FRAME, SR, EnergyVAD
 
-_SENT_END = re.compile(r"[.!?…][\"')\]]*$")
-_CLAUSE_END = re.compile(r"[,;:—–-][\"')\]]*$")
+_SENT_END = re.compile(r"[.!?…。！？][\"')\]」』）]*$")
+_CLAUSE_END = re.compile(r"[,;:—–\-、，][\"')\]」』）]*$")
+_CLOSED = re.compile(r"[.!?…,;:。！？、，]\W*$")
 _NORM = re.compile(r"[^\w']+")
+
+# idiomas que se escriben sin espacios: Whisper los parte en trozos de caracteres (no en
+# palabras), así que el largo de una frase se cuenta en caracteres y las palabras se unen sin
+# espacio. Su punto final, si no es «.».
+NO_SPACES = {"ja"}
+PERIOD = {"ja": "。"}
+MIN_CHARS = 5  # en esos idiomas, lo que equivale a «3 palabras» para cerrar con un punto
 
 # Reglas por idioma (código de vt/langs.py). Un idioma sin reglas propias usa solo lo
 # que no depende del idioma (puntuación y pausas).
@@ -101,6 +109,16 @@ HALLUCINATIONS = {
         "grazie", "grazie a tutti", "grazie per la visione", "grazie per l'attenzione", "ciao",
         "sottotitoli creati dalla comunità amaraorg", "sottotitoli a cura di qtss",
         "sottotitoli e revisione a cura di qtss", "iscriviti al canale", "alla prossima", "ok",
+    },
+    # japonés y coreano: las que escribieron large-v3-turbo y small sobre 66 audios sin voz
+    # (silencio, ruido, zumbido, acordes; tools/lab/langs_silence.py). El japonés va sin espacios.
+    "ja": {
+        "ご視聴ありがとうございました", "最後までご視聴ありがとうございました", "ありがとうございました",
+    },
+    "ko": {
+        "다음 영상에서 만나요", "감사합니다", "고맙습니다", "아멘", "시청해주셔서 감사합니다",
+        "시청해 주셔서 감사합니다", "구독과 좋아요 부탁드려요", "구독과 좋아요는 저에게 아주 큰 힘이 됩니다",
+        "한글자막 by 한효정",
     },
     "es": {
         "gracias", "muchas gracias", "gracias por ver", "gracias por ver el video", "adiós",
@@ -422,7 +440,7 @@ class StreamingTranscriber:
                            and _norm(w) not in NO_END.get(self.language, ()))
                 if (capital and gap >= self.cfg.pause_cut_s / 2) or gap >= self.cfg.pause_cut_s:
                     if capital:
-                        w.text += "."
+                        w.text += PERIOD.get(self.language, ".")
                     idx = i
                     break
             if idx is None and self.open[-1].end - self.open[0].start > self.cfg.max_segment_s:
@@ -442,12 +460,18 @@ class StreamingTranscriber:
         events = self._cut()
         if self.open:
             last = self.open[-1]
-            if pause and len(self.open) >= 3 and not re.search(r"[.!?…,;:]\W*$", last.text):
-                last.text += "."  # una pausa clara tras la voz cierra la oración
+            if pause and self._long_enough(self.open) and not _CLOSED.search(last.text):
+                last.text += PERIOD.get(self.language, ".")  # una pausa clara tras la voz cierra la oración
             events += self._emit(self.open)
             self.final_t = max(self.final_t, self.open[-1].end)
             self.open = []
         return events
+
+    def _long_enough(self, words: list[Word]) -> bool:
+        """¿Frase con cuerpo de oración? 3 palabras; sin espacios (japonés), MIN_CHARS caracteres."""
+        if self.language in NO_SPACES:
+            return sum(len(_norm(w)) for w in words) >= MIN_CHARS
+        return len(words) >= 3
 
     def _emit(self, words: list[Word]) -> list[Segment]:
         for a, b in zip(words, words[1:]):
@@ -455,12 +479,13 @@ class StreamingTranscriber:
                     and b.text.strip()[:1].isupper()):
                 b.text = b.text.lower()
         text = _text(words)
-        key = " ".join(_norm(w) for w in words)
+        sep = "" if self.language in NO_SPACES else " "
+        key = sep.join(_norm(w) for w in words)
         if key in HALLUCINATIONS.get(self.language, ()) and float(np.mean([w.prob for w in words])) < 0.9:
             return []
         if text[:1].islower() and (not self.context or _SENT_END.search(self.context)):
             text = text[0].upper() + text[1:]
-        self.context = (self.context + " " + text).strip()[-1000:]
+        self.context = (self.context + sep + text).strip()[-1000:]
         a = max(0, int((words[0].start - 0.05 - self.t0) * SR))
         b = max(a, int((words[-1].end + 0.1 - self.t0) * SR))
         clip = self.audio[a:b].copy() if b > a else None

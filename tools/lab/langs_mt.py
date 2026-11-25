@@ -33,7 +33,7 @@ sys.path.insert(0, str(ROOT))
 from vt.translate import CT2Translator  # noqa: E402
 
 DATA = ROOT / "data" / "labs" / "languages"
-FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "es": "es_419"}
+FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "ja": "ja_jp", "ko": "ko_kr", "es": "es_419"}
 
 # typical video sentences (tutorial, vlog, review, gaming), written for the lab
 SENTENCES = {
@@ -68,6 +68,34 @@ SENTENCES = {
         "A dire il vero, la batteria dura tutta la giornata senza problemi.",
         "Cosa ne pensate? Scrivetemelo nei commenti.",
         "Fa un caldo pazzesco oggi qui a Milano.",
+    ],
+    "ja": [
+        "皆さん、こんにちは！お元気ですか？チャンネルへようこそ。",
+        "今日はサーバーを一から設定する方法を紹介します。",
+        "まずターミナルを開いて、このコマンドを入力してください。",
+        "エラーが出たら、再起動してもう一度試してみてください。",
+        "正直、こんな結果になるとは思っていませんでした。",
+        "このスマホは高かったけど、本当に買ってよかったです。",
+        "高評価とチャンネル登録をよろしくお願いします。",
+        "ちょっと休憩して、すぐ戻ってきます。",
+        "彼は「すごい！」と言いました。それから帰りました。",
+        "バッテリーは一日中問題なく持ちます。",
+        "皆さんはどう思いますか？コメントで教えてください。",
+        "今日は東京はめちゃくちゃ暑いです。",
+    ],
+    "ko": [
+        "여러분 안녕하세요! 잘 지내셨나요? 채널에 다시 오신 걸 환영합니다.",
+        "오늘은 서버를 처음부터 설정하는 방법을 보여드릴게요.",
+        "먼저 터미널을 열고 이 명령어를 입력하세요.",
+        "오류가 나면 재부팅하고 다시 시도하면 돼요.",
+        "솔직히 이런 결과는 전혀 예상하지 못했어요.",
+        "이 폰은 비쌌지만 정말 살 만한 가치가 있었어요.",
+        "좋아요와 구독 잊지 마세요.",
+        "잠깐 쉬었다가 바로 돌아올게요.",
+        "김 씨가 늦게 도착했어요. 그리고 바로 갔어요.",
+        "배터리는 하루 종일 문제없이 가요.",
+        "여러분은 어떻게 생각하세요? 댓글로 알려주세요.",
+        "오늘 서울은 정말 덥네요.",
     ],
     "en": [
         "Hey guys, what's up? Welcome back to the channel.",

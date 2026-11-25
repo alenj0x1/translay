@@ -2,6 +2,7 @@
 
   info()                  repo → {label, purpose, profiles}: para qué sirve cada modelo de Translay
   repos(profile)          los que usa un perfil (reconocimiento, traductor de cada idioma, personas, voz)
+  on_demand(profile)      sus traductores que se bajan con el primer video en su idioma (japonés, coreano)
   plan(profile)           lo que falta bajar para ese perfil y lo que deja de usarse
   prefetch(profile)       baja lo que falta, con una línea de avance «Descargando …: NN%|» (la pantalla
                           de carga de la app de escritorio la muestra como barra)
@@ -104,8 +105,8 @@ def repos(profile: str) -> list[str]:
 
     prof = PROFILES[profile]
     out = [ASR[prof["asr"]]]
-    for src in langs.SOURCES:
-        if src != langs.target() and MT[route(src, prof["mt"])][1] not in out:
+    for src in langs.SOURCES:  # los de ON_DEMAND, con el primer video en ese idioma (Translators.prepare)
+        if src != langs.target() and src not in langs.ON_DEMAND and MT[route(src, prof["mt"])][1] not in out:
             out.append(MT[route(src, prof["mt"])][1])
     out.append(SpeakerEmbedder.REPO)
     from .ocr import REPOS as OCR_REPOS
@@ -113,6 +114,16 @@ def repos(profile: str) -> list[str]:
     if prof["voice"]:
         out.append(VOICE_REPOS[VOICE_ENGINE])
     return out
+
+
+def on_demand(profile: str) -> list[str]:
+    """Los traductores del perfil que se bajan con el primer video en su idioma (langs.ON_DEMAND)."""
+    from . import langs
+    from .profiles import PROFILES
+    from .translate import MODELS as MT, route
+
+    tier = PROFILES[profile]["mt"]
+    return list(dict.fromkeys(MT[route(src, tier)][1] for src in langs.ON_DEMAND if src != langs.target()))
 
 
 def path(repo: str) -> Path:
@@ -146,8 +157,9 @@ def plan(profile: str) -> dict:
     missing = [{"repo": r, "label": names.get(r, {}).get("label", r), "purpose": names.get(r, {}).get("purpose", ""),
                 "bytes": size(r)} for r in need if not have(r)]
     voice = PROFILES[profile]["voice"]
+    keep = set(need) | set(on_demand(profile))  # lo bajado para un video en japonés o coreano sigue en uso
     unused = [{"repo": r, "label": i["label"], "bytes": _dir_size(path(r))}
-              for r, i in names.items() if r not in need and path(r).exists()]
+              for r, i in names.items() if r not in keep and path(r).exists()]
     return {"profile": profile, "name": PROFILES[profile]["name"], "missing": missing,
             "missing_bytes": sum(m["bytes"] for m in missing), "voice": voice,
             "voice_env": bool(voice and not voice_env_ok()), "voice_env_bytes": VOICE_ENV_BYTES,

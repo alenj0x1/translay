@@ -29,16 +29,27 @@ ABBR = {
     "it": ("Sig", "Sigg", "Dott", "Dr", "Prof", "Avv", "Ing", "Arch", "Geom", "Rag", "Gent", "Egr",
            "Spett", "On", "Mons", "pag", "vs", "[A-Z]"),
     "es": ("Sr", "Sra", "Srta", "Dr", "Dra", "Lic", "Ing", "Prof", "Ud", "Uds", "vs", "[A-Z]"),
+    "ko": ("Mr", "Dr", "vs", "[A-Z]"),
 }
-_END = re.compile(r"[.!?…][\"')\]]*$")
+# fin de oración, también con la puntuación japonesa (。！？) y sus comillas 「」『』
+_END = re.compile(r"[.!?…。！？][\"')\]」』）]*$")
+_COMMA = (",", "、", "，")
+# escrituras sin mayúsculas (kana, kanji, hangul): en ellas la inicial no dice nada de la frase
+_UNCASED = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u1100-\u11ff]")
 
 
-def _splitter(abbr) -> re.Pattern:
+def _splitter(abbr, capital: bool = True) -> re.Pattern:
+    """Corte tras [.!?…] y un espacio. capital: la oración siguiente empieza en mayúscula o
+    número (el coreano no tiene mayúsculas: basta el espacio)."""
     look = "".join(rf"(?<!\b{a}\.)" for a in abbr)
-    return re.compile(r"(?<=[.!?…])" + look + r"[\"')\]]*\s+(?=[\"'(\[]?[A-ZÀ-Ý0-9¿¡])")
+    head = r"(?=[\"'(\[]?[A-ZÀ-Ý0-9¿¡])" if capital else r"(?=\S)"
+    return re.compile(r"(?<=[.!?…])" + look + r"[\"')\]]*\s+" + head)
 
 
-_SPLIT = {lang: _splitter(a) for lang, a in ABBR.items()}
+_SPLIT = {lang: _splitter(a, capital=lang != "ko") for lang, a in ABBR.items()}
+# japonés: sin espacios ni mayúsculas. Se corta tras 。！？ (con su comilla de cierre), salvo
+# que siga otro cierre o la cita continúe («「すごい！」と言った»)
+_SPLIT["ja"] = re.compile(r"(?:(?<=[。！？!?])|(?<=[。！？!?][」』）)]))(?![。！？!?」』）)…])(?!\s*(?:と|って))\s*")
 _SPLIT_ANY = _splitter(("[A-Z]",))
 
 # modismo → sentido literal, en el idioma de origen, antes de traducir. Ampliable.
@@ -173,7 +184,9 @@ def match_shape(src: str, es: str) -> str:
     if not src or not es:
         return es
     head = src.split()[0]
-    if src[0].islower() and es[0].isupper() and not (len(es) > 1 and es[1].isupper()):
+    if _UNCASED.search(src):
+        pass  # japonés, coreano: el original no dice si la frase empieza o continúa
+    elif src[0].islower() and es[0].isupper() and not (len(es) > 1 and es[1].isupper()):
         es = es[0].lower() + es[1:]
     elif src[0].isupper() and es[0].islower() and head not in ("iPhone", "iPad", "eBay"):
         es = es[0].upper() + es[1:]
@@ -182,7 +195,7 @@ def match_shape(src: str, es: str) -> str:
     # fragmento que continúa la frase anterior: ", which …" → "lo que …"
     if re.match(r"which\b", src) and re.match(r"que\b", es):
         es = "lo " + es
-    if src.endswith(",") and not es.endswith(","):
+    if src.endswith(_COMMA) and not es.endswith(","):
         es = es.rstrip(".") + ","
     return es
 

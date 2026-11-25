@@ -37,7 +37,7 @@ Translay cambia `dl=0` por `dl=1` para recibir el archivo directo y quita los pa
 
 ## Idioma y solo transcribir
 
-No hace falta decir en qué idioma está un video: Translay lo detecta con los primeros segundos de voz (inglés, portugués, italiano o español; ver [Idiomas](../../how-it-works/languages/)). La flecha junto a «Agregar» en el panel tiene dos opciones para lo que agregas en ese momento (YouTube o Dropbox, uno o varios enlaces):
+No hace falta decir en qué idioma está un video: Translay lo detecta con los primeros segundos de voz (inglés, portugués, italiano, japonés, coreano o español; ver [Idiomas](../../how-it-works/languages/)). La flecha junto a «Agregar» en el panel tiene dos opciones para lo que agregas en ese momento (YouTube o Dropbox, uno o varios enlaces):
 
 - «Agregar y traducir»: se traduce y dobla al idioma elegido en Ajustes › Uso › Traducir a (el de la app, por defecto). Un video detectado en el idioma de Ajustes › Agregar y descargar › «Solo transcribir videos en» (español, si no lo cambias) solo se transcribe.
 - «Agregar y solo transcribir»: se transcribe en su idioma y nada más, sea cual sea: sin traducción ni voz, se reproduce con el audio original y un solo subtítulo, la transcripción muestra una columna y la tarjeta dice «Transcrito» al terminar.
@@ -47,7 +47,7 @@ Un idioma que Translay todavía no traduce solo se transcribe, en ese idioma.
 Para cambiarlo después, usa «Idioma y traducción» en el menú contextual del video. «Idioma del video» corrige el idioma: lo transcrito en el otro se borra y el video se vuelve a procesar, por eso pregunta antes. «Traducir y doblar» y «Solo transcribir» cambian el modo sin borrar nada: lo reconocido sirve para los dos y las traducciones quedan guardadas.
 
 <Aside>
-Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que reconoce todos los idiomas pero se equivoca más en portugués e italiano que en inglés (ver [Rendimiento](../performance/)). Un modelo `.en` elegido con `--model` solo reconoce inglés: un video en otro idioma termina en un error que pide cambiar de perfil.
+Los perfiles ligeros («Ligero» y «Subtítulos ligeros») usan Whisper `small`, que reconoce todos los idiomas pero se equivoca más en portugués, italiano, japonés y coreano que en inglés (ver [Rendimiento](../performance/)). Un modelo `.en` elegido con `--model` solo reconoce inglés: un video en otro idioma termina en un error que pide cambiar de perfil.
 </Aside>
 
 ## Varios enlaces
