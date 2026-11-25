@@ -773,6 +773,10 @@ class Exporter:
         tr = self.store.open(vid)
         duck = DUCK_LEVELS.get(self.prefs.values.get("duck", "bajo"), 0.14)
         dub_dir = self._root(vid) / "audio"
+        # con el fondo separado (vt/separation.py), la voz doblada va sobre él entero: sin la voz original debajo
+        bg = dub_dir / vid / "fondo.m4a"
+        if self.prefs.values.get("bg_separate", True) and bg.exists():
+            src, duck = bg, 1.0
         clips, prev_end = [], 0
         for s in sorted(tr.segments, key=lambda x: x["start"]):
             d = s.get("dub")

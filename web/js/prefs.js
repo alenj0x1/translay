@@ -54,7 +54,8 @@ function applyPrefs(m) {
   applySubs();
   if (typeof applyCodeTheme === "function") applyCodeTheme();
   if (typeof renderAgent === "function") renderAgent();
-  if (state.audio) state.audio.orig.gain.value = state.dubMode ? duck() : 1;
+  if (state.audio) state.audio.orig.gain.value = origLevel();
+  if (typeof bgSync === "function") bgSync();
   // la confirmación de un cambio hecho aquí no trae nada nuevo: Ajustes no se redibuja (con «Al azar» llegaban
   // varias seguidas y la página parpadeaba)
   const same = JSON.stringify(prefs) === before && prefsSigSeen === JSON.stringify([m.schema?.length, m.sections, m.lang]);

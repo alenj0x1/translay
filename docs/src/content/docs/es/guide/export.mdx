@@ -27,7 +27,7 @@ El cuadro de exportar tiene arriba la miniatura y el título de lo que se export
 | Transcripción bilingüe con comentarios | TXT | Cada frase con su hora, la persona que habla (con su nombre, si se lo pusiste), lo que se dice, su traducción (solo si el video se traduce) y los comentarios. |
 | Resumen | TXT | De qué se trató el video y sus puntos importantes con su minuto (ver [Resumen](../transcript-and-people/#resumen)). Si el video aún no tiene, se resume antes de exportarlo. |
 
-La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Ajustes › Audio y subtítulos › «Volumen del audio original». Donde nadie habla, el original queda a volumen normal. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
+La mezcla en español es la misma que escuchas en el reproductor: cada frase doblada en su momento y el original de fondo, al nivel de Ajustes › Audio y subtítulos › «Volumen del audio original». Donde nadie habla, el original queda a volumen normal. Cuando el video ya tiene su fondo separado ([Fondo sin la voz original](../../how-it-works/voice/#fondo-sin-la-voz-original)), la voz doblada va sobre ese fondo a volumen completo, sin la voz original debajo. Se arma con ffmpeg en la CPU, así que no le quita GPU al procesamiento.
 
 Al marcar un audio, la fila «Audio» elige el formato y la calidad. El navegador recuerda los dos.
 

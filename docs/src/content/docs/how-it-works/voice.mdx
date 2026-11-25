@@ -61,6 +61,12 @@ Measured with `tools/eval_tts.py`: with pink noise at 5 dB, the clone's voice si
 
 If DeepFilterNet doesn't load, the reference is cloned as is. `enhance_df.py` substitutes a module that torchaudio 2.9 removed and that DeepFilterNet still imports. The custom spectral gate in `vt/audiofx.py` (`denoise`) exists, but is disabled by default for the same reason.
 
+## Background without the original voice
+
+When a video finishes dubbing, Translay separates its audio into dialogue and background (music and effects) with CDX23, an HT-Demucs model trained on Divide and Remaster (MIT, 54 MB, downloaded once from its GitHub release and checked against its SHA-256). It runs in the voice engine's environment, one video at a time: on an RTX 4060 at 0.08× real time with 575 MB of GPU memory, or on the processor with half its threads. The result is `audio/<video>/fondo.m4a` in the video's library.
+
+While you listen dubbed, the player plays that background in sync with the video and silences the original, and the export mixes the dubbed voice over it: the original language is no longer heard under the dubbed voice. Measured on the test dialogues (`tools/lab/dub_quality.py`), the original voice under the dub drops from about −17 dB to between −34 and −59 dB, and the music in the dubbed parts stays at −4 dB instead of −17 dB. Until a video has its background (or with **Fondo sin la voz original** off in Settings › Audio y subtítulos), it sounds as before: the original turned down.
+
 ## Duration
 
 Spanish tends to be longer than English. So that each sentence fits without being distorted, the duration is requested from the engine and WSOLA stays as a fallback:

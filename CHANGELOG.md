@@ -12,6 +12,7 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - Italian videos: detected, transcribed, translated into Spanish and Portuguese with Opus-MT itc-itc and into English with roa-eng (the models Portuguese already uses, so nothing new to download) and dubbed; with Italian abbreviations and the subtitle credits Whisper makes up on silence («Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS»).
 - Screen recording: «Silenciar las otras apps al grabar una ventana» (Settings › Add and download, off by default) mutes every other application while a window is recorded on Windows 10, where a window brings the whole computer's sound, and gives them their sound back when the recording stops or its tab closes.
 - Settings › Performance › **Guardar informe** (Save report) writes a diagnostics report (version, Windows build, profile and the last lines of the logs) to Downloads, or downloads it from another computer; every error now leaves one line in `app.log`, with time and context.
+- Dubbing: **Fondo sin la voz original** (Background without the original voice, Settings › Audio and subtitles, on by default): when a video finishes dubbing, its music and effects are separated from the original voice (CDX23, on the voice engine), and the player and the export put the dubbed voice over that background instead of the original turned down, so the original language is no longer heard underneath.
 
 ### Changed
 

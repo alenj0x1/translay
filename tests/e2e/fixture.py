@@ -89,6 +89,12 @@ def build(data: Path, cache: Path | None = None) -> dict:
             else:
                 tr.add_covered(0.0, 4.0)  # a medias: lo que falta solo lo procesa la cola del dueño
             tr.save()
+            if vid == "e2emain0001":  # un fondo separado (vt/separation.py): lo que el reproductor hace sonar doblado
+                bg = v.root / "audio" / vid / "fondo.m4a"
+                bg.parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency=180:duration={SECONDS}",
+                                "-ac", "2", "-c:a", "aac", str(bg)], check=True)
+                v.library.set_field(vid, bg=f"/audio/{vid}/fondo.m4a")
             made.setdefault(v.id, []).append(vid)
     return made
 

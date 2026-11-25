@@ -12,6 +12,7 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 - Videos en italiano: se detectan, transcriben, traducen al español y al portugués con Opus-MT itc-itc y al inglés con roa-eng (los modelos que ya usa el portugués, así que no hay nada nuevo que descargar) y se doblan; con las abreviaturas del italiano y los créditos de subtítulos que Whisper inventa sobre silencio («Sottotitoli creati dalla comunità Amara.org», «Sottotitoli a cura di QTSS»).
 - Grabar pantalla: «Silenciar las otras apps al grabar una ventana» (Ajustes › Agregar y descargar, apagada por defecto) silencia las demás aplicaciones mientras se graba una ventana en Windows 10, donde una ventana trae el sonido de todo el equipo, y les devuelve el sonido al terminar la grabación o si se cierra su pestaña.
 - Ajustes › Rendimiento › **Guardar informe** escribe un informe de diagnóstico (versión, compilación de Windows, perfil y las últimas líneas de los registros) en Descargas, o lo descarga desde otro equipo; cada error deja ahora una línea en `app.log`, con hora y contexto.
+- Doblaje: **Fondo sin la voz original** (Ajustes › Audio y subtítulos, activado por defecto): al terminar de doblar un video se separan su música y sus efectos de la voz original (CDX23, en el motor de voz), y el reproductor y la exportación ponen la voz doblada sobre ese fondo en vez del original bajado, así ya no se oye el idioma original debajo.
 
 ### Cambiado
 

@@ -90,6 +90,8 @@ SCHEMA = [
      "options": [["auto", "En pausa o con poco margen"], ["siempre", "Siempre"], ["nunca", "Nunca"]]},
     {"key": "audio", "section": "audio", "label": "Audio al abrir un video", "type": "choice", "default": "es",
      "options": [["es", "Doblado"], ["original", "Original"]]},
+    # vt/separation.py: el fondo (música y efectos) separado de la voz original, debajo de la voz doblada
+    {"key": "bg_separate", "section": "audio", "label": "Fondo sin la voz original", "type": "bool", "default": True},
     {"key": "duck", "section": "audio", "label": "Volumen del audio original", "type": "choice",
      "default": "bajo", "options": [["silencio", "Silencio"], ["bajo", "Bajo"], ["medio", "Medio"]]},
     {"key": "sub_es", "section": "audio", "label": "Subtítulos traducidos", "type": "bool", "default": True},
@@ -163,7 +165,9 @@ DETAILS = {
     "layout": ("Vista", "Ampliada: un solo video grande y la transcripción al lado. Dividida: original y traducido lado a lado."),
     "ready_chip": ("Vista", "El aviso «listo para reproducir» sobre el video."),
     "audio": ("Voz", "Audio con el que empieza cada video. Puedes cambiarlo en cualquier momento desde el reproductor."),
-    "duck": ("Voz", "Volumen del audio original bajo la voz doblada."),
+    "bg_separate": ("Voz", "Separa la música y los efectos de la voz original al terminar de doblar un video, para que "
+                    "la voz doblada suene sobre el fondo entero sin el idioma original debajo. Necesita el motor de voz."),
+    "duck": ("Voz", "Volumen del audio original bajo la voz doblada, en lo que aún no tiene el fondo separado."),
     "sub_es": ("Subtítulos", "La traducción, en la parte inferior del video."),
     "sub_orig": ("Subtítulos", "La transcripción en el idioma original, en la parte superior del video."),
     "screen_text": ("Subtítulos", "Detecta el texto del video (títulos, letreros, diapositivas) y muestra su "
@@ -204,7 +208,7 @@ DETAILS = {
     "yt_session": ("Sesión", "Con tu sesión, YouTube permite descargar videos con restricción de edad y solicita menos verificaciones."),
 }
 # solo en un modo de la app (las de traducción y voz no aparecen al solo transcribir)
-ONLY = {k: "traducir" for k in ("layout", "wait_ready", "ready_chip", "audio", "duck", "sub_es", "transcribe_lang",
+ONLY = {k: "traducir" for k in ("layout", "wait_ready", "ready_chip", "audio", "duck", "bg_separate", "sub_es", "transcribe_lang",
                                  "screen_text")}
 # otro texto en el modo «transcribir»: {clave: {"label", "desc", "options"}}
 ALT = {

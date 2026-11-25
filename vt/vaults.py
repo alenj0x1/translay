@@ -110,7 +110,7 @@ class Vault:
     def public_library(self) -> dict:
         data = self.library.public()
         if self.prefix:  # las rutas de los archivos, con el prefijo de la biblioteca
-            data["videos"] = {k: {**v, **{f: self.url(v[f]) for f in ("media", "audio", "thumb") if v.get(f)}}
+            data["videos"] = {k: {**v, **{f: self.url(v[f]) for f in ("media", "audio", "thumb", "bg") if v.get(f)}}
                               for k, v in data["videos"].items()}
         return data
 

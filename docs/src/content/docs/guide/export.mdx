@@ -27,7 +27,7 @@ The export dialog has the thumbnail and title of what is exported at the top and
 | **Transcripción bilingüe con comentarios** (Bilingual transcript with comments) | TXT | Each sentence with its time, the speaker (by name, if you set one), what is said, its translation (only if the video is translated) and the comments. |
 | **Resumen** (Summary) | TXT | What the video was about and its important points with their minute (see [Summary](../transcript-and-people/#summary)). If the video doesn't have one yet, it is summarized before exporting. |
 
-The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Settings › Audio y subtítulos › **Volumen del audio original** (Original audio volume). Where nobody speaks, the original stays at normal volume. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
+The Spanish mix is the same one you hear in the player: each sentence dubbed at its moment and the original in the background, at the level set in Settings › Audio y subtítulos › **Volumen del audio original** (Original audio volume). Where nobody speaks, the original stays at normal volume. Once the video has its background separated ([Background without the original voice](../../how-it-works/voice/#background-without-the-original-voice)), the dubbed voice goes over that background at full level instead, without the original voice underneath. It is built with ffmpeg on the CPU, so it doesn't take GPU away from processing.
 
 When you check an audio option, the **Audio** row chooses the format and the quality. The browser remembers both.
 

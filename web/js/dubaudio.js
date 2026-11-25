@@ -15,7 +15,7 @@ async function ensureAudio() {
   const orig = ctx.createGain();
   const dub = ctx.createGain();
   const master = ctx.createGain();  // volumen y silencio de los controles
-  orig.gain.value = state.dubMode ? duck() : 1;
+  orig.gain.value = origLevel();
   master.gain.value = player.muted ? 0 : player.volume;
   master.connect(ctx.destination);
   src.connect(orig).connect(master);
@@ -335,6 +335,48 @@ function endLive(kind) {
 // intérprete). Al repetir: cada frase suena exactamente en su momento.
 const DUCK_LEVELS = { silencio: 0, bajo: 0.14, medio: 0.3 };
 const duck = () => DUCK_LEVELS[prefs.duck] ?? 0.14;  // volumen del original bajo la voz en español
+
+/* ------------------------------------------------------------ fondo sin la voz original */
+// Con el fondo separado del video (vt/separation.py: música y efectos sin la voz original), mientras se escucha
+// doblado suena ese fondo, sincronizado con el video, y el original queda en silencio: ya no se oye el idioma
+// original debajo de la voz doblada. Sin fondo (aún no se separó, o «Fondo sin la voz original» apagado), como
+// siempre: el original bajado.
+const bgEl = new Audio();
+bgEl.preload = "auto";
+bgEl.preservesPitch = true;
+let bgNode = null;
+const bgUrl = () => (prefs.bg_separate !== false && state.videoId && lib.videos?.[state.videoId]?.bg) || "";
+const bgActive = () => !!(state.dubMode && bgUrl() && bgEl.readyState >= 2);
+function origLevel() {
+  if (!state.dubMode) return 1;
+  return bgActive() ? 0 : duck();
+}
+function bgSync() {
+  const url = bgUrl();
+  if (!url) {
+    if (bgEl.getAttribute("src")) { bgEl.pause(); bgEl.removeAttribute("src"); bgEl.load(); }
+  } else if (bgEl.getAttribute("src") !== url) {
+    bgEl.src = url;
+  }
+  if (state.audio && !bgNode && url) {  // por el mismo volumen y silencio que el resto (master)
+    bgNode = state.audio.ctx.createMediaElementSource(bgEl);
+    state.audio.bgGain = state.audio.ctx.createGain();
+    bgNode.connect(state.audio.bgGain).connect(state.audio.master);
+  }
+  const on = bgActive();
+  if (state.audio?.bgGain) state.audio.bgGain.gain.setTargetAtTime(on ? 1 : 0, state.audio.ctx.currentTime, 0.05);
+  if (state.audio) state.audio.orig.gain.setTargetAtTime(origLevel(), state.audio.ctx.currentTime, 0.05);
+  if (!url || !state.dubMode || vEn.paused) {
+    if (!bgEl.paused) bgEl.pause();
+    return;
+  }
+  if (bgEl.playbackRate !== vEn.playbackRate) bgEl.playbackRate = vEn.playbackRate;
+  if (Math.abs(bgEl.currentTime - vEn.currentTime) > 0.12) bgEl.currentTime = vEn.currentTime;  // deriva o salto
+  if (bgEl.paused) bgEl.play().catch(() => {});
+}
+for (const ev of ["play", "pause", "seeked", "ratechange", "loadedmetadata"]) vEn.addEventListener(ev, bgSync);
+bgEl.addEventListener("canplay", bgSync);
+setInterval(bgSync, 500);
 const dubBuf = new Map();    // id de frase → AudioBuffer
 const player = { cur: null, queue: [], volume: 1, muted: false };
 
@@ -456,7 +498,8 @@ function setMode(dub) {
   dub = dub && state.translates;
   state.dubMode = dub;
   renderLangPick();
-  if (state.audio) state.audio.orig.gain.setTargetAtTime(dub ? duck() : 1, state.audio.ctx.currentTime, 0.05);
+  if (state.audio) state.audio.orig.gain.setTargetAtTime(origLevel(), state.audio.ctx.currentTime, 0.05);
+  bgSync();
   if (!dub) stopDub();
 }
 // idioma del video abierto. Si solo se transcribe: se escucha el original, con un solo

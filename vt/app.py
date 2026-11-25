@@ -434,9 +434,15 @@ def main():
     processor.agent.screen = processor.screen  # el agente también lee lo escrito en pantalla
     summaries.agent = processor.agent  # el resumen completo sale del mismo modelo (vt/digest.py)
 
-    def on_done(vid: str):  # un video terminó: su resumen (si es automático) y la descripción corta
+    # fondo sin la voz original (vt/separation.py): al terminar de doblar un video
+    from .separation import Separator
+
+    separator = Separator(DATA, vaults, prefs, notify, processor._media, library)
+
+    def on_done(vid: str):  # un video terminó: su resumen (si es automático), la descripción corta y su fondo
         summaries.auto(vid)
         processor.agent.describe(vid)
+        separator.request(vid)
     processor.on_done = on_done
     info["summary"] = {"recommended": summarize.recommend(hw, lim)}
     exporter = Exporter(DATA, store, library, processor, youtube, prefs, notify, vaults=vaults, summaries=summaries)

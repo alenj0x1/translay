@@ -33,4 +33,22 @@ def run(t):
     page.wait_for_timeout(300)
     people = page.evaluate("document.querySelectorAll('#people input[list=people-names]').length")
     t.check("dos personas en Personas", people >= 2, f"{people}")
+    # fondo sin la voz original: con un clic real (el audio necesita un gesto), suena el fondo y el original calla
+    page.evaluate("playItem('e2emain0001')")
+    t.wait(lambda: page.evaluate("state.videoId === 'e2emain0001' && vEn.readyState >= 2"), 15, "el video con fondo separado")
+    t.check("el video trae su fondo separado", page.evaluate("bgUrl()").endswith("/audio/e2emain0001/fondo.m4a"))
+    page.evaluate("setView('player')")
+    # abre y arranca solo cuando está listo: se pausa y se reanuda como una persona, con clics reales en el botón
+    t.wait(lambda: not page.evaluate("vEn.paused"), 10, "el video arranca solo")
+    page.hover("#v-en")
+    page.click("#c-play")
+    t.wait(lambda: page.evaluate("vEn.paused"), 3, "pausa con un clic")
+    page.click("#c-play")
+    t.wait(lambda: page.evaluate("!vEn.paused && !!state.audio && bgEl.readyState >= 2"), 10, "el video y su fondo sonando")
+    t.wait(lambda: page.evaluate("!bgEl.paused && Math.abs(bgEl.currentTime - vEn.currentTime) < 0.3"), 5, "el fondo al compás del video")
+    t.wait(lambda: page.evaluate("state.audio.orig.gain.value") < 0.01, 3, "el original en silencio bajo la voz doblada")
+    page.evaluate("setMode(false)")
+    t.wait(lambda: page.evaluate("state.audio.orig.gain.value") > 0.9 and page.evaluate("bgEl.paused"), 3,
+           "en el original, el fondo calla y el original vuelve")
+    page.evaluate("setMode(true); togglePlay()")
     t.no_permission_toast(page, "reproductor")
