@@ -4,6 +4,10 @@ Protocolo
 ---------
 Cliente → servidor
   {"type":"open", "id":<huella>, "name":<archivo>}   abre/crea la transcripción
+  {"type":"open", "id":"live_…", "ephemeral":true}   subtítulos en vivo (app de escritorio, web/live.html): se
+                                                     reconoce y traduce el audio igual, pero nada se guarda ni
+                                                     entra a la biblioteca (vt/store.py › LiveTranscript).
+                                                     Solo el dueño en este equipo
   binario: float64 LE (tiempo de medio) + PCM int16 LE mono 16 kHz
   {"type":"seek"|"stop"|"end", "t":<s>}             cierra o descarta lo pendiente
   {"type":"pos", "t":<s>}                            punto de reproducción (orden del doblaje)
@@ -58,7 +62,7 @@ import numpy as np
 from pathlib import Path
 from functools import partial
 
-from .store import _SAFE_ID as _SAFE_VID, Store, Transcript
+from .store import _SAFE_ID as _SAFE_VID, LiveTranscript, Store, Transcript
 from .auth import Access
 from .vaults import VAULT_PREFS, RoutedStore
 
@@ -202,6 +206,9 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
     def _allowed(self, t: str, m: dict) -> bool:
         """¿Esta conexión puede pedir esto?"""
         a = self.access
+        if t == "open" and m.get("ephemeral"):
+            # subtítulos en vivo: lo que suena en este equipo, solo para quien está en él
+            return bool(a.owner and a.local)
         if a.owner:
             return True
         if t in OWNER_ONLY or t.startswith(OWNER_PREFIXES) or t == "server_restart" or \
@@ -272,7 +279,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                         asyncio.create_task(self._admin(m))
                     elif m.get("type") == "pos":
                         self.playhead = float(m.get("t", 0))
-                        if self.tr is not None:  # en su biblioteca (puede no ser la abierta)
+                        if self.tr is not None and not self.tr.ephemeral:  # en su biblioteca (puede no ser la abierta)
                             self.vaults.library.position(self.tr.data["id"], self.playhead)
                         if self.watching and self.processor:
                             self.processor.position(self.watching, self.playhead)
@@ -409,6 +416,12 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                     await self._finish(abort=True)
                 elif kind in ("stop", "end"):
                     await self._finish(keep_context=True)
+                elif kind == "open" and op[1].get("ephemeral"):
+                    await self._finish()
+                    vid = str(op[1].get("id", ""))
+                    self.tr = LiveTranscript(vid if _SAFE_VID.match(vid) else f"live_{int(time.time())}")
+                    self.st.language = ""  # se detecta con la primera voz
+                    await self.ws.send_json({"type": "transcript", **self.tr.public(), "ephemeral": True})
                 elif kind == "open":
                     await self._finish()
                     self.tr = self.store.open(str(op[1].get("id", "")), op[1].get("name", ""))
@@ -474,7 +487,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin):
                                                              src=tr.lang), ev.text) if ready else None
                 seg, removed = tr.add_segment(ev.start, ev.end, ev.text, translation,
                                               self.translator.name_for(tr.lang) if ready else None)
-                if self.dubber and tr.translates:  # solo transcribir: sin personas ni voz
+                if self.dubber and tr.translates and not tr.ephemeral:  # solo transcribir (o en vivo): sin personas ni voz
                     seg["speaker"] = await loop.run_in_executor(None, self.dubber.identify, tr, seg, ev.audio)
                     self._queue_dub(0, tr, seg, self.dubber.loudness(ev.audio))
                     for fixed in self.dubber.relabel(tr):  # frases cortas con persona corregida

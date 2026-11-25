@@ -22,6 +22,7 @@ function can(kind) {
 // que no pidió. Lo de importar se mide en la biblioteca abierta (el servidor mira la del video; es la misma).
 function mayRequest(obj) {
   const a = state.access, t = obj?.type || "";
+  if (t === "open" && obj.ephemeral) return !!(a.owner && a.local);  // subtítulos en vivo: el dueño en este equipo
   if (a.owner || !a.owner_only) return true;  // dueño, o aún sin las listas (el servidor decide)
   if (a.owner_only.includes(t) || (a.owner_prefixes || []).some((p) => t.startsWith(p)) || t === "server_restart"
     || (t.startsWith("vault_") && t !== "vault_open")) return false;

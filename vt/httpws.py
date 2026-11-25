@@ -290,8 +290,8 @@ class AppServer:
         f = await self.get_routes[prefix](path[len(prefix):]) if prefix else self._resolve(path)
         if f is None:
             return await self._simple(writer, 404, "Not Found")
-        if self._app_root is not None and f.resolve() == self._app_root / "index.html":
-            # la página: con la huella en cada estilo y script (ver _ASSET)
+        if self._app_root is not None and f.resolve() in (self._app_root / "index.html", self._app_root / "live.html"):
+            # la página (y la de los subtítulos en vivo): con la huella en cada estilo y script (ver _ASSET)
             html = versioned_page(f.read_text(encoding="utf-8"), ui_version(self._app_root, self.page_extra()))
             return await self._respond(writer, 200, html, {"Content-Type": "text/html; charset=utf-8",
                                                            "X-Content-Type-Options": "nosniff"})

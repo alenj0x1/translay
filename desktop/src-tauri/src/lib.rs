@@ -4,7 +4,9 @@
 //! - Custom title bar in both pages (the Windows one takes the system accent color instead of the theme's),
 //!   with Windows 11 snap layouts on its maximize button (`snap_layouts`), tray icon when "Al cerrar la ventana" keeps Translay running (until the queue is empty), single instance.
 //! - Tells about new versions and opens their download in the browser (updates.rs).
+//! - Live subtitles over any window: a click-through strip with the translation of what the computer plays (live.rs).
 
+mod live;
 mod runtime;
 mod server;
 mod updates;
@@ -77,6 +79,7 @@ async fn reinstall(app: AppHandle, voice: bool) -> Result<(), String> {
         settings.voice = Some(voice);
         settings.save(&state.paths)?;
     }
+    live::close(&app);
     app.state::<Server>().stop();
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.navigate(server::setup_url());
@@ -181,6 +184,7 @@ async fn change_data_dir(app: AppHandle) -> Result<bool, String> {
         settings.data_dir = Some(dir.into());
         settings.save(&state.paths)?;
     }
+    live::close(&app);
     let server = app.state::<Server>();
     server.stop();
     if let Some(window) = app.get_webview_window("main") {
@@ -246,6 +250,7 @@ fn quit_app(app: AppHandle) {
 
 fn quit(app: &AppHandle) {
     app.state::<AppState>().quitting.store(true, Ordering::SeqCst);
+    live::close(app);
     app.state::<Server>().stop();
     app.exit(0);
 }
@@ -420,6 +425,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(Server::default())
+        .manage(live::Live::default())
         .setup(|app| {
             let paths = Paths::resolve(app)?;
             let settings = Settings::load(&paths);
@@ -431,6 +437,9 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() != "main" {
+                    return; // the live subtitles strip
+                }
                 let app = window.app_handle();
                 let state = app.state::<AppState>();
                 if state.quitting.load(Ordering::SeqCst) {
@@ -441,6 +450,8 @@ pub fn run() {
                     state.in_tray.store(true, Ordering::SeqCst);
                     let _ = window.hide();
                 } else {
+                    // the strip would keep the app running (and capturing) after its window is gone
+                    live::close(app);
                     app.state::<Server>().stop();
                 }
             }
@@ -449,6 +460,7 @@ pub fn run() {
             status, install, profiles, prepare, reinstall, start, pick_folder, desktop_info, change_data_dir, open_folder, set_close_to_tray,
             close_window, quit_app, quit_if_in_tray, server_tail, set_theme, set_look, snap_layouts,
             open_app, set_welcome, take_welcome, show_welcome, lan_ip,
+            live::live_set, live::live_state, live::live_audio, live::live_grip, live::live_shown,
             updates::open_download, updates::set_auto_update
         ])
         .build(tauri::generate_context!())

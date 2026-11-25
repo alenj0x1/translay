@@ -58,6 +58,9 @@ def test_servidor_entrega_la_pagina_versionada(tmp_path):
         assert re.search(r'js/b\.js\?v=(\w+)"', (await get("/"))[1])[1] != v
         head, body = await get("/js/b.js?v=" + v)  # el archivo se sirve igual, con o sin ?v=
         assert "200" in head.splitlines()[0] and body == "console.log(1)"
+        head, body = await get("/live.html")  # la de los subtítulos en vivo, también
+        assert "200" in head.splitlines()[0] and re.search(r'js/b\.js\?v=\w+"', body)
         server.close()
 
+    (tmp_path / "live.html").write_text(PAGE)
     asyncio.run(run())

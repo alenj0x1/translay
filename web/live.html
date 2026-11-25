@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="/">
+<title>Translay</title>
+<!-- Subtítulos en vivo sobre cualquier ventana (app de escritorio, desktop/src-tauri/src/live.rs): la franja
+     transparente que muestra la traducción de lo que suena en el equipo. -->
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/views/live.css">
+<script src="i18n.js"></script>
+<script src="js/i18n.js"></script>
+</head>
+<body>
+<div id="live">
+  <div id="grip"><svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg></div>
+  <div id="strip"><div id="lines"><p id="text"><span id="prev"></span><span id="now"></span></p></div></div>
+</div>
+<script src="js/live.js"></script>
+</body>
+</html>

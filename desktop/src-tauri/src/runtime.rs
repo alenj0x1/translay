@@ -131,6 +131,9 @@ pub struct Settings {
     /// Translay's page applies it on its first load (`take_welcome`) and it is cleared.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub welcome: Option<Value>,
+    /// Where the live subtitles strip was left (top-left corner, physical pixels; live.rs). None = bottom centre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_pos: Option<[i32; 2]>,
 }
 
 impl Settings {
