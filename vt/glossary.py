@@ -14,7 +14,8 @@ import re
 import threading
 from pathlib import Path
 
-_MARK = re.compile(r"ZQXJ(\d+)")
+# el marcador como vuelve del traductor: Opus-MT lo deja intacto, MADLAD a veces lo parte («ZQX J2», «ZQXJ 2»)
+_MARK = re.compile(r"Z\s?Q\s?X\s?J\s?(\d+)", re.I)
 # coreano y japonés: las partículas van pegadas al nombre («투둥이의», «트와이스를», «東京で»), así que un término que
 # termina en hangul, kana o kanji no pide borde detrás; el japonés tampoco separa palabras con espacios, así que uno que
 # empieza en kana o kanji tampoco lo pide delante

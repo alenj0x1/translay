@@ -92,7 +92,11 @@ class LibraryMixin:
             tr.save()
             n_segs += len(todo)
             n_vids += 1
-            if self.processor and any(s.get("dub") for s in tr.segments):
+            if self.dubber and self.tr is tr:
+                # el video abierto en esta pestaña: su voz nueva enseguida, como en el editor (la cola, si lo está
+                # procesando más adelante, recién vuelve a esas frases al terminarlo)
+                self._queue_stale_dubs(tr)
+            elif self.processor and any(s.get("dub") for s in tr.segments):
                 self.processor.add(vid)  # la voz de esas frases se rehace
             self.notify({"type": "bg", "video": vid, "msg": {"type": "translations",
                          "items": [{"id": s["id"], "translation": s.get("translation")} for s in todo]}})

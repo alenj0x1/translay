@@ -435,3 +435,11 @@ def test_glossary_terms_with_korean_and_japanese_particles(tmp_path):
     assert g.protect("트와이스를 좋아해요.")[0] == "ZQXJ1를 좋아해요."
     assert g.protect("今日は東京で会った")[0] == "今日はZQXJ1で会った"
     assert g.protect("a notebook")[0] == "a notebook"  # en inglés sigue haciendo falta el borde
+
+
+def test_glossary_marker_split_by_the_translator(tmp_path):
+    """MADLAD a veces parte el marcador («ZQX J2»): igual se repone el término (en TWICE quedó escrito y doblado)."""
+    from vt.glossary import Glossary
+
+    assert Glossary.restore("plantando árboles y ZQX J2.", ["x", "acciones"]) == "plantando árboles y acciones."
+    assert Glossary.restore("ZQXJ 1 y zqxj2", ["Tdoong", "TWICE"]) == "Tdoong y TWICE"
