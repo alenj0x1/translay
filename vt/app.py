@@ -68,7 +68,9 @@ def main():
     from . import modelusage
 
     modelusage.configure(DATA / "models.json")  # cuándo se usó cada modelo (Almacenamiento)
-    hw = hardware.detect()
+    hw, gpu_problem = hardware.gpu_at_start()
+    if gpu_problem:  # el equipo tiene NVIDIA pero esta vez no se pudo usar: que quede en el registro
+        diag.error("arranque.gpu", f"{gpu_problem}: Translay arranca sin GPU (y sin voz)")
     lim = {"vram_mb": int(prefs.values.get("limit_vram_mb") or 0) or None,
            "ram_mb": int(prefs.values.get("limit_ram_mb") or 0) or None,
            "threads": int(prefs.values.get("limit_threads") or 0) or None}
@@ -78,7 +80,7 @@ def main():
     cli = {k: v for k, v in vars(a).items() if k in ("model", "device", "compute_type", "beam", "translator", "voice")
            and v is not None}
     # el dispositivo real decide el perfil: con --device cpu (o sin CUDA usable) es como no tener GPU
-    a.device = a.device or ("cuda" if hw.get("gpu") and hardware.cuda_usable() else "cpu")
+    a.device = a.device or ("cuda" if hw.get("gpu") and not gpu_problem and hardware.cuda_usable() else "cpu")
     if a.device != "cuda":
         hw = dict(hw, gpu=None)
     active = profiles.resolve(prefs.values.get("perf_profile", "auto"), hw, lim)

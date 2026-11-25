@@ -93,6 +93,24 @@ def gpus(max_age: float = 5.0) -> list[dict]:
     return _cache["gpu"]
 
 
+def gpu_at_start(tries: int = 3, wait: float = 3.0, sleep=time.sleep) -> tuple[dict, str]:
+    """El equipo al arrancar, con la GPU confirmada: si el driver está ocupado (nvidia-smi tarda o falla, CUDA no
+    responde) la primera vez, se vuelve a preguntar antes de arrancar todo sin GPU y sin voz. Devuelve el equipo y,
+    si hay nvidia-smi pero ninguna GPU se pudo usar, por qué (para el registro)."""
+    why = ""
+    for i in range(tries):
+        hw = detect()
+        if hw.get("gpu") and cuda_usable():
+            return hw, ""
+        if not shutil.which("nvidia-smi"):  # sin driver NVIDIA: no hay nada que esperar
+            return hw, ""
+        why = "nvidia-smi no respondió" if not hw.get("gpu") else "CUDA no está disponible"
+        if i < tries - 1:
+            sleep(wait)
+            _cache["gpu"] = None  # la próxima vez se pregunta de nuevo
+    return hw, why
+
+
 def cuda_usable() -> bool:
     """CTranslate2 puede usar CUDA (driver y bibliotecas presentes)."""
     try:

@@ -134,3 +134,26 @@ def test_addressing_mode_query_failure(monkeypatch):
     assert hardware._addressing_mode(0) is None
     assert hardware.unified_memory(SPARK_GPU) is False
     hardware._modes.clear()
+
+
+def test_gpu_is_asked_again_when_the_driver_is_busy_at_start(monkeypatch):
+    """nvidia-smi ocupado al arrancar (la GPU al 100 %): se vuelve a preguntar antes de arrancar sin GPU ni voz."""
+    from vt import hardware
+
+    answers = iter([[], [], [{"index": 0, "name": "RTX", "vram_total_mb": 8188}]])
+    monkeypatch.setattr(hardware, "_nvidia_smi", lambda: next(answers))
+    monkeypatch.setattr(hardware, "cuda_usable", lambda: True)
+    monkeypatch.setattr(hardware.shutil, "which", lambda name: "nvidia-smi.exe")
+    monkeypatch.setitem(hardware._cache, "gpu", None)
+    slept = []
+    hw, why = hardware.gpu_at_start(sleep=slept.append)
+    assert hw["gpu"]["name"] == "RTX" and why == "" and len(slept) == 2
+
+    monkeypatch.setattr(hardware, "_nvidia_smi", lambda: [])
+    monkeypatch.setitem(hardware._cache, "gpu", None)
+    hw, why = hardware.gpu_at_start(sleep=lambda s: None)
+    assert hw["gpu"] is None and why == "nvidia-smi no respondió"  # queda en el registro
+
+    monkeypatch.setattr(hardware.shutil, "which", lambda name: None)  # sin driver NVIDIA: sin esperas
+    monkeypatch.setitem(hardware._cache, "gpu", None)
+    assert hardware.gpu_at_start(sleep=lambda s: 1 / 0) == (hardware.detect(), "")
