@@ -38,7 +38,7 @@ const pick = (re: RegExp) => { const m = re.exec(vaultsJs); if (!m) throw new Er
 const appJs = [
   "var t = (s) => s, i18nTrack = (x) => x, prefs = {};",  // lo que star.js espera de la app
   read("js/brand.js"), read("js/scenes.js"), read("js/star.js"),
-  pick(/const ASCII_RAMP = [^\n]*\n/), pick(/function asciiField\([\s\S]*?\n}\n/),
+  pick(/const ASCII_RAMP = [^\n]*\n/), pick(/function asciiField\([\s\S]*?\r?\n}\r?\n/),  // \r?: los checkouts de Windows tienen CRLF
 ].join("\n");
 const starCss = read("css/components/star.css") + read("css/components/carousel.css");
 

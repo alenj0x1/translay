@@ -12,7 +12,7 @@ Measures, per model (and precision):
   pink:5     pink noise at 5 dB
   babble:10  6 voices in the other languages at 10 dB (the hardest case for detection)
 
-    python tools/lab/langs_asr.py --langs en pt es --models large-v3-turbo:float16 small:int8_float16 -n 120
+    python tools/lab/langs_asr.py --langs en pt it es --models large-v3-turbo:float16 small:int8_float16 -n 120
     python tools/lab/langs_asr.py --models large-v3-turbo:int8_float16 --noise babble:5 pink:5
 """
 
@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT))
 from vt.asr import MODELS, WhisperASR  # noqa: E402
 
 DATA = ROOT / "data" / "labs" / "languages"
-FLEURS = {"en": "en_us", "pt": "pt_br", "es": "es_419"}
+FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "es": "es_419"}
 
 
 def load(lang: str, n: int) -> list[tuple[np.ndarray, str]]:
@@ -139,7 +139,7 @@ def run(asr, label: str, data: dict) -> dict:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--langs", nargs="+", default=["en", "pt", "es"], choices=list(FLEURS))
+    ap.add_argument("--langs", nargs="+", default=["en", "pt", "it", "es"], choices=list(FLEURS))
     ap.add_argument("--models", nargs="+", default=["large-v3-turbo:float16"],
                     help=f"model:precision ({', '.join(MODELS)})")
     ap.add_argument("-n", type=int, default=120, help="clips per language")

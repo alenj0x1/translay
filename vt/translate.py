@@ -46,6 +46,9 @@ ROUTES = {
     ("en", "pt"): {"big": "opus-big-en-pt", "base": "opus-big-en-pt"},
     ("es", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
     ("pt", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
+    ("it", "es"): {"big": "opus-itc", "base": "opus-itc"},
+    ("it", "pt"): {"big": "opus-itc", "base": "opus-itc"},
+    ("it", "en"): {"big": "opus-roa-en", "base": "opus-roa-en"},
 }
 FALLBACK = "madlad-3b"  # Apache-2.0 (NLLB-200 es CC-BY-NC); empata o gana a NLLB en los pares medidos
 

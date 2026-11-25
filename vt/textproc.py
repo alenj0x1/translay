@@ -25,6 +25,9 @@ import re
 ABBR = {
     "en": ("Mr", "Mrs", "Ms", "Dr", "St", "vs", "Jr", "Sr", "[A-Z]"),
     "pt": ("Sr", "Sra", "Srta", "Dr", "Dra", "Prof", "Profa", "vs", "[A-Z]"),
+    # «Sig.ra», «Dott.ssa»: tras el punto no hay espacio, así que ya no cortan
+    "it": ("Sig", "Sigg", "Dott", "Dr", "Prof", "Avv", "Ing", "Arch", "Geom", "Rag", "Gent", "Egr",
+           "Spett", "On", "Mons", "pag", "vs", "[A-Z]"),
     "es": ("Sr", "Sra", "Srta", "Dr", "Dra", "Lic", "Ing", "Prof", "Ud", "Uds", "vs", "[A-Z]"),
 }
 _END = re.compile(r"[.!?…][\"')\]]*$")
@@ -120,6 +123,10 @@ IDIOMS["pt"] = [
     (r"cê", "você"),
     (r"vc", "você"),
     (r"né(?=[?,.!])", "certo"),
+]
+IDIOMS["it"] = [
+    # Opus-MT lo traduce literal: «un ojo de la cabeza» (tools/lab/langs_mt.py)
+    (r"(costa|costano|costato|costata|costati|costare|costava) un occhio della testa", r"\1 moltissimo"),
 ]
 # los bordes con letras Unicode: \b no siempre corta bien junto a una tilde ("tá", "né")
 _IDIOMS = {lang: [(re.compile(r"(?<!\w)" + p + r"(?!\w)", re.I), r) for p, r in rules]

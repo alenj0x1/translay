@@ -12,7 +12,7 @@ Desde este mismo equipo, sin clave, la API responde como al dueño.
   GET    /api/v1/libraries/{lib}/collections
   GET    /api/v1/libraries/{lib}/search?q=        en las transcripciones
   POST   /api/v1/libraries/{lib}/import           {"urls": [...], "mode": "traducir|descargar", "priority": false,
-                                                   "lang": "auto|en|pt|es", "task": "translate|transcribe"}
+                                                   "lang": "auto|en|pt|it|es", "task": "translate|transcribe"}
                                                    YouTube o Dropbox; lang "auto" (por defecto): se detecta;
                                                    task: traducir y doblar, o solo transcribir (si falta, lo
                                                    que está en el idioma propio de Ajustes solo se transcribe)

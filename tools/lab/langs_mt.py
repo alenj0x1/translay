@@ -33,7 +33,7 @@ sys.path.insert(0, str(ROOT))
 from vt.translate import CT2Translator  # noqa: E402
 
 DATA = ROOT / "data" / "labs" / "languages"
-FLEURS = {"en": "en_us", "pt": "pt_br", "es": "es_419"}
+FLEURS = {"en": "en_us", "pt": "pt_br", "it": "it_it", "es": "es_419"}
 
 # typical video sentences (tutorial, vlog, review, gaming), written for the lab
 SENTENCES = {
@@ -54,6 +54,20 @@ SENTENCES = {
         "Isso aqui é moleza, qualquer um consegue fazer.",
         "Tá chovendo muito aqui em São Paulo hoje.",
         "Fica ligado que no próximo vídeo tem mais.",
+    ],
+    "it": [
+        "Ciao a tutti! Come state? Bentornati sul canale.",
+        "Oggi vi faccio vedere come configurare il server da zero.",
+        "Per prima cosa aprite il terminale e scrivete questo comando.",
+        "Se vi dà qualche errore, basta riavviare e riprovare.",
+        "Ragazzi, non me lo aspettavo per niente.",
+        "Questo telefono costa un occhio della testa, ma ne vale davvero la pena.",
+        "Non dimenticate di lasciare un like e di iscrivervi al canale.",
+        "Facciamo una breve pausa e torniamo subito.",
+        "Il Sig. Rossi è arrivato tardi. Poi è andato via.",
+        "A dire il vero, la batteria dura tutta la giornata senza problemi.",
+        "Cosa ne pensate? Scrivetemelo nei commenti.",
+        "Fa un caldo pazzesco oggi qui a Milano.",
     ],
     "en": [
         "Hey guys, what's up? Welcome back to the channel.",

@@ -61,7 +61,7 @@ const isRemote = (v) => v?.source === "youtube" || v?.source === "link";
 // ¿se espera voz en español? (un video que solo se transcribe no lleva voz)
 const wantsVoice = () => !!state.voice && state.voice !== "none" && state.translates;
 // idiomas que reconoce el servidor (vt/langs.py): sus códigos llegan con «ready»; el nombre, langName (i18n.js)
-let LANGS = { en: 1, pt: 1, es: 1 };
+let LANGS = { en: 1, pt: 1, it: 1, es: 1 };
 // Ajustes › Uso: «Transcribir y resumir» quita todo lo de traducción y voz
 const transcribeMode = () => prefs.app_mode === "transcribir";
 function applyAppMode() {
