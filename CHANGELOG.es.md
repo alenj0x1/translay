@@ -35,6 +35,8 @@ Las mismas entradas en inglés: [CHANGELOG.md](https://github.com/alenj0x1/trans
 - Invitados: un invitado «Solo ver» ya no recibe «No tienes permiso para esta acción en esta biblioteca» al abrir un video (la página pedía anotarlo en la biblioteca). La página ahora solo le pide al servidor lo que esa persona puede hacer.
 - Invitados: un video que no está doblado entero ya no queda en pausa para un invitado «Solo ver» en «Se reanuda al estar listo 0 %». Como no se le procesa nada, escucha el original donde falta la voz y la barra lo dice.
 - La página muestra el ícono de Translay en la pestaña del navegador (pedía `/favicon.ico` y recibía un error).
+- Grabación de pantalla: una grabación ya no llena el disco. El servidor deja de recibirla cuando quedaría 1 GB libre (o a los 24 GB por grabación); lo demás espera en este equipo con **Sin espacio en el disco** y se sube cuando hay lugar.
+- App de escritorio: la ventana solo abre la dirección del servidor que lanzó (la de este equipo y el puerto que eligió), leída de la salida del servidor, nunca de sus errores.
 
 ## 1.14.0 · 2026-11-14
 

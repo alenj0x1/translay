@@ -11,7 +11,7 @@ use crate::runtime::{Paths, Settings};
 use serde_json::json;
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
@@ -85,6 +85,8 @@ pub struct Server {
     tail: Mutex<Vec<String>>,
     /// The first-run wizard is still open: when the server is ready the window stays on it until `release`.
     hold: AtomicBool,
+    /// The port this server was started on: the only address the window will ever open (see `on_line`).
+    port: AtomicU16,
 }
 
 /// First free port from 8765 (Translay's usual one) so the page keeps its saved state between launches.
@@ -138,6 +140,7 @@ impl Server {
         std::fs::create_dir_all(&data).map_err(|e| format!("No se pudo crear la carpeta de datos: {e}"))?;
         std::fs::create_dir_all(paths.logs()).map_err(|e| e.to_string())?;
         let port = free_port()?;
+        self.port.store(port, Ordering::SeqCst);
         self.tail.lock().unwrap().clear();
 
         // ffmpeg, ffprobe and node (yt-dlp's JavaScript runtime) from the bundled tools, ahead of the PATH.
@@ -161,8 +164,8 @@ impl Server {
         let _ = std::fs::write(&log, "");
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
-        let out = pump(app.clone(), Box::new(stdout), log.clone(), generation);
-        let err = pump(app.clone(), Box::new(stderr), log, generation);
+        let out = pump(app.clone(), Box::new(stdout), log.clone(), generation, true);
+        let err = pump(app.clone(), Box::new(stderr), log, generation, false);
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
             // The original process may exit while a restarted one keeps the pipes open: wait for both pipes.
@@ -185,7 +188,7 @@ impl Server {
         Ok(())
     }
 
-    fn on_line(&self, app: &AppHandle, line: &str, generation: u64) {
+    fn on_line(&self, app: &AppHandle, line: &str, generation: u64, from_stdout: bool) {
         if self.generation.load(Ordering::SeqCst) != generation {
             return;
         }
@@ -198,6 +201,12 @@ impl Server {
         }
         if let Some(url) = line.strip_prefix("Listo: ") {
             let url = url.trim().to_string();
+            // the window (and its IPC permissions) only ever goes to this server, on loopback and the port we chose;
+            // and only from stdout, where the server prints it (stderr carries tracebacks and other programs' output)
+            let expected = format!("http://127.0.0.1:{}", self.port.load(Ordering::SeqCst));
+            if !from_stdout || url != expected {
+                return;
+            }
             if self.url().is_none() {
                 *self.url.lock().unwrap() = Some(url.clone());
                 allow_page(app, &url);
@@ -251,7 +260,8 @@ fn navigate(app: &AppHandle, url: &str) {
 }
 
 /// Reads one output pipe; tqdm progress bars (model downloads) rewrite their line with `\r`.
-fn pump(app: AppHandle, reader: Box<dyn AsyncRead + Unpin + Send>, log: PathBuf, generation: u64) -> tauri::async_runtime::JoinHandle<()> {
+fn pump(app: AppHandle, reader: Box<dyn AsyncRead + Unpin + Send>, log: PathBuf, generation: u64, from_stdout: bool)
+    -> tauri::async_runtime::JoinHandle<()> {
     tauri::async_runtime::spawn(async move {
         let mut reader = BufReader::new(reader);
         let mut buf = Vec::new();
@@ -266,7 +276,7 @@ fn pump(app: AppHandle, reader: Box<dyn AsyncRead + Unpin + Send>, log: PathBuf,
             for part in text.split('\r') {
                 let line = part.trim();
                 if !line.is_empty() {
-                    app.state::<Server>().on_line(&app, line, generation);
+                    app.state::<Server>().on_line(&app, line, generation, from_stdout);
                 }
             }
         }

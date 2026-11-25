@@ -89,6 +89,8 @@ const DIAG_BTN = btn(t("Guardar informe"), { icon: "download", variant: "ghost",
   DIAG_BTN.disabled = true;
   setBtn(DIAG_BTN, t("Guardando…"));
   send({ type: "diag_report" });
+  // sin respuesta (sin conexión): el botón vuelve a estar disponible
+  setTimeout(() => { if (DIAG_BTN.disabled) { DIAG_BTN.disabled = false; setBtn(DIAG_BTN, t("Guardar informe")); } }, 20000);
 } });
 const DIAG_BLOCK = el("div", { class: "set-rows" }, el("div", { class: "set-row" },
   el("div", { class: "set-text" }, el("strong", { text: t("Informe de diagnóstico") }),

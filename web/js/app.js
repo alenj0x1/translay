@@ -274,6 +274,7 @@ function onMessage(m) {
       state.videoVault = m.vault;
       send({ type: "people_get", vault: m.vault });
       state.editing = null;
+      state.segEdit = null;  // el editor de frases es de un video: otro video lo cierra
       // las voces se bajan a medida que se acercan (cada 80 ms se precargan los próximos 15 s):
       // bajarlas todas al abrir llenaba las conexiones y el video tardaba en cargar
       renderTranscript();

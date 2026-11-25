@@ -10,6 +10,7 @@ error de consola, pedido rechazado o aviso de permiso (harness.py).
     python tests/e2e/run.py --changed          # solo las que cubren lo que cambió desde la última pasada completa
     python tests/e2e/run.py --failed           # otra vez las que fallaron la última vez
     python tests/e2e/run.py --headed           # con ventana, para mirarla
+    python tests/e2e/run.py --installed        # la app de escritorio instalada (solo lectura, tests/e2e/desktop.py)
 
 Una suite que falla se repite una vez desde el principio; cuenta la segunda. Todo lo que crea una corrida (datos,
 servidor, navegador, archivos en Descargas) se borra al terminar, y lo que haya quedado de una corrida anterior se
@@ -19,6 +20,7 @@ barre al empezar. Una pasada completa, sin cambios sin guardar, queda anotada en
 import argparse
 import importlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -105,6 +107,62 @@ def run_suite(name: str, server: Server, browser, shots: Path) -> dict:
             "unexpected": extra, "seconds": round(time.time() - t0, 1)}
 
 
+def run_installed(shots: Path) -> dict:
+    """La app de escritorio instalada (tests/e2e/desktop.py): su propio registro, sin servidor de prueba."""
+    import desktop
+
+    t = Run("escritorio", None, None, shots)
+    t.skipped, t.extra_errors = False, []
+    t0, crashed = time.time(), ""
+    try:
+        desktop.run(t)
+    except SuiteFailed as e:
+        crashed = str(e)
+    except Exception as e:  # noqa: BLE001
+        crashed = f"{type(e).__name__}: {e}\n{traceback.format_exc(limit=4)}"
+    finally:
+        t.close()
+    extra = t.unexpected(t.extra_errors)
+    failed = [c for c in t.checks if not c[1]]
+    ok = not crashed and not failed and not any(extra.values())
+    for k, items in extra.items():
+        for x in items[:8]:
+            print(f"    FAIL {k}: {x}", flush=True)
+    if crashed:
+        print(f"    FAIL se detuvo: {crashed}", flush=True)
+    return {"suite": "escritorio", "ok": ok, "skipped": t.skipped, "checks": len(t.checks), "failed": [c[0] for c in failed],
+            "crashed": crashed, "unexpected": extra, "seconds": round(time.time() - t0, 1)}
+
+
+def _alive(pid: int) -> bool:
+    """¿Sigue corriendo ese proceso? (Windows: abrirlo y mirar si ya tiene código de salida)."""
+    import ctypes
+
+    k = ctypes.windll.kernel32
+    h = k.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not h:
+        return False
+    code = ctypes.c_ulong()
+    ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+    k.CloseHandle(h)
+    return bool(ok) and code.value == 259  # STILL_ACTIVE
+
+
+def take_lock(lock: Path) -> bool:
+    """Una corrida a la vez: la limpieza del inicio cierra los procesos y borra las carpetas de cualquier corrida."""
+    try:
+        pid = int(lock.read_text())
+        if pid != os.getpid() and _alive(pid):
+            return False
+    except (OSError, ValueError):
+        pass
+    lock.write_text(str(os.getpid()))
+    import atexit
+
+    atexit.register(lambda: lock.unlink(missing_ok=True))
+    return True
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
@@ -113,7 +171,13 @@ def main():
     ap.add_argument("--failed", action="store_true")
     ap.add_argument("--headed", action="store_true")
     ap.add_argument("--keep", action="store_true", help="no borrar los datos de prueba (para mirarlos)")
+    ap.add_argument("--installed", action="store_true", help="la app de escritorio instalada (solo lectura)")
     a = ap.parse_args()
+    if a.installed:
+        print("== escritorio", flush=True)
+        r = run_installed(HERE / "shots")
+        print(f"   escritorio: {'se saltó' if r['skipped'] else 'pasó' if r['ok'] else 'FALLÓ'} ({r['checks']} chequeos, {r['seconds']} s)")
+        sys.exit(0 if r["ok"] else 1)
     if a.suite:
         names = [s for s in a.suite.split(",") if s]
     elif a.changed:
@@ -134,6 +198,9 @@ def main():
 
     from fixture import build
 
+    lock = Path(tempfile.gettempdir()) / (MARK + ".lock")
+    if not take_lock(lock):
+        sys.exit("ya hay otra corrida e2e en marcha (su limpieza borraría la de esta)")
     sweep()
     # carpetas de corridas anteriores que no se pudieron borrar (un corte a mitad)
     for old in Path(tempfile.gettempdir()).glob(MARK + "-*"):

@@ -44,7 +44,7 @@ def make(tmp_path, on=True, videos=None, monkeypatch=None):
     sep.vaults, sep.prefs, sep.notify = FakeVaults(tmp_path), FakePrefs(on), lambda m: None
     sep.media_of = lambda vid: None
     sep.library = FakeLibrary(videos or {"v1": {"mode": "translate"}, "v2": {"mode": "transcribe"}})
-    sep.pending, sep._ok = set(), True
+    sep.pending, sep._ok, sep.enabled = set(), True, True
     import queue
 
     sep.q = queue.Queue()
@@ -64,10 +64,10 @@ def test_only_dubbed_videos_without_background(tmp_path):
 def test_setting_off_or_no_voice_engine(tmp_path):
     assert not make(tmp_path, on=False).wanted("v1")
     sep = make(tmp_path)
-    sep._ok = False  # sin el entorno del motor de voz
+    sep.enabled = False  # el servidor corre sin voz: no hay doblaje sobre el que poner el fondo
     sep.request("v1")
-    assert sep.q.empty()
-    sep._ok = True
+    assert sep.q.empty() and not sep.available()
+    sep.enabled = True  # el entorno se comprueba después, en el hilo de separación (no frena la cola)
     sep.request("v1")
     sep.request("v1")  # una sola vez en la cola
     assert sep.q.qsize() == 1

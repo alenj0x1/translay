@@ -213,3 +213,16 @@ def test_mute_others_needs_a_known_window():
         assert am.restore() == 0
         assert am.restore(owner=object()) == 0  # otra pestaña no restaura lo que pidió una
     assert next(p for p in SCHEMA if p["key"] == "rec_mute_others")["default"] is False
+
+
+def test_capture_stops_before_filling_the_disk(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        caps = make_caps(root)
+        assert run(caps.part(CID, 0, chunks(b"aaa"), None)) == (200, "next=1")
+        monkeypatch.setattr(capture, "_free", lambda folder: capture.KEEP_FREE)  # el disco llegó a la reserva
+        assert run(caps.part(CID, 1, chunks(b"bbb"), None)) == (507, "sin espacio para seguir grabando")
+        monkeypatch.setattr(capture, "_free", lambda folder: 1 << 40)
+        monkeypatch.setattr(capture, "MAX_CAPTURE", 5)  # el tope de una grabación
+        assert run(caps.part(CID, 1, chunks(b"bbb"), None))[0] == 507
+        assert (root / "captures" / f"{CID}.webm.part").read_bytes() == b"aaa"  # lo grabado queda

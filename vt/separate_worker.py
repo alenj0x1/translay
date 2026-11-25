@@ -8,9 +8,10 @@ Modelo: CDX23, HT-Demucs entrenado en Divide and Remaster (diálogo, efectos, m�
 original 17 a 41 dB más baja que bajar el volumen del original y conserva el fondo casi entero, a 0,08 del tiempo
 real en una RTX 4060 (575 MB de memoria de la GPU).
 
-El audio va por tramos de 60 s con 2 s de cruce (memoria acotada aunque el video dure horas). Los pesos se leen en
-el modo seguro de torch, permitiendo solo las dos clases que trae el archivo. Imprime una línea JSON por avance
-({"progress": 0..1}) y al final {"done": true, "seconds": s, "device": "cuda"|"cpu"}.
+Todo va por tramos de 60 s con 2 s de cruce, de punta a punta: el audio se lee de ffmpeg de a un tramo y cada tramo
+terminado se escribe al ffmpeg de salida, así la memoria queda acotada aunque el video dure horas. Los pesos se leen
+en el modo seguro de torch, permitiendo solo las dos clases que trae el archivo. Imprime una línea JSON por tramo
+({"progress": segundos}) y al final {"done": true, "seconds": s, "device": "cuda"|"cpu"}.
 """
 
 import argparse
@@ -26,12 +27,6 @@ import torch
 SR = 44100
 CHUNK_S = 60
 CROSS_S = 2
-
-
-def load_audio(path: str) -> np.ndarray:
-    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-vn", "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"],
-                         capture_output=True, check=True).stdout
-    return np.frombuffer(raw, np.float32).reshape(-1, 2).T.copy()
 
 
 def main():
@@ -50,27 +45,46 @@ def main():
         torch.set_num_threads(max(1, (torch.get_num_threads() or 2) // 2))  # la mitad: la app sigue respondiendo
     with torch.serialization.safe_globals([HTDemucs, Fraction]):
         model = load_model(a.weights).to(device).eval()
-    x = load_audio(a.input)
-    n = x.shape[1]
-    out = np.zeros_like(x)
+    dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", a.input, "-vn", "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"],
+                           stdout=subprocess.PIPE)
+    enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "f32le", "-ac", "2", "-ar", str(SR), "-i", "-", a.out],
+                           stdin=subprocess.PIPE)
     step, cross = CHUNK_S * SR, CROSS_S * SR
-    t0 = time.perf_counter()
-    pos = 0
-    while pos < n:
-        lo, hi = max(0, pos - cross), min(n, pos + step)
-        with torch.no_grad():
-            est = apply_model(model, torch.from_numpy(x[:, lo:hi])[None].to(device), shifts=1, overlap=0.5)[0].cpu().numpy()
-        bg = est[0] + est[1]  # salida: música, efectos, diálogo
-        if lo < pos:  # cruce lineal con el tramo anterior
-            w = np.linspace(0, 1, pos - lo, dtype=np.float32)
-            out[:, lo:pos] = out[:, lo:pos] * (1 - w) + bg[:, : pos - lo] * w
-        out[:, pos:hi] = bg[:, pos - lo:]
-        pos = hi
-        print(json.dumps({"progress": round(pos / n, 3)}), flush=True)
-    p = subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "f32le", "-ac", "2", "-ar", str(SR), "-i", "-", a.out],
-                       input=np.ascontiguousarray(out.T, np.float32).tobytes(), capture_output=True)
-    if p.returncode:
-        sys.exit(p.stderr.decode(errors="replace")[-400:])
+    carry = np.zeros((2, 0), np.float32)  # los últimos 2 s de entrada del tramo anterior (contexto del cruce)
+    tail = None  # el fondo de esos 2 s según el tramo anterior: se mezcla con el del siguiente
+    done_s, t0 = 0.0, time.perf_counter()
+
+    def write(x):
+        enc.stdin.write(np.ascontiguousarray(x.T, np.float32).tobytes())
+
+    try:
+        while True:
+            raw = dec.stdout.read(step * 2 * 4)
+            if not raw:
+                break
+            x = np.frombuffer(raw[: len(raw) // 8 * 8], np.float32).reshape(-1, 2).T
+            inp = np.concatenate([carry, x], axis=1)
+            with torch.no_grad():
+                est = apply_model(model, torch.from_numpy(np.ascontiguousarray(inp))[None].to(device), shifts=1,
+                                  overlap=0.5)[0].cpu().numpy()
+            bg = est[0] + est[1]  # salida: música, efectos, diálogo
+            k = carry.shape[1]
+            if tail is not None and k:  # cruce lineal con lo que dejó el tramo anterior
+                w = np.linspace(0, 1, k, dtype=np.float32)
+                bg[:, :k] = tail * (1 - w) + bg[:, :k] * w
+            keep = min(cross, inp.shape[1])
+            write(bg[:, : inp.shape[1] - keep])  # lo terminado; los últimos 2 s esperan al tramo siguiente
+            tail, carry = bg[:, inp.shape[1] - keep:], inp[:, inp.shape[1] - keep:]
+            done_s += x.shape[1] / SR
+            print(json.dumps({"progress": round(done_s, 1)}), flush=True)
+        if tail is not None:
+            write(tail)
+    finally:
+        enc.stdin.close()
+        enc.wait()
+        dec.wait()
+    if enc.returncode or dec.returncode:
+        sys.exit("ffmpeg falló al leer o escribir el audio")
     print(json.dumps({"done": True, "seconds": round(time.perf_counter() - t0, 1), "device": device}), flush=True)
 
 

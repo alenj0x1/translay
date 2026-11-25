@@ -437,7 +437,7 @@ def main():
     # fondo sin la voz original (vt/separation.py): al terminar de doblar un video
     from .separation import Separator
 
-    separator = Separator(DATA, vaults, prefs, notify, processor._media, library)
+    separator = Separator(DATA, vaults, prefs, notify, processor._media, library, enabled=dubber is not None)
 
     def on_done(vid: str):  # un video terminó: su resumen (si es automático), la descripción corta y su fondo
         summaries.auto(vid)

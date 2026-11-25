@@ -654,6 +654,8 @@ async function capUpload(record) {
         if (r.status >= 400 && r.status < 500 && r.status !== 409 && r.status !== 408 && r.status !== 429) {
           throw Object.assign(new Error(body || String(r.status)), { fatal: true });
         }
+        // el disco del servidor llegó a su reserva: se reintenta igual que sin conexión, lo grabado sigue aquí
+        if (r.status === 507) throw Object.assign(new Error(body), { space: true });
         if (!r.ok && r.status !== 409) throw new Error(String(r.status));
         if (Number.isNaN(next)) throw new Error("sin respuesta");
         if (next > u.next) await capPartsDrop(record.id, next);
@@ -680,7 +682,7 @@ async function capUpload(record) {
       return;
     }
     // sin conexión: lo grabado sigue en este equipo y se reintenta con espera creciente
-    u.state = "sin conexión";
+    u.state = e.space ? "sin espacio" : "sin conexión";
     capBar();
     clearTimeout(u.retry);
     u.retry = setTimeout(() => capUpload(record), u.delay);
@@ -738,7 +740,7 @@ async function capResume() {
 }
 // volvió la red: no se espera al próximo reintento
 window.addEventListener("online", () => {
-  for (const u of capUp.values()) if (u.state === "sin conexión") { clearTimeout(u.retry); capUpload(u.record); }
+  for (const u of capUp.values()) if (u.state === "sin conexión" || u.state === "sin espacio") { clearTimeout(u.retry); capUpload(u.record); }
 });
 
 /* ------------------------------------------------------------ en vivo */
@@ -835,6 +837,7 @@ function capBar() {
   // «sin conexión» es solo cuando no se puede subir lo grabado (la transcripción en vivo no cuenta:
   // si no llega, la cola la completa con el archivo final)
   const offline = ups.some((x) => x.state === "sin conexión");
+  const full = ups.some((x) => x.state === "sin espacio");
   const noImage = recording && capRec.mutedAt && performance.now() - capRec.mutedAt > 2000;
   bar.classList.toggle("rec", recording);
   $("#cap-stop").hidden = !recording;
@@ -843,11 +846,14 @@ function capBar() {
     const secs = (performance.now() - capRec.t0) / 1000;
     $("#cap-time").textContent = fmtClock(secs);
     $("#cap-meta").textContent = noImage ? t("La fuente no envía imagen")
-      : offline ? t("Sin conexión. Guardando en este equipo") : t("hasta {size}", { size: fmtMB((capRec.kbps * secs) / 8 / 1000) });
+      : offline ? t("Sin conexión. Guardando en este equipo") : full ? t("Sin espacio en el disco. Guardando en este equipo")
+      : t("hasta {size}", { size: fmtMB((capRec.kbps * secs) / 8 / 1000) });
   } else {
     const done = ups.find((x) => x.state === "armando"), u = ups[0];
-    $("#cap-time").textContent = done ? t("Generando el video") : offline ? t("Sin conexión") : t("Guardando la grabación");
+    $("#cap-time").textContent = done ? t("Generando el video") : offline ? t("Sin conexión") : full ? t("Sin espacio en el disco")
+      : t("Guardando la grabación");
     $("#cap-meta").textContent = done ? "" : offline ? t("Se subirá al restablecer la conexión")
+      : full ? t("Se guardará al liberar espacio")
       : u.record.parts ? `${Math.min(99, Math.round((u.next / u.record.parts) * 100))} %` : "";
   }
   $("#cap-live").textContent = recording ? live.text : "";

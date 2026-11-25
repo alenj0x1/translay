@@ -112,6 +112,8 @@ In the desktop app, closing the window while recording stops the recording and s
 Each second of recording is saved in the browser before it is uploaded, and deleted only once the server confirms it. Without a connection the recording continues («Sin conexión, se guarda en este equipo», No connection, saved on this computer) and the upload resumes when the connection is back; the live transcription reconnects on its own and resends what it had not confirmed (it doesn't count as being offline: whatever it misses, the queue completes with the final file). If the server rejects the recording, it says why instead of retrying forever. If you close the tab or the computer shuts down, the next time you open Translay it finishes uploading what was recorded and puts it together.
 
 It doesn't depend on that page coming back, either: every second carries the recording's options, so if the server receives nothing new for a minute (the browser or the app was closed, or Translay was opened at another address, which can't see what the browser kept), it puts together what it has and adds it to the library on its own. If the page comes back later with the seconds that were missing, they are added and the video is put together again, complete.
+
+A recording never fills the disk: the server stops taking seconds when 1 GB is left free (or a recording reaches 24 GB). The rest stays on this device, the bar says **Sin espacio en el disco** (Disk full), and it is uploaded by itself once there is room.
 </Aside>
 
 ## Add to a collection

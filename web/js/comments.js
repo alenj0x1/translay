@@ -136,6 +136,7 @@ function closeVideo() {
   state.videoId = null;
   state.segments = [];
   state.comments = {};
+  state.segEdit = null;
   state.editing = null;
   screenTextLoad(null);
   vEn.removeAttribute("src");

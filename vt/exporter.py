@@ -775,7 +775,9 @@ class Exporter:
         dub_dir = self._root(vid) / "audio"
         # con el fondo separado (vt/separation.py), la voz doblada va sobre él entero: sin la voz original debajo
         bg = dub_dir / vid / "fondo.m4a"
-        if self.prefs.values.get("bg_separate", True) and bg.exists():
+        dubbed = all(not s.get("translation") or ((s.get("dub") or {}).get("file") and (dub_dir / s["dub"]["file"]).exists())
+                     for s in tr.segments)
+        if self.prefs.values.get("bg_separate", True) and bg.exists() and dubbed:  # sin voz en alguna frase: el original
             src, duck = bg, 1.0
         clips, prev_end = [], 0
         for s in sorted(tr.segments, key=lambda x: x["start"]):

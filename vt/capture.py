@@ -40,6 +40,7 @@ interfaz para estimar el peso: una pantalla con poco movimiento pesa bastante me
 import asyncio
 import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -49,6 +50,8 @@ from .jsonio import read_json, write_json
 
 ID_RE = re.compile(r"cap_[A-Za-z0-9]{8,64}")
 MAX_PART = 32 << 20  # 1 s de video nunca llega a esto
+MAX_CAPTURE = 24 << 30  # una grabación: 12 h en calidad alta; más es otra cosa
+KEEP_FREE = 1 << 30  # lo que se deja libre en el disco: una grabación nunca lo llena
 # altura máxima y tope de video (kbit/s) a 30 cuadros; a 15 cuadros, 2/3 del tope.
 # Mismos valores en web/js/capture.js (estimación del peso)
 QUALITY = {"alta": (1080, 4000), "media": (720, 2000), "ligera": (480, 900), "audio": (0, 0)}
@@ -197,6 +200,8 @@ class Captures:
                 return 200, f"next={st['next']}"
             if seq != st["next"]:
                 return (200 if seq < st["next"] else 409), f"next={st['next']}"
+            if st["bytes"] + len(data) > MAX_CAPTURE or _free(meta.parent) - len(data) < KEEP_FREE:
+                return 507, "sin espacio para seguir grabando"
             await asyncio.to_thread(self._append, part, st["bytes"], data)
             opts = {k: str(v)[:400] for k, v in (query or {}).items() if k in OPT_KEYS} or st.get("opts") or {}
             st = {**st, "next": seq + 1, "bytes": st["bytes"] + len(data), "at": time.time(), "opts": opts}
@@ -325,3 +330,10 @@ class Captures:
             except Exception as e:  # noqa: BLE001  una grabación rota no frena a las demás ni al servidor
                 print(f"[captura] revisión: {e}", flush=True)
             await asyncio.sleep(every)
+
+
+def _free(folder: Path) -> int:
+    try:
+        return shutil.disk_usage(folder).free
+    except OSError:
+        return 1 << 62  # sin poder medirlo, no se corta una grabación

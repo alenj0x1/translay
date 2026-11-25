@@ -81,3 +81,24 @@ def test_page_gets_the_permission_lists():
     assert set(msg["owner_only"]) == OWNER_ONLY and set(msg["import_only"]) == IMPORT_ONLY
     assert tuple(msg["owner_prefixes"]) == OWNER_PREFIXES
     assert "lib_register" in msg["import_only"] and "diag_report" in msg["owner_only"]
+
+
+def test_report_hides_the_user_and_secrets(tmp_path, monkeypatch):
+    """El informe que la persona envía no lleva su nombre de usuario (en ninguna forma de ruta) ni claves."""
+    diag = fresh(tmp_path, monkeypatch)
+    user = Path.home().name
+    samples = [
+        f"FileNotFoundError: [Errno 2] No such file: 'C:\\\\Users\\\\{user}\\\\Videos\\\\x.mp4'",  # repr de una ruta
+        f"C:\\Users\\{user}\\AppData\\Local\\x.log",
+        f"c:/users/{user.lower()}/Downloads/y.txt",
+        f"file:///C:%5CUsers%5C{user}%5Cz",
+        "Authorization: Bearer vt_abcdefghijklmnopqrstuvwxyz0123",
+        "Cookie: vt_s=abcdef123456; other=1",
+        "https://hooks.slack.com/services/T000/B000/supersecretvalue",
+        "https://x.test/api?token=abc123&b=2",
+    ]
+    out = diag.scrub("\n".join(samples))
+    assert user.lower() not in out.lower(), out
+    for secret in ("abcdefghijklmnopqrstuvwxyz0123", "abcdef123456", "supersecretvalue", "abc123"):
+        assert secret not in out, (secret, out)
+    assert "b=2" in out and "other=1" in out  # lo que no es secreto queda

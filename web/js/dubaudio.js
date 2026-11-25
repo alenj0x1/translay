@@ -346,7 +346,10 @@ bgEl.preload = "auto";
 bgEl.preservesPitch = true;
 let bgNode = null;
 const bgUrl = () => (prefs.bg_separate !== false && state.videoId && lib.videos?.[state.videoId]?.bg) || "";
-const bgActive = () => !!(state.dubMode && bgUrl() && bgEl.readyState >= 2);
+// sin voz doblada en alguna frase (otro idioma de destino aún sin doblar, una voz rehaciéndose) el original no
+// puede callarse: se oiría solo música donde falta la voz. Entonces, como antes, el original bajado.
+const allDubbed = () => state.segments.every((s) => !s.translation || !!s.dub);
+const bgActive = () => !!(state.dubMode && bgUrl() && bgEl.readyState >= 2 && allDubbed());
 function origLevel() {
   if (!state.dubMode) return 1;
   return bgActive() ? 0 : duck();

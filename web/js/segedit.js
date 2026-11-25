@@ -12,7 +12,7 @@ function openSegEdit(id) {
   const s = state.segments.find((x) => x.id === id);
   if (!s || !canEditSeg()) return;
   state.editing = null;  // un cuadro a la vez (comentario o traducción)
-  state.segEdit = { seg: id, draft: s.translation || "", busy: false, takes: [], pick: null };
+  state.segEdit = { seg: id, video: state.videoId, draft: s.translation || "", busy: false, takes: [], pick: null };
   renderTranscript();
   focusSegEdit(true);
 }
@@ -35,7 +35,7 @@ function focusSegEdit(selectAll) {
 function redoSegVoice() {
   const ed = state.segEdit;
   const text = ed.draft.trim();
-  if (!text) return;
+  if (!text || ed.video !== state.videoId) return;
   ed.busy = hasVoice();
   ed.takes = [];
   ed.pick = null;
@@ -58,7 +58,7 @@ const segEditAudio = new Audio();
 
 function segEditTakes(m) {
   const ed = state.segEdit;
-  if (!ed || ed.seg !== m.id) return;
+  if (!ed || ed.seg !== m.id || ed.video !== state.videoId) return;
   ed.busy = false;
   ed.takes = m.items || [];
   ed.pick = ed.takes.length ? 0 : null;  // la primera toma ya suena como voz de la frase

@@ -95,6 +95,13 @@ def build(data: Path, cache: Path | None = None) -> dict:
                 subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency=180:duration={SECONDS}",
                                 "-ac", "2", "-c:a", "aac", str(bg)], check=True)
                 v.library.set_field(vid, bg=f"/audio/{vid}/fondo.m4a")
+                # y su voz doblada en cada frase: sin ella el original no calla (falta voz donde iría)
+                for seg in tr.segments:
+                    name = f"{seg['id']}.{tr.target}.wav"
+                    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=520:duration=1.6",
+                                    "-ar", "24000", "-ac", "1", str(bg.parent / name)], check=True)
+                    seg["dub"] = {"file": f"{vid}/{name}", "dur": 1.6, "rate": 1.0, "voice": seg.get("speaker")}
+                tr.save()
             made.setdefault(v.id, []).append(vid)
     return made
 

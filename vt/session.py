@@ -265,7 +265,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditM
                     if not self._allowed(str(m.get("type", "")), m):
                         # la interfaz no debería pedirlo (lo filtra con owner_only/import_only): es un error
                         who = "dueño" if self.access.owner else "invitado"
-                        if self._page_note():
+                        if self._page_note(guest_cap=not self.access.owner):
                             diag.error(f"permiso.{str(m.get('type'))[:40]}", f"rechazado ({who}, biblioteca {self.vault.id})")
                         await self.ws.send_json({"type": "denied", "what": m.get("type")})
                         continue
@@ -370,7 +370,7 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditM
                     elif m.get("type", "").startswith("queue_") and self.processor:
                         await self._queue(m)
                     elif m.get("type") in ("seg_edit", "seg_takes", "seg_take"):  # editor de frases (vt/session_edit.py)
-                        asyncio.create_task(getattr(self, "_" + m["type"])(m))
+                        asyncio.create_task(self._guarded(getattr(self, "_" + m["type"])(m), "editor." + m["type"]))
                     elif m.get("type") == "client_error":
                         self._client_error(m)
                     elif m.get("type") == "diag_report":
@@ -575,14 +575,26 @@ class Session(DubMixin, ImportMixin, AgentMixin, LibraryMixin, AdminMixin, EditM
     def _client_error(self, m: dict):
         """Un error de la interfaz (JavaScript o una acción que intentó sin permiso) va al registro. Acotado:
         hasta 50 por conexión, textos cortos (cualquiera puede mandarlo, también un invitado)."""
-        if not self._page_note():
+        if not self.access.owner or not self._page_note():  # lo que escribe un invitado no llega al registro del dueño
             return
         kind = "".join(ch for ch in str(m.get("kind", "js"))[:30] if ch.isalnum() or ch in "._-") or "js"
         diag.error(f"interfaz.{kind}", str(m.get("message", ""))[:400])
 
-    def _page_note(self) -> bool:
-        """¿Se anota lo que manda esta conexión (errores de la página, rechazos)? Hasta 20 por minuto; el registro
-        además tiene un tope para todas juntas (vt/diag.py)."""
+    async def _guarded(self, coro, context: str):
+        """Una tarea de fondo de la sesión: si falla, queda en el registro (y no muere en silencio)."""
+        try:
+            await coro
+        except Exception:  # noqa: BLE001
+            diag.exception(context)
+
+    def _page_note(self, guest_cap: bool = False) -> bool:
+        """¿Se anota lo que manda esta conexión (errores de la página, rechazos)? Hasta 20 por minuto; de un invitado,
+        solo sus 3 primeros rechazos por conexión (no puede llenar el registro); el registro además tiene un tope para
+        todas juntas (vt/diag.py)."""
+        if guest_cap:
+            self._guest_notes = getattr(self, "_guest_notes", 0) + 1
+            if self._guest_notes > 3:
+                return False
         now = time.time()
         win = getattr(self, "_notes", None)
         if not win or now - win[0] > 60:

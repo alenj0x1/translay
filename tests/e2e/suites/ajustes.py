@@ -31,6 +31,7 @@ def run(t):
     if new:
         text = next(iter(new)).read_text(encoding="utf-8")
         t.check("el informe trae versión, sistema y app.log", "Versión:" in text and "Sistema:" in text and "app.log" in text, text[:200])
-        t.check("el informe no trae la carpeta del usuario", str(__import__("pathlib").Path.home()) not in text)
+        user = __import__("pathlib").Path.home().name
+        t.check("el informe no trae el nombre del usuario", user.lower() not in text.lower(), user)
     t.check("el botón vuelve a estar disponible", button.is_enabled())
     t.no_permission_toast(page, "ajustes")

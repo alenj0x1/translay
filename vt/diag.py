@@ -33,7 +33,10 @@ MAX_BYTES = 2 << 20
 PAGE_PER_MIN = 60  # líneas por minuto que pueden venir de las páginas (interfaz.*, permiso.*)
 # las pruebas e2e lo apagan: un error repetido en el reintento de una suite tiene que volver a verse
 DEDUP_S = 0 if os.environ.get("TRANSLAY_LOG_ALL") else 10
-_SECRET = re.compile(r"((?:token|key|secret|password|pw|sig)=)[^&\s\"']+|(/webhooks?/[^/\s]+/)[^/\s\"']+", re.I)
+_SECRET = re.compile(r"((?:token|key|secret|password|pw|sig|vt_s)=)[^&\s\"';]+|(/webhooks?/[^/\s]+/)[^/\s\"']+"
+                     r"|(/services/[^/\s]+/[^/\s]+/)[^/\s\"']+|((?:Bearer|Basic) )\S+|()\bvt_[A-Za-z0-9_-]{20,}", re.I)
+# la carpeta de cualquier usuario de Windows, con barras simples, dobles (repr de una ruta) o de URL
+_USERS = re.compile(r"[A-Za-z]:(?:\\{1,2}|/|%5C)+Users(?:\\{1,2}|/|%5C)+[^\\/'\"\s%]+", re.I)
 _page_minute = [0.0, 0]  # [inicio del minuto, líneas]
 _lock = threading.Lock()
 _path: Path | None = None
@@ -84,11 +87,26 @@ def _summary(t, v) -> str:
     return f"{getattr(t, '__name__', t)}: {v}".strip()[:500]
 
 
+def _short_home() -> str:
+    """La forma corta 8.3 de la carpeta del usuario (C:\\Users\\ALEJAN~1), que aparece en las rutas temporales."""
+    if sys.platform != "win32":
+        return ""
+    import ctypes
+
+    buf = ctypes.create_unicode_buffer(512)
+    n = ctypes.windll.kernel32.GetShortPathNameW(str(Path.home()), buf, len(buf))
+    return buf.value if 0 < n < len(buf) else ""
+
+
+_NAMES = [x for x in {Path.home().name, Path(_short_home()).name if _short_home() else ""} if len(x) >= 3]
+
+
 def scrub(text: str) -> str:
-    """Sin la carpeta del usuario ni secretos de direcciones."""
-    home = str(Path.home())
-    text = text.replace(home, "~").replace(home.replace("\\", "/"), "~")
-    return _SECRET.sub(lambda m: (m.group(1) or m.group(2)) + "***", text)
+    """Sin la carpeta ni el nombre del usuario y sin secretos (tokens, claves, cookies, webhooks)."""
+    text = _USERS.sub("~", text)
+    for name in _NAMES:  # el nombre suelto (en un mensaje, en minúsculas…)
+        text = re.sub(re.escape(name), "~", text, flags=re.I)
+    return _SECRET.sub(lambda m: next((g for g in m.groups() if g is not None), "") + "***", text)
 
 
 def error(context: str, message: str):

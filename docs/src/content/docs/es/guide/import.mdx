@@ -112,6 +112,8 @@ En la app de escritorio, cerrar la ventana mientras se graba detiene la grabaci�
 Cada segundo de grabación se guarda en el navegador antes de subirse y se borra solo cuando el servidor lo confirma. Sin conexión se sigue grabando («Sin conexión, se guarda en este equipo») y la subida se retoma al volver; la transcripción en vivo se reconecta sola y reenvía lo que no había confirmado (eso no cuenta como estar sin conexión: lo que no alcance, lo completa la cola con el archivo final). Si el servidor rechaza la grabación, lo dice en vez de reintentar sin fin. Si cierras la pestaña o se apaga el equipo, la próxima vez que abras Translay termina de subir lo grabado y lo arma.
 
 Tampoco depende de que esa página vuelva: cada segundo lleva las opciones de la grabación, así que si el servidor no recibe nada nuevo durante un minuto (se cerró el navegador o la app, o se abrió Translay en otra dirección, que no ve lo que guardó el navegador), arma lo que tiene y lo agrega a la biblioteca solo. Si después la página vuelve con los segundos que faltaban, se suman y el video se vuelve a armar completo.
+
+Una grabación nunca llena el disco: el servidor deja de recibir segundos cuando quedaría menos de 1 GB libre (o una grabación llega a 24 GB). Lo demás queda en este equipo, la barra dice **Sin espacio en el disco** y se sube sola cuando hay lugar.
 </Aside>
 
 ## Agregar dentro de una colección

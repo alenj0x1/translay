@@ -17,6 +17,14 @@ MAX_TEXT = 600
 
 
 class EditMixin:
+    def _drop_takes(self, tr, seg):
+        """Las tomas anteriores de la frase dejan de existir (sus archivos también), salvo la que suena."""
+        root = self._vault_of(tr.data["id"]).root / "audio"
+        playing = (seg.get("dub") or {}).get("file")
+        for t in seg.pop("takes", None) or []:
+            if t.get("file") and t["file"] != playing:
+                (root / t["file"]).unlink(missing_ok=True)
+
     def _edit_target(self, m: dict):
         """La transcripción abierta y la frase pedida, si son del video que esta pestaña tiene abierto."""
         tr = self.tr
@@ -41,34 +49,42 @@ class EditMixin:
         text = " ".join(str(m.get("translation", "")).split())[:MAX_TEXT]
         if not text:
             return
-        if text == seg.get("translation"):  # mismo texto: solo las tomas, si las pidió
+        if text == seg.get("translation"):  # mismo texto: solo las tomas, si las pidió (la primera pasa a sonar)
             if m.get("takes"):
-                await self._seg_takes({**m, "n": m.get("takes")})
+                await self._takes_and_play(tr, seg, m)
             return
         tr.set_translation(seg["id"], text, "manual")
         seg["manual"] = True
-        seg.pop("takes", None)  # las tomas eran del texto anterior
+        self._drop_takes(tr, seg)  # las tomas eran del texto anterior
         tr.save()
         items = [{"id": seg["id"], "translation": text}]
         await self.ws.send_json({"type": "translations", "items": items})
         self.notify({"type": "bg", "video": tr.data["id"], "msg": {"type": "translations", "items": items}})
-        if m.get("takes") and self.dubber:  # «Rehacer voz»: tres tomas del texto nuevo; la elegida pasa a sonar
-            await self._seg_takes({**m, "n": m.get("takes")})
-            takes = seg.get("takes") or []
-            if takes:
-                seg["dub"] = dict(takes[0])
-                tr.save()
-                await self.ws.send_json(self._dub_msg(tr, seg, seg["dub"]))
+        if m.get("takes") and self.dubber:  # «Rehacer voz»: tres tomas del texto nuevo; la primera pasa a sonar
+            await self._takes_and_play(tr, seg, m)
         elif self.dubber:
             self._queue_dub(0, tr, seg, seg.get("orig_db"))  # primero en la cola de voz de esta pestaña
         elif self.processor:
             self.processor.add(tr.data["id"])
 
+    async def _takes_and_play(self, tr, seg, m: dict):
+        await self._seg_takes({**m, "n": m.get("takes")})
+        takes = seg.get("takes") or []
+        if takes:
+            seg["dub"] = dict(takes[0])
+            tr.save()
+            await self.ws.send_json(self._dub_msg(tr, seg, seg["dub"]))
+
     async def _seg_takes(self, m: dict):
         tr, seg = self._edit_target(m)
+        try:
+            n = max(2, min(4, int(float(m.get("n") or 3))))
+        except (TypeError, ValueError, OverflowError):
+            n = 3
         if seg is None or tr.transcribe_only or not self.dubber or not seg.get("translation"):
-            return
-        n = max(2, min(4, int(m.get("n") or 3)))
+            # siempre hay respuesta: el editor no se queda en «Generando tomas…»
+            return await self.ws.send_json({"type": "takes", "id": (seg or {}).get("id", m.get("seg")), "items": []})
+        self._drop_takes(tr, seg)
         loop = asyncio.get_running_loop()
         takes = []
         for k in range(1, n + 1):
@@ -91,8 +107,8 @@ class EditMixin:
         tr, seg = self._edit_target(m)
         takes = (seg or {}).get("takes") or []
         try:
-            k = int(m.get("k"))
-        except (TypeError, ValueError):
+            k = int(float(m.get("k")))
+        except (TypeError, ValueError, OverflowError):
             return
         if not 0 <= k < len(takes) or takes[k].get("text") != seg.get("translation"):
             return

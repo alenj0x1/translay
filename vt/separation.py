@@ -2,7 +2,9 @@
 voz doblada suene sobre el fondo entero en vez de sobre el original bajado (donde se seguía oyendo el inglés).
 
 Cuándo: al terminar de procesarse un video que se dobla (Processor.on_done), si «Fondo sin la voz original» está
-activado (Ajustes › Audio y subtítulos) y el equipo tiene el motor de voz (el entorno con torch). Uno a la vez, en un
+activado (Ajustes › Audio y subtítulos), el servidor corre con voz y el equipo tiene su entorno (torch y demucs). Hasta
+MAX_S de audio por video (medido con ffprobe en el archivo, no con lo que dice la biblioteca): uno más largo se queda
+con el original bajado. Uno a la vez, en un
 hilo propio, en la GPU si hay (0,08 del tiempo real, 575 MB) o en la CPU con la mitad de los hilos.
 
 Qué deja: <biblioteca>/audio/<video>/fondo.m4a (AAC estéreo) y el campo `bg` del video en la biblioteca
@@ -28,6 +30,8 @@ from .tts import venv_python
 MODEL_URL = "https://github.com/ZFTurbo/MVSEP-CDX23-Cinematic-Sound-Demixing/releases/download/v.1.0.0/97d170e1-dbb4db15.th"
 MODEL_NAME = "97d170e1-dbb4db15.th"
 MODEL_SHA256 = "dbb4db154df7e45a5cb72d1659c48937e757f6d6b0eef8ca4199e6e38f8d8f37"
+MAX_S = 3 * 3600
+MODEL_MAX_BYTES = 100 << 20  # el modelo pesa 54 MB: más es una descarga equivocada
 ENGINE = "omnivoice"  # el entorno del motor de voz trae torch (y demucs, desktop/locks/voice.txt)
 WORKER = Path(__file__).with_name("separate_worker.py")
 
@@ -37,19 +41,24 @@ def bg_url(vid: str) -> str:
 
 
 class Separator:
-    def __init__(self, data: Path, vaults, prefs, notify, media_of, library):
+    def __init__(self, data: Path, vaults, prefs, notify, media_of, library, enabled: bool = True):
+        self.enabled = enabled  # el servidor corre con motor de voz (sin voz no hay doblaje sobre el que poner el fondo)
         self.models = data / "models" / "separation"
         self.vaults, self.prefs, self.notify, self.media_of, self.library = vaults, prefs, notify, media_of, library
         self.q: "queue.Queue[str]" = queue.Queue()
         self.pending: set[str] = set()
         self.current: str | None = None
         self._ok: bool | None = None
+        self._ok_at = 0.0
         threading.Thread(target=self._loop, name="separacion", daemon=True).start()
 
     # ------------------------------------------------------------ cuándo
     def available(self) -> bool:
         """¿Hay entorno de voz con demucs? (se averigua una vez)"""
-        if self._ok is None:
+        if not self.enabled:
+            return False
+        if self._ok is None or (not self._ok and time.time() - self._ok_at > 600):  # se pudo instalar después
+            self._ok_at = time.time()
             py = venv_python(ENGINE)
             try:
                 self._ok = py.exists() and subprocess.run([str(py), "-c", "import demucs"], capture_output=True,
@@ -67,10 +76,10 @@ class Separator:
 
     def request(self, vid: str):
         """Un video terminó (o se abrió sin fondo): a la cola de separación si hace falta."""
-        if vid in self.pending or not self.wanted(vid) or not self.available():
+        if vid in self.pending or not self.enabled or not self.wanted(vid):
             return
         self.pending.add(vid)
-        self.q.put(vid)
+        self.q.put(vid)  # si el entorno sirve se mira en el hilo de separación, no en el de la cola
 
     # ------------------------------------------------------------ trabajo
     def weights(self) -> Path:
@@ -79,13 +88,19 @@ class Separator:
             return f
         self.models.mkdir(parents=True, exist_ok=True)
         tmp = f.with_suffix(".part")
-        with urllib.request.urlopen(MODEL_URL, timeout=60) as r, tmp.open("wb") as out:
-            while chunk := r.read(1 << 20):
-                out.write(chunk)
-        if _sha256(tmp) != MODEL_SHA256:
-            tmp.unlink(missing_ok=True)
-            raise RuntimeError("el modelo de separación descargado no coincide con su huella")
-        tmp.replace(f)
+        try:
+            got = 0
+            with urllib.request.urlopen(MODEL_URL, timeout=60) as r, tmp.open("wb") as out:
+                while chunk := r.read(1 << 20):
+                    got += len(chunk)
+                    if got > MODEL_MAX_BYTES:
+                        raise RuntimeError("la descarga del modelo de separación es más grande de lo esperado")
+                    out.write(chunk)
+            if _sha256(tmp) != MODEL_SHA256:
+                raise RuntimeError("el modelo de separación descargado no coincide con su huella")
+            tmp.replace(f)
+        finally:
+            tmp.unlink(missing_ok=True)  # cortada, rechazada o ya movida: no queda nada a medias
         return f
 
     def _loop(self):
@@ -93,7 +108,7 @@ class Separator:
             vid = self.q.get()
             self.current = vid
             try:
-                if self.wanted(vid):
+                if self.wanted(vid) and self.available():
                     self.separate(vid)
             except Exception as e:  # noqa: BLE001  un video que falla no frena a los demás
                 diag.error("separacion", f"{vid}: {e}")
@@ -109,7 +124,10 @@ class Separator:
         folder = vault.root / "audio" / vid
         folder.mkdir(parents=True, exist_ok=True)
         wav, out = folder / "fondo.tmp.wav", folder / "fondo.m4a"
-        dur = float((self.library.data["videos"].get(vid) or {}).get("duration") or 3600)
+        dur = _duration(src)  # del archivo: la de la biblioteca la puede poner quien importa
+        if not dur or dur > MAX_S:
+            print(f"[separacion] {vid}: {dur / 3600:.1f} h, más de {MAX_S // 3600} h: queda con el original bajado", flush=True)
+            return
         cmd = [str(venv_python(ENGINE)), "-u", str(WORKER), "--weights", str(self.weights()), "--input", str(src),
                "--out", str(wav)]
         t0 = time.time()
@@ -135,3 +153,12 @@ def _sha256(p: Path) -> str:
         while chunk := f.read(1 << 20):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _duration(p) -> float:
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(p)],
+                           capture_output=True, text=True, timeout=60)
+        return float(r.stdout.strip() or 0)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return 0.0

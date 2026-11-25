@@ -59,7 +59,13 @@ python tests/e2e/run.py --failed    # again the ones that failed last time
 python tests/e2e/run.py --headed    # with a window, to watch it
 ```
 
-`--changed` maps each changed file to the suites that cover it (a table in `run.py`: docs and labs need none; shared test code or app code without a rule means every suite). A full pass with no uncommitted changes is recorded in `tests/e2e/.record.json`. Everything a run creates (data, server, browser, files in Downloads) is deleted when it ends, and leftovers of an earlier run are swept when it starts.
+`--changed` maps each changed file to the suites that cover it (a table in `run.py`: docs and labs need none; shared test code or app code without a rule means every suite). A full pass with no uncommitted changes is recorded in `tests/e2e/.record.json`. Everything a run creates (data, server, browser, files in Downloads) is deleted when it ends, and leftovers of an earlier run are swept when it starts. Only one run at a time: a second one stops at once instead of sweeping the first.
+
+`--installed` checks the installed desktop app (`tests/e2e/desktop.py`) the way a person opens it: it starts `translay.exe` with WebView2's debugging port, waits for the page (up to 15 minutes the first time after an update, while the voice environment is completed), goes through the home and every Settings page, checks the window shows a picture and closes everything it opened. It is read-only, because it uses this computer's real library and settings; with Translay already open it is skipped and says so.
+
+```sh
+python tests/e2e/run.py --installed
+```
 
 ## Measurement tools
 

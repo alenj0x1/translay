@@ -32,6 +32,8 @@ The same entries in Spanish: [CHANGELOG.es.md](https://github.com/alenj0x1/trans
 - Guests: a «Solo ver» guest no longer gets «No tienes permiso para esta acción en esta biblioteca» when opening a video (the page asked to register it in the library). The page now only asks the server for what the viewer may do.
 - Guests: a video that isn't fully dubbed no longer stays paused for a «Solo ver» guest at «Se reanuda al estar listo 0 %». Nothing is processed for them, so they hear the original where the voice is missing and the bar says so.
 - The page shows Translay's icon in the browser tab (it asked for `/favicon.ico` and got an error).
+- Screen recording: a recording no longer fills the disk. The server stops taking it with 1 GB left free (or at 24 GB per recording); the rest waits on this device under **Sin espacio en el disco** and is uploaded once there is room.
+- Desktop app: the window only opens the address of the server it started (loopback and the port it chose), read from the server's own output, never from its errors.
 
 ## 1.14.0 · 2026-11-14
 

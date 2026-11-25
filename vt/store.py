@@ -30,7 +30,7 @@ from . import langs
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
 _LANG_CODE = re.compile(r"^[a-z]{2,3}$")  # código de Whisper (un idioma detectado puede no estar en el registro)
 MODES = ("translate", "transcribe")
-_PER_TARGET = ("translation", "tr_model", "dub")  # campos de cada frase que dependen del idioma de destino
+_PER_TARGET = ("translation", "tr_model", "dub", "manual", "takes")  # campos de cada frase que dependen del idioma de destino
 
 
 def merge_ranges(ranges: list[list[float]], tol: float = 0.25) -> list[list[float]]:

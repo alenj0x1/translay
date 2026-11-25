@@ -59,7 +59,13 @@ python tests/e2e/run.py --failed    # otra vez las que fallaron la última vez
 python tests/e2e/run.py --headed    # con ventana, para mirarla
 ```
 
-`--changed` relaciona cada archivo cambiado con las suites que lo cubren (una tabla en `run.py`: documentación y labs no necesitan ninguna; código de prueba compartido o código de la app sin regla, todas). Una pasada completa sin cambios sin guardar queda anotada en `tests/e2e/.record.json`. Todo lo que crea una corrida (datos, servidor, navegador, archivos en Descargas) se borra al terminar, y lo que haya quedado de una corrida anterior se barre al empezar.
+`--changed` relaciona cada archivo cambiado con las suites que lo cubren (una tabla en `run.py`: documentación y labs no necesitan ninguna; código de prueba compartido o código de la app sin regla, todas). Una pasada completa sin cambios sin guardar queda anotada en `tests/e2e/.record.json`. Todo lo que crea una corrida (datos, servidor, navegador, archivos en Descargas) se borra al terminar, y lo que haya quedado de una corrida anterior se barre al empezar. Una corrida a la vez: una segunda se detiene en el acto en vez de barrer la primera.
+
+`--installed` prueba la app de escritorio instalada (`tests/e2e/desktop.py`) como la abre la persona: arranca `translay.exe` con el puerto de depuración de WebView2, espera la página (hasta 15 minutos la primera vez después de actualizar, mientras se completa el entorno de voz), recorre el inicio y cada página de Ajustes, mira que la ventana tenga imagen y cierra todo lo que abrió. Es de solo lectura, porque usa la biblioteca y los ajustes reales del equipo; con Translay ya abierto se salta y lo dice.
+
+```sh
+python tests/e2e/run.py --installed
+```
 
 ## Herramientas de medición
 
