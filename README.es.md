@@ -43,6 +43,7 @@ Traduce y dobla videos entre inglés, español y portugués, y desde el italiano
 - **Quién habla**: diarización propia (huella de voz WeSpeaker en ONNX + agrupamiento en línea). 97,6 % de frases con la persona correcta en 12 videos de prueba con 2 a 4 personas, con y sin ruido.
 - **Doblaje con la voz de cada persona**: OmniVoice clona su voz a partir de sus mejores frases (hasta 8 s, limpiadas con DeepFilterNet si tienen ruido). Cada frase calza en su espacio (duración pedida al motor y WSOLA de respaldo, sin cambiar el tono) y suena al mismo volumen que el original.
 - **Sincronizada**: desfase mediano de 0,08 s entre la voz y la imagen.
+- **Fondo sin la voz original**: al terminar de doblar un video, su música y sus efectos se separan de la voz (CDX23 en la GPU) y la voz doblada suena sobre ellos: ya no se oye el idioma original debajo (de unos −17 dB a entre −34 y −59 dB en los diálogos de prueba).
 - **Lo hecho no se rehace**: cada video se reconoce por una huella de su contenido. Si cambia la traducción, la persona o el motor de voz, solo esas frases se vuelven a doblar.
 
 ### Reproductor
@@ -52,6 +53,8 @@ Traduce y dobla videos entre inglés, español y portugués, y desde el italiano
 - Velocidad de 0,75× a 2× sin cambiar el tono, pantalla completa, atajos de teclado.
 - Indicador **«Preparando NN %» / «Listo para reproducir»** calculado con la velocidad real del doblaje; puede pausar solo hasta que haya voz por delante y seguir solo.
 - **Transcripción alineada** (original | español) con quién habla cada frase, **comentarios** por frase (marcados en la línea de avance) y clic para saltar.
+- **Corregir una frase** ahí mismo en la transcripción (doble clic): la traducción nueva se conserva aunque cambien el glosario o el traductor, y **Rehacer voz** la dobla en tres tomas para elegir.
+- **Capítulos** en la línea de avance, tomados del resumen, con el actual junto a la hora.
 - **Resumen** de qué se trató el video, con todos sus puntos importantes y su minuto (clic para saltar), hecho en tu equipo con Qwen3 (4B, 1.7B o 0.6B, según tu equipo); al pedirlo o para cada video.
 - **Personas**: ponle nombre a cada una, elige su voz (la suya, la de otra persona del video o una **persona guardada** en la biblioteca) y escucha su referencia.
 - **Siguientes** (la colección o playlist desde donde abriste) con reproducción automática del próximo, y **miniatura flotante** al volver a la biblioteca.
@@ -60,6 +63,7 @@ Traduce y dobla videos entre inglés, español y portugués, y desde el italiano
 
 - **YouTube**: videos, `shorts/`, `live/`, playlists (se importan como colección y se actualizan al volver a pegarlas), varios enlaces mezclados con texto o un **CSV con miles de enlaces**. Pega un enlace en cualquier parte de la página.
 - **Archivos de tu equipo**: videos y audios, arrastrándolos a la página.
+- **Grabar la pantalla**: una pestaña, una ventana o toda la pantalla. En Windows 11 una ventana trae solo el sonido de su app (en Windows 10 se pueden silenciar las demás apps mientras graba). Una grabación nunca se pierde: si la página o la app se cierran, el servidor arma lo que recibió.
 - **Un solo botón «Agregar»** que aprende lo que más usas en este navegador (pegar un enlace, subir archivos, grabar la pantalla o pegar varios enlaces); su ▾ siempre muestra todas las formas de agregar.
 - Agregar **directo a una colección o categoría**, «Solo descargar» (sin usar la GPU) o «Solo el audio» (más rápido; el video se baja después si hace falta).
 - **Una sola cola en el servidor** que sobrevive a recargar o cerrar la pestaña: primero el video que ves, después lo priorizado, después el resto. Pausa, «Priorizar», pantalla propia con estados (Descargando, Procesando, En cola, Con error, Listos…).
@@ -83,6 +87,7 @@ Traduce y dobla videos entre inglés, español y portugués, y desde el italiano
 - **Subtítulos en vivo sobre cualquier ventana**: una franja abajo de la pantalla con la traducción en vivo de lo que suena en el equipo (videollamadas, juegos, transmisiones). Los clics la atraviesan; una manija que aparece al pasar el mouse la mueve, y nada de lo que escucha se guarda.
 - **Bandeja del sistema** opcional para que la cola siga trabajando con la ventana cerrada (al terminar, Translay se cierra); una sola instancia; el servidor, sus modelos y todo lo que lanza se cierran con la app, así nada sigue usando la GPU ni la RAM.
 - **Tu biblioteca donde quieras** (por defecto `Videos\Translay`), elegida al instalar y cambiable después.
+- **Guardar informe** (Ajustes › Rendimiento): cada error deja una línea en el registro de la app, y un botón escribe un informe de diagnóstico en Descargas, sin tu nombre de usuario, tokens ni claves, para adjuntarlo al reportar un problema.
 
 ### Exportar
 

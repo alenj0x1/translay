@@ -43,6 +43,7 @@ Translate and dub videos between English, Spanish and Portuguese, and from Itali
 - **Who is speaking**: custom diarization (WeSpeaker voiceprint in ONNX + online clustering). 97.6% of sentences assigned to the right person across 12 test videos with 2 to 4 people, with and without noise.
 - **Dubbing in each person's voice**: OmniVoice clones their voice from their best sentences (up to 8 s, cleaned with DeepFilterNet if noisy). Each sentence fits its slot (duration requested from the engine with WSOLA as a fallback, without changing pitch) and plays at the same volume as the original.
 - **In sync**: median offset of 0.08 s between voice and picture.
+- **Background without the original voice**: when a video finishes dubbing, its music and effects are separated from the voice (CDX23 on the GPU), and the dubbed voice plays over them: the original language is no longer heard underneath (from about −17 dB to between −34 and −59 dB in the test dialogues).
 - **Finished work is never redone**: each video is identified by a fingerprint of its content. If the translation, the person or the voice engine changes, only those sentences are dubbed again.
 
 ### Player
@@ -52,6 +53,8 @@ Translate and dub videos between English, Spanish and Portuguese, and from Itali
 - Speed from 0.75× to 2× without changing pitch, fullscreen, keyboard shortcuts.
 - **«Preparando NN %» / «Listo para reproducir»** (Preparing NN% / Ready to play) indicator, computed from the real dubbing speed; it can pause by itself until there is voice ahead and resume on its own.
 - **Aligned transcript** (original | Spanish) showing who speaks each sentence, per-sentence **comments** (marked on the progress bar) and click to jump.
+- **Fix a sentence** right in the transcript (double-click): the new translation is kept even if the glossary or the translator changes, and **Rehacer voz** (Redo voice) dubs it in three takes to choose from.
+- **Chapters** on the progress line, taken from the summary, with the current one next to the time.
 - **Summary** of what the video was about, with all its important points and their minute (click to jump), made on your computer with Qwen3 (4B, 1.7B or 0.6B, chosen for your hardware); on demand or for every video.
 - **People**: name each one, choose their voice (their own, another person's from the video, or a **saved person** from the library) and listen to their reference.
 - **Up next** (the collection or playlist you opened it from) with autoplay of the next video, and a **floating thumbnail** when you go back to the library.
@@ -60,6 +63,7 @@ Translate and dub videos between English, Spanish and Portuguese, and from Itali
 
 - **YouTube**: videos, `shorts/`, `live/`, playlists (imported as a collection and updated when you paste them again), several links mixed with text, or a **CSV with thousands of links**. Paste a link anywhere on the page.
 - **Files from your machine**: videos and audio, by dragging them onto the page.
+- **Record the screen**: a tab, a window or the whole screen. On Windows 11 a window brings only its app's sound (on Windows 10 the other apps can be muted while it records). A recording is never lost: if the page or the app closes, the server puts together what it received.
 - **One «Agregar» (Add) button** that learns what you use most in this browser (paste a link, upload files, record the screen or paste several links); its ▾ always shows every way to add.
 - Add **straight into a collection or category**, **«Solo descargar»** (Download only; doesn't use the GPU) or **«Solo el audio»** (Audio only; faster, and the video is downloaded later if needed).
 - **A single server-side queue** that survives reloading or closing the tab: first the video you are watching, then prioritized items, then the rest. Pause, **«Priorizar»** (Prioritize), and a dedicated screen with states (Descargando, Procesando, En cola, Con error, Listos… — Downloading, Processing, Queued, Failed, Done).
@@ -83,6 +87,7 @@ Translate and dub videos between English, Spanish and Portuguese, and from Itali
 - **Live subtitles over any window**: a strip at the bottom of the screen with the live translation of whatever the computer is playing (video calls, games, streams). Clicks go through it; a handle that appears on hover moves it, and nothing it hears is saved.
 - Optional **system tray** so the queue keeps working with the window closed (when it finishes, Translay quits); a single instance; the server, its models and everything it launches close with the app, so nothing keeps using the GPU or RAM.
 - **Your library wherever you want** (by default `Videos\Translay`), chosen at install time and changeable later.
+- **Save report** (Settings › Performance): every error leaves one line in the app's log, and one button writes a diagnostics report to Downloads, without your user name, tokens or keys, to attach to a bug report.
 
 ### Export
 

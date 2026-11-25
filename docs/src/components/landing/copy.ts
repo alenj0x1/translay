@@ -55,7 +55,7 @@ export const demoEnd = 37;
 const es = {
   meta: {
     title: "Translay · Cualquier video, en tu idioma y con la voz de cada persona",
-    description: "Translay transcribe, traduce y dobla videos en español, inglés y portugués con la voz clonada de cada persona, traduce el texto que aparece en pantalla y te deja preguntarle al video. Gratis, de código abierto y en tu computadora.",
+    description: "Translay transcribe, traduce y dobla videos en español, inglés y portugués (y del italiano, el japonés y el coreano) con la voz clonada de cada persona, traduce el texto que aparece en pantalla y te deja preguntarle al video. Gratis, de código abierto y en tu computadora.",
   },
   nav: { features: "Funciones", custom: "Hazlo tuyo", how: "Cómo funciona", install: "Instalar", docs: "Documentación", download: "Descargar", theme: "Cambiar entre claro y oscuro", menu: "Menú" },
   depth: "profundidad",
@@ -67,14 +67,14 @@ const es = {
     docs: "Leer la documentación",
     version: "Versión",
     whatsNew: "Novedades",
-    facts: ["Gratis y de código abierto", "Español, inglés y portugués", "Sin enviar nada a la nube"],
+    facts: ["Gratis y de código abierto", "De 6 idiomas al español, inglés y portugués", "Sin enviar nada a la nube"],
     shotAlt: "El inicio de Translay con la escena de caracteres de fondo, la barra lateral y los videos por colección",
   },
   stats: [
     { n: "97,6 %", l: "de las frases van a la persona que las dijo" },
     { n: "0,08 s", l: "de desfase típico entre la voz y la imagen" },
     { n: "2,2×", l: "más rápido que el video, con una GPU de 8 GB" },
-    { n: "3", l: "idiomas que entiende y a los que dobla" },
+    { n: "6", l: "idiomas que entiende, y dobla a 3" },
   ],
   statsNote: "En 12 videos de prueba con 2 a 4 personas, con y sin ruido. La velocidad, sobre un pódcast con ruido de cafetería.",
   player: {
@@ -211,6 +211,9 @@ const es = {
       ["keyboard", "Atajos de teclado", "Reproducir, adelantar, subtítulos, velocidad y pantalla completa sin el mouse."],
       ["message-circle", "Comentarios", "En cualquier frase, marcados en la barra de avance."],
       ["device-desktop", "App de escritorio", "Su propia ventana, la bandeja del sistema y un instalador que lo prepara todo."],
+      ["badge-cc", "Subtítulos en vivo", "Sobre cualquier ventana, la traducción de lo que suena en el equipo, en una franja que deja pasar los clics."],
+      ["pencil", "Corregir una frase", "Edita la traducción en la transcripción y elige entre tres tomas de su voz."],
+      ["music", "Fondo sin la voz original", "Bajo la voz doblada suenan la música y los efectos del video, sin el idioma original."],
     ],
   },
   perf: {
@@ -266,7 +269,7 @@ const es = {
     t1: "Preguntas", t2: "frecuentes",
     items: [
       ["¿Cuesta algo?", "No. Translay es gratis y de código abierto, con licencia MIT. Los modelos que usa conservan sus propias licencias."],
-      ["¿Qué idiomas traduce?", "Entiende inglés, portugués y español, y traduce y dobla a cualquiera de los tres. La interfaz, el agente y los resúmenes también están en los tres. Cualquier video se puede solo transcribir, en su idioma."],
+      ["¿Qué idiomas traduce?", "Entiende inglés, portugués, español, italiano, japonés y coreano, y traduce y dobla a inglés, portugués o español. La interfaz, el agente y los resúmenes también están en los tres. Cualquier video se puede solo transcribir, en su idioma."],
       ["¿Necesito internet?", "Solo para descargar videos de YouTube y los modelos la primera vez. Traducir, doblar, leer la pantalla y responder preguntas ocurre en tu computadora."],
       ["¿Funciona sin una GPU NVIDIA?", "Sí, con subtítulos, transcripción, texto del video y el agente. La voz clonada necesita una GPU NVIDIA, desde 4 GB con modelos más livianos."],
       ["¿Qué sabe el agente?", "Lo que se dice en el video, quién lo dice y lo que aparece en pantalla. Responde en tu equipo, sin internet, y cada momento que menciona es un botón que lleva ahí."],
@@ -285,7 +288,7 @@ const es = {
 const en: typeof es = {
   meta: {
     title: "Translay · Any video, in your language, in each person's voice",
-    description: "Translay transcribes, translates and dubs videos in English, Spanish and Portuguese with each person's cloned voice, translates the text on screen and lets you ask the video anything. Free, open source and on your own computer.",
+    description: "Translay transcribes, translates and dubs videos in English, Spanish and Portuguese (and from Italian, Japanese and Korean) with each person's cloned voice, translates the text on screen and lets you ask the video anything. Free, open source and on your own computer.",
   },
   nav: { features: "Features", custom: "Make it yours", how: "How it works", install: "Install", docs: "Docs", download: "Download", theme: "Switch between light and dark", menu: "Menu" },
   depth: "depth",
@@ -297,14 +300,14 @@ const en: typeof es = {
     docs: "Read the docs",
     version: "Version",
     whatsNew: "What's new",
-    facts: ["Free and open source", "English, Spanish and Portuguese", "Nothing sent to the cloud"],
+    facts: ["Free and open source", "From 6 languages into English, Spanish and Portuguese", "Nothing sent to the cloud"],
     shotAlt: "Translay's home with the character scene in the background, the sidebar and videos by collection",
   },
   stats: [
     { n: "97.6%", l: "of sentences go to the person who said them" },
     { n: "0.08 s", l: "typical offset between voice and picture" },
     { n: "2.2×", l: "faster than the video, on an 8 GB GPU" },
-    { n: "3", l: "languages it understands and dubs into" },
+    { n: "6", l: "languages it understands, dubbing into 3" },
   ],
   statsNote: "Across 12 test videos with 2 to 4 people, with and without noise. Speed, on a podcast with café noise.",
   player: {
@@ -440,6 +443,9 @@ const en: typeof es = {
       ["keyboard", "Keyboard shortcuts", "Play, skip, subtitles, speed and full screen without the mouse."],
       ["message-circle", "Comments", "On any sentence, marked on the progress bar."],
       ["device-desktop", "Desktop app", "Its own window, the system tray and an installer that sets everything up."],
+      ["badge-cc", "Live subtitles", "Over any window, the translation of whatever the computer plays, in a strip that lets clicks through."],
+      ["pencil", "Fix a sentence", "Edit the translation in the transcript and pick one of three takes of its voice."],
+      ["music", "Background without the original voice", "Under the dubbed voice you hear the video's music and effects, without the original language."],
     ],
   },
   perf: {
@@ -495,7 +501,7 @@ const en: typeof es = {
     t1: "Frequently", t2: "asked questions",
     items: [
       ["Does it cost anything?", "No. Translay is free and open source, under the MIT license. The models it uses keep their own licenses."],
-      ["Which languages does it translate?", "It understands English, Portuguese and Spanish, and translates and dubs into any of the three. The interface, the agent and the summaries are in all three too. Any video can also be only transcribed, in its own language."],
+      ["Which languages does it translate?", "It understands English, Portuguese, Spanish, Italian, Japanese and Korean, and translates and dubs into English, Portuguese or Spanish. The interface, the agent and the summaries are in all three too. Any video can also be only transcribed, in its own language."],
       ["Do I need internet?", "Only to download YouTube videos and the models the first time. Translating, dubbing, reading the screen and answering questions happen on your computer."],
       ["Does it work without an NVIDIA GPU?", "Yes, with subtitles, transcript, on-screen text and the agent. The cloned voice needs an NVIDIA GPU, from 4 GB with lighter models."],
       ["What does the agent know?", "What is said in the video, who says it and what appears on screen. It answers on your computer, without internet, and every moment it mentions is a button that takes you there."],
