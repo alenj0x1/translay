@@ -15,6 +15,19 @@ import threading
 from pathlib import Path
 
 _MARK = re.compile(r"ZQXJ(\d+)")
+# coreano y japonés: las partículas van pegadas al nombre («투둥이의», «트와이스를», «東京で»), así que un término que
+# termina en hangul, kana o kanji no pide borde detrás; el japonés tampoco separa palabras con espacios, así que uno que
+# empieza en kana o kanji tampoco lo pide delante
+_HANGUL = re.compile(r"[가-힯ᄀ-ᇿ]")
+_KANA_KANJI = re.compile(r"[぀-ヿ㐀-鿿]")
+
+
+def _before(src: str) -> str:
+    return "" if _KANA_KANJI.match(src[0]) else r"(?<![\w-])"
+
+
+def _after(src: str) -> str:
+    return "" if _HANGUL.match(src[-1]) or _KANA_KANJI.match(src[-1]) else r"(?![\w-])"
 
 
 class Glossary:
@@ -43,7 +56,7 @@ class Glossary:
     def _compile(self):
         # los términos más largos primero ("Jupyter Notebook" antes que "Notebook")
         ordered = sorted(self.entries, key=lambda e: -len(e["src"]))
-        self._rules = [(re.compile(r"(?<![\w-])" + re.escape(e["src"]) + r"(?![\w-])", re.I), e) for e in ordered]
+        self._rules = [(re.compile(_before(e["src"]) + re.escape(e["src"]) + _after(e["src"]), re.I), e) for e in ordered]
 
     @property
     def version(self) -> str:

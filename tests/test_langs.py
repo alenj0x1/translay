@@ -422,3 +422,16 @@ def test_korean_interjections_go_in_their_meaning():
     assert preedit("화이팅~", "ko") == "Let's go~"
     assert preedit("짠! TTT 거의 1년 만인데.", "ko") == "Ta-da! TTT 거의 1년 만인데."
     assert preedit("짠 음식은 싫어.", "ko") == "짠 음식은 싫어."
+
+
+def test_glossary_terms_with_korean_and_japanese_particles(tmp_path):
+    """Las partículas van pegadas al nombre: «투둥이의», «트와이스를», «東京で» también son el término."""
+    from vt.glossary import Glossary
+
+    g = Glossary(tmp_path / "g.json")
+    g.set([{"src": "투둥이", "dst": "Tdoong"}, {"src": "트와이스", "dst": "TWICE"}, {"src": "東京", "dst": "Tokio"},
+           {"src": "note", "dst": ""}])
+    assert g.protect("투둥이의 숲") == ("ZQXJ1의 숲", ["Tdoong"])
+    assert g.protect("트와이스를 좋아해요.")[0] == "ZQXJ1를 좋아해요."
+    assert g.protect("今日は東京で会った")[0] == "今日はZQXJ1で会った"
+    assert g.protect("a notebook")[0] == "a notebook"  # en inglés sigue haciendo falta el borde
